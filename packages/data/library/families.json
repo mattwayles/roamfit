@@ -1,3 +1,304 @@
 {
-  "families": []
+  "families": [
+    {
+      "id": "horizontal_push",
+      "name": "Horizontal Push",
+      "pattern": "horizontal_push",
+      "levels": [
+        {
+          "level_id": "horizontal_push.l1",
+          "exercise_id": "bw-wall-push-up"
+        },
+        {
+          "level_id": "horizontal_push.l2",
+          "exercise_id": "bw-incline-push-up"
+        },
+        {
+          "level_id": "horizontal_push.l3",
+          "exercise_id": "bw-knee-push-up"
+        },
+        {
+          "level_id": "horizontal_push.l4",
+          "exercise_id": "bw-push-up"
+        },
+        {
+          "level_id": "horizontal_push.l5",
+          "exercise_id": "banded-push-up"
+        },
+        {
+          "level_id": "horizontal_push.l6",
+          "exercise_id": "bw-diamond-push-up"
+        },
+        {
+          "level_id": "horizontal_push.l7",
+          "exercise_id": "bw-decline-push-up"
+        },
+        {
+          "level_id": "horizontal_push.l8",
+          "exercise_id": "bw-archer-push-up"
+        },
+        {
+          "level_id": "horizontal_push.l9",
+          "exercise_id": "bw-one-arm-push-up"
+        }
+      ]
+    },
+    {
+      "id": "horizontal_pull",
+      "name": "Horizontal Pull",
+      "pattern": "horizontal_pull",
+      "levels": [
+        {
+          "level_id": "horizontal_pull.l1",
+          "exercise_id": "pull-apart"
+        },
+        {
+          "level_id": "horizontal_pull.l2",
+          "exercise_id": "door-row"
+        },
+        {
+          "level_id": "horizontal_pull.l3",
+          "exercise_id": "seated-row"
+        },
+        {
+          "level_id": "horizontal_pull.l4",
+          "exercise_id": "bent-over-row"
+        },
+        {
+          "level_id": "horizontal_pull.l5",
+          "exercise_id": "bw-inverted-row"
+        },
+        {
+          "level_id": "horizontal_pull.l6",
+          "exercise_id": "wide-high-row"
+        },
+        {
+          "level_id": "horizontal_pull.l7",
+          "exercise_id": "single-arm-row"
+        },
+        {
+          "level_id": "horizontal_pull.l8",
+          "exercise_id": "banded-archer-row"
+        }
+      ]
+    },
+    {
+      "id": "vertical_push",
+      "name": "Vertical Push",
+      "pattern": "vertical_push",
+      "levels": [
+        {
+          "level_id": "vertical_push.l1",
+          "exercise_id": "overhead-press"
+        },
+        {
+          "level_id": "vertical_push.l2",
+          "exercise_id": "half-kneeling-ohp"
+        },
+        {
+          "level_id": "vertical_push.l3",
+          "exercise_id": "single-arm-ohp"
+        },
+        {
+          "level_id": "vertical_push.l4",
+          "exercise_id": "bw-dip"
+        },
+        {
+          "level_id": "vertical_push.l5",
+          "exercise_id": "bw-pike-push-up"
+        },
+        {
+          "level_id": "vertical_push.l6",
+          "exercise_id": "pike-push-up"
+        },
+        {
+          "level_id": "vertical_push.l7",
+          "exercise_id": "bw-wall-hspu"
+        }
+      ]
+    },
+    {
+      "id": "vertical_pull",
+      "name": "Vertical Pull",
+      "pattern": "vertical_pull",
+      "levels": [
+        {
+          "level_id": "vertical_pull.l1",
+          "exercise_id": "bw-dead-hang"
+        },
+        {
+          "level_id": "vertical_pull.l2",
+          "exercise_id": "straight-arm-pulldown"
+        },
+        {
+          "level_id": "vertical_pull.l3",
+          "exercise_id": "floor-pullover"
+        },
+        {
+          "level_id": "vertical_pull.l4",
+          "exercise_id": "lat-pulldown"
+        },
+        {
+          "level_id": "vertical_pull.l5",
+          "exercise_id": "upright-row"
+        },
+        {
+          "level_id": "vertical_pull.l6",
+          "exercise_id": "assisted-pull-up"
+        },
+        {
+          "level_id": "vertical_pull.l7",
+          "exercise_id": "bw-chin-up"
+        },
+        {
+          "level_id": "vertical_pull.l8",
+          "exercise_id": "bw-pull-up"
+        },
+        {
+          "level_id": "vertical_pull.l9",
+          "exercise_id": "bw-archer-pull-up"
+        }
+      ]
+    },
+    {
+      "id": "squat",
+      "name": "Squat",
+      "pattern": "squat",
+      "levels": [
+        {
+          "level_id": "squat.l1",
+          "exercise_id": "bw-squat"
+        },
+        {
+          "level_id": "squat.l2",
+          "exercise_id": "bw-squat-pulse"
+        },
+        {
+          "level_id": "squat.l3",
+          "exercise_id": "goblet-squat"
+        },
+        {
+          "level_id": "squat.l4",
+          "exercise_id": "banded-squat"
+        },
+        {
+          "level_id": "squat.l5",
+          "exercise_id": "front-squat"
+        },
+        {
+          "level_id": "squat.l6",
+          "exercise_id": "bw-jump-squat"
+        },
+        {
+          "level_id": "squat.l7",
+          "exercise_id": "bw-pistol-squat"
+        }
+      ]
+    },
+    {
+      "id": "hinge",
+      "name": "Hinge",
+      "pattern": "hinge",
+      "levels": [
+        {
+          "level_id": "hinge.l1",
+          "exercise_id": "bw-good-morning"
+        },
+        {
+          "level_id": "hinge.l2",
+          "exercise_id": "bw-glute-bridge"
+        },
+        {
+          "level_id": "hinge.l3",
+          "exercise_id": "rdl"
+        },
+        {
+          "level_id": "hinge.l4",
+          "exercise_id": "deadlift"
+        },
+        {
+          "level_id": "hinge.l5",
+          "exercise_id": "sumo-deadlift"
+        },
+        {
+          "level_id": "hinge.l6",
+          "exercise_id": "single-leg-rdl"
+        },
+        {
+          "level_id": "hinge.l7",
+          "exercise_id": "bw-nordic-curl"
+        }
+      ]
+    },
+    {
+      "id": "lunge",
+      "name": "Lunge",
+      "pattern": "lunge",
+      "levels": [
+        {
+          "level_id": "lunge.l1",
+          "exercise_id": "bw-reverse-lunge"
+        },
+        {
+          "level_id": "lunge.l2",
+          "exercise_id": "split-squat"
+        },
+        {
+          "level_id": "lunge.l3",
+          "exercise_id": "bw-walking-lunge"
+        },
+        {
+          "level_id": "lunge.l4",
+          "exercise_id": "lateral-lunge"
+        },
+        {
+          "level_id": "lunge.l5",
+          "exercise_id": "step-up"
+        },
+        {
+          "level_id": "lunge.l6",
+          "exercise_id": "bulgarian-split-squat"
+        },
+        {
+          "level_id": "lunge.l7",
+          "exercise_id": "bw-cossack-squat"
+        }
+      ]
+    },
+    {
+      "id": "anti_extension",
+      "name": "Anti Extension",
+      "pattern": "anti_extension",
+      "levels": [
+        {
+          "level_id": "anti_extension.l1",
+          "exercise_id": "bw-dead-bug"
+        },
+        {
+          "level_id": "anti_extension.l2",
+          "exercise_id": "bw-bird-dog"
+        },
+        {
+          "level_id": "anti_extension.l3",
+          "exercise_id": "bw-plank"
+        },
+        {
+          "level_id": "anti_extension.l4",
+          "exercise_id": "banded-plank"
+        },
+        {
+          "level_id": "anti_extension.l5",
+          "exercise_id": "bw-side-plank"
+        },
+        {
+          "level_id": "anti_extension.l6",
+          "exercise_id": "side-plank-abduction"
+        },
+        {
+          "level_id": "anti_extension.l7",
+          "exercise_id": "bw-hollow-hold"
+        }
+      ]
+    }
+  ]
 }

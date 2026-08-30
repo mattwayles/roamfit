@@ -30,8 +30,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l5",
       "contraindications": [
         "shoulder_horizontal",
         "wrist_extension"
@@ -345,8 +345,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_push",
+      "progression_level_id": "vertical_push.l1",
       "contraindications": [
         "shoulder_overhead"
       ],
@@ -385,8 +385,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_push",
+      "progression_level_id": "vertical_push.l3",
       "contraindications": [
         "shoulder_overhead"
       ],
@@ -426,8 +426,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_push",
+      "progression_level_id": "vertical_push.l2",
       "contraindications": [
         "shoulder_overhead"
       ],
@@ -466,8 +466,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_push",
+      "progression_level_id": "vertical_push.l6",
       "contraindications": [
         "shoulder_overhead",
         "wrist_extension"
@@ -580,8 +580,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_pull",
+      "progression_level_id": "vertical_pull.l5",
       "contraindications": [
         "shoulder_overhead"
       ],
@@ -620,8 +620,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l1",
       "contraindications": [],
       "setup": "Hold band at shoulder width, arms straight in front. Pull apart to chest, squeeze shoulder blades.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Pull-Apart+proper+form+tutorial",
@@ -730,8 +730,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l3",
       "contraindications": [],
       "setup": "Sit tall, legs straight, band looped around both feet. Row to lower ribs, elbows close.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Seated+Row+proper+form+tutorial",
@@ -769,8 +769,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l4",
       "contraindications": [],
       "setup": "Stand mid-band, hinge to ~45 deg with a flat back. Row band to your hips.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Bent-Over+Row+proper+form+tutorial",
@@ -808,8 +808,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l7",
       "contraindications": [],
       "setup": "Stand on band with opposite foot, hinge, row one arm to hip. Resist trunk rotation.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Single-Arm+Bent-Over+Row+proper+form+tutorial",
@@ -846,8 +846,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l2",
       "contraindications": [],
       "setup": "Anchor at chest height, step back into tension. Row to ribs, shoulder blades back and down.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Door-Anchor+Horizontal+Row+proper+form+tutorial",
@@ -883,8 +883,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_pull",
+      "progression_level_id": "vertical_pull.l4",
       "contraindications": [
         "shoulder_overhead"
       ],
@@ -922,8 +922,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_pull",
+      "progression_level_id": "vertical_pull.l2",
       "contraindications": [
         "shoulder_overhead"
       ],
@@ -961,8 +961,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_pull",
+      "progression_level_id": "vertical_pull.l6",
       "contraindications": [
         "shoulder_overhead"
       ],
@@ -998,8 +998,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l6",
       "contraindications": [],
       "setup": "Anchor slightly above head. Pull wide toward upper chest with flared elbows.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Wide+High+Row+proper+form+tutorial",
@@ -1441,8 +1441,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "squat",
+      "progression_level_id": "squat.l4",
       "contraindications": [
         "knee_flexion_loaded"
       ],
@@ -1481,8 +1481,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "squat",
+      "progression_level_id": "squat.l5",
       "contraindications": [
         "core_pressure",
         "knee_flexion_loaded"
@@ -1521,8 +1521,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "squat",
+      "progression_level_id": "squat.l3",
       "contraindications": [
         "knee_flexion_loaded"
       ],
@@ -1559,8 +1559,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "lunge",
+      "progression_level_id": "lunge.l2",
       "contraindications": [
         "knee_flexion_loaded"
       ],
@@ -1596,8 +1596,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "lunge",
+      "progression_level_id": "lunge.l6",
       "contraindications": [
         "hip",
         "knee_flexion_loaded"
@@ -1676,8 +1676,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "lunge",
+      "progression_level_id": "lunge.l4",
       "contraindications": [
         "hip",
         "knee_flexion_loaded"
@@ -1716,8 +1716,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "lunge",
+      "progression_level_id": "lunge.l5",
       "contraindications": [
         "hip",
         "knee_flexion_loaded"
@@ -1758,8 +1758,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l3",
       "contraindications": [
         "core_pressure",
         "lower_back_extension"
@@ -1799,8 +1799,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l6",
       "contraindications": [
         "core_pressure",
         "hip",
@@ -1843,8 +1843,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l4",
       "contraindications": [
         "core_pressure",
         "lower_back_extension"
@@ -1884,8 +1884,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l5",
       "contraindications": [
         "core_pressure",
         "hip",
@@ -3023,8 +3023,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l4",
       "contraindications": [
         "core_pressure"
       ],
@@ -3146,8 +3146,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l6",
       "contraindications": [
         "core_pressure",
         "wrist_extension"
@@ -4721,8 +4721,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_pull",
+      "progression_level_id": "vertical_pull.l3",
       "contraindications": [
         "shoulder_overhead"
       ],
@@ -5025,8 +5025,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l3",
       "contraindications": [
         "core_pressure"
       ],
@@ -5062,8 +5062,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l5",
       "contraindications": [
         "core_pressure",
         "wrist_extension"
@@ -5354,8 +5354,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l1",
       "contraindications": [
         "core_pressure"
       ],
@@ -5391,8 +5391,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l2",
       "contraindications": [
         "core_pressure",
         "wrist_extension"
@@ -5546,8 +5546,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l7",
       "contraindications": [
         "core_pressure",
         "lower_back_flexion"
@@ -5697,8 +5697,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l1",
       "contraindications": [],
       "setup": "Hands at shoulder height on any solid vertical surface \u2014 the side of the RV, the truck, or a tree trunk. Lower the chest to it and press back. The easiest push-up regression.",
       "video_search": "https://www.youtube.com/results?search_query=Wall+Push-Up+proper+form+tutorial",
@@ -5734,8 +5734,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l2",
       "contraindications": [
         "shoulder_horizontal",
         "wrist_extension"
@@ -5774,8 +5774,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l3",
       "contraindications": [
         "shoulder_horizontal",
         "wrist_extension"
@@ -5817,8 +5817,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l4",
       "contraindications": [
         "shoulder_horizontal",
         "wrist_extension"
@@ -5895,8 +5895,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l6",
       "contraindications": [
         "elbow",
         "shoulder_horizontal",
@@ -5936,8 +5936,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l7",
       "contraindications": [
         "shoulder_horizontal",
         "wrist_extension"
@@ -5976,8 +5976,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l8",
       "contraindications": [
         "shoulder_horizontal",
         "wrist_extension"
@@ -6016,8 +6016,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_push",
+      "progression_level_id": "vertical_push.l5",
       "contraindications": [
         "shoulder_overhead",
         "wrist_extension"
@@ -6134,8 +6134,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_push",
+      "progression_level_id": "vertical_push.l4",
       "contraindications": [
         "elbow",
         "shoulder_horizontal",
@@ -6175,8 +6175,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l5",
       "contraindications": [],
       "setup": "Grip a waist-height bar \u2014 RV ladder rung, picnic table edge, low branch \u2014 and hang underneath with a straight body. Pull the chest to the bar. Walk the feet in to make it easier.",
       "video_search": "https://www.youtube.com/results?search_query=Inverted+Row+proper+form+tutorial",
@@ -6213,8 +6213,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_pull",
+      "progression_level_id": "vertical_pull.l8",
       "contraindications": [
         "shoulder_overhead"
       ],
@@ -6252,8 +6252,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_pull",
+      "progression_level_id": "vertical_pull.l7",
       "contraindications": [
         "elbow",
         "shoulder_overhead"
@@ -6290,8 +6290,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "vertical_pull",
+      "progression_level_id": "vertical_pull.l1",
       "contraindications": [
         "shoulder_overhead"
       ],
@@ -6330,8 +6330,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "squat",
+      "progression_level_id": "squat.l1",
       "contraindications": [
         "knee_flexion_loaded"
       ],
@@ -6366,8 +6366,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "squat",
+      "progression_level_id": "squat.l2",
       "contraindications": [
         "knee_flexion_loaded"
       ],
@@ -6404,8 +6404,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "squat",
+      "progression_level_id": "squat.l6",
       "contraindications": [
         "ankle",
         "knee_flexion_loaded",
@@ -6483,8 +6483,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "lunge",
+      "progression_level_id": "lunge.l1",
       "contraindications": [
         "knee_flexion_loaded"
       ],
@@ -6521,8 +6521,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "lunge",
+      "progression_level_id": "lunge.l3",
       "contraindications": [
         "knee_flexion_loaded"
       ],
@@ -6711,8 +6711,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "squat",
+      "progression_level_id": "squat.l7",
       "contraindications": [
         "ankle",
         "hip",
@@ -6750,8 +6750,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "lunge",
+      "progression_level_id": "lunge.l7",
       "contraindications": [
         "hip",
         "knee_flexion_loaded"
@@ -6788,8 +6788,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l2",
       "contraindications": [
         "lower_back_extension"
       ],
@@ -6866,8 +6866,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l1",
       "contraindications": [
         "lower_back_extension"
       ],
@@ -6944,8 +6944,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l7",
       "contraindications": [
         "knee_flexion_loaded",
         "lower_back_extension"
@@ -7567,6 +7567,174 @@
       "demo_media": {
         "type": "figure",
         "id": "bw-turkish-getup"
+      }
+    },
+    {
+      "id": "bw-one-arm-push-up",
+      "name": "One-Arm Push-Up",
+      "aliases": [
+        "one arm push up"
+      ],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "horizontal_push",
+      "primary": [
+        "chest"
+      ],
+      "secondary": [
+        "triceps",
+        "front_delts",
+        "abs"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_class": "none",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "role": "main",
+      "difficulty": "hard",
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l9",
+      "contraindications": [
+        "core_pressure",
+        "elbow",
+        "shoulder_horizontal",
+        "wrist_extension"
+      ],
+      "setup": "Feet wide for a stable base, one hand behind your back or resting on your hip. Brace hard through the midline and lower under control, elbow tracking back at roughly 45 degrees; press back to full lockout without letting your hips rotate open.",
+      "video_search": "https://www.youtube.com/results?search_query=One-Arm+Push-Up+proper+form+tutorial",
+      "demo_media": {
+        "type": "figure",
+        "id": "bw-one-arm-push-up"
+      }
+    },
+    {
+      "id": "banded-archer-row",
+      "name": "Banded Archer Row",
+      "aliases": [
+        "archer row"
+      ],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "horizontal_pull",
+      "primary": [
+        "lats"
+      ],
+      "secondary": [
+        "biceps",
+        "rear_delts",
+        "traps"
+      ],
+      "equipment": "band",
+      "band": "B2-B3",
+      "anchor": "anchor-mid",
+      "anchor_class": "band_tension",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "role": "main",
+      "difficulty": "hard",
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l8",
+      "contraindications": [
+        "elbow",
+        "shoulder_horizontal"
+      ],
+      "setup": "Band anchored at chest height. Wide stance facing the anchor, one arm rows the band fully to the ribs while the other arm stays extended straight out to the side, resisting the pull. Full rows on one side before switching.",
+      "video_search": "https://www.youtube.com/results?search_query=resistance+band+Banded+Archer+Row+proper+form+tutorial",
+      "demo_media": {
+        "type": "figure",
+        "id": "banded-archer-row"
+      }
+    },
+    {
+      "id": "bw-wall-hspu",
+      "name": "Wall Handstand Push-Up",
+      "aliases": [
+        "wall hspu",
+        "handstand push-up"
+      ],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "vertical_push",
+      "primary": [
+        "front_delts"
+      ],
+      "secondary": [
+        "triceps",
+        "chest",
+        "abs"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "role": "main",
+      "difficulty": "hard",
+      "progression_family": "vertical_push",
+      "progression_level_id": "vertical_push.l7",
+      "contraindications": [
+        "core_pressure",
+        "neck",
+        "shoulder_overhead",
+        "wrist_extension"
+      ],
+      "setup": "Kick up into a handstand against a wall, chest facing the wall, hands shoulder-width. Lower your head toward the floor under control, elbows tracking forward, then press back to full lockout. Keep reps small and deliberate \u2014 this is an advanced inversion; skip it without a wall and a clear head-landing zone.",
+      "video_search": "https://www.youtube.com/results?search_query=Wall+Handstand+Push-Up+proper+form+tutorial",
+      "demo_media": {
+        "type": "figure",
+        "id": "bw-wall-hspu"
+      }
+    },
+    {
+      "id": "bw-archer-pull-up",
+      "name": "Archer Pull-Up",
+      "aliases": [
+        "archer pull up"
+      ],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "vertical_pull",
+      "primary": [
+        "lats"
+      ],
+      "secondary": [
+        "biceps",
+        "rear_delts"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "pullup-bar",
+      "anchor_class": "bodyweight_bearing",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "role": "main",
+      "difficulty": "hard",
+      "progression_family": "vertical_pull",
+      "progression_level_id": "vertical_pull.l9",
+      "contraindications": [
+        "elbow",
+        "shoulder_overhead"
+      ],
+      "setup": "From a wide-grip dead hang, pull yourself up toward one hand while the other arm stays straight and rides along the bar. Lower under control and alternate sides each rep.",
+      "video_search": "https://www.youtube.com/results?search_query=Archer+Pull-Up+proper+form+tutorial",
+      "demo_media": {
+        "type": "figure",
+        "id": "bw-archer-pull-up"
       }
     }
   ]

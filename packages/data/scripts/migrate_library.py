@@ -367,6 +367,140 @@ ALIAS_EXTRA = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Newly authored exercise records — fill genuine gaps in the 8 v1 ladders (§6.6 calls out
+# archer/one-arm variants as a known prototype gap). Written directly, in the prototype's
+# setup-cue voice, rather than derived from a source row. Kept here (not hand-edited into
+# library/exercises.json) so a re-run of this script is still the single source of truth.
+# ---------------------------------------------------------------------------
+NEW_EXERCISES = [
+    {
+        "id": "bw-one-arm-push-up",
+        "name": "One-Arm Push-Up",
+        "aliases": ["one arm push up"],
+        "focus": ["upper"],
+        "pattern": "horizontal_push",
+        "primary": ["chest"],
+        "secondary": ["triceps", "front_delts", "abs"],
+        "equipment": "bodyweight",
+        "band": None,
+        "anchor": "none",
+        "unilateral": True,
+        "difficulty": "hard",
+        "setup": (
+            "Feet wide for a stable base, one hand behind your back or resting on your hip. "
+            "Brace hard through the midline and lower under control, elbow tracking back at "
+            "roughly 45 degrees; press back to full lockout without letting your hips rotate open."
+        ),
+        "contraindications": {"shoulder_horizontal", "wrist_extension", "elbow", "core_pressure"},
+    },
+    {
+        "id": "banded-archer-row",
+        "name": "Banded Archer Row",
+        "aliases": ["archer row"],
+        "focus": ["upper"],
+        "pattern": "horizontal_pull",
+        "primary": ["lats"],
+        "secondary": ["biceps", "rear_delts", "traps"],
+        "equipment": "band",
+        "band": "B2-B3",
+        "anchor": "anchor-mid",
+        "unilateral": True,
+        "difficulty": "hard",
+        "setup": (
+            "Band anchored at chest height. Wide stance facing the anchor, one arm rows the "
+            "band fully to the ribs while the other arm stays extended straight out to the "
+            "side, resisting the pull. Full rows on one side before switching."
+        ),
+        "contraindications": {"elbow", "shoulder_horizontal"},
+    },
+    {
+        "id": "bw-wall-hspu",
+        "name": "Wall Handstand Push-Up",
+        "aliases": ["wall hspu", "handstand push-up"],
+        "focus": ["upper"],
+        "pattern": "vertical_push",
+        "primary": ["front_delts"],
+        "secondary": ["triceps", "chest", "abs"],
+        "equipment": "bodyweight",
+        "band": None,
+        "anchor": "none",
+        "unilateral": False,
+        "difficulty": "hard",
+        "setup": (
+            "Kick up into a handstand against a wall, chest facing the wall, hands shoulder-"
+            "width. Lower your head toward the floor under control, elbows tracking forward, "
+            "then press back to full lockout. Keep reps small and deliberate — this is an "
+            "advanced inversion; skip it without a wall and a clear head-landing zone."
+        ),
+        "contraindications": {"shoulder_overhead", "wrist_extension", "neck", "core_pressure"},
+    },
+    {
+        "id": "bw-archer-pull-up",
+        "name": "Archer Pull-Up",
+        "aliases": ["archer pull up"],
+        "focus": ["upper"],
+        "pattern": "vertical_pull",
+        "primary": ["lats"],
+        "secondary": ["biceps", "rear_delts"],
+        "equipment": "bodyweight",
+        "band": None,
+        "anchor": "pullup-bar",
+        "unilateral": True,
+        "difficulty": "hard",
+        "setup": (
+            "From a wide-grip dead hang, pull yourself up toward one hand while the other arm "
+            "stays straight and rides along the bar. Lower under control and alternate sides "
+            "each rep."
+        ),
+        "contraindications": {"shoulder_overhead", "elbow"},
+    },
+]
+
+# ---------------------------------------------------------------------------
+# The 8 v1 progression ladders (§6.6). Ordered easiest -> hardest. level_id is
+# "<family>.l<N>" — assigned once here and never renumbered; inserting a rung later means
+# appending a new level_id, never reordering this list's existing ids.
+# ---------------------------------------------------------------------------
+FAMILY_LEVELS = {
+    "horizontal_push": [
+        "bw-wall-push-up", "bw-incline-push-up", "bw-knee-push-up", "bw-push-up",
+        "banded-push-up", "bw-diamond-push-up", "bw-decline-push-up", "bw-archer-push-up",
+        "bw-one-arm-push-up",
+    ],
+    "horizontal_pull": [
+        "pull-apart", "door-row", "seated-row", "bent-over-row", "bw-inverted-row",
+        "wide-high-row", "single-arm-row", "banded-archer-row",
+    ],
+    "vertical_push": [
+        "overhead-press", "half-kneeling-ohp", "single-arm-ohp", "bw-dip",
+        "bw-pike-push-up", "pike-push-up", "bw-wall-hspu",
+    ],
+    "vertical_pull": [
+        "bw-dead-hang", "straight-arm-pulldown", "floor-pullover", "lat-pulldown",
+        "upright-row", "assisted-pull-up", "bw-chin-up", "bw-pull-up", "bw-archer-pull-up",
+    ],
+    "squat": [
+        "bw-squat", "bw-squat-pulse", "goblet-squat", "banded-squat", "front-squat",
+        "bw-jump-squat", "bw-pistol-squat",
+    ],
+    "hinge": [
+        "bw-good-morning", "bw-glute-bridge", "rdl", "deadlift", "sumo-deadlift",
+        "single-leg-rdl", "bw-nordic-curl",
+    ],
+    "lunge": [
+        "bw-reverse-lunge", "split-squat", "bw-walking-lunge", "lateral-lunge", "step-up",
+        "bulgarian-split-squat", "bw-cossack-squat",
+    ],
+    "anti_extension": [
+        "bw-dead-bug", "bw-bird-dog", "bw-plank", "banded-plank", "bw-side-plank",
+        "side-plank-abduction", "bw-hollow-hold",
+    ],
+}
+
+FAMILIES_OUT = Path(__file__).resolve().parents[1] / "library/families.json"
+
+
 def anchor_class_for(anchor: str) -> str:
     if anchor in ("pullup-bar", "body-support"):
         return "bodyweight_bearing"
@@ -429,8 +563,18 @@ def aliases_for(name: str, ex_id: str) -> list:
     return result
 
 
+def build_family_assignment():
+    """exercise_id -> (family_id, level_id) for every ladder rung."""
+    assignment = {}
+    for family_id, exercise_ids in FAMILY_LEVELS.items():
+        for i, ex_id in enumerate(exercise_ids, start=1):
+            assignment[ex_id] = (family_id, f"{family_id}.l{i}")
+    return assignment
+
+
 def main():
     src = json.loads(SRC.read_text())
+    family_assignment = build_family_assignment()
     out_exercises = []
     for e in src["exercises"]:
         ex_id = e["id"]
@@ -439,6 +583,7 @@ def main():
         metric, default_seconds = metric_for(ex_id)
         tier = tier_for(ex_id, pattern, role)
         anchor = e["anchor"]
+        fam, lvl = family_assignment.get(ex_id, (None, None))
         new = {
             "id": ex_id,
             "name": e["name"],
@@ -457,8 +602,8 @@ def main():
             "tier": tier,
             "role": role,
             "difficulty": e["difficulty"],
-            "progression_family": None,
-            "progression_level_id": None,
+            "progression_family": fam,
+            "progression_level_id": lvl,
             "contraindications": contra_for(ex_id, pattern),
             "setup": e["setup"],
             "video_search": e["video_search"],
@@ -466,9 +611,64 @@ def main():
         }
         out_exercises.append(new)
 
+    # newly authored exercises (fill genuine ladder gaps)
+    for e in NEW_EXERCISES:
+        ex_id = e["id"]
+        fam, lvl = family_assignment.get(ex_id, (None, None))
+        anchor = e["anchor"]
+        equipment = e["equipment"]
+        search_prefix = "resistance+band+" if equipment == "band" else ""
+        video_search = (
+            "https://www.youtube.com/results?search_query="
+            f"{search_prefix}{e['name'].replace(' ', '+')}+proper+form+tutorial"
+        )
+        new = {
+            "id": ex_id,
+            "name": e["name"],
+            "aliases": e["aliases"],
+            "focus": e["focus"],
+            "pattern": e["pattern"],
+            "primary": e["primary"],
+            "secondary": e["secondary"],
+            "equipment": equipment,
+            "band": e["band"],
+            "anchor": anchor,
+            "anchor_class": anchor_class_for(anchor),
+            "unilateral": e["unilateral"],
+            "metric": "reps",
+            "default_seconds": None,
+            "tier": "core",
+            "role": "main",
+            "difficulty": e["difficulty"],
+            "progression_family": fam,
+            "progression_level_id": lvl,
+            "contraindications": sorted(e["contraindications"]),
+            "setup": e["setup"],
+            "video_search": video_search,
+            "demo_media": {"type": "figure", "id": ex_id},
+        }
+        out_exercises.append(new)
+
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({"exercises": out_exercises}, indent=2) + "\n")
     print(f"Wrote {len(out_exercises)} exercises to {OUT}")
+
+    families_out = {
+        "families": [
+            {
+                "id": family_id,
+                "name": family_id.replace("_", " ").title(),
+                "pattern": family_id,
+                "levels": [
+                    {"level_id": f"{family_id}.l{i}", "exercise_id": ex_id}
+                    for i, ex_id in enumerate(exercise_ids, start=1)
+                ],
+            }
+            for family_id, exercise_ids in FAMILY_LEVELS.items()
+        ]
+    }
+    FAMILIES_OUT.write_text(json.dumps(families_out, indent=2) + "\n")
+    print(f"Wrote {len(FAMILY_LEVELS)} families to {FAMILIES_OUT}")
 
 
 if __name__ == "__main__":
