@@ -27,24 +27,30 @@ Last updated: 2026-08-30
 - [x] Committed as `5048e5f` (app typecheck/lint/test fixes — see decisions below for the
   testing-library swap).
 
+### Done (cont'd, 2)
+- [x] `npx expo prebuild --platform ios --non-interactive` (run as `CI=1` under the hood via
+  non-interactive flag) succeeded in `app/`: created `app/ios/` (Podfile, `RoamFit.xcworkspace`,
+  `RoamFit.xcodeproj`), ran prebuild, and installed CocoaPods — all exit 0.
+
 ### In progress
-- Running `npx expo prebuild --platform ios --non-interactive` inside `app/` (backgrounded,
-  task id bz27er75t — check
-  `/private/tmp/claude-501/-Users-mattwayles-Development-roamfit/049ac54e-a4d5-48f4-8e92-df265598e53a/tasks/bz27er75t.output`
-  if resuming mid-run). If it succeeds, next is `npm run ios` (== `expo run:ios`) against the
-  booted iPhone 17 Pro simulator (iOS 26.5). Per the brief, a successful prebuild plus an
-  honestly-documented native-build outcome (success, failure, or "did not attempt because X")
-  satisfies the done criterion — do not claim `npm run ios` ran if it did not actually launch
-  the simulator.
+- Booted simulator "iPhone 17 Pro" (57D3F602-BFFD-426E-A9D0-E7B79B5BA48F, iOS 26.5) via
+  `xcrun simctl boot`. Kicked off `npm run ios` (== `expo run:ios` in `app/`) from repo root,
+  backgrounded (task id bvdpve8ug, output at
+  `/private/tmp/claude-501/-Users-mattwayles-Development-roamfit/049ac54e-a4d5-48f4-8e92-df265598e53a/tasks/bvdpve8ug.output`).
+  This is a real native Xcode build (first one, no cache) — can take several minutes. If
+  resuming: check that file for the actual outcome before doing anything else; do not re-run
+  blind, and do not claim success without reading the real output.
 
 ### Next
 - ordered remaining steps:
-  1. Confirm prebuild outcome; if it fails, capture the actual error in this file rather than
-     retrying blindly.
-  2. Attempt `npm run ios` from repo root (delegates to `app` workspace's `expo run:ios`).
-     Document the real outcome.
-  3. Mark done criteria complete in this file once verified, or explain plainly what could
-     not be verified in this environment.
+  1. Read the `npm run ios` output once it completes. If it built and launched the app on the
+     simulator: done criterion met, record it plainly.
+  2. If it failed: capture the real error text in this file (not a paraphrase), and per the
+     brief, a successful `expo prebuild` plus a documented reason is an acceptable fallback —
+     say so plainly rather than claiming the simulator launch ran when it didn't.
+  3. Mark remaining done criteria complete/documented in this file.
+  4. `app/ios/` is native build output and is gitignored (via root `.gitignore`'s
+     `app/ios/` rule) — do not add it to git.
 
 ### Decisions / gotchas
 - **Shared git index with the concurrent 1b-content track**: this repo has no worktree
