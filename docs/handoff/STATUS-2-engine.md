@@ -8,98 +8,135 @@ Last updated: 2026-08-30
 - [x] Seeded RNG (`rng.ts`, mulberry32 + `seedFromString`) and `local_date` calendar math
   (`dates.ts`, UTC-midnight-anchored so it never touches wall-clock time). — `0582505`
 - [x] `docs/decisions/0001-blocked-scope.md` — BLOCKED/PREFERRED/novelty apply to `role: main`
-  only; warmup/cooldown use light rotation (exclude only the immediately-previous pick, drop the
-  exclusion entirely if the pool would go empty). — `0582505`
-- [x] §5.1 step 1 hard filters (`filters/hardFilters.ts`): equipment preference, anchor
-  eligibility (§13.1 bodyweight_bearing-off-by-default falls out of this — those anchors just
-  aren't in `anchorsAvailable` until enabled), injury/contraindication removal with expiry, plus
-  `effortCapForExercise` (§13.1: `hard` → `normal` on `anchor_class: bodyweight_bearing`,
-  regardless of the day's chosen effort). 7 tests. — `e985b54`
-- [x] §5.5 focus templates (`template/focusTemplate.ts`): priority-ordered pattern slots for
-  upper (full + <25min compressed form), legs, abs (rotates lead pattern off session history,
-  never all-flexion), full (adds a finisher slot when `hard` or ≥40min). `buildQuickSessionTemplate`
-  takes the first 3 required-then-optional slots for §9.5. 7 tests. — `42b567e`
+  only; warmup/cooldown use light rotation. — `0582505`
+- [x] §5.1 step 1 hard filters (`filters/hardFilters.ts`): equipment, anchor, injury filters +
+  `effortCapForExercise` (§13.1 bodyweight_bearing cap). 7 tests. — `e985b54`
+- [x] §5.5 focus templates (`template/focusTemplate.ts`): upper/legs/abs/full pattern slots,
+  `buildQuickSessionTemplate` for §9.5. 7 tests. — `42b567e`
+- [x] **§5.2 selection rules are DONE**, not "not yet started" (a prior status update went stale
+  — corrected here). `selection/`: `candidates.ts` (sessionsAgo/tier/enjoyment/novelty/
+  suppression derivation), `volume.ts` (trailing muscle volume, over-worked/untrained/low,
+  recent-hard-muscle, same-focus-yesterday), `mainSelection.ts` (the full rule set: BLOCKED,
+  SOFT-only-when-uncoverable, novelty pass, over-worked-never-primary-mover, 48h recovery cap,
+  enjoyment avoid-≤2/favorites-cap, REPEATEDLY-SKIPPED suppression, ≥70% PREFERRED / ≥50% band
+  aggregate passes, PATTERN GAP band-exception-or-stated-imbalance), `warmupCooldown.ts` (ADR
+  0001 light rotation). 24 tests, one named per rule. — `62ba67b`
+- [x] **§6 progression is DONE**. `progression/`: `ladder.ts` (stable-`level_id` lookups, never a
+  positional index — invariant 5), `micro.ts` (§6.2 band vs bodyweight micro-progression order,
+  advance and regress, `isAtBottomMicroStep`), `calibration.ts` (§6.5 cold-start, full-level jumps
+  for the first 3 sessions), `rules.ts` (§6.3 advance/regress/drop-a-level dispatch, §6.7 mastery
+  → `mastery_pr_check` event instead of a dead end), `comeback.ts` (§9.4 gap detection +
+  `applyComebackToProgressionStates`, the single code path §9.9 Recovery Week must also call for
+  its `'week'` tier). 33 tests. — `725a1b5`
+- [x] **Architecture clarification, recorded as a decision (see below) rather than silently
+  applied**: for the 8 laddered-family patterns, a slot's exercise is NOT chosen by
+  `selectMain`'s §5.2 variety machinery — it comes directly from `ProgressionState.levelId`.
+  `selectMain` (as built and tested) governs only the non-laddered/accessory pattern slots
+  (isolation patterns, abs's `anti_rotation`/`flexion`/`lateral_flexion`, legs isolation/calf,
+  finisher slots) plus warmup/cooldown. This is *not yet wired into a pipeline* — see "Next".
 
 ### In progress
-- Selection stage (`selection/`) — not yet started. This is the densest part (§5.2, 11 named
-  rules) and the next thing to build. Plan:
-  - `selection/candidates.ts` — build `Candidate[]` per slot (sessionsAgo, performCount,
-    enjoyment, isNovel, isSuppressed) from `UserState.history` + `UserState.exerciseStates`.
-    Constants ported from the prototype's `workout_db.py` (confirmed exact, not guessed):
-    `HARD_COOLDOWN_SESSIONS = 2` (BLOCKED = used in last 2 main-role sessions for this
-    exercise), `SOFT_COOLDOWN_SESSIONS = 5` (SOFT = used 3–5 sessions ago; PREFERRED = not used
-    in last 5). Trailing volume: 7-day window for OVER-WORKED (`>1.5×` mean sets/muscle,
-    primary=1 credit/secondary=0.5), 14-day window for UNTRAINED (0 sets) / LOW (<3 sets).
-  - `selection/mainSelection.ts` — apply, per slot in template priority order: BLOCKED exclusion
-    → suppressed (REPEATEDLY-SKIPPED 30-day, `suppressedUntil`) exclusion → 48h recovery
-    (anything trained hard in last 2 days: drop a band size + cap at one exercise for those
-    muscles, no `hard` on same-focus-yesterday muscles) → OVER-WORKED cap (≤1 exercise, never
-    primary mover) → UNTRAINED/LOW priority boost → novelty (≥1 never-performed exercise per
-    session when one fits *any* slot) → enjoyment tie-break (avoid ≤2 unless it's the only slot
-    filler; cap favorites, rated ≥4, at ~40% of main) → ≥70% PREFERRED / ≥50% band-equipment
-    checks applied as a whole-session validation after slot-fill, with a fallback substitution
-    pass if either falls short → PATTERN GAP detection (a required slot with zero eligible
-    exercise after all the above — state it, don't drop it silently).
-  - `selection/warmupCooldown.ts` — light rotation per the ADR, not the full BLOCKED machinery.
-  - Land tests per rule, named for the rule (e.g. `'BLOCKED — never programs an exercise used in
-    the last 2 sessions'`).
+- **`pipeline.ts` does not exist yet.** Nothing in `index.ts` exports `generateSession` — it's
+  commented out with a pointer to this file, exactly as before. The stage modules are all built
+  and independently tested; wiring them together is the next unit of work.
+- Immediate next action: build `progression/resolveSlot.ts` (new file) —
+  `resolveProgressionSlot(slot, family, progressionState, library, hardFilteredPool)`:
+  1. Look up the exercise at `progressionState.levelId` for the family matching `slot.patterns[0]`.
+  2. If it's in `hardFilteredPool` (survives anchor/injury/equipment), use it directly — this is
+     the normal case, session after session, and must NOT be treated as a BLOCKED repeat.
+  3. If it fails a hard filter (e.g., current level's variant needs an anchor the user has
+     disabled), walk down the ladder via `prevLevel` to the nearest level whose exercise survives
+     the hard filters, for THIS SESSION ONLY — do not persist a level change from this
+     substitution. Flag it (add `substituted_for`/`unplanned`-style fields to `SessionEntry` —
+     **not yet added, needed now**) so the explanation line (step 7) can mention it.
+  4. If even the bottom level fails every hard filter for that pattern, the slot is a PATTERN GAP
+     like any other unfillable required slot.
 
 ### Next
-1. Selection stage (see above) — likely 2-3 commits given density (candidates+BLOCKED/PREFERRED
-   first, then recovery+volume+novelty+enjoyment, then PATTERN GAP + warmup/cooldown rotation).
-2. Progression (`progression/`): ladder lookup by stable `level_id` (never array index), §6.2
-   micro-progression (band vs bodyweight orders differ), §6.3 advance/regress/drop-a-level, §6.5
-   cold-start calibration (first 3 sessions, full-level jumps), §6.7 mastery (best-set PR check
-   in place of a level change at max level), §9.4 comeback (7-day: regress 1 micro-step/family +
-   cut volume ~20%; 21-day: re-enter calibration) — comeback must literally call the same
-   calibration/regression code Recovery Week (§9.9) will call in Wave 5, not a parallel path.
-3. Prescription (§5.4 effort table → sets/reps/band/tempo/rest per entry), respecting the §13.1
-   cap already computed in step 1.
+1. `progression/resolveSlot.ts` (see above) — the missing link between progression state and a
+   concrete per-session exercise pick for the 8 laddered patterns.
+2. Add `substituted_for?: string` and `unplanned?: boolean` to `SessionEntry` in `types.ts` (§4.7
+   documents both; they're currently missing from the engine's output type).
+3. Prescription (§5.4 effort table → sets/reps-or-seconds/band/tempo/rest per entry). For
+   laddered slots the *band* and *rep target* mostly come from `ProgressionState.micro` already
+   (that's what micro-progression tracks); the day's chosen `effort` still governs rest/tempo/
+   format (straight sets vs. superset) and, per §13.1, is capped to `normal` on
+   `anchor_class: bodyweight_bearing` (already computed in `filters/hardFilters.ts`,
+   `effortCapForExercise` — reuse it here, don't recompute). For non-laddered slots, prescription
+   comes straight from the §5.4 table at the (possibly capped) effort.
 4. Time fit (§5.6 budget formula, ±10% target, exercise-count sanity check) — add/drop from the
-   tail of the priority-ordered slot list; required slots are never dropped (a shortfall there is
-   a PATTERN GAP or a note in the explanation, not a silent omission).
-5. Explain (§5.8) — deterministic template string, must name what changed vs. last time when
-   acting on repeated feedback.
-6. Wire `pipeline.ts` → `generateSession(library, userState, request, clock, rng)`. Re-enable the
-   `generateSession` export in `index.ts` (currently commented out with a pointer to this file).
-7. Golden tests (fixed seed + fixed user state → committed expected JSON), property tests
+   tail of the priority-ordered slot list; required slots are never dropped (a shortfall is a
+   PATTERN GAP or an explanation note, not a silent omission).
+5. Explain (§5.8) — deterministic template string; must name any progression substitution
+   (from step 1 above), any 48h-recovery band drop, any comeback treatment, any level-up/mastery
+   PR event, and the PATTERN GAP note when present.
+6. Wire `pipeline.ts` → `generateSession(library, families, userState, request, clock, rng)`.
+   Re-enable the `generateSession` export in `index.ts`.
+7. Quick Session (§9.5) and comeback (§9.4) — confirm both run through the *same* `pipeline.ts`
+   call with different inputs (minimal template + fixed 7min + `normal` effort for Quick Session;
+   `assessComeback` + `applyComebackToProgressionStates` + `volumeMultiplier` applied to
+   prescribed sets for comeback), not parallel code paths. This should fall out of the pipeline
+   design in step 6 rather than needing new branches.
+8. Golden tests (fixed seed + fixed user state → committed expected JSON), property tests
    (contraindicated/disabled-anchor/time-budget/effort-cap/warmup+cooldown-present/push-pull-
    balance invariants over randomized inputs), 30-session simulation test, <50ms benchmark.
 
 ### Decisions / gotchas
-- **BLOCKED/PREFERRED session-count windows and OVER-WORKED/UNTRAINED thresholds are not stated
-  numerically in spec.md** — spec says "used within the last N sessions" and "trailing mean"
-  without N or the window. Resolved by reading the prototype source
-  (`~/.claude/skills/daily-workout/scripts/workout_db.py`, symlinked from
-  `ai-monorepo/skills/health/daily-workout`) since §5.2 is specified as ported verbatim from it:
+- **Laddered-pattern slots bypass `selectMain`** (see "Architecture clarification" above). This
+  was not obvious from §5.1's step ordering alone ("SELECTION" then "PROGRESSION" reads as if
+  selection picks an exercise and progression then adjusts its level) but is the only reading
+  consistent with progressive overload actually working: the same horizontal-push exercise
+  recurring session after session while the user sits at one level is the *intended* behavior,
+  not a BLOCKED violation. `selectMain`'s BLOCKED/PREFERRED/novelty/enjoyment rules are exactly
+  what the prototype already does for *its* flat, level-less pool — in RoamFit they still apply,
+  just scoped to the patterns that don't have a ladder (§6.6's accessory patterns), which is
+  where the prototype's model still holds unmodified.
+- **BLOCKED/PREFERRED session-count windows and OVER-WORKED/UNTRAINED thresholds** are ported
+  from the prototype (`~/.claude/skills/daily-workout/scripts/workout_db.py`, symlinked from
+  `ai-monorepo/skills/health/daily-workout`), since spec.md states the rule but not the numbers:
   `HARD_COOLDOWN_SESSIONS=2`, `SOFT_COOLDOWN_SESSIONS=5`, over-worked = 7-day trailing volume
-  >1.5× mean, untrained/low = 14-day trailing volume. Use these exact constants in `selection/`.
-- **§5.2's "≥50% of main work on bands" and "≥70% PREFERRED" are session-level aggregate
-  constraints, not per-slot rules.** Current plan is to fill slots by priority first, then check
-  both aggregates and do a substitution pass (swap a fill/soft/bodyweight pick for a
-  preferred/band alternative in the same pattern) if short. Not yet implemented — if the
-  substitution pass turns out to fight the enjoyment tie-break or the 40% favorites cap, that's
-  worth flagging back here rather than silently picking a resolution order.
-- `hamstring-curl`/`tke` are tagged pattern `hip_extension` per carried-forward issue #4 — this is
-  harmless for the engine: `hip_extension` is already a valid `Pattern` enum member (§4.1) used
-  for the legs isolation slot (`legs.isolation`), it's just not one of the 8 laddered families
-  (correctly — it's accessory, micro-progression only per §6.6). No code change needed; confirmed
-  in template stage.
-- Conditioning finishers (carried-forward issue #5, `tier: fill` with a primary-mover pattern):
-  the `full` template's finisher slot (`isFinisher: true`, `patterns: []`) is written to draw from
-  `tier: fill` regardless of pattern, matching how the library actually tags them. Not yet wired
-  into selection — selection must special-case `isFinisher` slots to filter by `tier === 'fill'`
-  instead of a pattern match.
-- Engine package now depends on `@roamfit/data` explicitly in `package.json` (it was previously
-  resolvable only via the npm workspace symlink with no declared dependency — fixed since it's a
-  real, load-bearing import).
+  >1.5× mean, untrained/low = 14-day trailing volume, low threshold <3 sets.
+- **Progression's own working rep/hold range and bodyweight micro caps are not numeric in
+  spec.md.** Resolved (see `progression/constants.ts` docblock) to the §5.4 `normal` row as an
+  effort-independent baseline: reps 10-12, tempo 3s (→4s cap), rest 45s (→30s floor), sets 3
+  (→4 cap). Chosen because progression must be independent of the day's chosen effort (§5.4:
+  "effort for today, not absolute difficulty... a property of their progression level"), and
+  `normal`'s numbers are also exactly the schema's implied defaults. Timed exercises use a
+  separate 20-45s hold range (not reps) since a 10-12 rep window is meaningless as a duration.
+- **§6.2's band vs. bodyweight order is read as linear, not cyclic**, for bodyweight (reps → one
+  tempo bump → one rest cut → one sets bump → next level) but genuinely cyclic for band (reps →
+  band+1 with reps reset → repeat until the exercise's own suggested band range — e.g. "B1-B2" —
+  is exhausted → next level). A given exercise's *own* `band` field range caps how high
+  micro-progression climbs before a level change is due — it is not global B1-B5.
+- **§6.5 calibration's "first three sessions" is tracked via `consecutiveHits + consecutiveMisses`
+  while `calibrating: true`**, since `ProgressionState` (§4.5) has no dedicated calibration-session
+  counter. Both fields resume their normal §6.3 meaning once calibration ends. This is a schema
+  reuse, not a new field — flagging in case Wave 3's persistence schema wants an explicit counter
+  instead for clarity; either works, this just avoids widening §4.5's documented shape.
+- `hamstring-curl`/`tke` tagged `hip_extension` (carried-forward issue #4) — harmless, confirmed:
+  `hip_extension` is a valid non-laddered `Pattern`, used only by the legs isolation slot.
+- Conditioning finishers (`tier: fill`, carried-forward issue #5) — the `full` template's
+  finisher slot (`isFinisher: true`) already draws from `tier === 'fill'` regardless of pattern in
+  `selection/mainSelection.ts`'s `eligibleForSlot`.
+- Engine package depends on `@roamfit/data` explicitly in `package.json` now (previously only
+  resolvable via the npm workspace symlink with no declared dependency).
 - No new dependencies added beyond what Wave 1 already installed.
+- **Process note for whoever resumes next:** commit with explicit pathspecs
+  (`git commit -m "..." -- <paths>`, not `git add -A`) and confirm `npm run check` is green on the
+  *working tree*, not just on what's staged, before committing — this status file must be updated
+  as part of the same commit sequence whenever a stage lands, so a fresh agent never sees a "not
+  started" note for work that's actually done.
 
 ### Ambiguities for a human/product call (not silently decided)
-- **Selection aggregate resolution order** (see above) — if PREFERRED% and band% and the 40%
-  favorites cap can't all be satisfied simultaneously on a thin pool, which one yields first?
-  Prototype doesn't need to resolve this because it's advisory text for an LLM; here it's code and
-  must have a total order. Current lean: never violate BLOCKED/hard filters/PATTERN GAP-avoidance
-  first; then ≥50% band; then ≥70% PREFERRED; then 40% favorites cap; enjoyment tie-break is
-  last and only among choices that don't violate the above. Will implement this order in
-  `mainSelection.ts` and note here if it needs revisiting once golden tests reveal a bad case.
+- **Selection aggregate resolution order** (unchanged from before): if PREFERRED%, band%, and the
+  40% favorites cap can't all be satisfied on a thin accessory-pattern pool, current order is
+  PATTERN GAP avoidance → band ratio → PREFERRED ratio → favorites cap, with novelty opportunistic
+  throughout. Implemented in `selection/mainSelection.ts`; revisit if golden/simulation tests
+  surface a bad case.
+- **Progression substitution when a laddered exercise fails a hard filter** (see "In progress"
+  above) — walking down the ladder for a session-only substitution is the plan, not yet built or
+  tested. Worth a second opinion: an alternative would be to treat it as a PATTERN GAP immediately
+  rather than silently substituting a lower level, on the theory that a hard-filter failure at the
+  user's actual level is itself information worth surfacing. Leaning toward "substitute and note
+  it in the explanation line" since spec's step-7 explanation is explicitly meant to carry exactly
+  this kind of "what changed and why," but flagging since it's a real design choice.
