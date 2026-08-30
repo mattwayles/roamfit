@@ -19,24 +19,32 @@ Last updated: 2026-08-30
   the concurrent 1b-content track's work (packages/data schema/validate/library +
   STATUS-1b-content.md). Not something I chose; explained below.
 
+### Done (cont'd)
+- [x] `npm run check` passes end to end (typecheck + lint + test + engine-purity), exit 0.
+- [x] Proved `tools/check-engine-purity.js` fails: added `import { View } from 'react-native'`
+  to `packages/engine/src/index.ts`, ran `npm run check:engine-purity`, got exit 1 with a
+  clear message pointing at the offending line; reverted the probe, re-ran, exit 0 again.
+- [x] Committed as `5048e5f` (app typecheck/lint/test fixes — see decisions below for the
+  testing-library swap).
+
 ### In progress
-- About to run `npm run check` (typecheck + lint + test + engine-purity) for the first time
-  and fix whatever it finds.
+- Running `npx expo prebuild --platform ios --non-interactive` inside `app/` (backgrounded,
+  task id bz27er75t — check
+  `/private/tmp/claude-501/-Users-mattwayles-Development-roamfit/049ac54e-a4d5-48f4-8e92-df265598e53a/tasks/bz27er75t.output`
+  if resuming mid-run). If it succeeds, next is `npm run ios` (== `expo run:ios`) against the
+  booted iPhone 17 Pro simulator (iOS 26.5). Per the brief, a successful prebuild plus an
+  honestly-documented native-build outcome (success, failure, or "did not attempt because X")
+  satisfies the done criterion — do not claim `npm run ios` ran if it did not actually launch
+  the simulator.
 
 ### Next
 - ordered remaining steps:
-  1. Run `npm run check`, fix issues (expect first-run friction: eslint flat config vs.
-     jest-expo's own config, `tsc --noEmit` in app using `expo/tsconfig.base`, etc).
-  2. Prove the engine-purity script actually fails: temporarily add a `from 'react-native'`
-     import to `packages/engine/src/index.ts`, run `npm run check:engine-purity`, confirm
-     non-zero exit + message, then revert.
-  3. `npx expo prebuild --platform ios` inside `app/` (or `npm run prebuild --workspace app`)
-     — document whether it succeeds.
-  4. `npm run ios` — attempt `expo run:ios` against a booted simulator (iPhone 17 Pro,
-     iOS 26.5, available per `xcrun simctl list devices`). Document actual outcome honestly
-     — if the native build doesn't complete in this environment, prebuild succeeding is the
-     documented fallback per the brief's done criteria.
-  5. Mark done criteria complete in this file once verified.
+  1. Confirm prebuild outcome; if it fails, capture the actual error in this file rather than
+     retrying blindly.
+  2. Attempt `npm run ios` from repo root (delegates to `app` workspace's `expo run:ios`).
+     Document the real outcome.
+  3. Mark done criteria complete in this file once verified, or explain plainly what could
+     not be verified in this environment.
 
 ### Decisions / gotchas
 - **Shared git index with the concurrent 1b-content track**: this repo has no worktree
