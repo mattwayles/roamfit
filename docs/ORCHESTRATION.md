@@ -10,7 +10,7 @@ Every track is written to be **interrupted**. See the interruption protocol in `
 | Wave | Milestone | Status |
 |---|---|---|
 | 1 | Skeleton boots + full library/ladder data validated | **done** — verified `38fef15`/`5048e5f` |
-| 2 | Generation engine passes golden tests, <50ms, no I/O | brief ready, awaiting dispatch |
+| 2 | Generation engine passes golden tests, <50ms, no I/O | **done** — verified `e56ed02` |
 | 3 | SQLite persistence + session lifecycle + signal capture | not started |
 | 4 | Core workout loop end-to-end on device | not started |
 | 5 | Motivation surfaces: progression board, dashboard, passport | not started |
@@ -98,3 +98,6 @@ Open items surfaced by a completed wave that a later wave or a human must close.
 | 4 | `hamstring-curl`/`tke` tagged `hip_extension` — §4.1's pattern enum has no knee-flexion/extension bucket. Taxonomy gap. | 1B | Wave 2 to confirm harmless |
 | 5 | Conditioning finishers forced to `tier: fill` with a primary-mover pattern. Confirm this matches how the engine treats finishers (§5.5 `full` template). | 1B | Wave 2 |
 | 6 | `@testing-library/react-native` `render()` returned empty under this stack; `react-test-renderer` used instead. Retry when Wave 4 needs real queries. | 1A | Wave 4 |
+| 7 | 4 of 84 (focus × effort × minutes) combos still land ~11–20% under target and declare `timeBudgetDeviation: thin_pool` — `legs/25min`, `abs/hard/30min`, `full/normal/60min`. Honest, not silent, but it points at genuinely thin content in those slots. Decide: accept for v1, or top up the library. | Wave 2 review | human / Wave 5 |
+| 8 | ADR 0002 sets a 15-minute minimum for the general pipeline. **Wave 4/5 must not offer a sub-15-minute duration picker** — Quick Session's ~7-minute button is the only supported short path. | Wave 2 | Wave 4 |
+| 9 | Engine reports 65 lint warnings (0 errors), mostly formatting. Agent was interrupted mid-cleanup. Run prettier `--fix` and consider quieting the config so a future real warning is visible. | Wave 2 | any wave |
