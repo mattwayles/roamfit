@@ -13,3 +13,17 @@ export { daysBetween, addDays } from './dates';
 export { ENGINE_VERSION } from './version';
 export { generateSession, generateQuickSession } from './pipeline';
 export { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
+
+// --------------------------------------------------------------------------------------------
+// Wave 3 wiring surface — completion-time progression updates (§6.3/§6.7) and the comeback /
+// §9.9 Recovery Week code path. Not used by generation itself (the pipeline calls these
+// internally for its own gap detection); re-exported so the persistence layer can (a) apply the
+// same state transition at session completion, and (b) drive an explicitly-triggered Recovery
+// Week through the identical `applyComebackToProgressionStates('week', ...)` transform rather
+// than a parallel implementation.
+export { applySessionResult } from './progression/rules';
+export type { ProgressionEvent, ApplySessionResult } from './progression/rules';
+export type { SessionPerformance } from './progression/rules.types';
+export { assessComeback, applyComebackToProgressionStates } from './progression/comeback';
+export type { ComebackAssessment, ComebackTier } from './progression/comeback';
+export { COMEBACK_VOLUME_MULTIPLIER, COMEBACK_WEEK_GAP_DAYS } from './progression/constants';
