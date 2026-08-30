@@ -33,7 +33,12 @@ function perf(overrides: Partial<SessionPerformance>): SessionPerformance {
 
 describe('§6.5 cold-start calibration', () => {
   it('too_easy advances a full level immediately, not one micro-step', () => {
-    const result = applyCalibrationStep(baseState(), family, library, perf({ difficultyFeedback: 'too_easy' }));
+    const result = applyCalibrationStep(
+      baseState(),
+      family,
+      library,
+      perf({ difficultyFeedback: 'too_easy' }),
+    );
     expect(result.levelChanged).toBe('up');
     expect(result.state.levelId).toBe('horizontal_push.l4');
   });

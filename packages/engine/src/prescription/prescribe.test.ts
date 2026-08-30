@@ -1,5 +1,10 @@
 import { exerciseLibrary } from '@roamfit/data';
-import { prescribeAccessory, prescribeLaddered, prescribeWarmupCooldown } from './prescribe';
+import {
+  prescribeAccessory,
+  prescribeLaddered,
+  prescribeWarmupCooldown,
+  withOneFewerSet,
+} from './prescribe';
 
 const library = exerciseLibrary.exercises;
 const bandedPush = library.find((e) => e.id === 'banded-push-up')!; // band, "B1-B2"
@@ -51,9 +56,17 @@ describe('§5.4 prescription', () => {
   });
 
   it('accessory prescription uses the §5.4 effort table', () => {
-    const easy = prescribeAccessory({ exercise: bwPush, requestedEffort: 'easy', recoveryTreatment: false });
+    const easy = prescribeAccessory({
+      exercise: bwPush,
+      requestedEffort: 'easy',
+      recoveryTreatment: false,
+    });
     expect(easy).toMatchObject({ sets: 3, repTarget: 15, restSec: 60, tempoSec: 3 });
-    const hard = prescribeAccessory({ exercise: bwPush, requestedEffort: 'hard', recoveryTreatment: false });
+    const hard = prescribeAccessory({
+      exercise: bwPush,
+      requestedEffort: 'hard',
+      recoveryTreatment: false,
+    });
     expect(hard).toMatchObject({ sets: 4, repTarget: 12, restSec: 30, tempoSec: 4 });
   });
 
@@ -73,5 +86,47 @@ describe('§5.4 prescription', () => {
     expect(entry.band).toBeNull();
     expect(entry.progressionFamilyId).toBeNull();
     expect(entry.role).toBe('warmup');
+  });
+
+  describe('withOneFewerSet — precise §5.6 overrun trim (round 2)', () => {
+    it('removes exactly one set and recomputes estimatedSec, not a proportional-rounded multiplier', () => {
+      const entry = prescribeAccessory({
+        exercise: bwPush,
+        requestedEffort: 'normal',
+        recoveryTreatment: false,
+      });
+      expect(entry.sets).toBe(3);
+      const trimmed = withOneFewerSet(entry);
+      expect(trimmed.sets).toBe(2);
+      // A round-to-nearest-integer multiplier close to 1 (e.g. 0.9) would round 3 -> 3, a no-op —
+      // this is exactly the coarseness bug the precise version exists to avoid.
+      expect(trimmed.estimatedSec).toBeLessThan(entry.estimatedSec);
+    });
+
+    it('is a no-op once sets is already 1 (the floor)', () => {
+      const entry = {
+        ...prescribeAccessory({
+          exercise: bwPush,
+          requestedEffort: 'normal',
+          recoveryTreatment: false,
+        }),
+        sets: 1,
+      };
+      const trimmed = withOneFewerSet(entry);
+      expect(trimmed).toBe(entry);
+    });
+
+    it('recomputes a timed entry using the timed formula', () => {
+      const timedEx = library.find((e) => e.metric === 'time' && e.role === 'main')!;
+      const entry = prescribeAccessory({
+        exercise: timedEx,
+        requestedEffort: 'normal',
+        recoveryTreatment: false,
+      });
+      const trimmed = withOneFewerSet(entry);
+      expect(trimmed.sets).toBe(entry.sets - 1);
+      expect(trimmed.durationSec).toBe(entry.durationSec); // duration itself is untouched, only sets
+      expect(trimmed.estimatedSec).toBeLessThan(entry.estimatedSec);
+    });
   });
 });

@@ -35,7 +35,11 @@ export function applyCalibrationStep(
     const prev = prevLevel(family, state.levelId);
     if (!prev) {
       return {
-        state: { ...state, calibrating: stillCalibrating, consecutiveMisses: state.consecutiveMisses + 1 },
+        state: {
+          ...state,
+          calibrating: stillCalibrating,
+          consecutiveMisses: state.consecutiveMisses + 1,
+        },
         levelChanged: null,
       };
     }
@@ -58,7 +62,11 @@ export function applyCalibrationStep(
     const next = nextLevel(family, state.levelId);
     if (!next) {
       return {
-        state: { ...state, calibrating: stillCalibrating, consecutiveHits: state.consecutiveHits + 1 },
+        state: {
+          ...state,
+          calibrating: stillCalibrating,
+          consecutiveHits: state.consecutiveHits + 1,
+        },
         levelChanged: null,
       };
     }

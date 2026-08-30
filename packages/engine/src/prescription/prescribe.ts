@@ -27,7 +27,13 @@ export interface PrescribeLadderedInput {
   exercise: Exercise;
   familyId: ProgressionFamilyId;
   levelId: string;
-  micro: { repTarget: number; band: BandId | null; tempoSec: number; restSec: number; sets: number };
+  micro: {
+    repTarget: number;
+    band: BandId | null;
+    tempoSec: number;
+    restSec: number;
+    sets: number;
+  };
   requestedEffort: Effort;
   /** §5.2 48h recovery — this exercise touches a muscle trained hard in the last 2 days. */
   recoveryTreatment: boolean;
@@ -42,14 +48,29 @@ function scaleSets(sets: number, multiplier: number | undefined): number {
 }
 
 export function prescribeLaddered(input: PrescribeLadderedInput): SessionEntry {
-  const { exercise, familyId, levelId, micro, requestedEffort, recoveryTreatment, substitutedFor } = input;
-  const effort = effortCapForExercise(exercise, recoveryTreatment ? capBelowHard(requestedEffort) : requestedEffort);
+  const { exercise, familyId, levelId, micro, requestedEffort, recoveryTreatment, substitutedFor } =
+    input;
+  const effort = effortCapForExercise(
+    exercise,
+    recoveryTreatment ? capBelowHard(requestedEffort) : requestedEffort,
+  );
   const band = recoveryTreatment ? dropOneBand(micro.band) : micro.band;
   const isTimed = exercise.metric === 'time';
   const sets = scaleSets(micro.sets, input.setsMultiplier);
   const estimatedSec = isTimed
-    ? timedExerciseSec({ sets, durationSec: micro.repTarget, restSec: micro.restSec, unilateral: exercise.unilateral })
-    : repExerciseSec({ sets, reps: micro.repTarget, tempoSec: micro.tempoSec, restSec: micro.restSec, unilateral: exercise.unilateral });
+    ? timedExerciseSec({
+        sets,
+        durationSec: micro.repTarget,
+        restSec: micro.restSec,
+        unilateral: exercise.unilateral,
+      })
+    : repExerciseSec({
+        sets,
+        reps: micro.repTarget,
+        tempoSec: micro.tempoSec,
+        restSec: micro.restSec,
+        unilateral: exercise.unilateral,
+      });
 
   return {
     exerciseId: exercise.id,
@@ -89,18 +110,37 @@ export interface PrescribeAccessoryInput {
 
 export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry {
   const { exercise, requestedEffort, recoveryTreatment } = input;
-  const effort = effortCapForExercise(exercise, recoveryTreatment ? capBelowHard(requestedEffort) : requestedEffort);
+  const effort = effortCapForExercise(
+    exercise,
+    recoveryTreatment ? capBelowHard(requestedEffort) : requestedEffort,
+  );
   const row = EFFORT_TABLE[effort];
   const suggestedBand = parseFirstBand(exercise.band);
-  const band = exercise.equipment === 'band' ? (recoveryTreatment ? dropOneBand(suggestedBand) : suggestedBand) : null;
+  const band =
+    exercise.equipment === 'band'
+      ? recoveryTreatment
+        ? dropOneBand(suggestedBand)
+        : suggestedBand
+      : null;
   const isTimed = exercise.metric === 'time';
   const durationSec = isTimed ? (exercise.default_seconds ?? 30) : undefined;
   const amrap = Boolean(input.isFinisherAmrap) && !isTimed && effort === 'hard';
   const sets = scaleSets(row.sets, input.setsMultiplier);
 
   const estimatedSec = isTimed
-    ? timedExerciseSec({ sets, durationSec: durationSec!, restSec: row.restSec, unilateral: exercise.unilateral })
-    : repExerciseSec({ sets, reps: row.reps, tempoSec: row.tempoSec, restSec: row.restSec, unilateral: exercise.unilateral });
+    ? timedExerciseSec({
+        sets,
+        durationSec: durationSec!,
+        restSec: row.restSec,
+        unilateral: exercise.unilateral,
+      })
+    : repExerciseSec({
+        sets,
+        reps: row.reps,
+        tempoSec: row.tempoSec,
+        restSec: row.restSec,
+        unilateral: exercise.unilateral,
+      });
 
   return {
     exerciseId: exercise.id,
@@ -122,12 +162,21 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
   };
 }
 
-export function prescribeWarmupCooldown(exercise: Exercise, role: Extract<Role, 'warmup' | 'cooldown'>): SessionEntry {
+export function prescribeWarmupCooldown(
+  exercise: Exercise,
+  role: Extract<Role, 'warmup' | 'cooldown'>,
+): SessionEntry {
   const durationSec = exercise.default_seconds ?? 45;
   const estimatedSec =
     exercise.metric === 'time'
       ? timedExerciseSec({ sets: 1, durationSec, restSec: 0, unilateral: exercise.unilateral })
-      : repExerciseSec({ sets: 1, reps: 12, tempoSec: 2, restSec: 0, unilateral: exercise.unilateral });
+      : repExerciseSec({
+          sets: 1,
+          reps: 12,
+          tempoSec: 2,
+          restSec: 0,
+          unilateral: exercise.unilateral,
+        });
   return {
     exerciseId: exercise.id,
     role,
@@ -150,4 +199,35 @@ export function prescribeWarmupCooldown(exercise: Exercise, role: Extract<Role, 
 function parseFirstBand(band: string | null): BandId | null {
   if (!band) return null;
   return band.split('-')[0] as BandId;
+}
+
+/**
+ * §5.6 time-fit correction, precise version: a proportional sets *multiplier* rounds to the
+ * nearest integer, which is too coarse to move a small integer like `sets` at all when the
+ * needed correction is under ~15% (`round(3 * 0.9)` is still 3) — exactly the case for the
+ * mainstream 25-60min overruns this exists to fix. This instead removes exactly one set from one
+ * entry and recomputes its `estimatedSec` from the same formula prescription used, so the caller
+ * (`pipeline.ts`) can decrement precisely, one set at a time, from whichever entry is currently
+ * largest, until the session is back in budget or every entry is at the sets floor (1). A no-op
+ * (returns the same entry) once `sets` is already 1.
+ */
+export function withOneFewerSet(entry: SessionEntry): SessionEntry {
+  if (entry.sets <= 1) return entry;
+  const sets = entry.sets - 1;
+  const isTimed = entry.durationSec !== undefined;
+  const estimatedSec = isTimed
+    ? timedExerciseSec({
+        sets,
+        durationSec: entry.durationSec!,
+        restSec: entry.restSec,
+        unilateral: entry.unilateral,
+      })
+    : repExerciseSec({
+        sets,
+        reps: entry.repTarget ?? 10, // AMRAP entries have no repTarget; 10 is a reasonable formula estimate
+        tempoSec: entry.tempoSec,
+        restSec: entry.restSec,
+        unilateral: entry.unilateral,
+      });
+  return { ...entry, sets, estimatedSec };
 }

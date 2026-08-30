@@ -53,7 +53,10 @@ describe('§5.1 step 6 time fit', () => {
   });
 
   it('reports the exercise-count sanity check from §5.6', () => {
-    const slots = Array.from({ length: 6 }, (_, i) => ({ required: true, entry: entry(200, `e${i}`) }));
+    const slots = Array.from({ length: 6 }, (_, i) => ({
+      required: true,
+      entry: entry(200, `e${i}`),
+    }));
     const result = fitMainEntries(slots, 30, 240, 180); // 30min expects 5-6 exercises
     expect(result.withinExerciseCountSanity).toBe(true);
   });

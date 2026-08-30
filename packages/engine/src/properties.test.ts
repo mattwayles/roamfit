@@ -11,7 +11,7 @@ import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import type { Exercise, Focus, ProgressionFamilyId } from '@roamfit/data';
 import { generateSession } from './pipeline';
 import { createRng } from './rng';
-import { calibrationStartLevel, findFamily } from './progression/ladder';
+import { calibrationStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
 import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
 import type { Effort, EquipmentPreference, ProgressionState, UserState } from './types';
@@ -37,7 +37,12 @@ function coldStart(overrides: Partial<UserState> = {}): UserState {
     };
   }
   return {
-    profile: { units: 'lb', weeklyTarget: 3, limitations: [], anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE] },
+    profile: {
+      units: 'lb',
+      weeklyTarget: 3,
+      limitations: [],
+      anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+    },
     exerciseStates: {},
     progressionStates,
     history: [],
@@ -163,20 +168,28 @@ describe('property: invariants hold across the full request sweep', () => {
               expect(new Set(ids).size).toBe(ids.length);
 
               // §5.6: "add or drop until within +/-10% of target." This is the real requirement
-              // — not a loose sanity ceiling. The ONLY legitimate exception is a pool genuinely
-              // too thin to fill (or a required-only overshoot too large to trim), and that must
-              // be reported explicitly via `timeBudgetShortfall`, never silently returned.
+              // — not a loose sanity ceiling. `timeBudgetDeviation` is the ONLY legitimate escape
+              // hatch, and only in the 'under' direction (a pool genuinely too thin to fill more
+              // main work — a real content limitation). An 'over' deviation (an overrun) is NOT
+              // excusable through this field at all: §1.1 names overrunning specifically as the
+              // churn risk, worse than a shortfall a caller can label honestly, and the engine has
+              // a sets-trim lever (applied whenever required entries alone would overshoot,
+              // regardless of target length) that must have already brought it back in band. If
+              // this ever fires, that is a real regression to fix, not a case to reclassify.
               expect(plan.estimatedMinutes).toBeGreaterThan(0);
-              if (plan.timeBudgetShortfall) {
+              if (plan.timeBudgetDeviation) {
                 // The flag itself must be internally consistent and must actually describe an
                 // out-of-band case — it is not a free pass.
-                expect(plan.timeBudgetShortfall.targetMinutes).toBe(targetMinutes);
-                expect(plan.timeBudgetShortfall.estimatedMinutes).toBe(plan.estimatedMinutes);
+                expect(plan.timeBudgetDeviation.targetMinutes).toBe(targetMinutes);
+                expect(plan.timeBudgetDeviation.estimatedMinutes).toBe(plan.estimatedMinutes);
                 const withinBand =
                   plan.estimatedMinutes >= targetMinutes * 0.9 &&
                   plan.estimatedMinutes <= targetMinutes * 1.1;
                 expect(withinBand).toBe(false);
                 expect(plan.explanation).toMatch(/min/); // surfaced in the §5.8 line, not silent
+                expect(plan.timeBudgetDeviation.direction).toBe('under');
+                expect(plan.timeBudgetDeviation.reason).toBe('thin_pool');
+                expect(plan.estimatedMinutes).toBeLessThan(targetMinutes);
               } else {
                 expect(plan.estimatedMinutes).toBeGreaterThanOrEqual(targetMinutes * 0.9);
                 expect(plan.estimatedMinutes).toBeLessThanOrEqual(targetMinutes * 1.1);

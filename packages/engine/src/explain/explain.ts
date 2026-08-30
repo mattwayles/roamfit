@@ -45,10 +45,11 @@ export interface PatternGapFact {
   resolution: 'used_band' | 'stated_imbalance';
 }
 
-export interface TimeBudgetShortfallFact {
+export interface TimeBudgetDeviationFact {
   targetMinutes: number;
   estimatedMinutes: number;
-  direction: 'short' | 'long';
+  direction: 'under' | 'over';
+  reason: 'thin_pool' | 'structural_minimum';
 }
 
 export interface ExplanationInputs {
@@ -63,7 +64,9 @@ export interface ExplanationInputs {
   patternGaps: readonly PatternGapFact[];
   /** §5.6 — set only when, after every fill/trim lever, the estimate still falls outside ±10%
    *  of target. Never silent, the same as a PATTERN GAP. */
-  timeBudgetShortfall?: TimeBudgetShortfallFact;
+  timeBudgetDeviation?: TimeBudgetDeviationFact;
+  /** ADR 0002 — the requested length was below the 15-minute floor and got bumped up. */
+  minimumTargetClamp?: { requestedMinutes: number; effectiveMinutes: number };
   /** §9.4 comeback copy, verbatim when present ("Welcome back — let's ease in."). */
   comebackNotice?: string;
   /** §6.5 — shown once, on the very first session only. */
@@ -78,17 +81,26 @@ export function composeExplanation(input: ExplanationInputs): string {
 
   if (input.comebackNotice) sentences.push(input.comebackNotice);
 
-  if (input.timeBudgetShortfall) {
-    const { targetMinutes, estimatedMinutes, direction } = input.timeBudgetShortfall;
+  if (input.minimumTargetClamp) {
+    const { requestedMinutes, effectiveMinutes } = input.minimumTargetClamp;
     sentences.push(
-      direction === 'short'
+      `${requestedMinutes} min is too short to build a full session around — targeting ${effectiveMinutes} min instead. For something quicker, use Quick Session.`,
+    );
+  }
+
+  if (input.timeBudgetDeviation) {
+    const { targetMinutes, estimatedMinutes, direction } = input.timeBudgetDeviation;
+    sentences.push(
+      direction === 'under'
         ? `Runs about ${estimatedMinutes} min instead of your ${targetMinutes} min target — not enough fresh work in the pool right now to fill the rest.`
-        : `Runs about ${estimatedMinutes} min instead of your ${targetMinutes} min target — trimmed sets as much as safely possible.`,
+        : `Runs about ${estimatedMinutes} min instead of your ${targetMinutes} min target — couldn't trim further without dropping a required exercise.`,
     );
   }
 
   if (input.recoveryMuscleLabel) {
-    sentences.push(`Lighter on ${input.recoveryMuscleLabel} — you trained it hard in the last two days.`);
+    sentences.push(
+      `Lighter on ${input.recoveryMuscleLabel} — you trained it hard in the last two days.`,
+    );
   }
 
   for (const gap of input.patternGaps) {

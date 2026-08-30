@@ -100,17 +100,33 @@ describe('§6.3 advance / regress / drop-a-level', () => {
 
   it('drops a level after two consecutive regressions at the bottom micro-step', () => {
     const bottomState = stateAt('horizontal_push.l3'); // already at the floor micro-step
-    const first = applySessionResult(bottomState, family, library, perf({ missedBottom: true, difficultyFeedback: 'too_hard' }));
+    const first = applySessionResult(
+      bottomState,
+      family,
+      library,
+      perf({ missedBottom: true, difficultyFeedback: 'too_hard' }),
+    );
     expect(first.event).toEqual({ kind: 'hold' });
     expect(first.state.consecutiveMisses).toBe(1);
-    const second = applySessionResult(first.state, family, library, perf({ missedBottom: true, difficultyFeedback: 'too_hard' }));
+    const second = applySessionResult(
+      first.state,
+      family,
+      library,
+      perf({ missedBottom: true, difficultyFeedback: 'too_hard' }),
+    );
     expect(second.event).toEqual({ kind: 'level_down', levelId: 'horizontal_push.l2' });
   });
 
   it('advancing past the max micro-step at a non-max level moves to the next level_id', () => {
     // l3 = bw-knee-push-up, bodyweight. Walk micro to its cap, then one more advance.
     let state = stateAt('horizontal_push.l3');
-    const advances = ['micro_advance', 'micro_advance', 'micro_advance', 'micro_advance', 'micro_advance'];
+    const advances = [
+      'micro_advance',
+      'micro_advance',
+      'micro_advance',
+      'micro_advance',
+      'micro_advance',
+    ];
     for (const expected of advances) {
       const r = applySessionResult(state, family, library, perf({ allSetsAtOrAboveTop: true }));
       expect(r.event.kind).toBe(expected);

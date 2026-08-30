@@ -74,7 +74,10 @@ describe('resolveLadderSlot', () => {
       hardFilteredPool: withoutL5,
     });
     expect(result?.exercise.id).toBe('bw-push-up'); // horizontal_push.l4
-    expect(result?.substitutedFrom).toEqual({ levelId: 'horizontal_push.l5', exerciseId: 'banded-push-up' });
+    expect(result?.substitutedFrom).toEqual({
+      levelId: 'horizontal_push.l5',
+      exerciseId: 'banded-push-up',
+    });
   });
 
   it('is undefined when every level of the ladder fails the hard filters (a PATTERN GAP for the caller)', () => {

@@ -7,9 +7,20 @@
  * function both call through (see `generateQuickSession` / the comeback handling below), exactly
  * as the wave-02 brief requires.
  */
-import type { Exercise, ExerciseLibrary, FamilyLibrary, Focus, Pattern, ProgressionFamilyId } from '@roamfit/data';
+import type {
+  Exercise,
+  ExerciseLibrary,
+  FamilyLibrary,
+  Focus,
+  Pattern,
+  ProgressionFamilyId,
+} from '@roamfit/data';
 import { applyHardFilters } from './filters/hardFilters';
-import { buildFocusTemplate, buildQuickSessionTemplate, expandOptionalSlots } from './template/focusTemplate';
+import {
+  buildFocusTemplate,
+  buildQuickSessionTemplate,
+  expandOptionalSlots,
+} from './template/focusTemplate';
 import type { TemplateSlot } from './template/focusTemplate';
 import { selectMain } from './selection/mainSelection';
 import type { SelectedMain } from './selection/mainSelection';
@@ -24,10 +35,16 @@ import {
   prescribeAccessory,
   prescribeLaddered,
   prescribeWarmupCooldown,
+  withOneFewerSet,
 } from './prescription/prescribe';
 import { fitMainEntries } from './timefit/fitSession';
 import type { SlotEntry } from './timefit/fitSession';
-import { cooldownMinutes, mainExerciseCountRange, warmupMinutes } from './timefit/formulas';
+import {
+  cooldownMinutes,
+  MINIMUM_SUPPORTED_TARGET_MINUTES,
+  mainExerciseCountRange,
+  warmupMinutes,
+} from './timefit/formulas';
 import { composeExplanation } from './explain/explain';
 import type { LevelUpFact, PatternGapFact, SubstitutionFact } from './explain/explain';
 import { ENGINE_VERSION } from './version';
@@ -38,7 +55,7 @@ import type {
   Rng,
   SessionEntry,
   SessionPlan,
-  TimeBudgetNote,
+  TimeBudgetDeviation,
   UserState,
 } from './types';
 
@@ -77,7 +94,14 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   const isQuick = Boolean(request.quickSession);
   const focus: Focus = request.focus;
   const effort = isQuick ? 'normal' : request.effort;
-  const targetMinutes = isQuick ? 7 : request.targetMinutes;
+  // ADR 0002 — the general pipeline's warmup/cooldown-minutes budget is internally inconsistent
+  // below 15 minutes (the 3min floor on each alone consumes 6 of a 10-minute request before any
+  // main work). Clamp up to the documented minimum; Quick Session's own fixed ~7min path is
+  // unaffected (it doesn't use this budget at all).
+  const requestedTargetMinutes = isQuick ? 7 : request.targetMinutes;
+  const targetMinutes = isQuick
+    ? requestedTargetMinutes
+    : Math.max(requestedTargetMinutes, MINIMUM_SUPPORTED_TARGET_MINUTES);
   const equipmentPreference = request.equipmentPreference ?? 'any';
 
   // §9.4 comeback — a whole-user gap check, applied identically whether it's auto-detected here
@@ -117,13 +141,30 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   // to actually FILL a long budget rather than stopping once the static slot list runs out —
   // see STATUS-2-engine.md's time-fit correction. Quick Session stays deliberately minimal.
   const baseTemplate = isQuick
-    ? buildQuickSessionTemplate({ focus, targetMinutes, effort, library: allExercises, history: userState.history })
-    : buildFocusTemplate({ focus, targetMinutes, effort, library: allExercises, history: userState.history });
+    ? buildQuickSessionTemplate({
+        focus,
+        targetMinutes,
+        effort,
+        library: allExercises,
+        history: userState.history,
+      })
+    : buildFocusTemplate({
+        focus,
+        targetMinutes,
+        effort,
+        library: allExercises,
+        history: userState.history,
+      });
   const template = isQuick
     ? baseTemplate
     : expandOptionalSlots(baseTemplate, focus, mainExerciseCountRange(targetMinutes)[1]);
 
-  const recoveryMuscles = recentHardMuscles(userState.history, pool, clock.today, RECOVERY_WINDOW_DAYS);
+  const recoveryMuscles = recentHardMuscles(
+    userState.history,
+    pool,
+    clock.today,
+    RECOVERY_WINDOW_DAYS,
+  );
 
   // Split slots: laddered (§6) vs. accessory (§5.2 selectMain) vs. finisher (accessory, tier=fill).
   const ladderSlots: { slot: TemplateSlot; familyId: ProgressionFamilyId }[] = [];
@@ -163,7 +204,11 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
 
   // §5.1 step 4 — progression: resolve each laddered slot to a concrete exercise ONCE (this
   // does not depend on the sets multiplier, so it isn't repeated by the corrective pass below).
-  const ladderResolutions: { slot: TemplateSlot; familyId: ProgressionFamilyId; resolved: ResolvedLadderSlot }[] = [];
+  const ladderResolutions: {
+    slot: TemplateSlot;
+    familyId: ProgressionFamilyId;
+    resolved: ResolvedLadderSlot;
+  }[] = [];
   for (const { slot, familyId } of ladderSlots) {
     const resolved = resolveLadderSlot({
       familyId,
@@ -182,9 +227,15 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
 
     if (resolved.substitutedFrom) {
       const fromEx = allExercises.find((e) => e.id === resolved.substitutedFrom!.exerciseId);
-      substitutions.push({ fromName: fromEx?.name ?? resolved.substitutedFrom.exerciseId, toName: resolved.exercise.name });
+      substitutions.push({
+        fromName: fromEx?.name ?? resolved.substitutedFrom.exerciseId,
+        toName: resolved.exercise.name,
+      });
     }
-    if (resolved.state.lastLevelChangeAt && resolved.state.lastLevelChangeAt === mostRecentSessionDate) {
+    if (
+      resolved.state.lastLevelChangeAt &&
+      resolved.state.lastLevelChangeAt === mostRecentSessionDate
+    ) {
       const family = families.families.find((f) => f.id === familyId)!;
       const { n, of } = levelOrdinal(family, resolved.state.levelId);
       levelUps.push({ exerciseName: resolved.exercise.name, levelN: n, levelOf: of });
@@ -237,7 +288,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     return map;
   }
 
-  let entriesBySlotId = prescribeEntries(setsMultiplier);
+  const entriesBySlotId = prescribeEntries(setsMultiplier);
 
   // Warmup + cooldown. §9.5 Quick Session is explicitly "one warmup ... one cooldown" — keep it
   // to exactly one each. Every other session's §5.6 budget allocates several *minutes* to each
@@ -251,8 +302,22 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   let warmupEntries: SessionEntry[];
   let cooldownEntries: SessionEntry[];
   if (isQuick) {
-    const warmupEx = selectWarmupCooldown({ role: 'warmup', pool, focus, userState, today: clock.today, rng });
-    const cooldownEx = selectWarmupCooldown({ role: 'cooldown', pool, focus, userState, today: clock.today, rng });
+    const warmupEx = selectWarmupCooldown({
+      role: 'warmup',
+      pool,
+      focus,
+      userState,
+      today: clock.today,
+      rng,
+    });
+    const cooldownEx = selectWarmupCooldown({
+      role: 'cooldown',
+      pool,
+      focus,
+      userState,
+      today: clock.today,
+      rng,
+    });
     warmupEntries = warmupEx ? [prescribeWarmupCooldown(warmupEx, 'warmup')] : [];
     cooldownEntries = cooldownEx ? [prescribeWarmupCooldown(cooldownEx, 'cooldown')] : [];
   } else {
@@ -282,21 +347,41 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   const warmupSec = warmupEntries.reduce((a, e) => a + e.estimatedSec, 0);
   const cooldownSec = cooldownEntries.reduce((a, e) => a + e.estimatedSec, 0);
 
-  // Short-target correction: if the REQUIRED entries alone (before any optional slot is even
-  // considered) already exceed the +10% ceiling, trim sets via a corrective multiplier rather
-  // than dropping a required pattern slot (§5.6). `scaleSets` floors at 1 set, so if even that
-  // isn't enough the result is a genuine, reported shortfall (see below) — not silently ignored.
+  // Overrun correction: if the REQUIRED entries alone (before any optional slot is even
+  // considered) already exceed the +10% ceiling, trim sets rather than dropping a required
+  // pattern slot (§5.6) — at ANY target length, not just short ones (a 25-60min session can
+  // overrun just as easily as a 15min one when its required patterns happen to run long).
   // Sized against the *actual* warmup/cooldown time just resolved above, not the clamp-formula
   // estimate — see the comment on `budgetSec` inside `fitMainEntries` for why that matters.
+  //
+  // Removes exactly one set at a time from whichever required entry is currently largest, rather
+  // than a proportional multiplier: a multiplier rounds to the nearest integer sets count, which
+  // is too coarse to move anything when the needed correction is under ~15%
+  // (`round(3 * 0.9) === 3`) — that coarseness was letting real, mainstream-target overruns
+  // through uncorrected. `withOneFewerSet` floors at 1 set per entry; if every required entry is
+  // already at 1 set and the total still exceeds the ceiling, that's a genuine, reported overrun
+  // (see below) — not silently ignored, but confirmed to be the true floor, not a rounding miss.
+  const requiredSlotIds = new Set(template.slots.filter((s) => s.required).map((s) => s.id));
+  function requiredMainSecTotal(): number {
+    let sum = 0;
+    for (const id of requiredSlotIds) sum += entriesBySlotId.get(id)?.estimatedSec ?? 0;
+    return sum;
+  }
   const mainBudgetSecActual = Math.max(0, targetMinutes * 60 - warmupSec - cooldownSec);
   const ceilingSec = mainBudgetSecActual * 1.1;
-  const requiredMainSec = template.slots
-    .filter((s) => s.required)
-    .reduce((sum, s) => sum + (entriesBySlotId.get(s.id)?.estimatedSec ?? 0), 0);
-  if (requiredMainSec > ceilingSec && requiredMainSec > 0) {
-    const correctionRatio = ceilingSec / requiredMainSec;
-    const correctedMultiplier = Math.max(0.3, setsMultiplier * correctionRatio);
-    entriesBySlotId = prescribeEntries(correctedMultiplier);
+  let trimGuard = 200; // bounded: at most a few sets per required entry, never truly unbounded
+  while (requiredMainSecTotal() > ceilingSec && trimGuard-- > 0) {
+    let largestId: string | undefined;
+    let largestSec = -1;
+    for (const id of requiredSlotIds) {
+      const entry = entriesBySlotId.get(id);
+      if (entry && entry.sets > 1 && entry.estimatedSec > largestSec) {
+        largestSec = entry.estimatedSec;
+        largestId = id;
+      }
+    }
+    if (!largestId) break; // every required entry is already at the sets floor
+    entriesBySlotId.set(largestId, withOneFewerSet(entriesBySlotId.get(largestId)!));
   }
 
   // §5.1 step 6 — time fit, over the slots in template priority order. With the expanded
@@ -311,17 +396,28 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
 
   // `withinTenPercent` is §5.6's actual requirement, not a decoration — read it. If the session
   // still falls outside ±10% after the corrective sets-trim above and every optional slot the
-  // (now-expanded) template could supply, that means the eligible pool genuinely is too thin (or
-  // a very short target's required slots can't be trimmed further) — report it explicitly, the
-  // same way a PATTERN GAP is never silent (§5.2), rather than quietly returning an off-target
-  // plan the way the pre-fix engine did.
-  const timeBudgetShortfall: TimeBudgetNote | undefined = fit.withinTenPercent
+  // (now-expanded) template could supply, that means the eligible pool genuinely is too thin (an
+  // 'under' deviation) or the required slots alone can't be trimmed further even at the sets
+  // floor (an 'over' deviation — should be rare to non-existent post-ADR-0002) — report it
+  // explicitly, the same way a PATTERN GAP is never silent (§5.2), rather than quietly returning
+  // an off-target plan. Direction and reason are named separately and deliberately: an overrun
+  // is not a shortfall, and a field that blurs the two would read as a content limitation when
+  // it's the opposite, more costly failure mode (§1.1).
+  const timeBudgetDeviation: TimeBudgetDeviation | undefined = fit.withinTenPercent
     ? undefined
-    : {
-        targetMinutes,
-        estimatedMinutes: fit.estimatedMinutes,
-        direction: fit.estimatedMinutes < targetMinutes ? 'short' : 'long',
-      };
+    : fit.estimatedMinutes < targetMinutes
+      ? {
+          targetMinutes,
+          estimatedMinutes: fit.estimatedMinutes,
+          direction: 'under',
+          reason: 'thin_pool',
+        }
+      : {
+          targetMinutes,
+          estimatedMinutes: fit.estimatedMinutes,
+          direction: 'over',
+          reason: 'structural_minimum',
+        };
 
   // §5.1 step 7 — explain.
   let recoveryMuscleLabel: string | undefined;
@@ -348,6 +444,11 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   const mostlyNovel = fit.main.length > 0 && noveltyNames.size >= fit.main.length * 0.75;
   const displayNoveltyNames = mostlyNovel ? [] : [...noveltyNames].slice(0, NOVELTY_DISPLAY_CAP);
 
+  const minimumTargetClamp =
+    !isQuick && requestedTargetMinutes < MINIMUM_SUPPORTED_TARGET_MINUTES
+      ? { requestedMinutes: requestedTargetMinutes, effectiveMinutes: targetMinutes }
+      : undefined;
+
   const explanation = composeExplanation({
     recoveryMuscleLabel,
     levelUps,
@@ -355,7 +456,8 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     noveltyExerciseNames: displayNoveltyNames,
     substitutions,
     patternGaps: patternGapFacts,
-    timeBudgetShortfall,
+    timeBudgetDeviation,
+    minimumTargetClamp,
     comebackNotice: comeback.notice ?? undefined,
     calibrationFirstSessionNotice: !userState.hasEverCompletedSession,
     balancedAgainst: fit.main[0]?.pattern,
@@ -372,7 +474,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     cooldown: cooldownEntries,
     explanation,
     patternGaps,
-    timeBudgetShortfall,
+    timeBudgetDeviation,
     anchorsSnapshot: userState.profile.anchorsAvailable,
     engineVersion: ENGINE_VERSION,
     generatedAtLocalDate: clock.today,

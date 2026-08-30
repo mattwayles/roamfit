@@ -43,22 +43,20 @@ export function fitMainEntries(
   let total = required.reduce((sum, e) => sum + e.estimatedSec, 0);
   const chosen = [...required];
 
-  // §5.6: "fill main_sec until the next exercise would overshoot." The polite ceiling (+10%)
-  // lets one more useful exercise in on a close call. But discrete exercise sizes mean a purely
-  // greedy "never cross the polite ceiling" rule can strand the session well *under* the floor
-  // (-10%) when the next available entry would cross the polite ceiling by a little — and
-  // landing short is the worse failure mode (§1.1: "promise the time and keep it"). So: below
-  // the floor, reach for one more entry even past the polite ceiling, up to a harder ceiling —
-  // never truly unbounded, but biased toward closing the gap from below rather than stopping
-  // short of the target for the sake of a strict ceiling.
-  const floor = budgetSec * 0.9;
+  // §5.6: "fill main_sec until the next exercise would overshoot." Strictly never cross the
+  // polite +10% ceiling on the ADD side — an earlier version of this function let the loop reach
+  // *past* the ceiling (up to a harder one) when the running total was still under the floor, to
+  // avoid landing short. That produced a worse failure mode than the one it was solving: real
+  // overruns against a promised time (§1.1 names overrunning specifically as the churn risk,
+  // worse than a shortfall a caller can label honestly). A shortfall from under-supply is now
+  // fixed upstream by giving this function more optional entries to choose from
+  // (`template.expandOptionalSlots`), not by letting this loop overshoot to compensate. If
+  // required entries alone are already over the ceiling, that's on the caller to trim via
+  // prescription (see `pipeline.ts`'s corrective sets multiplier) — this loop only ever adds.
   const politeCeiling = budgetSec * 1.1;
-  const hardCeiling = budgetSec * 1.25;
   for (const entry of optional) {
     const candidateTotal = total + entry.estimatedSec;
-    const underPoliteCeiling = candidateTotal <= politeCeiling;
-    const reachingForFloor = total < floor && candidateTotal <= hardCeiling;
-    if (underPoliteCeiling || reachingForFloor) {
+    if (candidateTotal <= politeCeiling) {
       chosen.push(entry);
       total = candidateTotal;
     } else {

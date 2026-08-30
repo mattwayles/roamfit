@@ -6,7 +6,7 @@
  * starved, no muscle group is chronically over-worked) rather than just per-call.
  */
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import type { Exercise, Focus, ProgressionFamilyId } from '@roamfit/data';
+import type { Focus, ProgressionFamilyId } from '@roamfit/data';
 import { generateSession } from './pipeline';
 import { createRng } from './rng';
 import { addDays } from './dates';
@@ -19,7 +19,6 @@ import type { ExerciseState, ProgressionState, SessionHistoryRecord, UserState }
 
 const library = exerciseLibrary.exercises;
 const families = familyLibrary.families;
-const byId = new Map(library.map((e) => [e.id, e]));
 
 function freshUserState(): UserState {
   const progressionStates = {} as Record<ProgressionFamilyId, ProgressionState>;
@@ -37,7 +36,12 @@ function freshUserState(): UserState {
     };
   }
   return {
-    profile: { units: 'lb', weeklyTarget: 3, limitations: [], anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE] },
+    profile: {
+      units: 'lb',
+      weeklyTarget: 3,
+      limitations: [],
+      anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+    },
     exerciseStates: {},
     progressionStates,
     history: [],
@@ -53,15 +57,11 @@ function simulatedOutcome(rng: ReturnType<typeof createRng>): {
   difficultyFeedback: 'too_easy' | 'just_right' | 'too_hard';
 } {
   const r = rng.next();
-  if (r < 0.6) return { allSetsAtOrAboveTop: true, missedBottom: false, difficultyFeedback: 'just_right' };
-  if (r < 0.85) return { allSetsAtOrAboveTop: false, missedBottom: false, difficultyFeedback: 'just_right' };
+  if (r < 0.6)
+    return { allSetsAtOrAboveTop: true, missedBottom: false, difficultyFeedback: 'just_right' };
+  if (r < 0.85)
+    return { allSetsAtOrAboveTop: false, missedBottom: false, difficultyFeedback: 'just_right' };
   return { allSetsAtOrAboveTop: false, missedBottom: true, difficultyFeedback: 'too_hard' };
-}
-
-function ex(id: string): Exercise {
-  const e = byId.get(id);
-  if (!e) throw new Error(`unknown exercise id ${id}`);
-  return e;
 }
 
 describe('30-session simulation', () => {
@@ -96,7 +96,9 @@ describe('30-session simulation', () => {
       // Track accessory (non-laddered) exercise usage for a variety check.
       plan.main
         .filter((e) => e.progressionFamilyId === null)
-        .forEach((e) => accessoryUsage.set(e.exerciseId, (accessoryUsage.get(e.exerciseId) ?? 0) + 1));
+        .forEach((e) =>
+          accessoryUsage.set(e.exerciseId, (accessoryUsage.get(e.exerciseId) ?? 0) + 1),
+        );
 
       // Apply simulated performance to every laddered main entry -> updates progression state.
       const nextProgressionStates = { ...userState.progressionStates };

@@ -72,7 +72,12 @@ export function applySessionResult(
     const step = microAdvance(state.micro, exercise);
     if (step.levelChange !== 'up') {
       return {
-        state: { ...state, micro: step.micro, consecutiveHits: state.consecutiveHits + 1, consecutiveMisses: 0 },
+        state: {
+          ...state,
+          micro: step.micro,
+          consecutiveHits: state.consecutiveHits + 1,
+          consecutiveMisses: 0,
+        },
         event: { kind: 'micro_advance' },
       };
     }
@@ -81,7 +86,12 @@ export function applySessionResult(
       // §6.7 Mastery — hold at the maxed micro-step; this session is a best-set PR check instead
       // of a level change (the caller compares actual performance against exerciseState.bestSet).
       return {
-        state: { ...state, micro: step.micro, consecutiveHits: state.consecutiveHits + 1, consecutiveMisses: 0 },
+        state: {
+          ...state,
+          micro: step.micro,
+          consecutiveHits: state.consecutiveHits + 1,
+          consecutiveMisses: 0,
+        },
         event: { kind: 'mastery_pr_check' },
       };
     }
@@ -132,7 +142,12 @@ export function applySessionResult(
     }
     const step = microRegress(state.micro, exercise);
     return {
-      state: { ...state, micro: step.micro, consecutiveMisses: state.consecutiveMisses + 1, consecutiveHits: 0 },
+      state: {
+        ...state,
+        micro: step.micro,
+        consecutiveMisses: state.consecutiveMisses + 1,
+        consecutiveHits: 0,
+      },
       event: { kind: 'micro_regress' },
     };
   }

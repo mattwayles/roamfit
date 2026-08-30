@@ -210,7 +210,9 @@ function main() {
 
       const ex = byId.get(lvl.exercise_id);
       if (!ex) {
-        fail(`family ${fam.id} level ${lvl.level_id}: references missing exercise ${lvl.exercise_id}`);
+        fail(
+          `family ${fam.id} level ${lvl.level_id}: references missing exercise ${lvl.exercise_id}`,
+        );
         continue;
       }
       if (ex.pattern !== fam.pattern) {
@@ -241,7 +243,9 @@ function main() {
       }
       const inLevels = fam.levels.some((l) => l.exercise_id === ex.id);
       if (!inLevels) {
-        fail(`${ex.id}: claims progression_family "${fam.id}" but is not in that family's levels[]`);
+        fail(
+          `${ex.id}: claims progression_family "${fam.id}" but is not in that family's levels[]`,
+        );
       }
     }
   }
@@ -253,7 +257,15 @@ function main() {
   // §5.5 focus templates: every pattern slot needs eligible exercises per focus, and every
   // focus needs a non-empty warmup and cooldown pool.
   const TEMPLATE_PATTERNS: Record<Focus, Pattern[]> = {
-    upper: ['horizontal_push', 'horizontal_pull', 'vertical_push', 'vertical_pull', 'elbow_flexion', 'elbow_extension', 'shoulder_isolation'],
+    upper: [
+      'horizontal_push',
+      'horizontal_pull',
+      'vertical_push',
+      'vertical_pull',
+      'elbow_flexion',
+      'elbow_extension',
+      'shoulder_isolation',
+    ],
     legs: ['squat', 'hinge', 'lunge', 'hip_extension', 'abduction', 'calf'],
     abs: ['anti_rotation', 'flexion', 'anti_extension', 'lateral_flexion'],
     full: ['squat', 'hinge', 'horizontal_push', 'horizontal_pull', 'anti_extension'],
@@ -286,11 +298,26 @@ function main() {
     }
     return counts;
   };
-  console.log('By pattern:', countBy((e) => e.pattern));
-  console.log('By focus:', countBy((e) => e.focus));
-  console.log('By role:', countBy((e) => e.role));
-  console.log('By anchor_class:', countBy((e) => e.anchor_class));
-  console.log('By tier:', countBy((e) => e.tier));
+  console.log(
+    'By pattern:',
+    countBy((e) => e.pattern),
+  );
+  console.log(
+    'By focus:',
+    countBy((e) => e.focus),
+  );
+  console.log(
+    'By role:',
+    countBy((e) => e.role),
+  );
+  console.log(
+    'By anchor_class:',
+    countBy((e) => e.anchor_class),
+  );
+  console.log(
+    'By tier:',
+    countBy((e) => e.tier),
+  );
   console.log(
     'By family level:',
     Object.fromEntries(families.map((f) => [f.id, f.levels.map((l) => l.level_id)])),

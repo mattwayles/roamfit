@@ -58,6 +58,15 @@ export function selectWarmupCooldown(input: SelectWarmupCooldownInput): Exercise
  * call this — it keeps calling `selectWarmupCooldown` once.
  */
 const WARMUP_COOLDOWN_GROUP_MAX = 4;
+/** Stop fetching another candidate once at least this fraction of the target is already banked
+ *  — warmup/cooldown are minor components (a few minutes each), so landing a bit under is far
+ *  cheaper than the old behavior of routinely adding one exercise past the budgeted minutes
+ *  (confirmed the largest single contributor to the round-1 fix's residual overruns: the old stop
+ *  check ran *after* fetching one more candidate instead of before, so wu=4 against a 3-minute/
+ *  180s budget — ~4x54s=216s already past target — was normal, not exceptional). */
+const GROUP_FLOOR_RATIO = 0.7;
+/** Never accept a candidate that would push the running total past this multiple of target. */
+const GROUP_CEILING_RATIO = 1.3;
 
 export function selectWarmupCooldownGroup(
   input: SelectWarmupCooldownInput & { targetSec: number },
@@ -65,14 +74,19 @@ export function selectWarmupCooldownGroup(
   const chosen: Exercise[] = [];
   const usedIds = new Set<string>();
   let totalSec = 0;
+  const floor = input.targetSec * GROUP_FLOOR_RATIO;
+  const ceiling = input.targetSec * GROUP_CEILING_RATIO;
   for (let i = 0; i < WARMUP_COOLDOWN_GROUP_MAX; i++) {
+    // Check BEFORE fetching another candidate — already close enough, stop here. (Checking only
+    // after fetching one more, as the previous version did, is what produced the systematic
+    // one-exercise-too-many overrun.)
+    if (totalSec >= floor) break;
     const pick = selectWarmupCooldown({ ...input, excludeIds: usedIds });
     if (!pick) break;
     const entrySec = prescribeWarmupCooldown(pick, input.role).estimatedSec;
-    // Stop once we've met the target, or once one more pick would badly overshoot it — but
-    // always take at least one (handled by the loop simply running once already).
-    if (totalSec > 0 && totalSec >= input.targetSec) break;
-    if (totalSec > 0 && totalSec + entrySec > input.targetSec * 1.4) break;
+    // Always take at least one, even if it alone exceeds the ceiling (a single warmup movement
+    // longer than the budget is still better than none) — only reject the *next* one on that basis.
+    if (totalSec > 0 && totalSec + entrySec > ceiling) break;
     chosen.push(pick);
     usedIds.add(pick.id);
     totalSec += entrySec;

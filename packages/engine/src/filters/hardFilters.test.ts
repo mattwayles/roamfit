@@ -1,9 +1,5 @@
 import { exerciseLibrary } from '@roamfit/data';
-import {
-  applyHardFilters,
-  DEFAULT_ANCHORS_AVAILABLE,
-  effortCapForExercise,
-} from './hardFilters';
+import { applyHardFilters, DEFAULT_ANCHORS_AVAILABLE, effortCapForExercise } from './hardFilters';
 
 const lib = exerciseLibrary.exercises;
 
@@ -37,9 +33,7 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
       library: lib,
       request: {},
       anchorsAvailable: DEFAULT_ANCHORS_AVAILABLE,
-      limitations: [
-        { tag: 'shoulder_overhead', createdAt: '2026-01-01', source: 'user' },
-      ],
+      limitations: [{ tag: 'shoulder_overhead', createdAt: '2026-01-01', source: 'user' }],
       today: '2026-08-30',
     });
     expect(out.some((e) => e.contraindications.includes('shoulder_overhead'))).toBe(false);

@@ -205,17 +205,23 @@ export interface PatternGapNote {
 
 /**
  * §5.6 — "add or drop until within ±10% of target." Set ONLY when, after every fill/trim lever
- * the engine has (extra accessory slots, additional sets on required entries, sets trimmed on
- * required entries), the estimate still falls outside ±10% of `targetMinutes` — i.e. the
- * eligible pool for this focus/effort/anchor combination is genuinely too thin (or, at the short
- * end, the required pattern slots alone cannot be trimmed into a very small budget). This must
- * never be a silent shortfall — the same rule as PATTERN GAP: report it on the plan and in the
+ * the engine has (extra accessory slots, sets trimmed on required entries when they alone would
+ * overshoot), the estimate still falls outside ±10% of `targetMinutes`. Named `*Deviation`, not
+ * `*Shortfall` — an `'over'` deviation is an overrun, not a shortfall, and mislabeling it would
+ * read as a content limitation when it's the opposite failure mode (§1.1 calls overrunning out
+ * specifically as the churn risk). `reason` records why: `'thin_pool'` means the eligible pool
+ * couldn't supply enough additional main work to reach the floor (an `'under'` case — a
+ * legitimate content limitation); `'structural_minimum'` means required entries alone, even
+ * trimmed to the sets floor, still exceed the ceiling (an `'over'` case — should be rare to
+ * non-existent post-ADR-0002, since the 15-minute floor removes the main structural cause).
+ * This must never be silent — the same rule as PATTERN GAP: report it on the plan and in the
  * §5.8 explanation line, never just return a session that quietly misses the promised time.
  */
-export interface TimeBudgetNote {
+export interface TimeBudgetDeviation {
   targetMinutes: number;
   estimatedMinutes: number;
-  direction: 'short' | 'long';
+  direction: 'under' | 'over';
+  reason: 'thin_pool' | 'structural_minimum';
 }
 
 export interface SessionPlan {
@@ -230,8 +236,8 @@ export interface SessionPlan {
   /** §5.8 — required, not optional. */
   explanation: string;
   patternGaps: PatternGapNote[];
-  /** See `TimeBudgetNote` — absent means the estimate landed within ±10% of target. */
-  timeBudgetShortfall?: TimeBudgetNote;
+  /** See `TimeBudgetDeviation` — absent means the estimate landed within ±10% of target. */
+  timeBudgetDeviation?: TimeBudgetDeviation;
   anchorsSnapshot: Anchor[];
   engineVersion: string;
   generatedAtLocalDate: LocalDate;

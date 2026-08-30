@@ -3,6 +3,12 @@
  * the time-fit stage (which sums entries against the target and adds/drops until within ±10%).
  */
 
+/** ADR 0002 — below this, the warmup(3min)+cooldown(3min) floors alone consume 6 of the
+ *  requested minutes, which no selection/prescription lever can reconcile with the required
+ *  pattern slots a full template still demands. `pipeline.ts`'s general (non-Quick-Session) path
+ *  clamps up to this floor. §9.5 Quick Session doesn't use this budget path at all. */
+export const MINIMUM_SUPPORTED_TARGET_MINUTES = 15;
+
 export function warmupMinutes(targetMinutes: number): number {
   return clamp(Math.round(0.12 * targetMinutes), 3, 8);
 }

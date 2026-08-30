@@ -29,7 +29,10 @@ describe('§5.8 the explanation line', () => {
   });
 
   it('names a mastery PR-check instead of going silent at the top of a ladder', () => {
-    const text = composeExplanation({ ...base(), masteryPrChecks: [{ exerciseName: 'One-arm push-up' }] });
+    const text = composeExplanation({
+      ...base(),
+      masteryPrChecks: [{ exerciseName: 'One-arm push-up' }],
+    });
     expect(text).toMatch(/new best set on One-arm push-up/);
   });
 

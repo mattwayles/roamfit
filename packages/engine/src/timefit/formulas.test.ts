@@ -20,7 +20,13 @@ describe('§5.6 time budget formulas', () => {
     expect(warmupMinutes(30)).toBe(4);
     expect(cooldownMinutes(30)).toBe(3);
     expect(mainBudgetSec(30)).toBe(1380);
-    const perExercise = repExerciseSec({ sets: 3, reps: 11, tempoSec: 3, restSec: 45, unilateral: false });
+    const perExercise = repExerciseSec({
+      sets: 3,
+      reps: 11,
+      tempoSec: 3,
+      restSec: 45,
+      unilateral: false,
+    });
     expect(perExercise).toBe(264);
     const count = Math.floor(1380 / 264);
     expect(count).toBe(5);
@@ -29,15 +35,40 @@ describe('§5.6 time budget formulas', () => {
   });
 
   it('unilateral doubles the work seconds', () => {
-    const bilateral = repExerciseSec({ sets: 3, reps: 10, tempoSec: 3, restSec: 45, unilateral: false });
-    const unilateral = repExerciseSec({ sets: 3, reps: 10, tempoSec: 3, restSec: 45, unilateral: true });
+    const bilateral = repExerciseSec({
+      sets: 3,
+      reps: 10,
+      tempoSec: 3,
+      restSec: 45,
+      unilateral: false,
+    });
+    const unilateral = repExerciseSec({
+      sets: 3,
+      reps: 10,
+      tempoSec: 3,
+      restSec: 45,
+      unilateral: true,
+    });
     expect(unilateral).toBeGreaterThan(bilateral);
     expect(unilateral - bilateral).toBe(3 * 10 * 3); // extra work_sec per set, x3 sets
   });
 
   it('anchor rebuild adds 45s instead of 30s', () => {
-    const normal = repExerciseSec({ sets: 3, reps: 10, tempoSec: 3, restSec: 45, unilateral: false });
-    const rebuild = repExerciseSec({ sets: 3, reps: 10, tempoSec: 3, restSec: 45, unilateral: false, anchorRebuild: true });
+    const normal = repExerciseSec({
+      sets: 3,
+      reps: 10,
+      tempoSec: 3,
+      restSec: 45,
+      unilateral: false,
+    });
+    const rebuild = repExerciseSec({
+      sets: 3,
+      reps: 10,
+      tempoSec: 3,
+      restSec: 45,
+      unilateral: false,
+      anchorRebuild: true,
+    });
     expect(rebuild - normal).toBe(15);
   });
 

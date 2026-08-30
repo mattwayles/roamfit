@@ -34,7 +34,12 @@ function coldStartUserState(overrides: Partial<UserState> = {}): UserState {
     };
   }
   return {
-    profile: { units: 'lb', weeklyTarget: 3, limitations: [], anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE] },
+    profile: {
+      units: 'lb',
+      weeklyTarget: 3,
+      limitations: [],
+      anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+    },
     exerciseStates: {},
     progressionStates,
     history: [],

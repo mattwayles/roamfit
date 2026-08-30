@@ -162,14 +162,83 @@ describe('generateSession — pipeline wiring', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState: coldStartUserState({ hasEverCompletedSession: true }),
-      request: { focus: 'upper', effort: 'normal', targetMinutes: 30, equipmentPreference: 'bodyweight' },
+      request: {
+        focus: 'upper',
+        effort: 'normal',
+        targetMinutes: 30,
+        equipmentPreference: 'bodyweight',
+      },
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(9),
     });
     // Bodyweight alone cannot cover pulling: either a band was used for it (resolution recorded)
     // or the imbalance is stated — either way, patternGaps is non-empty and the explanation says so.
-    const hasPullGap = plan.patternGaps.some((g) => g.pattern === 'horizontal_pull' || g.pattern === 'vertical_pull');
+    const hasPullGap = plan.patternGaps.some(
+      (g) => g.pattern === 'horizontal_pull' || g.pattern === 'vertical_pull',
+    );
     expect(hasPullGap).toBe(true);
+  });
+
+  it('ADR 0002: a request below the 15min floor is clamped, reflected in targetMinutes, and named in the explanation', () => {
+    const plan = generateSession({
+      library: exerciseLibrary,
+      families: familyLibrary,
+      userState: coldStartUserState({ hasEverCompletedSession: true }),
+      request: { focus: 'full', effort: 'normal', targetMinutes: 10 },
+      clock: { today: TODAY, tzId: 'UTC' },
+      rng: createRng(13),
+    });
+    expect(plan.targetMinutes).toBe(15);
+    expect(plan.explanation).toMatch(/10 min is too short/);
+    expect(plan.explanation).toMatch(/Quick Session/);
+  });
+
+  it('does not clamp a request at or above the 15min floor', () => {
+    const plan = generateSession({
+      library: exerciseLibrary,
+      families: familyLibrary,
+      userState: coldStartUserState({ hasEverCompletedSession: true }),
+      request: { focus: 'full', effort: 'normal', targetMinutes: 15 },
+      clock: { today: TODAY, tzId: 'UTC' },
+      rng: createRng(13),
+    });
+    expect(plan.targetMinutes).toBe(15);
+    expect(plan.explanation).not.toMatch(/too short/);
+  });
+
+  it('§9.5 Quick Session is not subject to the 15min floor (it never requests it)', () => {
+    const plan = generateQuickSession({
+      library: exerciseLibrary,
+      families: familyLibrary,
+      userState: coldStartUserState({ hasEverCompletedSession: true }),
+      clock: { today: TODAY, tzId: 'UTC' },
+      rng: createRng(3),
+      focus: 'upper',
+    });
+    expect(plan.targetMinutes).toBe(7);
+  });
+
+  it('regression: a required-only overrun is trimmed via sets, at any target length, not just short ones (round 2 fix)', () => {
+    // The exact class of case an independent review found still overrunning after round 1:
+    // mainstream 25-60min targets where a proportional multiplier rounded away to a no-op.
+    // Assert directly, not just via the property sweep, so a future refactor that reintroduces
+    // the coarse-rounding bug fails a named test.
+    for (const targetMinutes of [25, 30, 45, 60]) {
+      const plan = generateSession({
+        library: exerciseLibrary,
+        families: familyLibrary,
+        userState: coldStartUserState({ hasEverCompletedSession: true }),
+        request: { focus: 'legs', effort: 'normal', targetMinutes, equipmentPreference: 'band' },
+        clock: { today: TODAY, tzId: 'UTC' },
+        rng: createRng(1),
+      });
+      if (plan.timeBudgetDeviation) {
+        // Only a legitimate, named 'under' (thin-pool) case may pass through undeviated-overrun-free.
+        expect(plan.timeBudgetDeviation.direction).toBe('under');
+      } else {
+        expect(plan.estimatedMinutes).toBeLessThanOrEqual(targetMinutes * 1.1);
+      }
+    }
   });
 
   it('completes a full 200-exercise generation in well under 50ms', () => {

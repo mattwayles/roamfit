@@ -103,10 +103,7 @@ function absSlots(
 ): { slots: TemplateSlot[]; leadPattern: Pattern } {
   const last = lastChosenPattern(history, library, 'abs', ABS_PATTERNS);
   const startIdx = last ? (ABS_PATTERNS.indexOf(last) + 1) % ABS_PATTERNS.length : 0;
-  const rotated = [
-    ...ABS_PATTERNS.slice(startIdx),
-    ...ABS_PATTERNS.slice(0, startIdx),
-  ];
+  const rotated = [...ABS_PATTERNS.slice(startIdx), ...ABS_PATTERNS.slice(0, startIdx)];
   const slots: TemplateSlot[] = rotated.map((p, i) => ({
     id: `abs.${p}`,
     patterns: [p],
@@ -151,7 +148,15 @@ const ACCESSORY_PATTERNS_BY_FOCUS: Record<Focus, Pattern[]> = {
   upper: UPPER_ISOLATION,
   legs: ['abduction', 'hip_extension', 'calf'],
   abs: ['anti_rotation', 'flexion', 'lateral_flexion'],
-  full: [...UPPER_ISOLATION, 'abduction', 'hip_extension', 'calf', 'anti_rotation', 'flexion', 'lateral_flexion'],
+  full: [
+    ...UPPER_ISOLATION,
+    'abduction',
+    'hip_extension',
+    'calf',
+    'anti_rotation',
+    'flexion',
+    'lateral_flexion',
+  ],
 };
 
 /**

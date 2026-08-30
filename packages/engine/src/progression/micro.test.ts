@@ -63,7 +63,13 @@ describe('§6.2 micro-progression', () => {
   });
 
   it('regress is the exact reverse order of advance', () => {
-    let micro: ProgressionMicroState = { repTarget: 12, band: null, tempoSec: 4, restSec: 30, sets: 4 };
+    let micro: ProgressionMicroState = {
+      repTarget: 12,
+      band: null,
+      tempoSec: 4,
+      restSec: 30,
+      sets: 4,
+    };
     micro = microRegress(micro, bodyweightPush).micro;
     expect(micro.sets).toBe(3);
     micro = microRegress(micro, bodyweightPush).micro;

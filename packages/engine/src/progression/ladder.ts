@@ -63,7 +63,10 @@ export function prevLevel(
 
 /** 1-based "Level N of M" for display (§6.4) — a UI concern, but cheap to compute here since we
  *  already have the index. Never used as a storage key. */
-export function levelOrdinal(family: ProgressionFamily, levelId: string): { n: number; of: number } {
+export function levelOrdinal(
+  family: ProgressionFamily,
+  levelId: string,
+): { n: number; of: number } {
   const idx = indexOfLevel(family, levelId);
   return { n: idx + 1, of: family.levels.length };
 }

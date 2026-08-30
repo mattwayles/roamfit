@@ -1,5 +1,21 @@
 ## Track: 2-engine — The generation engine
-Last updated: 2026-08-30 (§5.6 time-fit correction landed)
+Last updated: 2026-08-30 (§5.6 round 2: overrun class + field naming + sub-15min ADR, in progress)
+
+### ROUND 2 IN PROGRESS — overruns, not just shortfalls, need the same correction
+Second independent review: the round-1 fix's own `timeBudgetShortfall` field name is misleading
+(24/26 residual violations are OVERRUNS, not shortfalls — a session running 17% long against a
+30-minute promise is exactly what §1.1 calls the churn risk, and calling it a "shortfall" would
+propagate wrong copy into Wave 4/7). Root causes named: (1) `selectWarmupCooldownGroup`'s stop
+condition checks the running total *after* fetching one more candidate instead of before, so it
+routinely adds one exercise past the budgeted minutes (wu=4 on a 25min session against a 3min
+warmup budget); (2) `fitMainEntries`'s "reach for floor" allowance from round 1 lets the ADD loop
+deliberately cross the polite +10% ceiling up to +25% to avoid shortfalls, which is itself a
+source of overruns; (3) sub-15-minute targets are structurally inconsistent in §5.6 (the 3min
+floor on both warmup and cooldown alone consumes 6 of 10 minutes) and need a named, ADR'd
+minimum rather than a silently-bad result. Fixing all three now — see "Round 2" under Done below
+once landed.
+
+### Previous round (superseded where noted above, otherwise still accurate)
 
 ### CORRECTION LANDED — §5.6 time-fit was product-broken; fixed and re-verified
 An independent review found `timefit/fitSession.ts` could only *drop* optional entries, never
