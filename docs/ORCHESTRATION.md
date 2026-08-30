@@ -11,7 +11,7 @@ Every track is written to be **interrupted**. See the interruption protocol in `
 |---|---|---|
 | 1 | Skeleton boots + full library/ladder data validated | **done** — verified `38fef15`/`5048e5f` |
 | 2 | Generation engine passes golden tests, <50ms, no I/O | **done** — verified `e56ed02` |
-| 3 | SQLite persistence + session lifecycle + signal capture | not started |
+| 3 | SQLite persistence + session lifecycle + signal capture | **done** — verified `1061651` |
 | 4 | Core workout loop end-to-end on device | not started |
 | 5 | Motivation surfaces: progression board, dashboard, passport | not started |
 | 6 | Media ladder, LLM proxy, Firebase sync, HealthKit | not started |
@@ -101,3 +101,7 @@ Open items surfaced by a completed wave that a later wave or a human must close.
 | 7 | 4 of 84 (focus × effort × minutes) combos still land ~11–20% under target and declare `timeBudgetDeviation: thin_pool` — `legs/25min`, `abs/hard/30min`, `full/normal/60min`. Honest, not silent, but it points at genuinely thin content in those slots. Decide: accept for v1, or top up the library. | Wave 2 review | human / Wave 5 |
 | 8 | ADR 0002 sets a 15-minute minimum for the general pipeline. **Wave 4/5 must not offer a sub-15-minute duration picker** — Quick Session's ~7-minute button is the only supported short path. | Wave 2 | Wave 4 |
 | 9 | Engine reports 65 lint warnings (0 errors), mostly formatting. Agent was interrupted mid-cleanup. Run prettier `--fix` and consider quieting the config so a future real warning is visible. | Wave 2 | any wave |
+| 10 | `createTestDb` is `:memory:` only, so the store's own crash-safety test reuses one live connection and cannot prove durability. Orchestrator verified resume separately with a file-backed db (close + cold reopen) and it passes. **Add a file-backed harness** so the committed suite tests what it claims. | Wave 3 review | Wave 4 |
+| 11 | §9.9 Recovery Week's ~20% volume cut is applied as a documented post-generation pass in the store, not in the engine — the engine cannot force the multiplier without faking history. Deliberate, recorded in STATUS-3. Consider promoting to an ADR or giving the engine an explicit volume-multiplier input. | Wave 3 | Wave 5 |
+| 12 | §9.9 Recovery Week auto-suggest heuristic ("every 6–8 weeks of consistent training") is not implemented — mechanism is wired and tested, trigger is not. | Wave 3 | Wave 5 |
+| 13 | `app/src/db/` real op-sqlite wiring is untouched by design (ADR 0003). Wave 4 must wire it against `@roamfit/store`'s repositories and write **no new persistence logic** in `app/`. | Wave 3 | Wave 4 |
