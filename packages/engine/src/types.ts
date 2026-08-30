@@ -186,6 +186,15 @@ export interface SessionEntry {
   anchorClass: AnchorClass;
   unilateral: boolean;
   estimatedSec: number;
+  /** §4.7 — set when the engine swapped in a different exercise than the "default" pick for this
+   *  slot: a laddered exercise that failed a hard filter and was substituted with the nearest
+   *  lower level that survives (session-only, does not persist a level change), or a pattern-gap
+   *  band exception. Holds the exercise id that would otherwise have been used. */
+  substitutedFor?: string;
+  /** §4.7 — true for an exercise added outside the normal template (not currently produced by
+   *  generation itself; reserved for Wave 4's mid-workout add-exercise flow to set on entries it
+   *  appends to a generated plan). */
+  unplanned?: boolean;
 }
 
 export interface PatternGapNote {
