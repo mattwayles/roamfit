@@ -1,4 +1,4 @@
-import { createTestDb } from './testHarness';
+import { createTestDb, createFileTestDb } from './testHarness';
 import { generate } from './generation';
 import {
   createPendingSession,
@@ -72,7 +72,10 @@ describe('§10.10 single pending session', () => {
 
 describe('crash safety — force-quit mid-session resumes at the exact set', () => {
   it('reconstructs in-progress state purely from set_logs rows after simulating a force-quit', () => {
-    const dbFile = createTestDb();
+    // File-backed (not :memory:) so we can actually close the connection and cold-reopen the
+    // same file — an in-memory db discards everything on close, so it can never prove
+    // durability (carried-forward issue #10, docs/ORCHESTRATION.md).
+    let dbFile = createFileTestDb();
     const localDate = '2026-01-05';
     const { id: sessionId } = makeSession(dbFile.db, localDate);
     startSession(dbFile.db, sessionId, utcInstantFor(localDate, 9));
@@ -108,8 +111,11 @@ describe('crash safety — force-quit mid-session resumes at the exact set', () 
       utcInstantFor(localDate, 9, 10),
     );
 
-    // "Force-quit": nothing else happens — no in-memory state survives, only what's committed.
-    // Resume by re-reading the session fresh, exactly as a cold app boot would.
+    // "Force-quit": close this connection entirely (discarding anything an in-memory harness
+    // would have kept alive) and open a brand-new connection against the same on-disk file —
+    // exactly what a cold app relaunch after a force-quit does. Resume by re-reading the
+    // session fresh through the new connection.
+    dbFile = dbFile.reopen();
     const resumed = getSession(dbFile.db, sessionId)!;
     const resumedEntry = resumed.entries.find((e) => e.id === firstEntry.id)!;
     expect(resumedEntry.setLogs.map((s) => s.setIndex)).toEqual([0, 1]);
