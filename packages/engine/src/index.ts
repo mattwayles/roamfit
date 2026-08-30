@@ -11,7 +11,5 @@ export * from './types';
 export { createRng, seedFromString } from './rng';
 export { daysBetween, addDays } from './dates';
 export { ENGINE_VERSION } from './version';
-// The pipeline entry point (`generateSession`) is exported once all seven §5.1 stages land;
-// see docs/handoff/STATUS-2-engine.md for progress. Individual stage modules are already
-// importable directly (e.g. './filters/hardFilters', './template/focusTemplate') and tested
-// in isolation as they land.
+export { generateSession, generateQuickSession } from './pipeline';
+export { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';

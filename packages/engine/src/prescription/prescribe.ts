@@ -32,6 +32,13 @@ export interface PrescribeLadderedInput {
   /** §5.2 48h recovery — this exercise touches a muscle trained hard in the last 2 days. */
   recoveryTreatment: boolean;
   substitutedFor?: string;
+  /** §9.4/§9.9 comeback/Recovery Week volume cut (~0.8), applied to sets. 1 = no cut. */
+  setsMultiplier?: number;
+}
+
+function scaleSets(sets: number, multiplier: number | undefined): number {
+  if (!multiplier || multiplier === 1) return sets;
+  return Math.max(1, Math.round(sets * multiplier));
 }
 
 export function prescribeLaddered(input: PrescribeLadderedInput): SessionEntry {
@@ -39,15 +46,16 @@ export function prescribeLaddered(input: PrescribeLadderedInput): SessionEntry {
   const effort = effortCapForExercise(exercise, recoveryTreatment ? capBelowHard(requestedEffort) : requestedEffort);
   const band = recoveryTreatment ? dropOneBand(micro.band) : micro.band;
   const isTimed = exercise.metric === 'time';
+  const sets = scaleSets(micro.sets, input.setsMultiplier);
   const estimatedSec = isTimed
-    ? timedExerciseSec({ sets: micro.sets, durationSec: micro.repTarget, restSec: micro.restSec, unilateral: exercise.unilateral })
-    : repExerciseSec({ sets: micro.sets, reps: micro.repTarget, tempoSec: micro.tempoSec, restSec: micro.restSec, unilateral: exercise.unilateral });
+    ? timedExerciseSec({ sets, durationSec: micro.repTarget, restSec: micro.restSec, unilateral: exercise.unilateral })
+    : repExerciseSec({ sets, reps: micro.repTarget, tempoSec: micro.tempoSec, restSec: micro.restSec, unilateral: exercise.unilateral });
 
   return {
     exerciseId: exercise.id,
     role: 'main',
     band,
-    sets: micro.sets,
+    sets,
     repTarget: isTimed ? undefined : micro.repTarget,
     durationSec: isTimed ? micro.repTarget : undefined,
     restSec: micro.restSec,
@@ -75,6 +83,8 @@ export interface PrescribeAccessoryInput {
    *  (§5.4/§5.5). */
   isFinisherAmrap?: boolean;
   bandRelaxedForPatternGap?: boolean;
+  /** §9.4/§9.9 comeback/Recovery Week volume cut (~0.8), applied to sets. 1 = no cut. */
+  setsMultiplier?: number;
 }
 
 export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry {
@@ -86,16 +96,17 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
   const isTimed = exercise.metric === 'time';
   const durationSec = isTimed ? (exercise.default_seconds ?? 30) : undefined;
   const amrap = Boolean(input.isFinisherAmrap) && !isTimed && effort === 'hard';
+  const sets = scaleSets(row.sets, input.setsMultiplier);
 
   const estimatedSec = isTimed
-    ? timedExerciseSec({ sets: row.sets, durationSec: durationSec!, restSec: row.restSec, unilateral: exercise.unilateral })
-    : repExerciseSec({ sets: row.sets, reps: row.reps, tempoSec: row.tempoSec, restSec: row.restSec, unilateral: exercise.unilateral });
+    ? timedExerciseSec({ sets, durationSec: durationSec!, restSec: row.restSec, unilateral: exercise.unilateral })
+    : repExerciseSec({ sets, reps: row.reps, tempoSec: row.tempoSec, restSec: row.restSec, unilateral: exercise.unilateral });
 
   return {
     exerciseId: exercise.id,
     role: 'main',
     band,
-    sets: row.sets,
+    sets,
     repTarget: isTimed || amrap ? undefined : row.reps,
     durationSec: isTimed ? durationSec : undefined,
     restSec: row.restSec,
