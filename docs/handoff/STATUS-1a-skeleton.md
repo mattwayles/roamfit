@@ -28,29 +28,45 @@ Last updated: 2026-08-30
   testing-library swap).
 
 ### Done (cont'd, 2)
-- [x] `npx expo prebuild --platform ios --non-interactive` (run as `CI=1` under the hood via
-  non-interactive flag) succeeded in `app/`: created `app/ios/` (Podfile, `RoamFit.xcworkspace`,
-  `RoamFit.xcodeproj`), ran prebuild, and installed CocoaPods — all exit 0.
+- [x] `npx expo prebuild --platform ios --non-interactive` succeeded in `app/`: created
+  `app/ios/` (Podfile, `RoamFit.xcworkspace`, `RoamFit.xcodeproj`), ran prebuild, installed
+  CocoaPods — all exit 0.
+- [x] `npm run ios` (== `expo run:ios` from repo root, workspace `app`) built the native app
+  with Xcode (0 errors, 1 non-blocking warning about a script build phase) and installed +
+  launched it on the booted "iPhone 17 Pro" (iOS 26.5) simulator — exit 0.
+- [x] **Verified visually, not just by exit code.** First launch attempt showed a runtime
+  error because port 8081 (Metro's default) was already occupied by an unrelated project on
+  this machine (`/Users/mattwayles/Development/unpack`), and `expo run:ios` silently skipped
+  starting its own dev server rather than picking a free port (non-interactive mode can't
+  answer the "use port 8082 instead?" prompt). Fixed by starting Metro explicitly on a free
+  port (`npx expo start --dev-client --port 8090` inside `app/`) and opening the dev-client
+  deep link at that port (`xcrun simctl openurl booted
+  "exp+roamfit://expo-development-client/?url=http%3A%2F%2F<lan-ip>%3A8090"`). Screenshot
+  after that confirmed the dev-launcher correctly identified itself as "RoamFit" (not the
+  other project) and downloaded the JS bundle; after continuing past the one-time dev-menu
+  explainer, the simulator showed the actual placeholder screen: "RoamFit" / "Skeleton boots.
+  Nothing to see yet." Screenshots were temporary verification artifacts, not committed.
+
+### Done criteria (from wave-01a-skeleton.md) — final status
+- [x] `npm install` from a clean clone succeeds.
+- [x] `npm run check` passes (typecheck + lint + test, all workspaces).
+- [x] `npm run ios` builds and launches the placeholder on the simulator — verified by
+  screenshot, not just exit code (see above).
+- [x] Engine-purity check script exists; proved it fails on a violating import, then reverted
+  the probe.
+- [x] Status file accurate; work committed in increments.
+
+**All done criteria for 1a-skeleton are met.** Nothing outstanding for this track unless a
+fresh agent finds `npm run check` or the native build newly broken (e.g. after a dependency
+bump) — in that case, treat this file as the map of how everything is wired and fix forward.
 
 ### In progress
-- Booted simulator "iPhone 17 Pro" (57D3F602-BFFD-426E-A9D0-E7B79B5BA48F, iOS 26.5) via
-  `xcrun simctl boot`. Kicked off `npm run ios` (== `expo run:ios` in `app/`) from repo root,
-  backgrounded (task id bvdpve8ug, output at
-  `/private/tmp/claude-501/-Users-mattwayles-Development-roamfit/049ac54e-a4d5-48f4-8e92-df265598e53a/tasks/bvdpve8ug.output`).
-  This is a real native Xcode build (first one, no cache) — can take several minutes. If
-  resuming: check that file for the actual outcome before doing anything else; do not re-run
-  blind, and do not claim success without reading the real output.
+- None — track complete as of this entry.
 
 ### Next
-- ordered remaining steps:
-  1. Read the `npm run ios` output once it completes. If it built and launched the app on the
-     simulator: done criterion met, record it plainly.
-  2. If it failed: capture the real error text in this file (not a paraphrase), and per the
-     brief, a successful `expo prebuild` plus a documented reason is an acceptable fallback —
-     say so plainly rather than claiming the simulator launch ran when it didn't.
-  3. Mark remaining done criteria complete/documented in this file.
-  4. `app/ios/` is native build output and is gitignored (via root `.gitignore`'s
-     `app/ios/` rule) — do not add it to git.
+- Nothing required for 1a-skeleton itself. For whoever wires wave 2+: note the `expo run:ios`
+  port-8081-collision gotcha below if this machine is reused with other Expo projects running
+  concurrently.
 
 ### Decisions / gotchas
 - **Shared git index with the concurrent 1b-content track**: this repo has no worktree
@@ -74,13 +90,30 @@ Last updated: 2026-08-30
   longest track record with; still satisfies typescript-eslint's `^8.57||^9||^10` peer range.
 - **New dependencies added** (all pinned exact versions, no `^`/`~`):
   root: `@eslint/js`, `@typescript-eslint/eslint-plugin`/`parser`, `eslint`,
-  `eslint-config-prettier`, `eslint-plugin-prettier`, `prettier`, `typescript`.
+  `eslint-config-prettier`, `eslint-plugin-prettier`, `globals`, `prettier`, `typescript`.
   `app/`: `expo`, `expo-dev-client`, `expo-status-bar`, `react`, `react-native` (deps);
-  `@react-native/jest-preset` (jest-expo peer), `@testing-library/react-native`, `jest`,
-  `jest-expo`, `test-renderer` (React 19's replacement for the deprecated
-  `react-test-renderer`), `typescript` (devDeps).
+  `@react-native/jest-preset` (jest-expo peer), `@types/jest`, `@types/react`,
+  `@types/react-test-renderer`, `jest`, `jest-expo`, `react-test-renderer`, `typescript`
+  (devDeps). Note: `@testing-library/react-native@14.0.1`'s `render()` returned an empty
+  `{}` under this exact combo of React 19.2 / RN 0.86 / jest-expo 57 (its internal `screen`
+  singleton never got populated, "render function has not been called") — dropped it in
+  favor of plain `react-test-renderer` + `act()`, which is boring and works. Worth retrying
+  testing-library once a wave-4 UI track needs real queries — it may just need a setup file
+  this skeleton didn't add.
   `packages/engine` and `packages/data` (data wiring only — content is 1b's):
   `@types/jest`, `@types/node`, `jest`, `ts-jest`, `typescript`.
+- **`expo run:ios` + non-interactive mode + port 8081 already in use = silent wrong-app
+  connection, not a build failure.** If another Expo project's Metro is already running on
+  8081 on the same machine, `expo run:ios` can't prompt (non-interactive) so it prints
+  "Skipping dev server" and the freshly-installed app's dev-client deep-links to whatever
+  *is* on 8081 — which may be a completely different project, producing a confusing runtime
+  error in the *other* project's JS, not ours. Fix: start Metro yourself on a free port
+  (`npx expo start --dev-client --port <N>` in `app/`) and open the dev-client deep link at
+  that port manually: `xcrun simctl openurl booted
+  "exp+roamfit://expo-development-client/?url=http%3A%2F%2F<lan-ip>%3A<N>"` (use your Mac's
+  LAN IP, e.g. `ipconfig getifaddr en0`, not localhost — the simulator needs a reachable
+  host). This is an environment quirk of running multiple Expo projects on one machine, not
+  a defect in this skeleton.
 - **Test runner**: Jest everywhere — `jest-expo` preset for `app/`, `ts-jest` for the two
   packages. Root `npm test` fans out via `--workspaces --if-present`.
 - **`app/tsconfig.json`** extends Expo's own `expo/tsconfig.base` (not the root
