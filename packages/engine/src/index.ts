@@ -5,7 +5,13 @@
  * `app/` or from `react-native`. It has no I/O and no network calls, so it is fully
  * unit-testable in plain node. Enforced by `tools/check-engine-purity.js`.
  *
- * This file is a placeholder — wave 2 owns the actual generation/progression logic.
+ * §5.1: a pure function from (library, user state, request) to a session plan.
  */
-
-export const ENGINE_PLACEHOLDER = true;
+export * from './types';
+export { createRng, seedFromString } from './rng';
+export { daysBetween, addDays } from './dates';
+export { ENGINE_VERSION } from './version';
+// The pipeline entry point (`generateSession`) is exported once all seven §5.1 stages land;
+// see docs/handoff/STATUS-2-engine.md for progress. Individual stage modules are already
+// importable directly (e.g. './filters/hardFilters', './template/focusTemplate') and tested
+// in isolation as they land.
