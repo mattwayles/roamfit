@@ -33,53 +33,79 @@ Last updated: 2026-08-30
   `selectMain`'s §5.2 variety machinery — it comes directly from `ProgressionState.levelId`.
   `selectMain` (as built and tested) governs only the non-laddered/accessory pattern slots
   (isolation patterns, abs's `anti_rotation`/`flexion`/`lateral_flexion`, legs isolation/calf,
-  finisher slots) plus warmup/cooldown. This is *not yet wired into a pipeline* — see "Next".
+  finisher slots) plus warmup/cooldown.
+- [x] `progression/resolveSlot.ts` — bridges progression state to a concrete per-session exercise
+  for a laddered slot, with a session-only ladder-walk-down substitution when the current level's
+  exercise fails a hard filter. 4 tests. — `f0ac1ef`
+- [x] §4.7's `substitutedFor`/`unplanned` added to `SessionEntry` (`types.ts`). — `f0ac1ef`
+- [x] §5.4 prescription (`prescription/`): `effortTable.ts` (deterministic picks within each
+  effort row's ranges, documented), `prescribe.ts` — laddered exercises prescribed from
+  `ProgressionState.micro` directly, accessory exercises from the effort table, both applying the
+  §13.1 cap and a 48h-recovery band-drop, plus a `setsMultiplier` seam for the §9.4/§9.9 volume
+  cut. 6 tests. — `f0ac1ef`
+- [x] §5.6 time fit (`timefit/`): `formulas.ts` (budget/per-exercise-seconds/count-sanity-check
+  arithmetic, matches the SKILL.md worked example exactly), `fitSession.ts` (adds optional slots
+  until the next would overshoot, never drops a required one). 17 tests. — `f0ac1ef`
+- [x] §5.8 explanation line (`explain/explain.ts`) — deterministic, composes from structured
+  facts (recovery/PATTERN GAP/substitution/level-up/mastery/novelty/calibration/comeback), never
+  empty. 11 tests. — `b77d533`
+- [x] **`pipeline.ts` wires all seven stages into `generateSession`** (+ `generateQuickSession`
+  for §9.5), both exported from `index.ts`. Splits template slots into laddered (resolved via
+  `resolveSlot.ts`) vs. accessory (resolved via `selectMain`), applies §9.4 comeback as a
+  pre-transform of `progressionStates` + a prescription-time volume multiplier, and assembles the
+  explanation line from everything the stages produced. 8 end-to-end smoke tests against the real
+  library (all 4 foci from cold start, determinism, a limitation hard filter, Quick Session's
+  shape, the comeback notice, the bodyweight-only PATTERN GAP, a <50ms benchmark). — `fb42999`
 
 ### In progress
-- **`pipeline.ts` does not exist yet.** Nothing in `index.ts` exports `generateSession` — it's
-  commented out with a pointer to this file, exactly as before. The stage modules are all built
-  and independently tested; wiring them together is the next unit of work.
-- Immediate next action: build `progression/resolveSlot.ts` (new file) —
-  `resolveProgressionSlot(slot, family, progressionState, library, hardFilteredPool)`:
-  1. Look up the exercise at `progressionState.levelId` for the family matching `slot.patterns[0]`.
-  2. If it's in `hardFilteredPool` (survives anchor/injury/equipment), use it directly — this is
-     the normal case, session after session, and must NOT be treated as a BLOCKED repeat.
-  3. If it fails a hard filter (e.g., current level's variant needs an anchor the user has
-     disabled), walk down the ladder via `prevLevel` to the nearest level whose exercise survives
-     the hard filters, for THIS SESSION ONLY — do not persist a level change from this
-     substitution. Flag it (add `substituted_for`/`unplanned`-style fields to `SessionEntry` —
-     **not yet added, needed now**) so the explanation line (step 7) can mention it.
-  4. If even the bottom level fails every hard filter for that pattern, the slot is a PATTERN GAP
-     like any other unfillable required slot.
+- **The full §5.1 pipeline is wired and live**: `pipeline.ts` exports `generateSession` and
+  `generateQuickSession`; both are re-exported from `index.ts`. All seven stages run end to end
+  against the real 200-exercise library and 8 families (`pipeline.test.ts`, 8 smoke tests: all 4
+  foci from cold start, determinism, the shoulder-limitation hard filter, Quick Session's shape,
+  the comeback notice, the bodyweight-only PATTERN GAP, and a <50ms benchmark — all green).
+- Immediate next action: golden/property/simulation tests (brief's item 10, the actual done
+  criterion — the smoke tests above are useful but are not a substitute for committed golden
+  fixtures or the 30-session simulation).
 
 ### Next
-1. `progression/resolveSlot.ts` (see above) — the missing link between progression state and a
-   concrete per-session exercise pick for the 8 laddered patterns.
-2. Add `substituted_for?: string` and `unplanned?: boolean` to `SessionEntry` in `types.ts` (§4.7
-   documents both; they're currently missing from the engine's output type).
-3. Prescription (§5.4 effort table → sets/reps-or-seconds/band/tempo/rest per entry). For
-   laddered slots the *band* and *rep target* mostly come from `ProgressionState.micro` already
-   (that's what micro-progression tracks); the day's chosen `effort` still governs rest/tempo/
-   format (straight sets vs. superset) and, per §13.1, is capped to `normal` on
-   `anchor_class: bodyweight_bearing` (already computed in `filters/hardFilters.ts`,
-   `effortCapForExercise` — reuse it here, don't recompute). For non-laddered slots, prescription
-   comes straight from the §5.4 table at the (possibly capped) effort.
-4. Time fit (§5.6 budget formula, ±10% target, exercise-count sanity check) — add/drop from the
-   tail of the priority-ordered slot list; required slots are never dropped (a shortfall is a
-   PATTERN GAP or an explanation note, not a silent omission).
-5. Explain (§5.8) — deterministic template string; must name any progression substitution
-   (from step 1 above), any 48h-recovery band drop, any comeback treatment, any level-up/mastery
-   PR event, and the PATTERN GAP note when present.
-6. Wire `pipeline.ts` → `generateSession(library, families, userState, request, clock, rng)`.
-   Re-enable the `generateSession` export in `index.ts`.
-7. Quick Session (§9.5) and comeback (§9.4) — confirm both run through the *same* `pipeline.ts`
-   call with different inputs (minimal template + fixed 7min + `normal` effort for Quick Session;
-   `assessComeback` + `applyComebackToProgressionStates` + `volumeMultiplier` applied to
-   prescribed sets for comeback), not parallel code paths. This should fall out of the pipeline
-   design in step 6 rather than needing new branches.
-8. Golden tests (fixed seed + fixed user state → committed expected JSON), property tests
-   (contraindicated/disabled-anchor/time-budget/effort-cap/warmup+cooldown-present/push-pull-
-   balance invariants over randomized inputs), 30-session simulation test, <50ms benchmark.
+1. **Golden tests** — fixed seed + fixed cold-start (or specific mid-progression) user state →
+   commit the exact expected `SessionPlan` JSON as a fixture, assert `generateSession` output
+   matches byte-for-byte. Cover: a cold-start `upper` session, a mid-ladder `legs` session with
+   some history (exercises non-null in exerciseStates), a `hard` `full` session with a finisher,
+   and a comeback-triggered session. Bump `ENGINE_VERSION` (`version.ts`) if a later change
+   deliberately alters output — that's what makes these fixtures a real regression gate for
+   Wave 3+ refactors, per CLAUDE.md invariant 5's spirit and §4.6's `engine_version`.
+2. **Property tests**, generating many randomized `(request, userState)` combinations (seeded, so
+   still reproducible) and asserting invariants hold for *every* one: never a contraindicated
+   exercise; never a disabled-anchor exercise (especially `bodyweight_bearing` when not enabled);
+   never exceeds ±10% of target (or note why — a thin pool can legitimately fall short, see
+   `timefit/fitSession.ts`'s `withinTenPercent`); never `hard` effort on an
+   `anchor_class: bodyweight_bearing` entry; always has exactly one warmup and one cooldown
+   entry when the role pools are non-empty (they are, for the real library); `upper` sessions at
+   ≥25min keep push/pull pattern counts equal in the *final* main list, not just the template
+   (`focusTemplate.test.ts` already covers this at the template-slot level, but a property test
+   should confirm it survives selection/progression/time-fit too, since time-fit could in
+   principle drop an optional push slot without a matching pull drop).
+3. **30-session simulation test** — a synthetic user run through `generateSession` 30 times in a
+   row, feeding each session's output back into the next call's `history` (and driving
+   `applySessionResult`/calibration by scripting plausible performance each time, e.g. "usually
+   hits top of range"). Assert: levels generally rise over the run (at least a few `level_up`
+   events across the 8 families), variety holds (no single main exercise appears in a large
+   fraction of sessions), no pattern is completely starved (every required pattern appears at
+   least once across 30 sessions for foci that were requested), no muscle group's trailing volume
+   stays chronically >1.5x mean for the whole run (the OVER-WORKED cap should visibly correct it
+   session to session). This is the test most likely to catch an interaction bug the unit tests
+   structurally can't (e.g., `selectMain`'s aggregate passes fighting the OVER-WORKED filter over
+   many sessions).
+4. Once golden/property/simulation land, cross-check the "Done criteria" list in
+   `docs/handoff/wave-02-engine.md` manually — declaring the wave done in `docs/ORCHESTRATION.md`
+   is the orchestrator's call, not this track's, but this status file should say plainly whether
+   every criterion is met.
+5. Nice-to-have, not blocking: `mastery_pr_check` and Recovery-Week-triggered-explicitly (as
+   opposed to auto-detected via gap) are not yet surfaced through `generateSession` — see
+   "Ambiguities" below. Revisit if a golden/property test exposes a real gap, otherwise Wave 3
+   (which owns session completion, where mastery PR checks actually get evaluated) can call
+   `progression/rules.ts` and `progression/comeback.ts` directly without needing pipeline changes.
 
 ### Decisions / gotchas
 - **Laddered-pattern slots bypass `selectMain`** (see "Architecture clarification" above). This
@@ -133,10 +159,31 @@ Last updated: 2026-08-30
   PATTERN GAP avoidance → band ratio → PREFERRED ratio → favorites cap, with novelty opportunistic
   throughout. Implemented in `selection/mainSelection.ts`; revisit if golden/simulation tests
   surface a bad case.
-- **Progression substitution when a laddered exercise fails a hard filter** (see "In progress"
-  above) — walking down the ladder for a session-only substitution is the plan, not yet built or
-  tested. Worth a second opinion: an alternative would be to treat it as a PATTERN GAP immediately
-  rather than silently substituting a lower level, on the theory that a hard-filter failure at the
-  user's actual level is itself information worth surfacing. Leaning toward "substitute and note
-  it in the explanation line" since spec's step-7 explanation is explicitly meant to carry exactly
-  this kind of "what changed and why," but flagging since it's a real design choice.
+- **Progression substitution when a laddered exercise fails a hard filter** — now built and
+  tested (`progression/resolveSlot.ts`, wired into `pipeline.ts`, named in the explanation line).
+  Worth a second opinion still: an alternative would be to treat it as a PATTERN GAP immediately
+  rather than substituting a lower level, on the theory that a hard-filter failure at the user's
+  actual level is itself information worth surfacing rather than smoothing over. Leaning toward
+  "substitute and note it" since §5.8's explanation line is explicitly meant to carry exactly this
+  kind of "what changed and why," but flagging since it's a real design choice, not a spec-given
+  one.
+- **§6.7 mastery PR-checks and an explicitly-triggered Recovery Week are not surfaced through
+  `generateSession`.** `progression/rules.ts`'s `mastery_pr_check` event and
+  `progression/comeback.ts`'s `'week'` tier both exist and are tested in isolation, and
+  `pipeline.ts` always passes `masteryPrChecks: []` to the explanation composer with a comment
+  saying why. Rationale: both are evaluated from *actual performance*, which only exists at
+  session completion (Wave 3's territory) — generation has no performance to check yet. If Wave 3
+  wants the *next* generated session to open with "chasing a new best on X," it should call
+  `progression/rules.ts` at completion, store the resulting event, and pass it into
+  `generateSession`'s explanation inputs on the next call — `composeExplanation` already accepts
+  `masteryPrChecks`, so no engine change should be needed there, just a caller-side wire-up.
+  Flagging in case this reads as a gap in the "done criteria" rather than an intentional wave
+  boundary.
+- **Recovery treatment is per-entry, not a strict "at most one exercise" count** across the whole
+  session (see `prescription/prescribe.ts`'s docblock) — every main entry whose primary muscle
+  overlaps a muscle trained hard in the last 2 days gets its band dropped and effort capped below
+  `hard`, independently. §5.2's literal text ("capped at one exercise") suggests a stricter
+  session-wide count; the accessory-selection layer (`selectMain`) does enforce something closer
+  to that count via its scoring penalties, but laddered slots have no alternative exercise to swap
+  for recovery purposes (the level's exercise is fixed), so a strict global count isn't always
+  achievable there anyway. Documented as a simplification, not a silent deviation.
