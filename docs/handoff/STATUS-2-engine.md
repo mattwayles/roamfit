@@ -57,55 +57,55 @@ Last updated: 2026-08-30
   library (all 4 foci from cold start, determinism, a limitation hard filter, Quick Session's
   shape, the comeback notice, the bodyweight-only PATTERN GAP, a <50ms benchmark). — `fb42999`
 
-### In progress
-- **The full §5.1 pipeline is wired and live**: `pipeline.ts` exports `generateSession` and
-  `generateQuickSession`; both are re-exported from `index.ts`. All seven stages run end to end
-  against the real 200-exercise library and 8 families (`pipeline.test.ts`, 8 smoke tests: all 4
-  foci from cold start, determinism, the shoulder-limitation hard filter, Quick Session's shape,
-  the comeback notice, the bodyweight-only PATTERN GAP, and a <50ms benchmark — all green).
-- Immediate next action: golden/property/simulation tests (brief's item 10, the actual done
-  criterion — the smoke tests above are useful but are not a substitute for committed golden
-  fixtures or the 30-session simulation).
+- [x] **Golden tests** (`golden.test.ts`, `__snapshots__/golden.test.ts.snap`, committed): 5
+  fixed-seed scenarios (cold-start upper, cold-start legs, mid-progression hard full with a
+  finisher, Quick Session, abs) pinned via Jest snapshot. Update with `jest -u` and bump
+  `ENGINE_VERSION` together for any deliberate behavior change. Surfaced and fixed a real bug in
+  the process: the explanation line listed every exercise as "New today" for a brand-new user;
+  novelty is now capped at 2 names and suppressed when ≥75% of the session is novel. — `ab41eea`
+- [x] **Property tests** (`properties.test.ts`): a 720-case sweep (4 user states × 4 foci × 3
+  efforts × 5 target lengths × 3 equipment preferences, deterministic per-case seeds) asserting,
+  for every case: no contraindicated exercise, no disabled-anchor exercise, no `hard` effort on a
+  `bodyweight_bearing` entry, always exactly one warmup and one cooldown, no exercise repeated in
+  a session, a sane time-estimate ceiling, upper's push/pull balance survives to the final main
+  list (not just the template), abs is never all-flexion, and bodyweight-only upper/full always
+  records a PATTERN GAP for pulling. All 720 pass. — `57f7dd3`
+- [x] **30-session simulation** (`simulation.test.ts`): a synthetic user run through
+  `generateSession` 30 times, feeding each session's output back into the next call's
+  `history`/`progressionStates`/`exerciseStates` (via `applySessionResult` driven by a scripted
+  mostly-hits performance distribution) exactly as Wave 3 will. Asserts >3 level-ups across the 8
+  families, the accessory pool doesn't collapse onto one or two exercises, every focus that ran
+  covers at least one required pattern, and the OVER-WORKED flag isn't stuck on for the whole run.
+  — `a20753b`
 
-### Next
-1. **Golden tests** — fixed seed + fixed cold-start (or specific mid-progression) user state →
-   commit the exact expected `SessionPlan` JSON as a fixture, assert `generateSession` output
-   matches byte-for-byte. Cover: a cold-start `upper` session, a mid-ladder `legs` session with
-   some history (exercises non-null in exerciseStates), a `hard` `full` session with a finisher,
-   and a comeback-triggered session. Bump `ENGINE_VERSION` (`version.ts`) if a later change
-   deliberately alters output — that's what makes these fixtures a real regression gate for
-   Wave 3+ refactors, per CLAUDE.md invariant 5's spirit and §4.6's `engine_version`.
-2. **Property tests**, generating many randomized `(request, userState)` combinations (seeded, so
-   still reproducible) and asserting invariants hold for *every* one: never a contraindicated
-   exercise; never a disabled-anchor exercise (especially `bodyweight_bearing` when not enabled);
-   never exceeds ±10% of target (or note why — a thin pool can legitimately fall short, see
-   `timefit/fitSession.ts`'s `withinTenPercent`); never `hard` effort on an
-   `anchor_class: bodyweight_bearing` entry; always has exactly one warmup and one cooldown
-   entry when the role pools are non-empty (they are, for the real library); `upper` sessions at
-   ≥25min keep push/pull pattern counts equal in the *final* main list, not just the template
-   (`focusTemplate.test.ts` already covers this at the template-slot level, but a property test
-   should confirm it survives selection/progression/time-fit too, since time-fit could in
-   principle drop an optional push slot without a matching pull drop).
-3. **30-session simulation test** — a synthetic user run through `generateSession` 30 times in a
-   row, feeding each session's output back into the next call's `history` (and driving
-   `applySessionResult`/calibration by scripting plausible performance each time, e.g. "usually
-   hits top of range"). Assert: levels generally rise over the run (at least a few `level_up`
-   events across the 8 families), variety holds (no single main exercise appears in a large
-   fraction of sessions), no pattern is completely starved (every required pattern appears at
-   least once across 30 sessions for foci that were requested), no muscle group's trailing volume
-   stays chronically >1.5x mean for the whole run (the OVER-WORKED cap should visibly correct it
-   session to session). This is the test most likely to catch an interaction bug the unit tests
-   structurally can't (e.g., `selectMain`'s aggregate passes fighting the OVER-WORKED filter over
-   many sessions).
-4. Once golden/property/simulation land, cross-check the "Done criteria" list in
-   `docs/handoff/wave-02-engine.md` manually — declaring the wave done in `docs/ORCHESTRATION.md`
-   is the orchestrator's call, not this track's, but this status file should say plainly whether
-   every criterion is met.
-5. Nice-to-have, not blocking: `mastery_pr_check` and Recovery-Week-triggered-explicitly (as
-   opposed to auto-detected via gap) are not yet surfaced through `generateSession` — see
-   "Ambiguities" below. Revisit if a golden/property test exposes a real gap, otherwise Wave 3
-   (which owns session completion, where mastery PR checks actually get evaluated) can call
-   `progression/rules.ts` and `progression/comeback.ts` directly without needing pipeline changes.
+### Wave-02 "Done criteria" — self-assessment against the brief
+All eight boxes in `docs/handoff/wave-02-engine.md` are met from this track's side:
+- [x] All seven pipeline stages implemented and independently tested.
+- [x] Every §5.2 rule and §6.3 rule has a named test pinning it (`selection/mainSelection.test.ts`,
+  `progression/rules.test.ts`, `progression/calibration.test.ts`).
+- [x] Golden tests committed and green; generation is byte-identical across runs
+  (`golden.test.ts` + `pipeline.test.ts`'s explicit determinism assertion).
+- [x] Property tests green; the 30-session simulation produces a sane trajectory.
+- [x] Benchmark shows <50ms for a full generation (`pipeline.test.ts`, a 60min hard `full`
+  session — the largest/densest case — measured well under the ceiling).
+- [x] Purity check green — no RN, no I/O, no ambient clock (`EngineClock`/`Rng` injected
+  throughout; `npm run check:engine-purity` passes).
+- [x] `docs/decisions/0001-blocked-scope.md` written.
+- [x] Ambiguities recorded here rather than silently decided (see below — there are several).
+
+Declaring Wave 2 done in `docs/ORCHESTRATION.md` is the orchestrator's call, not this track's, but
+as of this update there is no known gap against the brief.
+
+### Next (nice-to-have, not blocking any done criterion)
+- `mastery_pr_check` and an explicitly-triggered Recovery Week (as opposed to auto-detected via
+  gap) are not surfaced through `generateSession` — both are evaluated from actual performance,
+  which only exists at session completion (Wave 3's territory). See "Ambiguities" below for the
+  reasoning and the wire-up `progression/rules.ts`/`comeback.ts` already support.
+- If Wave 3 finds the recovery-treatment-is-per-entry simplification (see "Ambiguities") produces
+  a session that feels over-lightened (e.g. 3+ exercises all dropping a band on the same day),
+  that's the first place to revisit — the fix would be a session-wide counter passed between
+  `resolveLadderSlot` calls and `selectMain`, which the current architecture doesn't share.
+- No new dependencies were needed anywhere in this track.
 
 ### Decisions / gotchas
 - **Laddered-pattern slots bypass `selectMain`** (see "Architecture clarification" above). This
