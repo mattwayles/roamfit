@@ -1,0 +1,20 @@
+{
+  "name": "@roamfit/data",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Exercise library, progression families, schemas, and validators (pure TS/JSON).",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "validate:library": "node src/validate.ts"
+  },
+  "devDependencies": {
+    "@types/jest": "30.0.0",
+    "@types/node": "22.10.5",
+    "jest": "30.5.0",
+    "ts-jest": "29.4.12",
+    "typescript": "6.0.3"
+  }
+}

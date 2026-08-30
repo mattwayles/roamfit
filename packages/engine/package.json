@@ -1,0 +1,19 @@
+{
+  "name": "@roamfit/engine",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Pure TypeScript generation + progression engine. No I/O, no React Native.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/jest": "30.0.0",
+    "@types/node": "22.10.5",
+    "jest": "30.5.0",
+    "ts-jest": "29.4.12",
+    "typescript": "6.0.3"
+  }
+}

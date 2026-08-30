@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "RoamFit",
+    "slug": "roamfit",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["ios"],
+    "ios": {
+      "bundleIdentifier": "com.roamfit.app",
+      "supportsTablet": false
+    },
+    "plugins": ["expo-dev-client"]
+  }
+}

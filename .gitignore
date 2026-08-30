@@ -1,0 +1,44 @@
+# dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# native build output
+app/ios/
+app/android/
+ios/build/
+android/build/
+android/app/build/
+*.xcworkspace/xcuserdata/
+DerivedData/
+
+# testing
+coverage/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# env
+.env
+.env.local
+.env.*.local
+
+# os
+.DS_Store
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# typescript build info
+*.tsbuildinfo
