@@ -114,6 +114,10 @@ export interface SessionHistoryEntry {
   role: Role;
   /** Effort actually prescribed to this exercise (may be capped below the session's effort). */
   effort: Effort;
+  /** Sets actually prescribed (planned, not necessarily all completed) — drives trailing muscle
+   *  volume the same way the prototype's `muscle_sets` does (primary=1 credit/set, secondary=0.5).
+   *  Defaults to 1 if a caller can't supply it (e.g. warmup/cooldown, or legacy data). */
+  sets?: number;
 }
 
 export interface SessionHistoryRecord {
@@ -207,10 +211,15 @@ export interface SessionPlan {
   generatedAtLocalDate: LocalDate;
 }
 
+/** §5.2 recency bucket for main-work exercises (warmup/cooldown use light rotation instead —
+ *  see docs/decisions/0001-blocked-scope.md). */
+export type RecencyTier = 'blocked' | 'soft' | 'preferred';
+
 /** Internal working type: an exercise plus the derived facts selection needs about it. */
 export interface Candidate {
   exercise: Exercise;
   sessionsAgo: number | null;
+  tier: RecencyTier;
   performCount: number;
   enjoyment: number;
   isNovel: boolean;
