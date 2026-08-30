@@ -9,8 +9,8 @@ Every track is written to be **interrupted**. See the interruption protocol in `
 
 | Wave | Milestone | Status |
 |---|---|---|
-| 1 | Skeleton boots + full library/ladder data validated | in progress |
-| 2 | Generation engine passes golden tests, <50ms, no I/O | not started |
+| 1 | Skeleton boots + full library/ladder data validated | **done** — verified `38fef15`/`5048e5f` |
+| 2 | Generation engine passes golden tests, <50ms, no I/O | brief ready, awaiting dispatch |
 | 3 | SQLite persistence + session lifecycle + signal capture | not started |
 | 4 | Core workout loop end-to-end on device | not started |
 | 5 | Motivation surfaces: progression board, dashboard, passport | not started |
@@ -81,3 +81,20 @@ everything functional. Plus §15 product instrumentation and polish.
 - Every subagent gets: its brief path, its status-file path, and the specific spec sections to
   read. Never "read the spec."
 - A resumed track is dispatched with the same brief; the status file carries the delta.
+- **One track per wave touching the repo root**, or serialize them. Wave 1 ran two agents in one
+  working tree and they raced on the shared git index twice — files from one track swept into the
+  other's commit. Nothing was lost, but attribution got muddled. For later waves either isolate
+  concurrent tracks in git worktrees or keep concurrency to genuinely disjoint subtrees.
+
+## Carried-forward issues
+
+Open items surfaced by a completed wave that a later wave or a human must close.
+
+| # | Item | Raised | Owner |
+|---|---|---|---|
+| 1 | 32 exercises carry no `contraindications[]`; whole set wants a trainer/physio review pass. §13.2 hard filter and the pregnancy preset depend on it. **Should not ship unreviewed.** | 1B | human, pre-launch |
+| 2 | `bw-inverted-row` classed `pullup-bar` / `bodyweight_bearing` (off by default, effort-capped) — arguably too strict for a partial-support row. | 1B | human |
+| 3 | Warmup pool is 9 records, cooldown 12 (only 4 each tagged `abs`). §5.2 BLOCKED would exhaust it. Resolve via ADR in Wave 2; consider a content top-up later. | orchestrator | Wave 2 |
+| 4 | `hamstring-curl`/`tke` tagged `hip_extension` — §4.1's pattern enum has no knee-flexion/extension bucket. Taxonomy gap. | 1B | Wave 2 to confirm harmless |
+| 5 | Conditioning finishers forced to `tier: fill` with a primary-mover pattern. Confirm this matches how the engine treats finishers (§5.5 `full` template). | 1B | Wave 2 |
+| 6 | `@testing-library/react-native` `render()` returned empty under this stack; `react-test-renderer` used instead. Retry when Wave 4 needs real queries. | 1A | Wave 4 |
