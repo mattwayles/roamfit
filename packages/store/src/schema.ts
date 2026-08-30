@@ -21,6 +21,12 @@
  *   rolled_up_stats    §11.3 — incrementally maintained, single row (single local user in v1)
  *   deferred_work      §11.3 queues — LLM distillation, HealthKit write, passport geocode.
  *                      Workers are Wave 6; this wave only enqueues.
+ *   session_muscle_volume  per (session, muscle) set counts, written once at completion —
+ *                      the substrate for §14.3 hard-sets-per-muscle-14d and the §5.2
+ *                      OVER-WORKED trailing-volume comparison. A small append-only ledger table
+ *                      queried with a `local_date >=` filter is "incrementally maintained" in
+ *                      the sense §11.3 asks for (bounded recent-row scan, not full history) while
+ *                      staying exact — a decaying aggregate blob would drift.
  *
  * All ids are app-generated UUIDs (text), not sqlite autoincrement — keeps id generation
  * independent of the driver and collision-free once Firestore sync (Wave 6) exists.
@@ -378,6 +384,31 @@ export const deferredWork = sqliteTable(
     processedAt: text('processed_at'),
   },
   (t) => [index('ix_deferred_work_status').on(t.status)],
+);
+
+// ------------------------------------------------------------------------------------------
+// §14.3 / §5.2 per-session muscle-set ledger. Written once at completion; read with a
+// local_date filter for the trailing-14-day and trailing-volume rollups.
+// ------------------------------------------------------------------------------------------
+
+export const sessionMuscleVolume = sqliteTable(
+  'session_muscle_volume',
+  {
+    id: text('id').primaryKey(),
+    sessionId: text('session_id').notNull(),
+    localDate: text('local_date').notNull(),
+    muscle: text('muscle').notNull(),
+    /** Primary=1 credit/set, secondary=0.5 — mirrors the engine's own trailing-volume credit
+     *  scheme (`selection/volume.ts`) so the dashboard's OVER-WORKED framing matches what
+     *  generation itself used. */
+    sets: real('sets').notNull(),
+    /** Sets counted here whose entry effort was 'hard' — the §14.3 metric specifically. */
+    hardSets: real('hard_sets').notNull().default(0),
+  },
+  (t) => [
+    index('ix_session_muscle_volume_session').on(t.sessionId),
+    index('ix_session_muscle_volume_local_date').on(t.localDate),
+  ],
 );
 
 // ------------------------------------------------------------------------------------------
