@@ -45,6 +45,12 @@ export interface PatternGapFact {
   resolution: 'used_band' | 'stated_imbalance';
 }
 
+export interface TimeBudgetShortfallFact {
+  targetMinutes: number;
+  estimatedMinutes: number;
+  direction: 'short' | 'long';
+}
+
 export interface ExplanationInputs {
   /** §5.2 48h recovery — set when the session was lightened on specific muscles. */
   recoveryMuscleLabel?: string;
@@ -55,6 +61,9 @@ export interface ExplanationInputs {
   /** §6.3/progression/resolveSlot.ts session-only ladder substitutions. */
   substitutions: readonly SubstitutionFact[];
   patternGaps: readonly PatternGapFact[];
+  /** §5.6 — set only when, after every fill/trim lever, the estimate still falls outside ±10%
+   *  of target. Never silent, the same as a PATTERN GAP. */
+  timeBudgetShortfall?: TimeBudgetShortfallFact;
   /** §9.4 comeback copy, verbatim when present ("Welcome back — let's ease in."). */
   comebackNotice?: string;
   /** §6.5 — shown once, on the very first session only. */
@@ -68,6 +77,15 @@ export function composeExplanation(input: ExplanationInputs): string {
   const sentences: string[] = [];
 
   if (input.comebackNotice) sentences.push(input.comebackNotice);
+
+  if (input.timeBudgetShortfall) {
+    const { targetMinutes, estimatedMinutes, direction } = input.timeBudgetShortfall;
+    sentences.push(
+      direction === 'short'
+        ? `Runs about ${estimatedMinutes} min instead of your ${targetMinutes} min target — not enough fresh work in the pool right now to fill the rest.`
+        : `Runs about ${estimatedMinutes} min instead of your ${targetMinutes} min target — trimmed sets as much as safely possible.`,
+    );
+  }
 
   if (input.recoveryMuscleLabel) {
     sentences.push(`Lighter on ${input.recoveryMuscleLabel} — you trained it hard in the last two days.`);

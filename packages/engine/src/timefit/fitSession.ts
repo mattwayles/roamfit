@@ -30,21 +30,37 @@ export function fitMainEntries(
   warmupSec: number,
   cooldownSec: number,
 ): FitResult {
-  const budgetSec = mainBudgetSec(targetMinutes);
+  // Use the *actual* prescribed warmup/cooldown time to size the main budget, not
+  // `mainBudgetSec`'s clamp-formula estimate of what they'd typically take. The two normally
+  // agree (a full session's warmup/cooldown selection is calibrated to hit that estimate), but
+  // §9.5 Quick Session deliberately prescribes far less warmup/cooldown than the general clamp
+  // (one short movement, not several minutes' worth) — sizing the main budget off the formula
+  // instead of reality was starving Quick Session's main budget down to almost nothing.
+  const budgetSec = Math.max(0, targetMinutes * 60 - warmupSec - cooldownSec);
   const required = slots.filter((s) => s.required).map((s) => s.entry);
   const optional = slots.filter((s) => !s.required).map((s) => s.entry);
 
   let total = required.reduce((sum, e) => sum + e.estimatedSec, 0);
   const chosen = [...required];
 
-  // §5.6: "fill main_sec until the next exercise would overshoot." A small overshoot allowance
-  // (the ±10% ceiling itself) lets one more useful exercise in when it's a close call, rather
-  // than leaving a session noticeably short of a round number for the sake of a few seconds.
-  const ceiling = budgetSec * 1.1;
+  // §5.6: "fill main_sec until the next exercise would overshoot." The polite ceiling (+10%)
+  // lets one more useful exercise in on a close call. But discrete exercise sizes mean a purely
+  // greedy "never cross the polite ceiling" rule can strand the session well *under* the floor
+  // (-10%) when the next available entry would cross the polite ceiling by a little — and
+  // landing short is the worse failure mode (§1.1: "promise the time and keep it"). So: below
+  // the floor, reach for one more entry even past the polite ceiling, up to a harder ceiling —
+  // never truly unbounded, but biased toward closing the gap from below rather than stopping
+  // short of the target for the sake of a strict ceiling.
+  const floor = budgetSec * 0.9;
+  const politeCeiling = budgetSec * 1.1;
+  const hardCeiling = budgetSec * 1.25;
   for (const entry of optional) {
-    if (total + entry.estimatedSec <= ceiling) {
+    const candidateTotal = total + entry.estimatedSec;
+    const underPoliteCeiling = candidateTotal <= politeCeiling;
+    const reachingForFloor = total < floor && candidateTotal <= hardCeiling;
+    if (underPoliteCeiling || reachingForFloor) {
       chosen.push(entry);
-      total += entry.estimatedSec;
+      total = candidateTotal;
     } else {
       break;
     }

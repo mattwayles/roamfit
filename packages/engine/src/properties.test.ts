@@ -152,18 +152,35 @@ describe('property: invariants hold across the full request sweep', () => {
                 }
               }
 
-              // Always exactly one warmup and one cooldown (the real library's pools are never empty).
-              expect(plan.warmup.length).toBe(1);
-              expect(plan.cooldown.length).toBe(1);
+              // Always at least one warmup and one cooldown (the real library's pools are never
+              // empty) — a full session may pick several to actually fill its §5.6-budgeted
+              // warmup/cooldown minutes rather than leaving them on the table.
+              expect(plan.warmup.length).toBeGreaterThanOrEqual(1);
+              expect(plan.cooldown.length).toBeGreaterThanOrEqual(1);
 
               // No exercise repeated within the session.
               const ids = allEntries.map((e) => e.exerciseId);
               expect(new Set(ids).size).toBe(ids.length);
 
-              // Sanity ceiling on the time estimate — never a runaway multiple of the target,
-              // even though required-heavy templates can legitimately exceed +/-10%.
+              // §5.6: "add or drop until within +/-10% of target." This is the real requirement
+              // — not a loose sanity ceiling. The ONLY legitimate exception is a pool genuinely
+              // too thin to fill (or a required-only overshoot too large to trim), and that must
+              // be reported explicitly via `timeBudgetShortfall`, never silently returned.
               expect(plan.estimatedMinutes).toBeGreaterThan(0);
-              expect(plan.estimatedMinutes).toBeLessThanOrEqual(targetMinutes * 1.75 + 5);
+              if (plan.timeBudgetShortfall) {
+                // The flag itself must be internally consistent and must actually describe an
+                // out-of-band case — it is not a free pass.
+                expect(plan.timeBudgetShortfall.targetMinutes).toBe(targetMinutes);
+                expect(plan.timeBudgetShortfall.estimatedMinutes).toBe(plan.estimatedMinutes);
+                const withinBand =
+                  plan.estimatedMinutes >= targetMinutes * 0.9 &&
+                  plan.estimatedMinutes <= targetMinutes * 1.1;
+                expect(withinBand).toBe(false);
+                expect(plan.explanation).toMatch(/min/); // surfaced in the §5.8 line, not silent
+              } else {
+                expect(plan.estimatedMinutes).toBeGreaterThanOrEqual(targetMinutes * 0.9);
+                expect(plan.estimatedMinutes).toBeLessThanOrEqual(targetMinutes * 1.1);
+              }
 
               // Upper push/pull balance survives all the way to the final main list, not just
               // the template, when nothing forced an imbalance (a PATTERN GAP or a compressed

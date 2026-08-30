@@ -139,6 +139,50 @@ function fullSlots(
   return slots;
 }
 
+/**
+ * Non-laddered patterns each focus can draw extra volume from when §5.6 time-fit needs more
+ * slots than the base template supplies (a long target with a short static slot list). Laddered
+ * patterns are deliberately excluded — repeating one would just re-resolve to the same
+ * progression-state exercise (one per family per session), not real extra work. `full` has no
+ * isolation slot of its own in §5.5, so its filler pool is the union of the other three focuses'
+ * — a reasonable reading of "extra accessory work," not a spec-given menu.
+ */
+const ACCESSORY_PATTERNS_BY_FOCUS: Record<Focus, Pattern[]> = {
+  upper: UPPER_ISOLATION,
+  legs: ['abduction', 'hip_extension', 'calf'],
+  abs: ['anti_rotation', 'flexion', 'lateral_flexion'],
+  full: [...UPPER_ISOLATION, 'abduction', 'hip_extension', 'calf', 'anti_rotation', 'flexion', 'lateral_flexion'],
+};
+
+/**
+ * §5.6 — "add ... until within ±10% of target." The base template's slot list is fixed and
+ * short (a handful of required + a few optional slots); for a long target it can be exhausted
+ * long before the budget is full. This appends additional optional slots, cycling through the
+ * focus's non-laddered accessory patterns, up to `maxSlots` total (§5.6's exercise-count sanity
+ * ceiling for the target length) or a hard runaway guard, whichever is smaller. Selection
+ * (`selectMain`) still applies every §5.2 rule to these slots exactly as it does to the base
+ * ones — this only supplies more candidate slots, it does not pick exercises or bypass variety.
+ */
+const EXPANSION_HARD_CAP = 14;
+
+export function expandOptionalSlots(
+  base: FocusTemplateResult,
+  focus: Focus,
+  maxSlots: number,
+): FocusTemplateResult {
+  const patterns = ACCESSORY_PATTERNS_BY_FOCUS[focus];
+  if (!patterns || patterns.length === 0) return base;
+  const slots = [...base.slots];
+  const ceiling = Math.min(maxSlots, EXPANSION_HARD_CAP);
+  let i = 0;
+  while (slots.length < ceiling) {
+    const pattern = patterns[i % patterns.length];
+    slots.push({ id: `${focus}.extra.${i}`, patterns: [pattern], required: false });
+    i++;
+  }
+  return { slots, leadPattern: base.leadPattern };
+}
+
 export interface BuildTemplateInput {
   focus: Focus;
   targetMinutes: number;

@@ -203,6 +203,21 @@ export interface PatternGapNote {
   resolution: 'used_band' | 'stated_imbalance';
 }
 
+/**
+ * §5.6 — "add or drop until within ±10% of target." Set ONLY when, after every fill/trim lever
+ * the engine has (extra accessory slots, additional sets on required entries, sets trimmed on
+ * required entries), the estimate still falls outside ±10% of `targetMinutes` — i.e. the
+ * eligible pool for this focus/effort/anchor combination is genuinely too thin (or, at the short
+ * end, the required pattern slots alone cannot be trimmed into a very small budget). This must
+ * never be a silent shortfall — the same rule as PATTERN GAP: report it on the plan and in the
+ * §5.8 explanation line, never just return a session that quietly misses the promised time.
+ */
+export interface TimeBudgetNote {
+  targetMinutes: number;
+  estimatedMinutes: number;
+  direction: 'short' | 'long';
+}
+
 export interface SessionPlan {
   focus: Focus;
   effort: Effort;
@@ -215,6 +230,8 @@ export interface SessionPlan {
   /** §5.8 — required, not optional. */
   explanation: string;
   patternGaps: PatternGapNote[];
+  /** See `TimeBudgetNote` — absent means the estimate landed within ±10% of target. */
+  timeBudgetShortfall?: TimeBudgetNote;
   anchorsSnapshot: Anchor[];
   engineVersion: string;
   generatedAtLocalDate: LocalDate;

@@ -54,8 +54,10 @@ describe('generateSession — pipeline wiring', () => {
         rng: createRng(1),
       });
       expect(plan.main.length).toBeGreaterThan(0);
-      expect(plan.warmup.length).toBe(1);
-      expect(plan.cooldown.length).toBe(1);
+      // Full sessions fill their §5.6-budgeted warmup/cooldown minutes with as many exercises as
+      // it takes (Quick Session, tested separately below, is the one case pinned to exactly 1).
+      expect(plan.warmup.length).toBeGreaterThanOrEqual(1);
+      expect(plan.cooldown.length).toBeGreaterThanOrEqual(1);
       expect(plan.explanation.length).toBeGreaterThan(0);
       expect(plan.engineVersion).toBeTruthy();
       expect(plan.focus).toBe(focus);

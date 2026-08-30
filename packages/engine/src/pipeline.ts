@@ -9,13 +9,15 @@
  */
 import type { Exercise, ExerciseLibrary, FamilyLibrary, Focus, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import { applyHardFilters } from './filters/hardFilters';
-import { buildFocusTemplate, buildQuickSessionTemplate } from './template/focusTemplate';
+import { buildFocusTemplate, buildQuickSessionTemplate, expandOptionalSlots } from './template/focusTemplate';
 import type { TemplateSlot } from './template/focusTemplate';
 import { selectMain } from './selection/mainSelection';
-import { selectWarmupCooldown } from './selection/warmupCooldown';
+import type { SelectedMain } from './selection/mainSelection';
+import { selectWarmupCooldown, selectWarmupCooldownGroup } from './selection/warmupCooldown';
 import { recentHardMuscles } from './selection/volume';
 import { RECOVERY_WINDOW_DAYS } from './selection/constants';
 import { resolveLadderSlot } from './progression/resolveSlot';
+import type { ResolvedLadderSlot } from './progression/resolveSlot';
 import { levelOrdinal } from './progression/ladder';
 import { assessComeback, applyComebackToProgressionStates } from './progression/comeback';
 import {
@@ -25,11 +27,20 @@ import {
 } from './prescription/prescribe';
 import { fitMainEntries } from './timefit/fitSession';
 import type { SlotEntry } from './timefit/fitSession';
-import { cooldownMinutes, warmupMinutes } from './timefit/formulas';
+import { cooldownMinutes, mainExerciseCountRange, warmupMinutes } from './timefit/formulas';
 import { composeExplanation } from './explain/explain';
 import type { LevelUpFact, PatternGapFact, SubstitutionFact } from './explain/explain';
 import { ENGINE_VERSION } from './version';
-import type { EngineClock, GenerationRequest, PatternGapNote, Rng, SessionEntry, SessionPlan, UserState } from './types';
+import type {
+  EngineClock,
+  GenerationRequest,
+  PatternGapNote,
+  Rng,
+  SessionEntry,
+  SessionPlan,
+  TimeBudgetNote,
+  UserState,
+} from './types';
 
 /** The 8 v1 laddered families (§6.6), keyed by the pattern they cover. A template slot whose
  *  single pattern is a key here is resolved from `ProgressionState`, not `selectMain`. */
@@ -101,10 +112,16 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     today: clock.today,
   });
 
-  // §5.1 step 2 — template.
-  const template = isQuick
+  // §5.1 step 2 — template. Non-quick sessions get extra optional accessory slots appended (up
+  // to §5.6's exercise-count-sanity max for this target) so time fit (step 6) has enough supply
+  // to actually FILL a long budget rather than stopping once the static slot list runs out —
+  // see STATUS-2-engine.md's time-fit correction. Quick Session stays deliberately minimal.
+  const baseTemplate = isQuick
     ? buildQuickSessionTemplate({ focus, targetMinutes, effort, library: allExercises, history: userState.history })
     : buildFocusTemplate({ focus, targetMinutes, effort, library: allExercises, history: userState.history });
+  const template = isQuick
+    ? baseTemplate
+    : expandOptionalSlots(baseTemplate, focus, mainExerciseCountRange(targetMinutes)[1]);
 
   const recoveryMuscles = recentHardMuscles(userState.history, pool, clock.today, RECOVERY_WINDOW_DAYS);
 
@@ -117,8 +134,10 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     else accessorySlots.push(slot);
   }
 
-  // §5.1 step 3 — selection, for the accessory slots only (§5.2's variety machinery; laddered
-  // slots are resolved by progression state directly, see STATUS-2-engine.md).
+  // §5.1 step 3 — selection, for the accessory slots only (§5.2's variety machinery, including
+  // the extra filler slots above — every §5.2 rule, band/preferred/favorites ratios included,
+  // still applies across the whole accessory set). Laddered slots are resolved by progression
+  // state directly, see STATUS-2-engine.md.
   const mainSelection =
     accessorySlots.length > 0
       ? selectMain({
@@ -142,8 +161,9 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     .reverse()
     .find((s) => s.status !== 'discarded')?.localDate;
 
-  // §5.1 step 4 (progression) + step 5 (prescription) for laddered slots.
-  const entriesBySlotId = new Map<string, SessionEntry>();
+  // §5.1 step 4 — progression: resolve each laddered slot to a concrete exercise ONCE (this
+  // does not depend on the sets multiplier, so it isn't repeated by the corrective pass below).
+  const ladderResolutions: { slot: TemplateSlot; familyId: ProgressionFamilyId; resolved: ResolvedLadderSlot }[] = [];
   for (const { slot, familyId } of ladderSlots) {
     const resolved = resolveLadderSlot({
       familyId,
@@ -158,20 +178,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       }
       continue;
     }
-    const touchesRecovery = resolved.exercise.primary.some((m) => recoveryMuscles.has(m));
-    const entry = prescribeLaddered({
-      exercise: resolved.exercise,
-      familyId,
-      levelId: resolved.state.levelId,
-      micro: resolved.state.micro,
-      requestedEffort: effort,
-      recoveryTreatment: touchesRecovery,
-      setsMultiplier,
-      substitutedFor: resolved.substitutedFrom
-        ? allExercises.find((e) => e.id === resolved.substitutedFrom!.exerciseId)?.id
-        : undefined,
-    });
-    entriesBySlotId.set(slot.id, entry);
+    ladderResolutions.push({ slot, familyId, resolved });
 
     if (resolved.substitutedFrom) {
       const fromEx = allExercises.find((e) => e.id === resolved.substitutedFrom!.exerciseId);
@@ -186,37 +193,135 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       noveltyNames.add(resolved.exercise.name);
     }
   }
-
-  // §5.1 step 5 for accessory slots.
   for (const pick of mainSelection.picks) {
-    const slot = accessorySlots.find((s) => s.id === pick.slotId)!;
-    const entry = prescribeAccessory({
-      exercise: pick.exercise,
-      requestedEffort: effort,
-      recoveryTreatment: pick.recoveryTreatment,
-      isFinisherAmrap: Boolean(slot.isFinisher),
-      bandRelaxedForPatternGap: pick.bandRelaxedForPatternGap,
-      setsMultiplier,
-    });
-    entriesBySlotId.set(pick.slotId, entry);
     if (pick.candidate.isNovel) noveltyNames.add(pick.exercise.name);
   }
 
-  // Warmup + cooldown — always exactly one each (§5.5), for the full template and Quick Session.
-  const warmupEx = selectWarmupCooldown({ role: 'warmup', pool, focus, userState, today: clock.today, rng });
-  const cooldownEx = selectWarmupCooldown({ role: 'cooldown', pool, focus, userState, today: clock.today, rng });
-  const warmupEntries: SessionEntry[] = warmupEx ? [prescribeWarmupCooldown(warmupEx, 'warmup')] : [];
-  const cooldownEntries: SessionEntry[] = cooldownEx ? [prescribeWarmupCooldown(cooldownEx, 'cooldown')] : [];
+  // §5.1 step 5 — prescription, parameterized by the sets multiplier so it can be re-run once
+  // with a corrective multiplier if required-only entries alone overshoot the time budget (the
+  // short-target case: trim sets via prescription rather than drop a required pattern slot).
+  function prescribeEntries(multiplier: number): Map<string, SessionEntry> {
+    const map = new Map<string, SessionEntry>();
+    for (const { slot, familyId, resolved } of ladderResolutions) {
+      const touchesRecovery = resolved.exercise.primary.some((m) => recoveryMuscles.has(m));
+      map.set(
+        slot.id,
+        prescribeLaddered({
+          exercise: resolved.exercise,
+          familyId,
+          levelId: resolved.state.levelId,
+          micro: resolved.state.micro,
+          requestedEffort: effort,
+          recoveryTreatment: touchesRecovery,
+          setsMultiplier: multiplier,
+          substitutedFor: resolved.substitutedFrom
+            ? allExercises.find((e) => e.id === resolved.substitutedFrom!.exerciseId)?.id
+            : undefined,
+        }),
+      );
+    }
+    for (const pick of mainSelection.picks as SelectedMain[]) {
+      const slot = accessorySlots.find((s) => s.id === pick.slotId)!;
+      map.set(
+        pick.slotId,
+        prescribeAccessory({
+          exercise: pick.exercise,
+          requestedEffort: effort,
+          recoveryTreatment: pick.recoveryTreatment,
+          isFinisherAmrap: Boolean(slot.isFinisher),
+          bandRelaxedForPatternGap: pick.bandRelaxedForPatternGap,
+          setsMultiplier: multiplier,
+        }),
+      );
+    }
+    return map;
+  }
+
+  let entriesBySlotId = prescribeEntries(setsMultiplier);
+
+  // Warmup + cooldown. §9.5 Quick Session is explicitly "one warmup ... one cooldown" — keep it
+  // to exactly one each. Every other session's §5.6 budget allocates several *minutes* to each
+  // (`clamp(round(0.12xT),3,8)` / `clamp(round(0.10xT),3,7)`), which one ~45-90s movement can't
+  // fill — this was a real contributor to the time-budget shortfall this change fixes (see
+  // STATUS-2-engine.md), so a full session picks as many distinct warmup/cooldown exercises as
+  // it takes to approximately fill that allocation. Resolved before the main-budget correction
+  // below so that correction can size itself against the *actual* warmup/cooldown time, not the
+  // clamp-formula's estimate of it (Quick Session's real overhead is much smaller than the
+  // formula assumes).
+  let warmupEntries: SessionEntry[];
+  let cooldownEntries: SessionEntry[];
+  if (isQuick) {
+    const warmupEx = selectWarmupCooldown({ role: 'warmup', pool, focus, userState, today: clock.today, rng });
+    const cooldownEx = selectWarmupCooldown({ role: 'cooldown', pool, focus, userState, today: clock.today, rng });
+    warmupEntries = warmupEx ? [prescribeWarmupCooldown(warmupEx, 'warmup')] : [];
+    cooldownEntries = cooldownEx ? [prescribeWarmupCooldown(cooldownEx, 'cooldown')] : [];
+  } else {
+    const warmupTargetSec = warmupMinutes(targetMinutes) * 60;
+    const cooldownTargetSec = cooldownMinutes(targetMinutes) * 60;
+    const warmupExs = selectWarmupCooldownGroup({
+      role: 'warmup',
+      pool,
+      focus,
+      userState,
+      today: clock.today,
+      rng,
+      targetSec: warmupTargetSec,
+    });
+    const cooldownExs = selectWarmupCooldownGroup({
+      role: 'cooldown',
+      pool,
+      focus,
+      userState,
+      today: clock.today,
+      rng,
+      targetSec: cooldownTargetSec,
+    });
+    warmupEntries = warmupExs.map((e) => prescribeWarmupCooldown(e, 'warmup'));
+    cooldownEntries = cooldownExs.map((e) => prescribeWarmupCooldown(e, 'cooldown'));
+  }
   const warmupSec = warmupEntries.reduce((a, e) => a + e.estimatedSec, 0);
   const cooldownSec = cooldownEntries.reduce((a, e) => a + e.estimatedSec, 0);
 
-  // §5.1 step 6 — time fit, over the slots in template priority order.
+  // Short-target correction: if the REQUIRED entries alone (before any optional slot is even
+  // considered) already exceed the +10% ceiling, trim sets via a corrective multiplier rather
+  // than dropping a required pattern slot (§5.6). `scaleSets` floors at 1 set, so if even that
+  // isn't enough the result is a genuine, reported shortfall (see below) — not silently ignored.
+  // Sized against the *actual* warmup/cooldown time just resolved above, not the clamp-formula
+  // estimate — see the comment on `budgetSec` inside `fitMainEntries` for why that matters.
+  const mainBudgetSecActual = Math.max(0, targetMinutes * 60 - warmupSec - cooldownSec);
+  const ceilingSec = mainBudgetSecActual * 1.1;
+  const requiredMainSec = template.slots
+    .filter((s) => s.required)
+    .reduce((sum, s) => sum + (entriesBySlotId.get(s.id)?.estimatedSec ?? 0), 0);
+  if (requiredMainSec > ceilingSec && requiredMainSec > 0) {
+    const correctionRatio = ceilingSec / requiredMainSec;
+    const correctedMultiplier = Math.max(0.3, setsMultiplier * correctionRatio);
+    entriesBySlotId = prescribeEntries(correctedMultiplier);
+  }
+
+  // §5.1 step 6 — time fit, over the slots in template priority order. With the expanded
+  // optional-slot supply above, this can now actually fill a long budget instead of stopping
+  // once the old static slot list ran out.
   const slotEntries: SlotEntry[] = [];
   for (const slot of template.slots) {
     const entry = entriesBySlotId.get(slot.id);
     if (entry) slotEntries.push({ required: slot.required, entry });
   }
   const fit = fitMainEntries(slotEntries, targetMinutes, warmupSec, cooldownSec);
+
+  // `withinTenPercent` is §5.6's actual requirement, not a decoration — read it. If the session
+  // still falls outside ±10% after the corrective sets-trim above and every optional slot the
+  // (now-expanded) template could supply, that means the eligible pool genuinely is too thin (or
+  // a very short target's required slots can't be trimmed further) — report it explicitly, the
+  // same way a PATTERN GAP is never silent (§5.2), rather than quietly returning an off-target
+  // plan the way the pre-fix engine did.
+  const timeBudgetShortfall: TimeBudgetNote | undefined = fit.withinTenPercent
+    ? undefined
+    : {
+        targetMinutes,
+        estimatedMinutes: fit.estimatedMinutes,
+        direction: fit.estimatedMinutes < targetMinutes ? 'short' : 'long',
+      };
 
   // §5.1 step 7 — explain.
   let recoveryMuscleLabel: string | undefined;
@@ -250,6 +355,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     noveltyExerciseNames: displayNoveltyNames,
     substitutions,
     patternGaps: patternGapFacts,
+    timeBudgetShortfall,
     comebackNotice: comeback.notice ?? undefined,
     calibrationFirstSessionNotice: !userState.hasEverCompletedSession,
     balancedAgainst: fit.main[0]?.pattern,
@@ -266,6 +372,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     cooldown: cooldownEntries,
     explanation,
     patternGaps,
+    timeBudgetShortfall,
     anchorsSnapshot: userState.profile.anchorsAvailable,
     engineVersion: ENGINE_VERSION,
     generatedAtLocalDate: clock.today,

@@ -9,6 +9,7 @@ import type { Rng, UserState, LocalDate } from '../types';
 import { buildCandidates } from './candidates';
 import { rngIndex } from '../rng';
 import { AVOID_ENJOYMENT_MAX, WARMUP_COOLDOWN_ROTATION_SESSIONS } from './constants';
+import { prescribeWarmupCooldown } from '../prescription/prescribe';
 
 export interface SelectWarmupCooldownInput {
   role: Extract<Role, 'warmup' | 'cooldown'>;
@@ -17,13 +18,17 @@ export interface SelectWarmupCooldownInput {
   userState: UserState;
   today: LocalDate;
   rng: Rng;
+  /** Exclude these ids too (already picked earlier this session), on top of the light-rotation
+   *  exclusion — used by `selectWarmupCooldownGroup` to avoid repeating a pick within one call. */
+  excludeIds?: ReadonlySet<string>;
 }
 
 export function selectWarmupCooldown(input: SelectWarmupCooldownInput): Exercise | null {
-  const { role, pool, focus, userState, today, rng } = input;
+  const { role, pool, focus, userState, today, rng, excludeIds } = input;
   const ctx = { history: userState.history, exerciseStates: userState.exerciseStates, today };
   const focusPool = pool.filter((e) => e.role === role && e.focus.includes(focus));
-  const basePool = focusPool.length > 0 ? focusPool : pool.filter((e) => e.role === role);
+  const basePoolAll = focusPool.length > 0 ? focusPool : pool.filter((e) => e.role === role);
+  const basePool = excludeIds ? basePoolAll.filter((e) => !excludeIds.has(e.id)) : basePoolAll;
   if (basePool.length === 0) return null;
 
   const candidates = buildCandidates(basePool, role, ctx).filter((c) => !c.isSuppressed);
@@ -41,4 +46,36 @@ export function selectWarmupCooldown(input: SelectWarmupCooldownInput): Exercise
   const finalPool = liked.length > 0 ? liked : pickFrom;
 
   return finalPool[rngIndex(rng, finalPool.length)].exercise;
+}
+
+/**
+ * §5.6 allocates several *minutes* to warmup/cooldown (`clamp(round(0.12xT),3,8)` /
+ * `clamp(round(0.10xT),3,7)`) — far more than a single ~45-90s movement fills. For a full
+ * (non-Quick-Session) generation, pick as many distinct warmup/cooldown exercises as it takes to
+ * approximately fill that allocation, so the budgeted minutes are actually spent rather than
+ * silently left on the table (the single biggest contributor to the §5.6 shortfall this fixes —
+ * see STATUS-2-engine.md). §9.5 Quick Session explicitly wants exactly one of each and does not
+ * call this — it keeps calling `selectWarmupCooldown` once.
+ */
+const WARMUP_COOLDOWN_GROUP_MAX = 4;
+
+export function selectWarmupCooldownGroup(
+  input: SelectWarmupCooldownInput & { targetSec: number },
+): Exercise[] {
+  const chosen: Exercise[] = [];
+  const usedIds = new Set<string>();
+  let totalSec = 0;
+  for (let i = 0; i < WARMUP_COOLDOWN_GROUP_MAX; i++) {
+    const pick = selectWarmupCooldown({ ...input, excludeIds: usedIds });
+    if (!pick) break;
+    const entrySec = prescribeWarmupCooldown(pick, input.role).estimatedSec;
+    // Stop once we've met the target, or once one more pick would badly overshoot it — but
+    // always take at least one (handled by the loop simply running once already).
+    if (totalSec > 0 && totalSec >= input.targetSec) break;
+    if (totalSec > 0 && totalSec + entrySec > input.targetSec * 1.4) break;
+    chosen.push(pick);
+    usedIds.add(pick.id);
+    totalSec += entrySec;
+  }
+  return chosen;
 }

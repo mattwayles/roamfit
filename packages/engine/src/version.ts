@@ -3,4 +3,4 @@
  * output of `generateSession` for the same inputs. Golden tests pin behavior at a version;
  * bump this alongside any golden-test fixture update.
  */
-export const ENGINE_VERSION = '2.0.0';
+export const ENGINE_VERSION = '2.1.0';
