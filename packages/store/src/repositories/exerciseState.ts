@@ -12,6 +12,7 @@ import type {
 } from '@roamfit/engine';
 import type { Db } from '../db';
 import { schema } from '../db';
+import { logSignalEvent } from './signals';
 
 const USER_ID = 'local';
 
@@ -236,8 +237,18 @@ export function incrementRemoveAtApprovalCount(db: Db, exerciseId: string, now: 
 }
 
 /** §8.2 — persists instantly, shown verbatim. `null` clears the note. */
-export function setPinnedNote(db: Db, exerciseId: string, note: string | null, now: string): void {
+/** §8.2 persists instantly; §8.3 "pinned note created or edited" is also an implicit signal —
+ *  logged here as `pinned_note_created` (no prior note) or `pinned_note_edited` (had one),
+ *  distinct from the note content itself (which lives verbatim on the row, shown every time). */
+export function setPinnedNote(
+  db: Db,
+  exerciseId: string,
+  note: string | null,
+  now: string,
+  localDate: string,
+): void {
   ensureRow(db, exerciseId, now);
+  const before = getExerciseState(db, exerciseId);
   db.update(schema.exerciseState)
     .set({ pinnedNote: note, updatedAt: now })
     .where(
@@ -247,6 +258,15 @@ export function setPinnedNote(db: Db, exerciseId: string, note: string | null, n
       ),
     )
     .run();
+  if (note !== null) {
+    logSignalEvent(db, {
+      sessionId: null,
+      type: before?.pinnedNote ? 'pinned_note_edited' : 'pinned_note_created',
+      payload: { exerciseId },
+      utcInstant: now,
+      localDate,
+    });
+  }
 }
 
 /** §5.2 REPEATEDLY-SKIPPED / §13.2 pain-report suppression. */

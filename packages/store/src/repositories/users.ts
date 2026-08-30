@@ -72,6 +72,7 @@ export interface UserPatch {
 }
 
 export function updateUser(db: Db, patch: UserPatch, now: string): void {
+  ensureUser(db, now); // idempotent — a settings update before the user row exists must not no-op
   const values: Record<string, unknown> = { updatedAt: now };
   if (patch.units !== undefined) values.units = patch.units;
   if (patch.weeklyTarget !== undefined) values.weeklyTarget = patch.weeklyTarget;

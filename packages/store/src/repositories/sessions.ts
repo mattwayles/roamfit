@@ -411,6 +411,32 @@ export function removeEntryAtApproval(db: Db, entryId: string, now: string): voi
   });
 }
 
+/** §8.3 — "sets added or deleted at approval." An entry is still `entryStatus: 'planned'` at
+ *  this point (nothing has run yet), so adjusting `sets` here edits the plan itself rather than
+ *  overwriting a record of what happened — the planned-vs-actual invariant is about execution
+ *  (`set_logs`), not about pre-active approval edits. The before/after is still preserved,
+ *  though: the signal event payload records the original count, so nothing is silently lost. */
+export function adjustSetsAtApproval(db: Db, entryId: string, newSets: number, now: string): void {
+  const entry = db
+    .select()
+    .from(schema.sessionEntries)
+    .where(eq(schema.sessionEntries.id, entryId))
+    .all()[0];
+  if (!entry || newSets === entry.sets) return;
+  const type = newSets > entry.sets ? 'set_added_at_approval' : 'set_deleted_at_approval';
+  db.update(schema.sessionEntries)
+    .set({ sets: newSets })
+    .where(eq(schema.sessionEntries.id, entryId))
+    .run();
+  logSignalEvent(db, {
+    sessionId: entry.sessionId,
+    type,
+    payload: { entryId, exerciseId: entry.exerciseId, fromSets: entry.sets, toSets: newSets },
+    utcInstant: now,
+    localDate: getSession(db, entry.sessionId)?.localDate ?? now.slice(0, 10),
+  });
+}
+
 export function recordRegenerateTap(db: Db, sessionId: string, now: string): void {
   const session = getSession(db, sessionId);
   db.update(schema.sessions)
