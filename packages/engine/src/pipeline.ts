@@ -234,11 +234,20 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     resolution: g.resolution,
   }));
 
+  // §5.8's own example names exactly one novel exercise ("New today: Copenhagen plank") —
+  // novelty is meant to flag the one new thing in an otherwise-familiar session, not to
+  // enumerate every exercise when the whole session is new (a brand-new user's first few
+  // sessions, where the calibration notice already covers "this is all new"). Cap the callout
+  // and suppress it entirely when nearly everything is novel.
+  const NOVELTY_DISPLAY_CAP = 2;
+  const mostlyNovel = fit.main.length > 0 && noveltyNames.size >= fit.main.length * 0.75;
+  const displayNoveltyNames = mostlyNovel ? [] : [...noveltyNames].slice(0, NOVELTY_DISPLAY_CAP);
+
   const explanation = composeExplanation({
     recoveryMuscleLabel,
     levelUps,
     masteryPrChecks: [], // surfaced by Wave 3 at session completion, not generation (§6.7)
-    noveltyExerciseNames: [...noveltyNames],
+    noveltyExerciseNames: displayNoveltyNames,
     substitutions,
     patternGaps: patternGapFacts,
     comebackNotice: comeback.notice ?? undefined,
