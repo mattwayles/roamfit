@@ -4,6 +4,7 @@ const tseslint = require('@typescript-eslint/eslint-plugin');
 const tsParser = require('@typescript-eslint/parser');
 const prettierConfig = require('eslint-config-prettier');
 const prettierPlugin = require('eslint-plugin-prettier');
+const globals = require('globals');
 
 module.exports = [
   {
@@ -26,6 +27,9 @@ module.exports = [
         sourceType: 'module',
         ecmaVersion: 'latest',
       },
+      globals: {
+        ...globals.node,
+      },
     },
     plugins: {
       '@typescript-eslint': tseslint,
@@ -38,15 +42,19 @@ module.exports = [
     },
   },
   {
+    files: ['**/*.test.ts', '**/*.test.tsx'],
+    languageOptions: {
+      globals: {
+        ...globals.jest,
+      },
+    },
+  },
+  {
     files: ['**/*.js'],
     languageOptions: {
       sourceType: 'commonjs',
       globals: {
-        require: 'readonly',
-        module: 'writable',
-        process: 'readonly',
-        __dirname: 'readonly',
-        console: 'readonly',
+        ...globals.node,
       },
     },
   },
