@@ -225,18 +225,39 @@ successfully against a live Metro bundler (`expo start --dev-client --port 8082`
 new native modules link and the app boots with no red screen. Home screen renders correctly on
 device with the new deps present (screenshot in progress — see Next for what's still owed).
 
-### Next (ordered)
-1. Finish the `expo run:ios` evidence pass: screenshot Home -> Generate -> Approval (confirm
-   add-exercise/rep-target editing renders) -> Workout (confirm Swap sheet opens, timed exercise
-   get-ready/pause/end-early render) -> rest timer -> Summary, into `docs/handoff/evidence/`. Real
-   taps via `osascript`/System Events on the Simulator window DO work in this environment (unlike
-   the prior STATUS file's finding — accessibility permission is granted here), confirmed by one
-   successful tap from Home into Generate; precise coordinate calibration for further taps
-   (window offset + point/pixel scale factor) was still being worked out when this update was
-   written — a next agent should nail that down (it's a fixed linear transform, not per-screen)
-   rather than re-derive it from scratch. Audio/haptics/background-notification firing is NOT
-   visually confirmable via screenshot even with perfect taps — flag that honestly as still
-   Jest-only evidence, same as documented throughout this file.
+### `expo run:ios` evidence — what's real device-verified vs. still Jest-only
+- [x] `pod install` picked up the three new native deps (ExpoAudio 57.0.4, ExpoHaptics 57.0.2,
+  ExpoNotifications 57.0.15) cleanly, 101 pods.
+- [x] `expo run:ios --device "iPhone 17 Pro"` — **Build Succeeded**, installed, and launched
+  against a live Metro (`expo start --dev-client --port 8082`) with **no red screen** — the app
+  boots correctly with the new native modules linked.
+  `docs/handoff/evidence/04-home-screen-post-audio-deps.png` — Home screen rendering correctly.
+- [x] **A real tap actually worked in this environment**, unlike the prior STATUS file's finding
+  (no accessibility permission) — `osascript`/System Events IS permitted here.
+  `docs/handoff/evidence/05-real-tap-home-to-generate.png` — tapping the "Generate a session"
+  card for real navigated to the Generate screen, pre-filled with the smart-default pickers
+  (30 min / all anchors / full / normal) exactly as §10.2 specifies. This is new: no prior wave-4
+  session got a real device tap to register.
+- [ ] **Could not get further than that one tap.** Coordinate calibration (Simulator window
+  offset + point-vs-pixel scale) turned out to be harder to pin down than expected — several
+  follow-up taps aimed at the Generate screen's own "Generate" button and its "hard" effort pill,
+  computed with the same formula that produced the one working tap, all landed on dead space
+  (screen unchanged, confirmed across 5 attempts with 3 different target elements including the
+  unambiguous back-chevron). I did not want to keep spending the remaining session budget on
+  trial-and-error coordinate guessing once it stopped being productive — recorded honestly rather
+  than papering over it with a screenshot sequence that implies more was verified than was.
+  **A future agent**: the one data point that worked was clicking at absolute screen coords
+  `(window_x + point_x, window_y + point_y)` where `point_x/y` are derived from a screenshot pixel
+  coordinate divided by the device's 3x scale factor — but a second, independent calibration
+  point is needed (e.g., deliberately tap two elements whose real point-coordinates can be
+  computed from the source `StyleSheet` values, not eyeballed from a screenshot) before trusting
+  the transform for a full walkthrough.
+- [ ] Approval/Workout/rest-timer/Summary screens, the swap sheet, timed-exercise pause/end-early,
+  and the approval add-exercise/rep-target editing are **NOT** re-verified on-device this pass —
+  only Jest-verified (see each issue's section above). Same for audio ducking, haptic feel, the
+  silent-switch behavior, and the background rest-timer notification actually appearing while
+  backgrounded/locked — **none of this is screenshot-verifiable even with working taps**, and
+  remains explicitly Jest-only evidence, consistent with every prior status update in this file.
 
 ### Decisions / gotchas
 - `packages/engine` was flagged as owned by a concurrent track (`2b-timefit-slots`) in the prior
