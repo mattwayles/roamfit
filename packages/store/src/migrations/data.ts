@@ -243,10 +243,21 @@ CREATE INDEX ix_session_muscle_volume_session ON session_muscle_volume(session_i
 CREATE INDEX ix_session_muscle_volume_local_date ON session_muscle_volume(local_date);
 `;
 
+const MIGRATION_0003_LIFETIME_TOTAL_MINUTES = `-- 0003_lifetime_total_minutes.sql — §14.1.8 lifetime counters need a running lifetime total of
+-- actual session minutes. Everything else that column needs (session count, cities, countries,
+-- levels gained, best sets) is already derivable from existing rolled-up/milestone data without a
+-- new column; total minutes was the one true gap, so this is the smallest schema change that
+-- closes it, added incrementally in \`recordSessionCompletion\` rather than summed from full
+-- history on every dashboard read (§11.3).
+
+ALTER TABLE rolled_up_stats ADD COLUMN lifetime_total_minutes REAL NOT NULL DEFAULT 0;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
 export const MIGRATIONS: MigrationFile[] = [
   { id: '0001_init.sql', sql: MIGRATION_0001_INIT },
   { id: '0002_muscle_volume.sql', sql: MIGRATION_0002_MUSCLE_VOLUME },
+  { id: '0003_lifetime_total_minutes.sql', sql: MIGRATION_0003_LIFETIME_TOTAL_MINUTES },
 ];

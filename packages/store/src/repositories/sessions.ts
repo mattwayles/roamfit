@@ -812,3 +812,34 @@ export function getHistoryForGeneration(db: Db, limit = 90): SessionHistoryRecor
     };
   });
 }
+
+/** §14.1.5/§14.1.6/§9.6 — a light projection of completed sessions for the calendar heatmap and
+ *  passport, neither of which need the full entry/set-log tree `getHistoryForGeneration` builds.
+ *  Sorted newest-first, capped at `limit` (the calendar/passport are both bounded-window UI —
+ *  a year of daily sessions is already generous for what either can usefully show). */
+export interface DashboardSessionSummary {
+  localDate: string;
+  actualMinutes: number | null;
+  estimatedMinutes: number;
+  /** §9.6 — strings only, never coordinates (invariant 8's passport-adjacent sibling rule).
+   *  Null until the §11.3 `passport_geocode` deferred-work queue resolves (or if the user never
+   *  opted in). */
+  city: string | null;
+  country: string | null;
+}
+
+export function getCompletedSessionsForDashboard(db: Db, limit = 365): DashboardSessionSummary[] {
+  return db
+    .select({
+      localDate: schema.sessions.localDate,
+      actualMinutes: schema.sessions.actualMinutes,
+      estimatedMinutes: schema.sessions.estimatedMinutes,
+      city: schema.sessions.city,
+      country: schema.sessions.country,
+    })
+    .from(schema.sessions)
+    .where(and(eq(schema.sessions.userId, USER_ID), eq(schema.sessions.status, 'completed')))
+    .orderBy(desc(schema.sessions.localDate))
+    .limit(limit)
+    .all();
+}

@@ -345,6 +345,9 @@ export const milestones = sqliteTable('milestones', {
 export const rolledUpStats = sqliteTable('rolled_up_stats', {
   userId: text('user_id').primaryKey().default('local'),
   lifetimeSessionCount: integer('lifetime_session_count').notNull().default(0),
+  /** §14.1.8 lifetime counters — running total of `actualMinutes` across every completed session
+   *  (migration 0003). REAL, not INTEGER: `actualMinutes` itself is fractional. */
+  lifetimeTotalMinutes: real('lifetime_total_minutes').notNull().default(0),
   /** §9.1 rolling 7-day window count, evaluated against weekly_target. Recomputed cheaply at
    *  read/write time from `rolling7dLocalDates` rather than re-scanning `sessions`. */
   rolling7dLocalDates: text('rolling_7d_local_dates').notNull().default('[]'),

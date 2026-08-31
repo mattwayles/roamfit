@@ -7,11 +7,17 @@ import { calibrationStartLevel, defaultMicroForExercise } from '@roamfit/engine'
 import type { ProgressionState } from '@roamfit/engine';
 import type { ProgressionFamilyId } from '@roamfit/data';
 import {
+  buildCalendarDays,
+  buildLifetimeCounters,
   buildMuscleBalanceRows,
+  buildPassportSummary,
   buildProgressionBoard,
   nextUnlockHero,
   overWorkedMuscles,
 } from './dashboard';
+import type { sessionsRepo } from '@roamfit/store';
+
+type DashboardSessionSummary = sessionsRepo.DashboardSessionSummary;
 
 function seedAllFamilies(): Record<ProgressionFamilyId, ProgressionState> {
   const out = {} as Record<ProgressionFamilyId, ProgressionState>;
@@ -110,5 +116,82 @@ describe('§14.1.7 muscle balance', () => {
 
   it('an empty ledger (zero sessions) produces an empty row list, not an error', () => {
     expect(buildMuscleBalanceRows({})).toEqual([]);
+  });
+});
+
+function summary(
+  localDate: string,
+  opts: Partial<DashboardSessionSummary> = {},
+): DashboardSessionSummary {
+  return {
+    localDate,
+    actualMinutes: 30,
+    estimatedMinutes: 30,
+    city: null,
+    country: null,
+    ...opts,
+  };
+}
+
+describe('§9.6 Passport — strings only, deduplicated, accumulating', () => {
+  it('counts distinct cities/countries and sessions abroad, ignoring unresolved pins', () => {
+    const passport = buildPassportSummary([
+      summary('2026-05-01', { city: 'Lisbon', country: 'Portugal' }),
+      summary('2026-05-08', { city: 'Lisbon', country: 'Portugal' }), // same city again
+      summary('2026-05-15', { city: 'Porto', country: 'Portugal' }),
+      summary('2026-05-22'), // no pin yet (offline completion still queued)
+    ]);
+    expect(passport.cities.sort()).toEqual(['Lisbon', 'Porto']);
+    expect(passport.countries).toEqual(['Portugal']);
+    expect(passport.sessionsAbroad).toBe(3);
+  });
+
+  it('an empty session list is an empty (not error) passport — v1 cold start', () => {
+    const passport = buildPassportSummary([]);
+    expect(passport.cities).toEqual([]);
+    expect(passport.countries).toEqual([]);
+    expect(passport.sessionsAbroad).toBe(0);
+  });
+});
+
+describe('§14.1.6 calendar heatmap — untrained days are present and neutral, never omitted', () => {
+  it('produces one entry per day in the trailing window, with null minutes on untrained days', () => {
+    const days = buildCalendarDays([summary('2026-05-03', { actualMinutes: 42 })], '2026-05-05', 5);
+    expect(days.length).toBe(5);
+    expect(days.map((d) => d.localDate)).toEqual([
+      '2026-05-01',
+      '2026-05-02',
+      '2026-05-03',
+      '2026-05-04',
+      '2026-05-05',
+    ]);
+    expect(days.find((d) => d.localDate === '2026-05-03')!.minutes).toBe(42);
+    expect(days.find((d) => d.localDate === '2026-05-01')!.minutes).toBeNull();
+  });
+
+  it('falls back to estimatedMinutes when actualMinutes is null (an abandoned-but-logged edge case)', () => {
+    const days = buildCalendarDays(
+      [summary('2026-05-05', { actualMinutes: null, estimatedMinutes: 20 })],
+      '2026-05-05',
+      1,
+    );
+    expect(days[0].minutes).toBe(20);
+  });
+});
+
+describe('§14.1.8 lifetime counters — monotonic, permanent', () => {
+  it('assembles every counter from already-fetched inputs with no re-derivation', () => {
+    const passport = buildPassportSummary([
+      summary('2026-05-01', { city: 'Lisbon', country: 'Portugal' }),
+    ]);
+    const counters = buildLifetimeCounters(12, 359.6, passport, 4, 7);
+    expect(counters).toEqual({
+      sessions: 12,
+      totalMinutes: 360,
+      cities: 1,
+      countries: 1,
+      levelsGained: 4,
+      bestSets: 7,
+    });
   });
 });

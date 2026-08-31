@@ -14,6 +14,9 @@ import {
 } from '@roamfit/engine';
 import type { ProgressionState } from '@roamfit/engine';
 import type { ExerciseLibrary, FamilyLibrary, ProgressionFamilyId } from '@roamfit/data';
+import type { sessionsRepo } from '@roamfit/store';
+
+type DashboardSessionSummary = sessionsRepo.DashboardSessionSummary;
 
 export interface FamilyBoardEntry {
   familyId: ProgressionFamilyId;
@@ -120,4 +123,86 @@ export function buildMuscleBalanceRows(
   return Object.entries(hardSetsByMuscle14d)
     .map(([muscle, hardSets]) => ({ muscle, hardSets, overWorked: overWorked.has(muscle) }))
     .sort((a, b) => b.hardSets - a.hardSets);
+}
+
+export interface PassportSummary {
+  cities: string[];
+  countries: string[];
+  sessionsAbroad: number;
+}
+
+/** §9.6 Passport — city/country **strings only**, deduplicated, counted. `sessionsAbroad` is
+ *  simply "sessions with a city pinned" (v1 has no notion of a fixed "home" city to compare
+ *  against — every pin is itself a positive, accumulating record, never a judgment about which
+ *  ones "count"). */
+export function buildPassportSummary(sessions: DashboardSessionSummary[]): PassportSummary {
+  const cities = new Set<string>();
+  const countries = new Set<string>();
+  let sessionsAbroad = 0;
+  for (const s of sessions) {
+    if (s.city) {
+      cities.add(s.city);
+      sessionsAbroad += 1;
+    }
+    if (s.country) countries.add(s.country);
+  }
+  return { cities: [...cities], countries: [...countries], sessionsAbroad };
+}
+
+export interface CalendarDay {
+  localDate: string;
+  /** null = untrained (neutral, never red/empty per §14.1.6/§1.1). */
+  minutes: number | null;
+}
+
+/** §14.1.6 calendar heatmap — the trailing `days`-day window ending today, one entry per
+ *  calendar day (including untrained ones, so the caller can render them neutrally rather than
+ *  simply omitting them, which would look like a gap). */
+export function buildCalendarDays(
+  sessions: DashboardSessionSummary[],
+  today: string,
+  days: number,
+): CalendarDay[] {
+  const byDate = new Map<string, number>();
+  for (const s of sessions) {
+    const minutes = s.actualMinutes ?? s.estimatedMinutes;
+    byDate.set(s.localDate, (byDate.get(s.localDate) ?? 0) + minutes);
+  }
+  const [y, m, d] = today.split('-').map(Number);
+  const out: CalendarDay[] = [];
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const date = new Date(Date.UTC(y, m - 1, d - i));
+    const localDate = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+    out.push({ localDate, minutes: byDate.get(localDate) ?? null });
+  }
+  return out;
+}
+
+export interface LifetimeCounters {
+  sessions: number;
+  totalMinutes: number;
+  cities: number;
+  countries: number;
+  levelsGained: number;
+  bestSets: number;
+}
+
+/** §14.1.8 — every field here is monotonic and permanent, per the wave's governing rule. Takes
+ *  already-fetched milestone-type counts and the passport summary rather than re-deriving them,
+ *  so this stays a pure composition step over data the caller already has in hand. */
+export function buildLifetimeCounters(
+  lifetimeSessionCount: number,
+  lifetimeTotalMinutes: number,
+  passport: PassportSummary,
+  levelUpMilestoneCount: number,
+  bestSetMilestoneCount: number,
+): LifetimeCounters {
+  return {
+    sessions: lifetimeSessionCount,
+    totalMinutes: Math.round(lifetimeTotalMinutes),
+    cities: passport.cities.length,
+    countries: passport.countries.length,
+    levelsGained: levelUpMilestoneCount,
+    bestSets: bestSetMilestoneCount,
+  };
 }

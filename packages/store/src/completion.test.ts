@@ -2,6 +2,7 @@ import { createTestDb } from './testHarness';
 import { generate } from './generation';
 import {
   createPendingSession,
+  getCompletedSessionsForDashboard,
   getPendingSession,
   logSet,
   startSession,
@@ -146,6 +147,28 @@ describe('§9.9 Recovery Week — same code path as §9.4 comeback', () => {
       // none of them silently reset to null.
       const after = getAllProgressionStates(db);
       expect(Object.keys(after).length).toBe(Object.keys(before).length);
+    } finally {
+      close();
+    }
+  });
+});
+
+describe('§14.1.8/§14.1.6 lifetimeTotalMinutes + getCompletedSessionsForDashboard', () => {
+  it('accumulates actualMinutes across sessions and is readable via the dashboard projection', () => {
+    const { db, close } = createTestDb();
+    try {
+      runSession(db, '2026-05-01', 1, 1);
+      runSession(db, '2026-05-03', 2, 1);
+      const stats = getStats(db)!;
+      expect(stats.lifetimeTotalMinutes).toBeGreaterThan(0);
+
+      const sessions = getCompletedSessionsForDashboard(db);
+      expect(sessions.length).toBe(2);
+      // Newest first.
+      expect(sessions[0].localDate).toBe('2026-05-03');
+      expect(sessions[0].actualMinutes).not.toBeNull();
+      const total = sessions.reduce((a, s) => a + (s.actualMinutes ?? 0), 0);
+      expect(total).toBeCloseTo(stats.lifetimeTotalMinutes, 5);
     } finally {
       close();
     }

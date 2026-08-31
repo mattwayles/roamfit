@@ -27,6 +27,7 @@ const TRAVEL_DENOMINATOR_FLOOR = 2;
 
 export interface RolledUpStatsRecord {
   lifetimeSessionCount: number;
+  lifetimeTotalMinutes: number;
   rolling7dLocalDates: string[];
   weekStreak: number;
   travelDaysThisWeek: number;
@@ -38,6 +39,7 @@ export interface RolledUpStatsRecord {
 function rowToStats(row: typeof schema.rolledUpStats.$inferSelect): RolledUpStatsRecord {
   return {
     lifetimeSessionCount: row.lifetimeSessionCount,
+    lifetimeTotalMinutes: row.lifetimeTotalMinutes,
     rolling7dLocalDates: JSON.parse(row.rolling7dLocalDates),
     weekStreak: row.weekStreak,
     travelDaysThisWeek: row.travelDaysThisWeek,
@@ -190,6 +192,7 @@ export function recordSessionCompletion(
   db.update(schema.rolledUpStats)
     .set({
       lifetimeSessionCount: stats.lifetimeSessionCount + 1,
+      lifetimeTotalMinutes: stats.lifetimeTotalMinutes + input.actualMinutes,
       rolling7dLocalDates: JSON.stringify(rolling),
       weekStreak,
       lastSessionLocalDate: input.localDate,

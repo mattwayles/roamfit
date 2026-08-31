@@ -38,9 +38,23 @@ import type { ProgressionState } from '@roamfit/engine';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
-import { buildProgressionBoard, nextUnlockHero, type FamilyBoardEntry } from '../lib/dashboard';
+import {
+  buildCalendarDays,
+  buildLifetimeCounters,
+  buildMuscleBalanceRows,
+  buildPassportSummary,
+  buildProgressionBoard,
+  nextUnlockHero,
+  type CalendarDay,
+  type FamilyBoardEntry,
+  type LifetimeCounters,
+  type MuscleBalanceRow,
+  type PassportSummary,
+} from '../lib/dashboard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+
+const CALENDAR_WINDOW_DAYS = 28;
 
 interface HomeData {
   pending: sessionsRepo.SessionRecord | null;
@@ -49,7 +63,10 @@ interface HomeData {
   board: FamilyBoardEntry[];
   comebackTier: 'none' | 'week' | 'reset';
   recentTzChangeToday: boolean;
-  lifetimeMilestoneCount: number;
+  passport: PassportSummary;
+  calendarDays: CalendarDay[];
+  muscleBalance: MuscleBalanceRow[];
+  lifetimeCounters: LifetimeCounters;
 }
 
 function weekDots(hit: number, denominator: number): string {
@@ -86,6 +103,20 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     const tzChangeEvents = signalsRepo.getSignalEventsByType(db, 'tz_change');
     const latestTzChange = tzChangeEvents[tzChangeEvents.length - 1];
     const recentTzChangeToday = latestTzChange?.localDate === clock.today;
+
+    const completedSessions = sessionsRepo.getCompletedSessionsForDashboard(db);
+    const passport = buildPassportSummary(completedSessions);
+    const calendarDays = buildCalendarDays(completedSessions, clock.today, CALENDAR_WINDOW_DAYS);
+    const muscleBalance = buildMuscleBalanceRows(statsRepo.hardSetsByMuscle14d(db, clock.today));
+    const milestones = milestonesRepo.getAllMilestones(db);
+    const lifetimeCounters = buildLifetimeCounters(
+      stats.lifetimeSessionCount,
+      stats.lifetimeTotalMinutes,
+      passport,
+      milestones.filter((m) => m.type === 'level_up').length,
+      milestones.filter((m) => m.type === 'best_set_pr').length,
+    );
+
     setData({
       pending: sessionsRepo.getPendingSession(db),
       stats,
@@ -93,7 +124,10 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       board,
       comebackTier,
       recentTzChangeToday,
-      lifetimeMilestoneCount: milestonesRepo.getAllMilestones(db).length,
+      passport,
+      calendarDays,
+      muscleBalance,
+      lifetimeCounters,
     });
   }, [db, library, families]);
 
@@ -151,7 +185,17 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     );
   }
 
-  const { pending, stats, user, board, comebackTier } = data;
+  const {
+    pending,
+    stats,
+    user,
+    board,
+    comebackTier,
+    passport,
+    calendarDays,
+    muscleBalance,
+    lifetimeCounters,
+  } = data;
   const rolling = statsRepo.rollingSessionCount(stats, nowEngineClock().today);
   const denominator = statsRepo.effectiveWeeklyDenominator(
     user.weeklyTarget,
@@ -319,7 +363,120 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           </View>
         ))}
       </View>
+
+      {/* §9.6 Passport — opt-in, strings only, appears once there's something to pin (§14.2). */}
+      {user.passportEnabled && passport.cities.length > 0 ? (
+        <View testID="passport-section" style={styles.passportCard}>
+          <Text style={styles.sectionLabel}>Passport</Text>
+          <Text style={styles.passportHeadline}>
+            You&apos;ve trained in {passport.cities.length}{' '}
+            {passport.cities.length === 1 ? 'city' : 'cities'} and {passport.countries.length}{' '}
+            {passport.countries.length === 1 ? 'country' : 'countries'}
+          </Text>
+          <Text style={styles.passportSubtitle}>
+            {passport.sessionsAbroad} {passport.sessionsAbroad === 1 ? 'session' : 'sessions'}{' '}
+            abroad · {passport.cities.slice(0, 6).join(' · ')}
+            {passport.cities.length > 6 ? '…' : ''}
+          </Text>
+        </View>
+      ) : (
+        !user.passportEnabled &&
+        stats.lifetimeSessionCount > 0 && (
+          <Pressable
+            testID="passport-opt-in"
+            style={styles.passportOptIn}
+            onPress={() => {
+              usersRepo.updateUser(db, { passportEnabled: true }, nowUtcInstant());
+              load();
+            }}
+          >
+            <Text style={styles.passportOptInText}>
+              Turn on Passport to pin the cities you train in
+            </Text>
+          </Pressable>
+        )
+      )}
+
+      {/* §14.1.6 calendar heatmap — untrained days are neutral squares, never omitted or red. */}
+      {stats.lifetimeSessionCount > 0 && (
+        <View testID="calendar-heatmap">
+          <Text style={styles.sectionLabel}>Last {CALENDAR_WINDOW_DAYS} days</Text>
+          <View style={styles.calendarGrid}>
+            {calendarDays.map((day) => (
+              <View
+                key={day.localDate}
+                testID={`calendar-day-${day.localDate}`}
+                style={[
+                  styles.calendarCell,
+                  day.minutes === null
+                    ? styles.calendarCellUntrained
+                    : day.minutes >= 30
+                      ? styles.calendarCellLong
+                      : styles.calendarCellShort,
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* §14.1.7 muscle balance — the hero volume metric, hard sets per muscle, trailing 14 days.
+          OVER-WORKED is informational only, styled identically to every other row (§1.1). */}
+      {muscleBalance.length > 0 && (
+        <View testID="muscle-balance">
+          <Text style={styles.sectionLabel}>Muscle balance · trailing 14 days</Text>
+          {muscleBalance.map((row) => {
+            const maxSets = muscleBalance[0].hardSets || 1;
+            return (
+              <View key={row.muscle} style={styles.muscleRow} testID={`muscle-row-${row.muscle}`}>
+                <Text style={styles.muscleLabel}>{row.muscle}</Text>
+                <View style={styles.muscleBarTrack}>
+                  <View
+                    style={[
+                      styles.muscleBarFill,
+                      { width: `${Math.min(100, (row.hardSets / maxSets) * 100)}%` },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.muscleSets}>
+                  {row.hardSets}
+                  {row.overWorked ? ' · over-worked' : ''}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {/* §14.1.8 lifetime counters — monotonic, permanent. */}
+      {stats.lifetimeSessionCount > 0 && (
+        <View testID="lifetime-counters" style={styles.countersGrid}>
+          <Counter label="Sessions" value={lifetimeCounters.sessions} />
+          <Counter label="Minutes" value={lifetimeCounters.totalMinutes} />
+          <Counter label="Cities" value={lifetimeCounters.cities} />
+          <Counter label="Countries" value={lifetimeCounters.countries} />
+          <Counter label="Levels gained" value={lifetimeCounters.levelsGained} />
+          <Counter label="Best sets" value={lifetimeCounters.bestSets} />
+        </View>
+      )}
+
+      {/* §14.1.9 estimate-accuracy trust-builder — small, quiet. */}
+      {stats.estimateAccuracyEma !== null && (
+        <Text testID="estimate-accuracy" style={styles.estimateAccuracyText}>
+          Your sessions finish within {Math.round(stats.estimateAccuracyEma * 100)}% of the
+          estimate.
+        </Text>
+      )}
     </ScrollView>
+  );
+}
+
+function Counter({ label, value }: { label: string; value: number }): React.JSX.Element {
+  return (
+    <View style={styles.counterCell}>
+      <Text style={styles.counterValue}>{value}</Text>
+      <Text style={styles.counterLabel}>{label}</Text>
+    </View>
   );
 }
 
@@ -419,4 +576,39 @@ const styles = StyleSheet.create({
   masteryBadgeText: { fontSize: 11, fontWeight: '700', color: '#713f12' },
   boardExerciseName: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
   boardUnlockLine: { fontSize: 12, color: '#64748b' },
+  passportCard: {
+    backgroundColor: '#f0fdf4',
+    borderRadius: 16,
+    padding: 16,
+    gap: 4,
+  },
+  passportHeadline: { fontSize: 16, fontWeight: '700', color: '#14532d' },
+  passportSubtitle: { fontSize: 12, color: '#166534' },
+  passportOptIn: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 14,
+  },
+  passportOptInText: { fontSize: 13, fontWeight: '600', color: '#334155' },
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
+  calendarCell: { width: 16, height: 16, borderRadius: 4 },
+  calendarCellUntrained: { backgroundColor: '#e2e8f0' },
+  calendarCellShort: { backgroundColor: '#86efac' },
+  calendarCellLong: { backgroundColor: '#16a34a' },
+  muscleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  muscleLabel: { width: 90, fontSize: 12, color: '#334155', fontWeight: '600' },
+  muscleBarTrack: {
+    flex: 1,
+    height: 10,
+    borderRadius: 6,
+    backgroundColor: '#e2e8f0',
+    overflow: 'hidden',
+  },
+  muscleBarFill: { height: '100%', backgroundColor: '#6366f1', borderRadius: 6 },
+  muscleSets: { width: 90, fontSize: 11, color: '#64748b', textAlign: 'right' },
+  countersGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
+  counterCell: { width: '30%', gap: 2 },
+  counterValue: { fontSize: 20, fontWeight: '800', color: '#0f172a' },
+  counterLabel: { fontSize: 11, color: '#64748b' },
+  estimateAccuracyText: { fontSize: 12, color: '#94a3b8', textAlign: 'center', marginTop: 4 },
 });
