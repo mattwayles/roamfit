@@ -39,13 +39,17 @@ const ALL_ANCHORS: Anchor[] = [
   'pullup-bar',
 ];
 
-export default function GenerateScreen({ navigation }: Props): React.JSX.Element {
+export default function GenerateScreen({ navigation, route }: Props): React.JSX.Element {
   const { db, library, families } = useStore();
   const [minutes, setMinutes] = useState(30);
   const [focus, setFocus] = useState<Focus>('full');
   const [effort, setEffort] = useState<Effort>('normal');
   const [anchors, setAnchors] = useState<Anchor[]>([]);
   const [generating, setGenerating] = useState(false);
+  // §9.9 — pre-filled by an accepted Recovery Week auto-suggestion (Home), or toggled manually
+  // here. Either way it's just a request flag until the user taps Generate — never applied
+  // silently, per the brief's "always available as a manual toggle" requirement.
+  const [recoveryWeek, setRecoveryWeek] = useState(route.params?.recoveryWeek ?? false);
 
   useEffect(() => {
     const user = usersRepo.ensureUser(db, nowUtcInstant());
@@ -75,6 +79,7 @@ export default function GenerateScreen({ navigation }: Props): React.JSX.Element
         clock,
         rng: createRng(seedFromString(utcInstant)),
         utcInstant,
+        recoveryWeek,
       });
       const sessionId = sessionsRepo.createPendingSession(db, {
         plan,
@@ -88,7 +93,7 @@ export default function GenerateScreen({ navigation }: Props): React.JSX.Element
     } finally {
       setGenerating(false);
     }
-  }, [db, library, families, focus, effort, minutes, navigation]);
+  }, [db, library, families, focus, effort, minutes, recoveryWeek, navigation]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -119,6 +124,17 @@ export default function GenerateScreen({ navigation }: Props): React.JSX.Element
           <Chip key={e} label={e} selected={e === effort} onPress={() => setEffort(e)} />
         ))}
       </View>
+
+      <Pressable
+        testID="recovery-week-toggle"
+        style={[styles.recoveryToggle, recoveryWeek && styles.recoveryToggleOn]}
+        onPress={() => setRecoveryWeek((v) => !v)}
+      >
+        <Text style={[styles.recoveryToggleText, recoveryWeek && styles.recoveryToggleTextOn]}>
+          {recoveryWeek ? 'Recovery week — on' : 'Make this a recovery week'}
+        </Text>
+        <Text style={styles.recoveryToggleSubtitle}>Lighter loads, same consistency.</Text>
+      </Pressable>
 
       <Pressable
         testID="generate-button"
@@ -171,6 +187,17 @@ const styles = StyleSheet.create({
   chipSelected: { backgroundColor: '#111' },
   chipText: { color: '#334155', fontWeight: '600' },
   chipTextSelected: { color: '#fff' },
+  recoveryToggle: {
+    marginTop: 16,
+    borderRadius: 14,
+    padding: 14,
+    backgroundColor: '#f1f5f9',
+    gap: 2,
+  },
+  recoveryToggleOn: { backgroundColor: '#e0f2fe' },
+  recoveryToggleText: { fontSize: 14, fontWeight: '700', color: '#334155' },
+  recoveryToggleTextOn: { color: '#0369a1' },
+  recoveryToggleSubtitle: { fontSize: 12, color: '#64748b' },
   generateButton: {
     marginTop: 24,
     backgroundColor: '#111',

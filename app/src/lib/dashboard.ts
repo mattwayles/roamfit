@@ -7,7 +7,6 @@
  */
 import {
   exerciseForLevel,
-  findFamily,
   isMaxLevel,
   levelOrdinal,
   microStepsToNextLevel,
@@ -114,7 +113,9 @@ export interface MuscleBalanceRow {
 
 /** Sorted descending by volume — the biggest bars first reads more like "here's what's been
  *  worked" than an alphabetical list, and is stable within a render (no re-sort mid-scroll). */
-export function buildMuscleBalanceRows(hardSetsByMuscle14d: Record<string, number>): MuscleBalanceRow[] {
+export function buildMuscleBalanceRows(
+  hardSetsByMuscle14d: Record<string, number>,
+): MuscleBalanceRow[] {
   const overWorked = overWorkedMuscles(hardSetsByMuscle14d);
   return Object.entries(hardSetsByMuscle14d)
     .map(([muscle, hardSets]) => ({ muscle, hardSets, overWorked: overWorked.has(muscle) }))
