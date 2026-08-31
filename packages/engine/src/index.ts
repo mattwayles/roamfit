@@ -36,7 +36,20 @@ export { COMEBACK_VOLUME_MULTIPLIER, COMEBACK_WEEK_GAP_DAYS } from './progressio
 // before any generation has ever run — the engine's own pipeline only ever *reads* an existing
 // ProgressionState, it never fabricates the first one.
 export { calibrationStartLevel } from './progression/ladder';
-export { defaultMicroForExercise } from './progression/micro';
+export { defaultMicroForExercise, microStepsToNextLevel } from './progression/micro';
+
+// Wave 5 wiring surface — §14.1.4 progression board / §6.4 Next Unlock. Read-only ladder lookups
+// the UI needs to render every family's level badge, mastery state, and next-unlock exercise
+// without re-deriving any of it by hand (invariant 2: the engine decides, the UI never guesses
+// at a level_id's position or which exercise sits at a level).
+export {
+  findFamily,
+  levelById,
+  exerciseForLevel,
+  isMaxLevel,
+  levelOrdinal,
+  nextLevel,
+} from './progression/ladder';
 
 // Wave 4b wiring surface — §10.6 mid-workout swap. `app/` calls this to get 3-5 same-slot,
 // same-level, filter-respecting alternatives; it must never rank/filter candidates itself.

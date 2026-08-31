@@ -1,5 +1,11 @@
 import { exerciseLibrary } from '@roamfit/data';
-import { defaultMicroForExercise, microAdvance, microRegress, isAtBottomMicroStep } from './micro';
+import {
+  defaultMicroForExercise,
+  microAdvance,
+  microRegress,
+  isAtBottomMicroStep,
+  microStepsToNextLevel,
+} from './micro';
 import type { ProgressionMicroState } from '../types';
 
 const library = exerciseLibrary.exercises;
@@ -97,5 +103,39 @@ describe('§6.2 micro-progression', () => {
     const timed = { ...bodyweightPush, metric: 'time' as const, default_seconds: 30 };
     const micro = defaultMicroForExercise(timed);
     expect(micro.repTarget).toBe(20); // PROGRESSION_TIME_LOW_SEC
+  });
+});
+
+describe('§6.4/§14.1.3 microStepsToNextLevel — Next Unlock substrate', () => {
+  it('counts down to exactly 1 the step before a level change fires', () => {
+    let micro = defaultMicroForExercise(bodyweightPush);
+    let remaining = microStepsToNextLevel(micro, bodyweightPush);
+    expect(remaining).not.toBeNull();
+    // Walk the real sequence and confirm the count decreases by exactly 1 each real advance,
+    // hitting 1 on the step immediately before levelChange fires.
+    for (let i = 0; i < (remaining as number) - 1; i += 1) {
+      const step = microAdvance(micro, bodyweightPush);
+      expect(step.levelChange).toBeNull();
+      micro = step.micro;
+      const nextRemaining = microStepsToNextLevel(micro, bodyweightPush);
+      expect(nextRemaining).toBe((remaining as number) - (i + 1));
+    }
+    expect(microStepsToNextLevel(micro, bodyweightPush)).toBe(1);
+    const finalStep = microAdvance(micro, bodyweightPush);
+    expect(finalStep.levelChange).toBe('up');
+  });
+
+  it('is smaller near the top of a level than at the very start of one (band exercise)', () => {
+    const start = defaultMicroForExercise(bandedPush);
+    const atStart = microStepsToNextLevel(start, bandedPush) as number;
+    const oneStepIn = microAdvance(start, bandedPush).micro;
+    const afterOneStep = microStepsToNextLevel(oneStepIn, bandedPush) as number;
+    expect(afterOneStep).toBe(atStart - 1);
+  });
+
+  it('never returns 0 or a negative count', () => {
+    const micro = defaultMicroForExercise(bodyweightPush);
+    const remaining = microStepsToNextLevel(micro, bodyweightPush);
+    expect(remaining).toBeGreaterThan(0);
   });
 });

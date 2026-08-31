@@ -142,3 +142,30 @@ export function isAtBottomMicroStep(micro: ProgressionMicroState, exercise: Exer
     micro.sets <= DEFAULT_SETS
   );
 }
+
+/**
+ * §6.4/§14.1.3 Next Unlock substrate — *"Push-ups: 2 sessions from archer push-ups."* A pure
+ * count of how many consecutive qualifying (all-sets-at-top, not `too_hard`) sessions it would
+ * take from `micro`'s current position to trigger a level change, simulated by repeatedly
+ * applying `microAdvance` until it reports `levelChange`. This is a best-case estimate (assumes
+ * every intervening session hits) — the honest, monotonic framing §14 asks for ("N sessions
+ * *from*", not a promise), not a prediction of elapsed calendar time.
+ *
+ * Returns `null` when there is no next level to count toward (already at the ladder's max — the
+ * caller should show the §6.7 Mastery treatment instead) or when a runaway simulation would
+ * otherwise be possible (belt-and-braces cap; no known exercise config gets remotely close).
+ */
+const NEXT_LEVEL_SIMULATION_STEP_CAP = 100;
+
+export function microStepsToNextLevel(
+  micro: ProgressionMicroState,
+  exercise: Exercise,
+): number | null {
+  let current = micro;
+  for (let steps = 1; steps <= NEXT_LEVEL_SIMULATION_STEP_CAP; steps += 1) {
+    const step = microAdvance(current, exercise);
+    if (step.levelChange === 'up') return steps;
+    current = step.micro;
+  }
+  return null;
+}
