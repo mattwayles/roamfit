@@ -287,6 +287,44 @@ function main() {
     if (cooldowns.length === 0) fail(`focus "${focus}": zero eligible cooldown exercises`);
   }
 
+  // ---- demo media: bundled figures (§11.4 tier 2, track 6a-figures) ----
+  const FIGURE_BUDGET_BYTES = 3 * 1024 * 1024;
+  const figuresPath = path.join(LIB_DIR, 'figures.json');
+  if (!fs.existsSync(figuresPath)) {
+    fail('packages/data/library/figures.json is missing — run tools/generate-figures.ts');
+  } else {
+    const figuresRaw = fs.readFileSync(figuresPath, 'utf8');
+    let figures: Record<string, string>;
+    try {
+      figures = JSON.parse(figuresRaw) as Record<string, string>;
+    } catch {
+      figures = {};
+      fail('figures.json is not valid JSON');
+    }
+    const exerciseIds = new Set(exercises.map((e) => e.id));
+    const figureIds = new Set(Object.keys(figures));
+    for (const id of exerciseIds) {
+      if (!figureIds.has(id))
+        fail(`${id}: no bundled figure (§11.4 offline coverage must be 100%)`);
+      else if (typeof figures[id] !== 'string' || !figures[id].includes('<svg')) {
+        fail(`${id}: figure entry is not an SVG string`);
+      }
+    }
+    for (const id of figureIds) {
+      if (!exerciseIds.has(id)) fail(`figures.json: "${id}" does not match any exercise id`);
+    }
+    const bytes = Buffer.byteLength(figuresRaw, 'utf8');
+    if (bytes > FIGURE_BUDGET_BYTES) {
+      fail(
+        `figures.json is ${(bytes / 1024 / 1024).toFixed(2)} MB, over the 3 MB bundled media budget (§11.4)`,
+      );
+    } else {
+      console.log(
+        `Figures: ${figureIds.size} bundled, ${(bytes / 1024).toFixed(1)} KB total (budget 3 MB).`,
+      );
+    }
+  }
+
   // ---- coverage report ----
   console.log('=== Coverage report ===');
   const countBy = <K extends string>(getKey: (e: Exercise) => K | K[]) => {
