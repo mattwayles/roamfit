@@ -27,6 +27,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useKeepAwake } from 'expo-keep-awake';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { exerciseStateRepo, progressionStateRepo, sessionsRepo } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
@@ -74,6 +75,12 @@ function levelBadge(
 }
 
 export default function WorkoutScreen({ navigation, route }: Props): React.JSX.Element {
+  // §10.8 — "Keep-awake for the whole active session; released on completion or abandonment."
+  // `useKeepAwake` activates on mount and deactivates automatically on unmount, which covers
+  // both cases: navigating to Summary on completion, or navigating away (Home/back) on
+  // abandonment both unmount this screen.
+  useKeepAwake();
+
   const { sessionId } = route.params;
   const { db, library, families } = useStore();
   const [session, setSession] = useState<SessionRecord | null>(null);
