@@ -37,3 +37,10 @@ export { defaultMicroForExercise } from './progression/micro';
 // same-level, filter-respecting alternatives; it must never rank/filter candidates itself.
 export { alternativesForSlot, buildSwapReplacementEntry } from './selection/swap';
 export type { SwapSlotRequest, SwapAlternative } from './selection/swap';
+
+// Wave 4b wiring surface — §10.3 approval-time "add exercise." The store has no prescription
+// logic of its own (invariant 2: "the engine decides"), so adding a user-picked exercise to a
+// plan still has to go through the engine's own accessory-prescription formula rather than have
+// `app/`/`packages/store` invent sets/reps/rest by hand.
+export { prescribeAccessory } from './prescription/prescribe';
+export type { PrescribeAccessoryInput } from './prescription/prescribe';

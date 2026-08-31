@@ -297,8 +297,10 @@ export const signalEvents = sqliteTable(
       enum: [
         'swap',
         'remove_at_approval',
+        'add_at_approval',
         'set_added_at_approval',
         'set_deleted_at_approval',
+        'rep_target_adjusted_at_approval',
         'regenerate',
         'demo_media_expanded',
         'pinned_note_created',

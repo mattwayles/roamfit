@@ -6,7 +6,10 @@
  */
 import { createTestDb } from './testHarness';
 import { generate } from './generation';
+import { prescribeAccessory } from '@roamfit/engine';
 import {
+  addEntryAtApproval,
+  adjustRepTargetAtApproval,
   adjustSetsAtApproval,
   createPendingSession,
   discardSession,
@@ -125,6 +128,77 @@ describe('§8.3 preference & aversion / comprehension signals', () => {
         fromSets: originalSets + 1,
         toSets: originalSets,
       });
+    } finally {
+      close();
+    }
+  });
+
+  it('rep target adjustment at approval is applied and logged with the original value', () => {
+    const { db, close } = createTestDb();
+    try {
+      const sessionId = makeSession(db);
+      const entry = getPendingSession(db)!
+        .entries.filter((e) => e.section === 'main')
+        .find((e) => e.repTarget != null)!;
+      const originalRepTarget = entry.repTarget!;
+
+      adjustRepTargetAtApproval(
+        db,
+        entry.id,
+        originalRepTarget + 3,
+        utcInstantFor('2026-03-01', 8, 25),
+      );
+      const after = getSession(db, sessionId)!.entries.find((e) => e.id === entry.id)!;
+      expect(after.repTarget).toBe(originalRepTarget + 3);
+
+      const events = getSignalEventsByType(db, 'rep_target_adjusted_at_approval');
+      expect(events).toHaveLength(1);
+      expect(events[0].payload).toMatchObject({
+        fromRepTarget: originalRepTarget,
+        toRepTarget: originalRepTarget + 3,
+      });
+    } finally {
+      close();
+    }
+  });
+
+  it('adding an exercise at approval persists the engine prescription verbatim and is logged', () => {
+    const { db, close } = createTestDb();
+    try {
+      const sessionId = makeSession(db);
+      const before = getPendingSession(db)!;
+      const mainCountBefore = before.entries.filter((e) => e.section === 'main').length;
+
+      const newExercise = library.exercises.find(
+        (e) => e.role === 'main' && !before.entries.some((entry) => entry.exerciseId === e.id),
+      )!;
+      const prescription = prescribeAccessory({
+        exercise: newExercise,
+        requestedEffort: 'normal',
+        recoveryTreatment: false,
+      });
+
+      const entryId = addEntryAtApproval(
+        db,
+        sessionId,
+        'main',
+        prescription,
+        utcInstantFor('2026-03-01', 8, 30),
+      );
+
+      const after = getSession(db, sessionId)!;
+      const added = after.entries.find((e) => e.id === entryId)!;
+      expect(added).toBeDefined();
+      expect(added.exerciseId).toBe(newExercise.id);
+      expect(added.unplanned).toBe(true);
+      expect(added.entryStatus).toBe('unplanned_added');
+      expect(added.sets).toBe(prescription.sets);
+      expect(added.repTarget ?? null).toBe(prescription.repTarget ?? null);
+      expect(after.entries.filter((e) => e.section === 'main')).toHaveLength(mainCountBefore + 1);
+
+      const events = getSignalEventsByType(db, 'add_at_approval');
+      expect(events).toHaveLength(1);
+      expect(events[0].payload).toMatchObject({ entryId, exerciseId: newExercise.id });
     } finally {
       close();
     }

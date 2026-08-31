@@ -437,6 +437,106 @@ export function adjustSetsAtApproval(db: Db, entryId: string, newSets: number, n
   });
 }
 
+/** §10.3 — "edit rep targets." Only meaningful for a rep-metric entry (`repTarget` non-null);
+ *  a timed entry's duration isn't an approval-time edit surface in this pass. Same
+ *  planned-vs-actual reasoning as `adjustSetsAtApproval`: the entry is still `'planned'`, so
+ *  this edits the plan itself, and the before/after is preserved in the signal payload rather
+ *  than only in the (now-overwritten) column. */
+export function adjustRepTargetAtApproval(
+  db: Db,
+  entryId: string,
+  newRepTarget: number,
+  now: string,
+): void {
+  const entry = db
+    .select()
+    .from(schema.sessionEntries)
+    .where(eq(schema.sessionEntries.id, entryId))
+    .all()[0];
+  if (!entry || entry.repTarget == null || newRepTarget === entry.repTarget) return;
+  db.update(schema.sessionEntries)
+    .set({ repTarget: newRepTarget })
+    .where(eq(schema.sessionEntries.id, entryId))
+    .run();
+  logSignalEvent(db, {
+    sessionId: entry.sessionId,
+    type: 'rep_target_adjusted_at_approval',
+    payload: {
+      entryId,
+      exerciseId: entry.exerciseId,
+      fromRepTarget: entry.repTarget,
+      toRepTarget: newRepTarget,
+    },
+    utcInstant: now,
+    localDate: getSession(db, entry.sessionId)?.localDate ?? now.slice(0, 10),
+  });
+}
+
+/**
+ * §10.3 — "add exercise" at approval. `prescription` is the engine's own output (`@roamfit/
+ * engine`'s `prescribeAccessory`, called by `app/`) — the store persists it verbatim, same rule
+ * as `recordSwap`'s replacement prescription (CLAUDE.md invariant 2: the engine decides).
+ * Appended at the end of its section (`orderIndex` = current max + 1) with `entryStatus:
+ * 'unplanned_added'`/`unplanned: true` so it's visibly distinct from the generated plan on
+ * completion review, per §4.7/§10.10's "nothing is silently indistinguishable from what the
+ * engine actually chose."
+ */
+export function addEntryAtApproval(
+  db: Db,
+  sessionId: string,
+  section: 'warmup' | 'main' | 'cooldown',
+  prescription: EngineSessionEntry,
+  now: string,
+): string {
+  const siblingOrderIndexes = db
+    .select()
+    .from(schema.sessionEntries)
+    .where(eq(schema.sessionEntries.sessionId, sessionId))
+    .all()
+    .map((e) => e.orderIndex);
+  const orderIndex = siblingOrderIndexes.length > 0 ? Math.max(...siblingOrderIndexes) + 1 : 0;
+
+  const id = newId();
+  db.insert(schema.sessionEntries)
+    .values({
+      id,
+      sessionId,
+      section,
+      orderIndex,
+      plannedExerciseId: prescription.exerciseId,
+      exerciseId: prescription.exerciseId,
+      role: prescription.role,
+      group: prescription.group ?? null,
+      band: prescription.band,
+      sets: prescription.sets,
+      repTarget: prescription.repTarget ?? null,
+      durationSec: prescription.durationSec ?? null,
+      restSec: prescription.restSec,
+      tempoSec: prescription.tempoSec,
+      notes: prescription.notes ?? null,
+      effort: prescription.effort,
+      progressionFamilyId: prescription.progressionFamilyId,
+      progressionLevelIdAtTime: prescription.progressionLevelIdAtTime,
+      pattern: prescription.pattern,
+      anchorClass: prescription.anchorClass,
+      unilateral: prescription.unilateral,
+      estimatedSec: prescription.estimatedSec,
+      substitutedFor: prescription.substitutedFor ?? null,
+      unplanned: true,
+      entryStatus: 'unplanned_added',
+    })
+    .run();
+
+  logSignalEvent(db, {
+    sessionId,
+    type: 'add_at_approval',
+    payload: { entryId: id, exerciseId: prescription.exerciseId, section },
+    utcInstant: now,
+    localDate: getSession(db, sessionId)?.localDate ?? now.slice(0, 10),
+  });
+  return id;
+}
+
 export function recordRegenerateTap(db: Db, sessionId: string, now: string): void {
   const session = getSession(db, sessionId);
   db.update(schema.sessions)
