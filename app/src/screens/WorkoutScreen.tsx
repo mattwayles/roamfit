@@ -221,6 +221,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     status: 'completed' | 'skipped',
     repsActual?: number,
     secondsActual?: number,
+    pauseInfo?: { pauseCount: number; pausedDurationSec: number },
   ) => {
     sessionsRepo.logSet(
       db,
@@ -235,6 +236,8 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         startedAt: setStartedAtRef.current,
         completedAt: nowUtcInstant(),
         restPrescribedSec: entry.restSec,
+        pauseCount: pauseInfo?.pauseCount,
+        pausedDurationSec: pauseInfo?.pausedDurationSec,
       },
       nowUtcInstant(),
     );
@@ -346,7 +349,9 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             entry={entry}
             exerciseName={exercise?.name ?? entry.exerciseId}
             setIndex={setIndex}
-            onComplete={(actualSeconds) => finishSetAndRest('completed', undefined, actualSeconds)}
+            onComplete={(actualSeconds, pauseInfo) =>
+              finishSetAndRest('completed', undefined, actualSeconds, pauseInfo)
+            }
             onSkip={() => finishSetAndRest('skipped')}
             onSwap={() => setSwapOpen(true)}
           />
@@ -463,6 +468,16 @@ function RepsExercise({
   );
 }
 
+/** §10.5 — "a short switch-side interval" between a unilateral exercise's two sequential
+ *  timers. Not spec'd as a specific number; 5s is enough to physically reposition without being
+ *  long enough to feel like a second rest. */
+const SWITCH_SIDE_SEC = 5;
+
+interface PauseInfo {
+  pauseCount: number;
+  pausedDurationSec: number;
+}
+
 function TimedExercise({
   entry,
   exerciseName,
@@ -474,58 +489,168 @@ function TimedExercise({
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
   setIndex: number;
-  onComplete: (actualSeconds: number) => void;
+  /** §10.5 — "actual seconds held are recorded," summed across both sides for unilateral work.
+   *  `pauseInfo` is the §8.3 pause signal (`set_logs.pause_count`/`paused_duration_sec`), also
+   *  summed across sides. */
+  onComplete: (actualSeconds: number, pauseInfo: PauseInfo) => void;
   onSkip: () => void;
   onSwap: () => void;
 }): React.JSX.Element {
   const durationMs = (entry.durationSec ?? 0) * 1000;
+  // §10.5 — "unilateral timed work runs two sequential timers with a short switch-side interval
+  // between them." `sideIndex` is 0 for the only side (bilateral) or the first side
+  // (unilateral), 1 for a unilateral exercise's second side.
+  const totalSides = entry.unilateral ? 2 : 1;
   const [started, setStarted] = useState(false);
+  // Mirrors of the phase, kept in React state purely so the component re-renders when the phase
+  // engine below (a single setInterval, not React effect-dependency-diffing) advances it — see
+  // that effect's own comment for why phase transitions are driven imperatively rather than via
+  // `useEffect` deps on another hook's returned snapshot values.
   const [getReadyMs, setGetReadyMs] = useState(3000);
-  const countdown = useCountdown(durationMs);
-  const getReadyCountdown = useCountdown(3000);
+  const [sideIndex, setSideIndex] = useState(0);
+  const [switching, setSwitching] = useState(false);
+  const [, forceTick] = useState(0);
+  // The phase-engine interval below is created once (see its own comment) and so closes over
+  // whatever `sideIndex`/`switching` were AT THAT MOMENT — a classic stale-closure trap for a
+  // long-lived `setInterval`. These refs are updated in lockstep with the state setters
+  // (`setSideIndexLive`/`setSwitchingLive`) so the interval's own callback always reads the
+  // current phase, while `sideIndex`/`switching` state still drives re-renders for the JSX below.
+  const sideIndexRef = useRef(0);
+  const switchingRef = useRef(false);
+  const setSideIndexLive = (v: number) => {
+    sideIndexRef.current = v;
+    setSideIndex(v);
+  };
+  const setSwitchingLive = (v: boolean) => {
+    switchingRef.current = v;
+    setSwitching(v);
+  };
 
-  // §10.5 audio+haptic cue bookkeeping — one ref per cue moment so each fires exactly once
-  // (or once per second, for the 3-2-1 counts) no matter how many times this effect re-runs.
+  const getReadyCountdown = useCountdown(3000);
+  // Both instantiated unconditionally (matches this file's existing pattern for get-ready) —
+  // `side2Countdown` simply never starts for a bilateral entry (`totalSides === 1`).
+  const side1Countdown = useCountdown(durationMs);
+  const side2Countdown = useCountdown(durationMs);
+  const switchCountdown = useCountdown(SWITCH_SIDE_SEC * 1000);
+  const activeCountdown = sideIndex === 0 ? side1Countdown : side2Countdown;
+
+  // Seconds already banked from a fully-completed prior side (only ever side 1, since there are
+  // at most two sides) — added to whatever the current/active side contributes.
+  const heldSecRef = useRef(0);
+  const completedRef = useRef(false); // guards onComplete firing more than once
+  // `CountdownController.isRunning()` is `running && !paused` (wallClockTimer.ts) — false while
+  // genuinely paused, not just before the first `.start()`. The phase engine below needs to tell
+  // "never started" apart from "paused" so it doesn't call `.start()` again on a paused side
+  // (which would silently un-pause AND reset it to full duration — a real bug this file used to
+  // have, caught by `WorkoutScreen.timedBilateral.test.tsx`'s pause/resume assertion going red).
+  const side1StartedRef = useRef(false);
+  const side2StartedRef = useRef(false);
+
+  // §10.5 audio+haptic cue bookkeeping — one ref per cue moment so each fires exactly once (or
+  // once per second, for the 3-2-1 counts) no matter how many times the phase engine below runs.
   // Fresh on every mount because this whole component remounts per set (`key={entry.id-setIndex}`
-  // on the parent), so a new set always gets its own clean cue state.
+  // on the parent). `lastOutCueSecondRef`/`startCueFiredRef` are explicitly reset on the
+  // side1->side2 transition so the second side's own start/count-out cues aren't suppressed by
+  // side 1's.
   const lastGetReadyCueSecondRef = useRef<number | null>(null);
   const startCueFiredRef = useRef(false);
-  const halfwayCueFiredRef = useRef(false);
+  const halfwayCueFiredPerSideRef = useRef<[boolean, boolean]>([false, false]);
   const lastOutCueSecondRef = useRef<number | null>(null);
   const completionCueFiredRef = useRef(false);
-
-  useEffect(() => {
-    if (!started) return;
-    const id = setInterval(() => {
-      setGetReadyMs(getReadyCountdown.controller.remainingMs());
-    }, 100);
-    return () => clearInterval(id);
-  }, [started]);
+  const switchCueFiredRef = useRef(false);
 
   const handleStart = () => {
     setStarted(true);
     getReadyCountdown.controller.start();
   };
 
+  /**
+   * §10.5's whole phase machine (get-ready -> side 1 -> [switch interval -> side 2] -> complete),
+   * driven by ONE 100ms poll that reads the underlying `.controller`s directly — not by chaining
+   * `useEffect`s off `useCountdown`'s returned `isComplete` snapshot. That chained-effects version
+   * (this file's first pass) had a real, reproducible bug under real timing pressure: an effect
+   * only re-runs when a render actually happens with a changed dependency, and re-renders were
+   * left entirely to each `useCountdown` hook's own independent 250ms `forceTick` interval and
+   * `getReadyMs`'s 100ms poll — under load (confirmed by running this suite alongside another
+   * real-timer-heavy suite, see `WorkoutScreen.timedUnilateral.test.tsx`), those render sources
+   * could apparently starve long enough that a side's `isComplete` flip was never observed by the
+   * effect that was supposed to react to it, and the exercise got stuck at 0 with no path forward
+   * — a real correctness bug, not just a slow test. Reading the controllers' live methods
+   * (`.controller.remainingMs()`/`.isComplete()`) directly inside this interval's own callback
+   * removes that dependency on React's render scheduling entirely: every 100ms this callback
+   * re-evaluates the actual current state and drives whatever transition follows, independent of
+   * whether/when React chose to re-render for some other reason.
+   */
   useEffect(() => {
-    if (started && getReadyMs <= 0 && !countdown.controller.isRunning() && !countdown.isComplete) {
-      countdown.controller.start();
-    }
-  }, [started, getReadyMs]);
+    if (!started) return;
+    const id = setInterval(() => {
+      const readyMs = getReadyCountdown.controller.remainingMs();
+      setGetReadyMs(readyMs);
+      if (readyMs > 0) {
+        forceTick((n) => n + 1);
+        return;
+      }
 
-  useEffect(() => {
-    if (started && getReadyMs <= 0 && countdown.isComplete) {
-      onComplete(entry.durationSec ?? 0);
-    }
-  }, [countdown.isComplete, started, getReadyMs]);
+      if (sideIndexRef.current === 0 && !switchingRef.current) {
+        if (!side1StartedRef.current) {
+          side1StartedRef.current = true;
+          side1Countdown.controller.start();
+        } else if (side1Countdown.controller.isComplete()) {
+          if (totalSides === 1) {
+            if (!completedRef.current) {
+              completedRef.current = true;
+              onComplete(entry.durationSec ?? 0, {
+                pauseCount: side1Countdown.controller.pauseCount(),
+                pausedDurationSec: Math.round(side1Countdown.controller.pausedDurationMs() / 1000),
+              });
+            }
+          } else {
+            heldSecRef.current = entry.durationSec ?? 0;
+            startCueFiredRef.current = false;
+            lastOutCueSecondRef.current = null;
+            switchCueFiredRef.current = false;
+            switchCountdown.controller.start();
+            setSwitchingLive(true);
+          }
+        }
+      } else if (switchingRef.current) {
+        if (switchCountdown.controller.isComplete()) {
+          setSwitchingLive(false);
+          setSideIndexLive(1);
+        }
+      } else if (sideIndexRef.current === 1) {
+        if (!side2StartedRef.current) {
+          side2StartedRef.current = true;
+          side2Countdown.controller.start();
+        } else if (side2Countdown.controller.isComplete() && !completedRef.current) {
+          completedRef.current = true;
+          onComplete(heldSecRef.current + (entry.durationSec ?? 0), {
+            pauseCount:
+              side1Countdown.controller.pauseCount() + side2Countdown.controller.pauseCount(),
+            pausedDurationSec: Math.round(
+              (side1Countdown.controller.pausedDurationMs() +
+                side2Countdown.controller.pausedDurationMs()) /
+                1000,
+            ),
+          });
+        }
+      }
+      forceTick((n) => n + 1);
+    }, 100);
+    return () => clearInterval(id);
+    // sideIndex/switching are read via closure but the interval itself is stable for the whole
+    // "started" lifetime; re-creating it on every phase change would risk losing a tick right at
+    // a transition boundary, which is exactly the class of bug this rewrite exists to remove.
+  }, [started]);
 
   const inGetReady = started && getReadyMs > 0;
-  const remainingSeconds = Math.ceil(countdown.remainingMs / 1000);
+  const remainingSeconds = Math.ceil(activeCountdown.remainingMs / 1000);
+  const switchRemainingSeconds = Math.ceil(switchCountdown.remainingMs / 1000);
 
   // §10.5 — "Audio: 3-2-1 count-in; a halfway chime on holds over 45s; 3-2-1 out; a distinct
   // completion tone. Haptics at start, halfway, and completion." Deliberately no deps array —
-  // this needs to re-check on every render (the same 100ms/250ms interval ticks that already
-  // drive the visible countdown), guarded entirely by the refs above so nothing double-fires.
+  // this needs to re-check on every render (the phase engine above forces one every 100ms while
+  // running), guarded entirely by the refs above so nothing double-fires.
   useEffect(() => {
     if (!started) return;
     if (inGetReady) {
@@ -540,6 +665,13 @@ function TimedExercise({
       }
       return;
     }
+    if (switching) {
+      if (!switchCueFiredRef.current) {
+        switchCueFiredRef.current = true;
+        cueHalfway(); // reuse the chime as a distinct "switch sides now" cue
+      }
+      return;
+    }
     if (!startCueFiredRef.current) {
       startCueFiredRef.current = true;
       cueStart();
@@ -547,10 +679,10 @@ function TimedExercise({
     const totalSec = entry.durationSec ?? 0;
     if (
       totalSec > 45 &&
-      !halfwayCueFiredRef.current &&
+      !halfwayCueFiredPerSideRef.current[sideIndex] &&
       remainingSeconds <= Math.floor(totalSec / 2)
     ) {
-      halfwayCueFiredRef.current = true;
+      halfwayCueFiredPerSideRef.current[sideIndex] = true;
       cueHalfway();
     }
     if (
@@ -561,38 +693,89 @@ function TimedExercise({
       lastOutCueSecondRef.current = remainingSeconds;
       cueCount(); // count-out
     }
-    if (countdown.isComplete && !completionCueFiredRef.current) {
+    if (
+      activeCountdown.controller.isComplete() &&
+      sideIndex === totalSides - 1 &&
+      !completionCueFiredRef.current
+    ) {
       completionCueFiredRef.current = true;
       cueCompletion();
     }
   });
 
-  const handleEndEarly = () => {
-    const held = (entry.durationSec ?? 0) - Math.floor(countdown.remainingMs / 1000);
-    onComplete(Math.max(0, held));
+  const handleTogglePause = () => {
+    if (!started || inGetReady || switching) return;
+    if (activeCountdown.controller.isPaused()) activeCountdown.controller.resume();
+    else activeCountdown.controller.pause();
   };
+
+  const handleEndEarly = () => {
+    const partialHeld = switching
+      ? 0
+      : Math.max(0, (entry.durationSec ?? 0) - Math.floor(activeCountdown.remainingMs / 1000));
+    completedRef.current = true;
+    onComplete(heldSecRef.current + partialHeld, {
+      pauseCount:
+        side1Countdown.controller.pauseCount() +
+        (totalSides === 2 ? side2Countdown.controller.pauseCount() : 0),
+      pausedDurationSec: Math.round(
+        (side1Countdown.controller.pausedDurationMs() +
+          (totalSides === 2 ? side2Countdown.controller.pausedDurationMs() : 0)) /
+          1000,
+      ),
+    });
+  };
+
+  const canPause = started && !inGetReady && !switching;
 
   return (
     <View style={styles.hero}>
       <Text style={styles.exerciseName}>{exerciseName}</Text>
       <Text style={styles.setOf}>
         Set {setIndex + 1} of {entry.sets}
+        {totalSides === 2 ? ` · Side ${sideIndex + 1} of 2` : ''}
       </Text>
 
       <View style={styles.circleTimer} testID="timed-circle">
-        <Text style={styles.circleTimerText}>
-          {!started ? 'Tap to start' : inGetReady ? Math.ceil(getReadyMs / 1000) : remainingSeconds}
+        <Text style={styles.circleTimerText} testID="timed-remaining">
+          {!started
+            ? 'Tap to start'
+            : inGetReady
+              ? Math.ceil(getReadyMs / 1000)
+              : switching
+                ? switchRemainingSeconds
+                : remainingSeconds}
         </Text>
       </View>
+
+      {switching && <Text testID="switch-side-label" style={styles.setOf}>{`Switch sides`}</Text>}
+      {canPause && activeCountdown.controller.isPaused() && (
+        <Text testID="timer-paused-label" style={styles.setOf}>
+          Paused
+        </Text>
+      )}
 
       {!started ? (
         <Pressable testID="start-timer" style={styles.completeButton} onPress={handleStart}>
           <Text style={styles.completeButtonText}>START</Text>
         </Pressable>
       ) : (
-        <Pressable testID="end-early" style={styles.completeButton} onPress={handleEndEarly}>
-          <Text style={styles.completeButtonText}>END EARLY</Text>
-        </Pressable>
+        <>
+          {canPause && (
+            <Pressable
+              testID="pause-resume-timer"
+              style={styles.actionButton}
+              onPress={handleTogglePause}
+            >
+              <Text style={styles.actionButtonText}>
+                {activeCountdown.controller.isPaused() ? 'Resume' : 'Pause'}
+              </Text>
+            </Pressable>
+          )}
+          <Pressable testID="end-early" style={styles.completeButton} onPress={handleEndEarly}>
+            <Text style={styles.completeButtonText}>END EARLY</Text>
+          </Pressable>
+        </>
       )}
 
       <View style={styles.actionRow}>

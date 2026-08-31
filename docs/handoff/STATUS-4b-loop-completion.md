@@ -114,9 +114,62 @@ ADRs 0003/0004/0005, spec §10.3/§10.5/§10.6/§10.7/§10.8.
     asserts the live estimate text actually changes after adding an exercise.
   - `npm run check` green (engine 870, store 34, data 2, app 21 across 9 suites).
 
+- [x] **Issue #18 closed, and it caught two real bugs in `TimedExercise` along the way** — this
+  screen previously had NO interaction test; both `WorkoutScreen.rest.test.tsx` and
+  `.resume.test.tsx` deliberately fast-forward past timed entries to reach a reps entry.
+  - New `app/src/screens/timedTestHelpers.ts` (shared, non-test-glob setup) +
+    `WorkoutScreen.timedBilateral.test.tsx` / `WorkoutScreen.timedUnilateral.test.tsx` (split into
+    two files — see below). Both patch the target entry's `durationSec`/`unilateral` directly on
+    the row after a real `generate()` call so the test only has to wait out a short, controlled
+    duration rather than whatever the generator picked, while everything else about the row
+    (schema, driver) is real.
+  - **Bilateral**: tap-to-start never auto-starts, 3s get-ready counts in, Pause freezes the
+    displayed remaining time, Resume un-freezes it, End Early records `secondsActual < prescribed`
+    and `pauseCount >= 1` on the real `set_logs` row.
+  - **Unilateral**: two sequential timers with a switch-side interval between them, auto-advancing
+    through both sides with no user input beyond the initial tap, `secondsActual` on completion is
+    the **sum of both sides** (4s for two 2s sides — never just one side's 2s, never 0).
+  - **Real bug #1 (found by the pause assertion going red under real timing, not the swap/rest
+    suites' more forgiving happy paths)**: the original chained-`useEffect` implementation
+    determined "has this side started yet" via `!controller.isRunning()`, but
+    `CountdownController.isRunning()` (`wallClockTimer.ts`) is `running && !paused` — **true while
+    genuinely paused, indistinguishable from "never started."** Every ~100ms tick after a real
+    pause, the phase engine saw `isRunning() === false` and called `.controller.start()` again,
+    which silently **un-paused AND reset the timer to full duration**. Fixed with explicit
+    `side1StartedRef`/`side2StartedRef` booleans instead of inferring "started" from `isRunning()`.
+  - **Real bug #2, more serious (found by the unilateral test getting permanently stuck at `0`
+    under real CPU contention — reproduced by running the two timed test files together, see
+    below)**: the original implementation chained multiple `useEffect`s off each `useCountdown`
+    hook's own **snapshot** `isComplete` value, relying entirely on each hook's own independent
+    250ms `forceTick`/AppState-driven re-render to ever notice a transition. Under load this
+    starved long enough that a side's completion was never observed, and the exercise hung forever
+    with no way forward — a real correctness bug, not a slow test. **Rewrote the whole phase
+    machine (get-ready -> side 1 -> [switch interval -> side 2] -> complete) as one 100ms
+    `setInterval` that reads `.controller.remainingMs()`/`.isComplete()` directly** every tick,
+    independent of React's render scheduling. (This introduced its own stale-closure risk — the
+    interval is created once per `started` lifetime and closes over `sideIndex`/`switching` — fixed
+    with ref mirrors (`sideIndexRef`/`switchingRef`) updated in lockstep with the state setters, so
+    the interval always reads the current phase while state still drives re-renders for the JSX.)
+  - Split into two test files (`timedTestHelpers.ts`'s header explains why) after the two `it`s in
+    one file were observed to occasionally interfere with each other's real-timer assertions when
+    run back to back — separate Jest module registries removed that. **Verified stable**: 3x solo
+    each, 4x combined, and once combined while pinning all CPU cores at 100% (`yes > /dev/null`
+    per core) — all passed, and materially *faster* than the buggy chained-effects version (the
+    unilateral test dropped from routinely needing >30s/timing out to a consistent ~13s).
+  - Also added a `testID="timed-remaining"` on the countdown's own `<Text>` (previously only the
+    wrapping `<View>` had a testID) — needed to read the *primitive* rendered value in a test
+    rather than comparing two separately-queried React elements with `toEqual` (unreliable:
+    they can carry different internal fiber metadata across renders even with identical visible
+    text — a real false-failure this surfaced, unrelated to the two bugs above).
+  - `npm run check` green (engine 870, store 34, data 2, app 23 across 11 suites). **Runtime note**:
+    full `npm run check` is now ~20-25s (up from the ~13s CLAUDE.md/prior status files cite) —
+    entirely accounted for by these two new real-wall-clock timed tests (~5s + ~13s). Not a
+    regression in db isolation or a hang; if it starts taking materially longer than ~30s, that
+    would be worth investigating, but this shift is expected and documented here per CLAUDE.md's
+    instruction to flag exactly this.
+
 ### Next (ordered)
-1. §10.5 timed-exercise interaction test (issue #18) — not started.
-2. Re-run `expo run:ios`, capture evidence of the WORKING loop (not just bugs) into
+1. Re-run `expo run:ios`, capture evidence of the WORKING loop (not just bugs) into
    `docs/handoff/evidence/` — including, this time, real confirmation that audio/haptics/the
    background notification actually work on-device, not just that they don't throw in Jest.
 
