@@ -1,6 +1,47 @@
 ## Track: 4-loop — Core workout loop (UI)
-Last updated: 2026-08-30 (session resumed once after a network drop; orchestrator confirmed
+Last updated: 2026-08-31 (session resumed once after a network drop; orchestrator confirmed
 `64acf3b` was committed clean on my behalf during the gap — see git log, nothing was lost)
+
+### Latest increment (6cae516) — orchestrator-flagged concurrency hang + two real bugs found writing tests
+The orchestrator ran `npm run check` while I was also running tests and hit a hang past 10
+minutes (had to kill it), traced to two concurrent Jest processes racing on one fixed
+`roamfit.sqlite` file that `app/src/db/index.ts`'s `getDb()` always opened — `maxWorkers: 1`
+(added in `26a52ae`) only serialized files *within* one process, not two separate processes.
+Fixed properly: `getDb()` now derives a unique db filename per Jest process/worker/file (detected
+via `process.env.JEST_WORKER_ID`, unset — and so inert — outside Jest), `maxWorkers` reverted to
+default, a `PRAGMA busy_timeout = 5000` added as defense in depth (a locked db now fails fast
+with a clear error instead of hanging), and a `jest.globalTeardown.js` sweeps up test db files
+older than 10 minutes (age-gated so it can't delete a file a genuinely concurrent sibling run
+still has open). **Verified**: 22/22 passes across sequential and 2-3-way concurrent
+`npm run test --workspace app` runs (this reliably reproduced the reported hang before the fix,
+and no longer does after). **Full `npm run check` wall-clock time: ~12s** (all workspaces —
+engine 856 tests, store 32, data 2, app 11). The app suite itself (~1.2s) is not the slow part;
+nothing here is materially slower than engine+store.
+
+Writing `WorkoutScreen.rest.test.tsx` (driving the rest timer's `+15s`/`-15s`/Skip and the §8.1
+feedback controls through the real `WorkoutScreen`, not mocked) surfaced two more real bugs,
+fixed in the same commit:
+- **Feedback was recorded against the wrong exercise.** `finishSetAndRest` calls `reload()` right
+  after logging a set, which recomputes `current`/`entry` to the *next* entry (correct for the
+  rest screen's "next up" preview) — but the difficulty/enjoyment handlers read `entry.id` from
+  that same post-reload value, so a rating tapped on the rest screen landed on the *upcoming*
+  exercise, not the one just performed. Fixed with a `restingEntryId` state captured before
+  reload.
+- **`recordEntryFeedback` couldn't represent "clear."** Its `{difficulty?, enjoyment?}` params
+  used `undefined` for both "field omitted" and what the UI meant by "user tapped the same value
+  again to clear it" — so clearing silently did nothing. Widened to accept `| null` as a genuine
+  third state (clear, no EMA update), distinct from omitted. New store test in `signals.test.ts`
+  covers all three states.
+- Also found (both files): `@testing-library/react-native`'s `fireEvent.press` is `async`, same
+  class of miss as `render()` (carried-forward issue #6) — unawaited presses could leave a state
+  update in flight when the next assertion ran. All `fireEvent.press` calls now awaited.
+
+**Takeaway for future waves, worth restating**: `npm run check` passing is necessary but not
+sufficient. This track has now found five distinct real bugs — none caught by `npm run check`
+alone — purely by (a) actually running the app on a simulator (the `node:fs`/`expo-linking` red
+screens) and (b) writing interaction tests against the *real* driver instead of a mock (the
+migration multi-statement/comment bugs, the feedback-attribution bug, the clear-semantics bug,
+the concurrency hang). Green types and green unit tests are not evidence the loop works.
 
 ### Done
 - [x] Read ramp-up docs: wave-04 brief, ORCHESTRATION carried-forward items 6/8/10/13,
@@ -85,8 +126,10 @@ Last updated: 2026-08-30 (session resumed once after a network drop; orchestrato
      finish this: tap through Quick Session -> a couple of sets -> Summary -> FINISH and capture
      screenshots at each stage.
 - [x] `npm run check` (typecheck + lint + test + engine-purity, all workspaces) green at every
-  commit boundary above, including after the migration-embedding fix. Current counts: engine 851
-  tests, store 31 (up from 27 — `migrate.test.ts` added 4), data 2, app 9 (3 suites).
+  commit boundary. Current counts (post `6cae516`): engine 856, store 32, data 2, app 11 (5
+  suites: `App.test.tsx`, `wallClockTimer.test.ts`, `HomeScreen.test.tsx`,
+  `WorkoutScreen.resume.test.tsx`, `WorkoutScreen.rest.test.tsx`). Full `npm run check` wall-clock:
+  ~12s. Verified stable under concurrent execution (22/22 passes, see "Latest increment" above).
 
 ### In progress / stopped here
 Nothing mid-edit — every commit above is a clean, working checkpoint.
@@ -139,10 +182,14 @@ Nothing mid-edit — every commit above is a clean, working checkpoint.
 8. **Rep-target editing at approval, superset "Round N of M" display, native share sheet on the
    level-up/milestone screen (§9.10)** — all noted inline in the relevant screen's file comment,
    none implemented.
-9. Component tests beyond `wallClockTimer.test.ts` and `HomeScreen.test.tsx` — Approval's
-   remove/adjust-sets, the rest timer's `+15s`/`-15s`/Skip against `useCountdown`, and the
-   feedback controls' "tap the same emoji clears it" unset semantics would all benefit from a
-   focused RNTL test each.
+9. ~~Component tests for the rest timer's `+15s`/`-15s`/Skip and the feedback controls' unset
+   semantics~~ — done in `WorkoutScreen.rest.test.tsx` (`6cae516`), and found two real bugs in the
+   process (see "Latest increment" at the top of this file). Still not covered: **Approval's**
+   remove/adjust-sets interactions (only exercised indirectly, never via a dedicated RNTL test),
+   and `WorkoutScreen`'s `TimedExercise` path (flagged as fragile below) has no interaction test
+   at all yet — the two existing `WorkoutScreen.*.test.tsx` files both deliberately fast-forward
+   past timed entries to reach a reps entry, so the get-ready/countdown/end-early flow is only
+   type-checked, never exercised by a test.
 
 ### Decisions / gotchas
 - **Navigation**: `@react-navigation/native` + `@react-navigation/native-stack` — boring, widely
