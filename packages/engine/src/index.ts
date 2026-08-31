@@ -18,6 +18,12 @@ export {
   effortCapForExercise,
 } from './filters/hardFilters';
 export type { HardFilterInput } from './filters/hardFilters';
+// §14.1.7 muscle-balance OVER-WORKED flag — the same 1.5x-trailing-mean rule §5.2 uses at
+// generation time, so the dashboard's flag and the engine's own recommendation stay consistent.
+// The dashboard classifies over an already-aggregated `Record<muscle, number>` (rolled-up stats,
+// §11.3 — no history rescan), so only the threshold constant is shared, not `overWorkedMuscles`
+// itself (which takes raw `SessionHistoryRecord[]`).
+export { OVER_WORKED_MULTIPLIER } from './selection/constants';
 
 // --------------------------------------------------------------------------------------------
 // Wave 3 wiring surface — completion-time progression updates (§6.3/§6.7) and the comeback /
