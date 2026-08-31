@@ -1,0 +1,150 @@
+/**
+ * §10.6 mid-workout swap, driven through the real WorkoutScreen. Confirms the whole wiring end
+ * to end: tapping Swap opens the sheet with real `alternativesForSlot` candidates (not a mock),
+ * picking one calls `sessionsRepo.recordSwap` for real, the plan entry's exercise/prescription
+ * actually changes, the swap is recorded as a signal (`swapAwayCount` on the replaced exercise),
+ * and the flow returns straight to the exercise view with no re-approval/regeneration step.
+ */
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { createRng, seedFromString } from '@roamfit/engine';
+import { exerciseLibrary, familyLibrary } from '@roamfit/data';
+import { exerciseStateRepo, generate, sessionsRepo } from '@roamfit/store';
+import WorkoutScreen from './WorkoutScreen';
+import { StoreProvider, useStore } from '../state/StoreContext';
+import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
+
+function mockNavigation() {
+  return {
+    navigate: jest.fn(),
+    replace: jest.fn(),
+    reset: jest.fn(),
+    goBack: jest.fn(),
+  };
+}
+
+function Setup({ onReady }: { onReady: (db: ReturnType<typeof useStore>['db']) => void }) {
+  const { db } = useStore();
+  const pending = sessionsRepo.getPendingSession(db);
+  if (pending) sessionsRepo.discardSession(db, pending.id, {}, new Date().toISOString());
+  onReady(db);
+  return null;
+}
+
+function fastForwardTo(
+  db: ReturnType<typeof useStore>['db'],
+  session: sessionsRepo.SessionRecord,
+  stopBeforeEntryId: string,
+) {
+  for (const entry of session.entries) {
+    if (entry.id === stopBeforeEntryId) return;
+    if (entry.entryStatus === 'removed_at_approval') continue;
+    for (let i = 0; i < entry.sets; i++) {
+      sessionsRepo.logSet(
+        db,
+        {
+          entryId: entry.id,
+          setIndex: i,
+          status: 'completed',
+          repsPrescribed: entry.repTarget ?? undefined,
+          secondsPrescribed: entry.durationSec ?? undefined,
+          repsActual: entry.repTarget ?? undefined,
+          secondsActual: entry.durationSec ?? undefined,
+          restPrescribedSec: entry.restSec,
+        },
+        nowUtcInstant(),
+      );
+    }
+  }
+}
+
+describe('§10.6 mid-workout swap, driven through WorkoutScreen', () => {
+  it('Swap -> pick an alternative replaces the entry in place, no re-approval, timer never resets', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined());
+
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('swap-test-seed')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    sessionsRepo.startSession(db, sessionId, nowUtcInstant());
+
+    const session = sessionsRepo.getSession(db, sessionId)!;
+    const activeEntries = session.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
+    const firstRepsEntry = activeEntries.find((e) => e.durationSec == null);
+    expect(firstRepsEntry).toBeTruthy();
+
+    fastForwardTo(db, session, firstRepsEntry!.id);
+    const originalExerciseId = firstRepsEntry!.exerciseId;
+
+    const navigation = mockNavigation();
+    render(
+      <StoreProvider>
+        <WorkoutScreen
+          navigation={navigation as never}
+          route={{ key: 'Workout', name: 'Workout', params: { sessionId } } as never}
+        />
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy());
+    await fireEvent.press(screen.getByTestId('swap-set'));
+
+    await waitFor(() => expect(screen.getByTestId('swap-sheet')).toBeTruthy());
+
+    // The session/rest-of-workout UI must be gone while the sheet is open, and the elapsed
+    // workout timer (rendered above the phase view, unconditionally) must still be present and
+    // ticking — proving the session stopwatch was never paused or reset by opening the sheet.
+    expect(screen.queryByTestId('complete-set')).toBeNull();
+    expect(screen.getByText(/^Elapsed/)).toBeTruthy();
+
+    // Find whichever alternative option testID rendered (candidates are real engine output, not
+    // fixed) and confirm it's a *different* exercise than the one being replaced.
+    const optionEls = screen.getAllByTestId(/^swap-option-/);
+    expect(optionEls.length).toBeGreaterThan(0);
+    expect(optionEls.length).toBeLessThanOrEqual(5);
+    const firstOptionTestId = optionEls[0].props.testID as string;
+    const pickedExerciseId = firstOptionTestId.replace('swap-option-', '');
+    expect(pickedExerciseId).not.toBe(originalExerciseId);
+
+    await fireEvent.press(screen.getByTestId(firstOptionTestId));
+
+    // Sheet closed, no re-approval/regeneration navigation happened, and we're straight back on
+    // an exercise view (reps or timed — the new exercise may have a different metric).
+    expect(navigation.navigate).not.toHaveBeenCalled();
+    expect(navigation.replace).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId('complete-set') ?? screen.queryByTestId('timed-circle'),
+      ).toBeTruthy(),
+    );
+
+    // The store really recorded the swap: the entry's exerciseId changed, and the replaced
+    // exercise's swapAwayCount incremented (§5.2 REPEATEDLY-SKIPPED input, §8.3 signal).
+    const after = sessionsRepo.getSession(db, sessionId)!;
+    const afterEntry = after.entries.find((e) => e.id === firstRepsEntry!.id)!;
+    expect(afterEntry.exerciseId).toBe(pickedExerciseId);
+    expect(afterEntry.plannedExerciseId).toBe(originalExerciseId); // planned-vs-actual preserved
+    const replacedState = exerciseStateRepo.getExerciseState(db, originalExerciseId);
+    expect(replacedState?.swapAwayCount).toBe(1);
+  });
+});

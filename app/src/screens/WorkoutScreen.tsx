@@ -9,15 +9,17 @@
  * name + target + "Set N of M", nothing else at that size; body focus/pattern/difficulty never
  * shown) is honored by simply not reading those fields into the hero view.
  *
- * Known gaps in this pass (see STATUS-4-loop.md): mid-workout **swap** (§10.6) needs an
- * engine-exposed "alternatives for this pattern slot at this level" query that does not exist
- * yet — implementing candidate selection here would put exercise-selection logic in the UI
- * layer, which this wave's ground rule forbids, so it is not implemented rather than faked.
  * **Remove set** mid-workout has no store mutation to call (only §10.3 approval-time removal
  * exists) — also not implemented. Superset "Round N of M" display is simplified to plain
  * "Set N of M" (group/round math not modeled here for lack of a spec'd source of "M rounds").
+ *
+ * §10.6 mid-workout swap: `alternativesForSlot` (from `@roamfit/engine`) selects and ranks the
+ * 3-5 candidates; this screen only calls it with the current entry + user state and hands the
+ * result to `SwapSheet` to render. Confirming a pick calls `sessionsRepo.recordSwap` and reloads
+ * — no re-approval, no regeneration, and the session stopwatch (a ref, untouched by this) never
+ * pauses.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -29,16 +31,20 @@ import {
 } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { exerciseStateRepo, progressionStateRepo, sessionsRepo } from '@roamfit/store';
+import { exerciseStateRepo, progressionStateRepo, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
+import { alternativesForSlot } from '@roamfit/engine';
+import type { SwapAlternative } from '@roamfit/engine';
+import type { AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
-import { nowUtcInstant } from '../lib/localClock';
+import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { useCountdown } from '../lib/useCountdown';
 import { createStopwatchController, systemClock } from '../lib/wallClockTimer';
 import PinnedNote from '../components/PinnedNote';
 import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
+import SwapSheet from '../components/SwapSheet';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Workout'>;
 
@@ -93,6 +99,11 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const setStartedAtRef = useRef<string>(nowUtcInstant());
   const workoutStopwatch = useRef(createStopwatchController(systemClock));
   const [, forceElapsedTick] = useState(0);
+  // §10.6 mid-workout swap — closed by default; opened from the Swap action on either
+  // exercise-phase sub-view. The session stopwatch above is unaffected either way (it's a ref,
+  // not paused by this state), satisfying "no interruption of the session timer."
+  const [swapOpen, setSwapOpen] = useState(false);
+  const [swapExcludeAnchor, setSwapExcludeAnchor] = useState(false);
 
   const reload = useCallback(
     () => setSession(sessionsRepo.getSession(db, sessionId)),
@@ -107,12 +118,51 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   }, [reload]);
 
   const current = session ? findCurrent(session) : null;
+  const entry = current?.entry;
+  const exercise = entry ? library.exercises.find((e) => e.id === entry.exerciseId) : undefined;
 
   useEffect(() => {
     if (session && !current) {
       navigation.replace('Summary', { sessionId });
     }
   }, [session, current, navigation, sessionId]);
+
+  // Hooks must run unconditionally every render — this screen has early `return`s below (loading
+  // states) that would otherwise change the hook count between renders (a real bug this track
+  // hit while wiring swap: "Rendered more hooks than during the previous render"). Everything
+  // that reads `entry`/`exercise` guards internally on them being present instead.
+  const swapAlternatives: SwapAlternative[] = useMemo(() => {
+    if (!swapOpen || !entry) return [];
+    const clock = nowEngineClock();
+    const profile = usersRepo.buildUserProfile(db, clock.today);
+    return alternativesForSlot({
+      library: library.exercises,
+      entry: {
+        exerciseId: entry.exerciseId,
+        role: 'main',
+        band: entry.band,
+        sets: entry.sets,
+        repTarget: entry.repTarget ?? undefined,
+        durationSec: entry.durationSec ?? undefined,
+        restSec: entry.restSec,
+        tempoSec: entry.tempoSec,
+        notes: entry.notes ?? undefined,
+        effort: entry.effort,
+        progressionFamilyId: entry.progressionFamilyId as ProgressionFamilyId | null,
+        progressionLevelIdAtTime: entry.progressionLevelIdAtTime,
+        pattern: entry.pattern as Pattern,
+        anchorClass: entry.anchorClass as AnchorClass,
+        unilateral: entry.unilateral,
+        estimatedSec: entry.estimatedSec,
+      },
+      anchorsAvailable: profile.anchorsAvailable,
+      limitations: profile.limitations,
+      today: clock.today,
+      history: sessionsRepo.getHistoryForGeneration(db),
+      exerciseStates: exerciseStateRepo.getAllExerciseStates(db),
+      excludeAnchor: swapExcludeAnchor ? exercise?.anchor : undefined,
+    });
+  }, [swapOpen, swapExcludeAnchor, entry, exercise, db, library]);
 
   if (!session) {
     return (
@@ -121,7 +171,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       </View>
     );
   }
-  if (!current) {
+  if (!current || !entry) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator />
@@ -129,13 +179,19 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     );
   }
 
-  const { entry, setIndex } = current;
-  const exercise = library.exercises.find((e) => e.id === entry.exerciseId);
+  const { setIndex } = current;
   const exState = exerciseStateRepo.getExerciseState(db, entry.exerciseId);
   const isFirstEverPerformance = !exState || exState.sessionsPerformed === 0;
   const progression = entry.progressionFamilyId
     ? progressionStateRepo.getProgressionState(db, entry.progressionFamilyId)
     : null;
+
+  const handleSwapSelect = (alt: SwapAlternative) => {
+    sessionsRepo.recordSwap(db, entry.id, alt.replacement, setIndex, nowUtcInstant());
+    setSwapOpen(false);
+    setSwapExcludeAnchor(false);
+    reload();
+  };
 
   const finishSetAndRest = (
     status: 'completed' | 'skipped',
@@ -215,7 +271,18 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       </Text>
 
       {phase === 'exercise' ? (
-        entry.durationSec != null ? (
+        swapOpen ? (
+          <SwapSheet
+            alternatives={swapAlternatives}
+            excludeAnchor={swapExcludeAnchor}
+            onToggleExcludeAnchor={setSwapExcludeAnchor}
+            onSelect={handleSwapSelect}
+            onCancel={() => {
+              setSwapOpen(false);
+              setSwapExcludeAnchor(false);
+            }}
+          />
+        ) : entry.durationSec != null ? (
           <TimedExercise
             key={`${entry.id}-${setIndex}`}
             entry={entry}
@@ -223,6 +290,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             setIndex={setIndex}
             onComplete={(actualSeconds) => finishSetAndRest('completed', undefined, actualSeconds)}
             onSkip={() => finishSetAndRest('skipped')}
+            onSwap={() => setSwapOpen(true)}
           />
         ) : (
           <RepsExercise
@@ -232,6 +300,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             setIndex={setIndex}
             onComplete={(reps) => finishSetAndRest('completed', reps)}
             onSkip={() => finishSetAndRest('skipped')}
+            onSwap={() => setSwapOpen(true)}
           />
         )
       ) : (
@@ -273,12 +342,14 @@ function RepsExercise({
   setIndex,
   onComplete,
   onSkip,
+  onSwap,
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
   setIndex: number;
   onComplete: (reps: number) => void;
   onSkip: () => void;
+  onSwap: () => void;
 }): React.JSX.Element {
   const [reps, setReps] = useState(entry.repTarget ?? 0);
   return (
@@ -322,6 +393,9 @@ function RepsExercise({
       </Pressable>
 
       <View style={styles.actionRow}>
+        <Pressable testID="swap-set" style={styles.actionButton} onPress={onSwap}>
+          <Text style={styles.actionButtonText}>Swap</Text>
+        </Pressable>
         <Pressable testID="skip-set" style={styles.actionButton} onPress={onSkip}>
           <Text style={styles.actionButtonText}>Skip set</Text>
         </Pressable>
@@ -336,12 +410,14 @@ function TimedExercise({
   setIndex,
   onComplete,
   onSkip,
+  onSwap,
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
   setIndex: number;
   onComplete: (actualSeconds: number) => void;
   onSkip: () => void;
+  onSwap: () => void;
 }): React.JSX.Element {
   const durationMs = (entry.durationSec ?? 0) * 1000;
   const [started, setStarted] = useState(false);
@@ -406,6 +482,9 @@ function TimedExercise({
       )}
 
       <View style={styles.actionRow}>
+        <Pressable testID="swap-set" style={styles.actionButton} onPress={onSwap}>
+          <Text style={styles.actionButtonText}>Swap</Text>
+        </Pressable>
         <Pressable testID="skip-set" style={styles.actionButton} onPress={onSkip}>
           <Text style={styles.actionButtonText}>Skip set</Text>
         </Pressable>
