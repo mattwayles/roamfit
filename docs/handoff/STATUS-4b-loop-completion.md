@@ -168,10 +168,23 @@ ADRs 0003/0004/0005, spec §10.3/§10.5/§10.6/§10.7/§10.8.
     would be worth investigating, but this shift is expected and documented here per CLAUDE.md's
     instruction to flag exactly this.
 
+### In progress (this increment)
+All five brief items (#14-#18) are now closed at the Jest/store/engine level, verified by
+`npm run check` green. Last remaining step: a real `expo run:ios` pass with evidence of the
+WORKING loop. `pod install` re-run to pick up the three new native deps (expo-audio,
+expo-haptics, expo-notifications) — succeeded, 101 pods. `expo run:ios --device "iPhone 17 Pro"`
+launched against an already-running Metro (`expo start --dev-client --port 8082`) — build in
+progress as this increment is being written; see "Next" for what remains once it completes.
+
 ### Next (ordered)
-1. Re-run `expo run:ios`, capture evidence of the WORKING loop (not just bugs) into
-   `docs/handoff/evidence/` — including, this time, real confirmation that audio/haptics/the
-   background notification actually work on-device, not just that they don't throw in Jest.
+1. Once the `expo run:ios` build finishes: screenshot Home -> Generate/Quick Session -> Approval
+   (confirm add-exercise/rep-target editing renders) -> Workout (confirm Swap sheet opens, timed
+   exercise get-ready/pause/end-early render) -> rest timer -> Summary, into
+   `docs/handoff/evidence/`. Note explicitly which parts could only be confirmed visually
+   (rendering, no crash) vs. which needed a real tap — same UI-automation limitation the prior
+   STATUS file flagged (no accessibility permission for `osascript`/System Events in this sandbox,
+   no `idb`). Audio/haptics/background-notification firing is NOT visually confirmable via
+   screenshot even with taps — flag that honestly as still Jest-only evidence.
 
 ### Decisions / gotchas
 - `packages/engine` was flagged as owned by a concurrent track (`2b-timefit-slots`) in the prior
