@@ -36,9 +36,7 @@ describe('migrations/data.ts stays byte-for-byte in sync with the .sql files', (
 describe('runMigrations / pendingMigrationFiles (embedded-data driven)', () => {
   it('pendingMigrationFiles excludes already-applied ids and preserves order', () => {
     expect(pendingMigrationFiles([])).toEqual(MIGRATIONS.map((m) => m.id));
-    expect(pendingMigrationFiles([MIGRATIONS[0].id])).toEqual(
-      MIGRATIONS.slice(1).map((m) => m.id),
-    );
+    expect(pendingMigrationFiles([MIGRATIONS[0].id])).toEqual(MIGRATIONS.slice(1).map((m) => m.id));
     expect(pendingMigrationFiles(MIGRATIONS.map((m) => m.id))).toEqual([]);
   });
 
