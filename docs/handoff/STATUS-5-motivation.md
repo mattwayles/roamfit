@@ -151,11 +151,97 @@ spec §14, §6.4, §6.7, §9.1-9.4, §9.6-9.10, §10.1.
     zero-session calibration note is gone.
   - `npm run check` green (engine 873, store 38, data 2, app 38 across 14 suites).
 
-### In progress
-Starting step 8 (SummaryScreen level-up/mastery celebration upgrade + share).
+- [x] **Step 8** (`b490fc0`) — `app/src/lib/celebration.ts` (new, pure, 5 tests): shapes
+  `completeSession`'s `progressionEvents` + the milestone rows it wrote into "full-screen,
+  unmissable" celebrations (level-ups, and Mastery best-set PRs matched via `mastery_pr_check`
+  progression events cross-referenced with `best_set_pr` milestone payloads) vs. "quiet,
+  accumulating" ones (ordinary PRs, nth-session, new-city, recovery-week). `SummaryScreen.tsx`
+  rewritten: FINISH now shows full-screen celebrations **one at a time, before** the plain
+  completion summary (previously both were stacked in one scroll view) with a real §9.10
+  `Share.share` action on each. New `SummaryScreen.test.tsx` drives a real calibration-mode
+  session (rep bonus large enough to trigger §6.5's "exceeds target by >=25%" full-level advance)
+  through FINISH and asserts the celebration really appears before Done, share really fires, and
+  Continue reaches the Done screen — not a mocked/fabricated progression event.
+- [x] **Step 9** (`b5dabf2`) — §9.8 notifications: new `sessionsRepo.getCompletedSessionStartTimes`
+  (startedAt + that session's own `tzId`, so "observed training window" reflects where the user
+  actually was, not the device's current tz) and `app/src/lib/motivationNotifications.ts` (pure
+  core: `sessionLocalHours`/`observedTrainingHour`/`clampToQuietHours`/copy builders, 11 tests).
+  **"Max one per day" is structural, not a rule to remember**: seven weekday-scoped
+  `expo-notifications` calendar triggers (fixed identifiers `motivation-nudge-0..6`), re-scheduled
+  on every Home open — Sunday carries the weekly-summary copy, the other six carry the adaptive
+  loss-aversion nudge (built from Next Unlock when available). Gated on
+  `user.hasEverCompletedSession` so a fresh install isn't prompted for notification permission
+  before it has anything to be adaptive about. §9.10 share wired for the passport and weekly
+  summary too (`share-passport`/`share-weekly-summary` buttons on Home, both real `Share.share`
+  calls, tested).
+  - **What's Jest-only vs. device-verified** (same honest split Wave 4b established for audio/
+    haptics): every test here proves "the right calls happen with the right arguments," never
+    that a notification actually appears at the scheduled weekday/hour on a real device, or that
+    quiet-hours/permission behavior matches iOS's actual notification center. Not verified this
+    session — no device/simulator access was exercised for this track.
+  - `npm run check` green throughout (engine 873, store 38, data 2, app 55 across 17 suites).
 
-### Next
-See Plan above (steps 8-10).
+### Grep-for-shame pass (done criterion)
+Ran targeted greps across `app/src`, `packages/store/src`, `packages/engine/src` for: a daily-
+streak concept, red/warning color codes tied to untrained days or misses, and guilt-shaped copy
+("you missed", "you failed", "don't break your streak", "behind", "slacking", etc.). Result:
+**clean** — the only hits are this file's own doc comments describing the absence (e.g.
+`HomeScreen.tsx`'s header, `motivationNotifications.ts`'s "never guilt-based"). `stats.weekStreak`
+is the spec-sanctioned §9.1 **week** streak ("consecutive weeks the target was hit... lumpy lives,
+forgiving math") — not the daily streak the brief prohibits, and it's additive-only (never shown
+as broken/reset with any negative framing, just absent when 0). Calendar untrained days render as
+a neutral gray (`#e2e8f0`, same family as every other neutral UI element); the OVER-WORKED flag on
+the muscle-balance rows is plain trailing text in the row's own font/color, not a color change.
+
+### Final status
+Every §14.1 element is built, in spec order, in `HomeScreen.tsx`, gated correctly for the
+zero-session state. Issues #4, #5, #11, #12 are resolved (see ORCHESTRATION.md's carried-forward
+table, updated this session) or explicitly re-filed as a content-only follow-up (#4's retag).
+`npm run check` is green at every commit boundary. Not done, honestly:
+
+- **No on-device/simulator verification this session** — everything above is Jest-level evidence
+  only (real store, real screens, real RNTL interactions — not mocked business logic — but never a
+  real iOS notification center, a real native share sheet, or a real device screenshot). This
+  mirrors Wave 4/4b's own honest split between "proven in Jest" and "proven on a phone"; a future
+  session with simulator/device access should do an `expo run:ios` pass the way `STATUS-4b-loop-
+  completion.md`'s evidence section did, and actually watch a level-up celebration and a share
+  sheet render for real.
+- **§9.10 share cards are text, not a rendered branded image** — no image-rendering library is
+  installed (`react-native-view-shot`, etc.); adding one was judged not worth the wave's remaining
+  budget over finishing every §14.1 element. Recorded as a scope cut, not a silent gap. The share
+  *action* (native share sheet, real content) is real; only the artifact format differs from the
+  spec's literal "branded image card."
+  - **New dependency note (CLAUDE.md: no new deps without noting them):** none were added. RN's
+    built-in `Share` API covered §9.10 entirely.
+- **Travel-day auto-suggest has no persisted per-day dismissal** — dismissing the "Looks like you
+  traveled" banner only lasts the current screen visit (component state, not a store column). No
+  new schema was added for this in favor of shipping every other element; a future pass could add
+  a `lastTravelSuggestionDismissedLocalDate` column if this proves annoying in practice.
+- **Notification quiet hours are a fixed 22:00-07:00 default**, not user-configurable — there is no
+  settings screen in this wave's (or any prior wave's) scope to put a picker in. Same for the
+  silent-switch audio override noted in Wave 4b — both are "real default behavior, no user
+  override UI yet."
+- **Passport geocoding itself is unbuilt** (by design — it's Wave 6's `deferred_work` worker, not
+  this wave's). This wave's passport UI is honest about that: it reads whatever `city`/`country`
+  strings already exist on completed sessions (none will, until Wave 6 ships the resolver) and
+  shows the opt-in nudge instead of a fake/empty passport card in the meantime.
+- **Level-up celebration's "which family leveled up first" ordering** is whatever order
+  `completeSession`'s `progressionEvents` array returns them in (a `Map` iteration over
+  `byFamily`, itself built from `session.entries`' plan order) — not deliberately re-sorted by
+  "most exciting first." Untested whether that reads as arbitrary in a real multi-level-up session
+  (rare in practice — most sessions produce at most one).
+
+### Next (for whoever picks this up)
+1. An `expo run:ios` pass: build, boot, and screenshot the zero-session dashboard, a completed-
+   session dashboard, a level-up celebration, and both share sheets for real — this track's Jest
+   coverage is real but, per CLAUDE.md's own "Standing lesson," not sufficient proof by itself.
+2. If product wants a literal branded-image share card: add `react-native-view-shot` (or similar),
+   capture the relevant card `View`, and pass the resulting URI to `Share.share` instead of a
+   plain message string. `celebration.ts`/`motivationNotifications.ts`'s text-building functions
+   are already the right content source — this is a rendering layer on top, not a rewrite.
+3. Retag `hamstring-curl`/`tke` from `hip_extension` to the now-existing `knee_flexion_loaded`
+   pattern (content-only change, `packages/data/library/exercises.json` + a validator re-run).
+4. If travel-day-suggestion nagging turns out to matter: a persisted per-day dismissal column.
 
 ### Decisions / gotchas
 - One screen (`HomeScreen.tsx`) carries the whole §14.1 dashboard — see "Key findings" above.
