@@ -1,35 +1,23 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import RootNavigator from './src/navigation/RootNavigator';
+import { StoreProvider } from './src/state/StoreContext';
 
 /**
- * Placeholder root screen. Wave 4 (docs/handoff/wave-04-*.md) owns the real UI
- * (Home → Generate → Approval → Active → Summary). This file exists only to prove the
- * dev-client boots on the simulator (wave-01a-skeleton done criteria).
+ * Wave 4 root: db + navigation wiring. Screens live in `src/screens/`; this file only composes
+ * the providers (`StoreProvider` for the `@roamfit/store` handle, `NavigationContainer` for the
+ * §10.1–§10.9 flow) — no business logic here.
  */
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>RoamFit</Text>
-      <Text style={styles.subtitle}>Skeleton boots. Nothing to see yet.</Text>
+    <SafeAreaProvider>
+      <StoreProvider>
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+      </StoreProvider>
       <StatusBar style="auto" />
-    </View>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-  },
-});
