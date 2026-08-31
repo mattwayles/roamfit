@@ -12,8 +12,8 @@ Every track is written to be **interrupted**. See the interruption protocol in `
 | 1 | Skeleton boots + full library/ladder data validated | **done** — verified `38fef15`/`5048e5f` |
 | 2 | Generation engine passes golden tests, <50ms, no I/O | **done** — verified `e56ed02` |
 | 3 | SQLite persistence + session lifecycle + signal capture | **done** — verified `1061651` |
-| 4 | Core workout loop end-to-end on device | **near-done** — issues #14-#18 closed at the Jest/store/engine level (track `4b-loop-completion`); full on-device UI-automation walkthrough still owed (issue #18 residual, see below) |
-| 5 | Motivation surfaces: progression board, dashboard, passport | not started |
+| 4 | Core workout loop end-to-end on device | **done** — verified `dbe4be1`. Orchestrator re-verified issue #14 with 8 concurrent runs, 8/8 clean (previously never zero). On-device walkthrough deferred to Wave 7 acceptance, where it belongs. |
+| 5 | Motivation surfaces: progression board, dashboard, passport | in progress |
 | 6 | Media ladder, LLM proxy, Firebase sync, HealthKit | not started |
 | 7 | Airplane-mode acceptance gate + instrumentation + polish | not started |
 
