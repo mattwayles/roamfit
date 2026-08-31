@@ -45,6 +45,19 @@ import PinnedNote from '../components/PinnedNote';
 import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
 import SwapSheet from '../components/SwapSheet';
+import {
+  configureWorkoutAudioSession,
+  cueCompletion,
+  cueCount,
+  cueHalfway,
+  cueRestZero,
+  cueStart,
+} from '../lib/workoutAudio';
+import {
+  cancelRestNotification,
+  ensureNotificationPermission,
+  scheduleRestZeroNotification,
+} from '../lib/workoutNotifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Workout'>;
 
@@ -96,6 +109,9 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   // §8.1 — which entry the rest screen's feedback controls apply to (the one just performed,
   // not `current`'s post-reload "next up" entry). See the comment in `finishSetAndRest`.
   const [restingEntryId, setRestingEntryId] = useState<string | null>(null);
+  // Same reasoning, for the §10.7 "+15s recorded as a fatigue signal" write: the set just
+  // completed, not whatever `current`'s post-reload setIndex points at during the rest phase.
+  const [restingSetIndex, setRestingSetIndex] = useState<number | null>(null);
   const setStartedAtRef = useRef<string>(nowUtcInstant());
   const workoutStopwatch = useRef(createStopwatchController(systemClock));
   const [, forceElapsedTick] = useState(0);
@@ -114,6 +130,14 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     reload();
     if (!workoutStopwatch.current.isRunning()) workoutStopwatch.current.start();
     const id = setInterval(() => forceElapsedTick((n) => n + 1), 1000);
+    // §10.8 — configured once for the life of the session, re-asserted here rather than only at
+    // app boot: the guard against Wave 6's YouTube player having last left the shared audio
+    // session in a different shape (see workoutAudio.ts's file header). No persisted "silent
+    // switch override" setting exists yet (no settings UI in this track's scope) — defaults to
+    // `false`, the safe choice: cues respect the physical silent switch until a future settings
+    // screen wires a real override through.
+    void configureWorkoutAudioSession(false);
+    void ensureNotificationPermission();
     return () => clearInterval(id);
   }, [reload]);
 
@@ -219,10 +243,44 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     // which is what `nextLabel`'s "Next up" preview correctly wants instead). Captured here,
     // before reload, so the rest screen's feedback controls target the right exercise.
     setRestingEntryId(entry.id);
+    setRestingSetIndex(setIndex);
     setDifficulty(null);
     setEnjoyment(null);
     setPhase('resting');
     reload();
+  };
+
+  /** §10.7 — "+15s taps are recorded as a fatigue signal." `logSet` is a full-row upsert (no
+   *  partial merge), so this reads the just-logged row back and re-submits it whole with only
+   *  `restExtendedCount` bumped — otherwise a naive partial call would null out the
+   *  reps/seconds actuals `finishSetAndRest` just wrote. Targets `restingEntryId`/
+   *  `restingSetIndex`, not `entry`/`setIndex` — same reasoning as §8.1 feedback above; those
+   *  already point at the *next* entry by the time the rest screen is showing. */
+  const handleRestExtend = () => {
+    if (!session || restingEntryId == null || restingSetIndex == null) return;
+    const restEntry = session.entries.find((e) => e.id === restingEntryId);
+    const setLog = restEntry?.setLogs.find((s) => s.setIndex === restingSetIndex);
+    if (!restEntry || !setLog) return;
+    sessionsRepo.logSet(
+      db,
+      {
+        entryId: restEntry.id,
+        setIndex: restingSetIndex,
+        status: setLog.status,
+        repsPrescribed: setLog.repsPrescribed ?? undefined,
+        secondsPrescribed: setLog.secondsPrescribed ?? undefined,
+        repsActual: setLog.repsActual ?? undefined,
+        secondsActual: setLog.secondsActual ?? undefined,
+        startedAt: setLog.startedAt ?? undefined,
+        completedAt: setLog.completedAt ?? undefined,
+        restPrescribedSec: setLog.restPrescribedSec,
+        restTakenSec: setLog.restTakenSec ?? undefined,
+        restExtendedCount: setLog.restExtendedCount + 1,
+        pauseCount: setLog.pauseCount,
+        pausedDurationSec: setLog.pausedDurationSec,
+      },
+      nowUtcInstant(),
+    );
   };
 
   const handleNextAfterRest = () => {
@@ -313,6 +371,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           onDifficultyChange={handleDifficultyChange}
           onEnjoymentChange={handleEnjoymentChange}
           onNext={handleNextAfterRest}
+          onExtend={handleRestExtend}
         />
       )}
 
@@ -425,6 +484,16 @@ function TimedExercise({
   const countdown = useCountdown(durationMs);
   const getReadyCountdown = useCountdown(3000);
 
+  // §10.5 audio+haptic cue bookkeeping — one ref per cue moment so each fires exactly once
+  // (or once per second, for the 3-2-1 counts) no matter how many times this effect re-runs.
+  // Fresh on every mount because this whole component remounts per set (`key={entry.id-setIndex}`
+  // on the parent), so a new set always gets its own clean cue state.
+  const lastGetReadyCueSecondRef = useRef<number | null>(null);
+  const startCueFiredRef = useRef(false);
+  const halfwayCueFiredRef = useRef(false);
+  const lastOutCueSecondRef = useRef<number | null>(null);
+  const completionCueFiredRef = useRef(false);
+
   useEffect(() => {
     if (!started) return;
     const id = setInterval(() => {
@@ -452,6 +521,51 @@ function TimedExercise({
 
   const inGetReady = started && getReadyMs > 0;
   const remainingSeconds = Math.ceil(countdown.remainingMs / 1000);
+
+  // §10.5 — "Audio: 3-2-1 count-in; a halfway chime on holds over 45s; 3-2-1 out; a distinct
+  // completion tone. Haptics at start, halfway, and completion." Deliberately no deps array —
+  // this needs to re-check on every render (the same 100ms/250ms interval ticks that already
+  // drive the visible countdown), guarded entirely by the refs above so nothing double-fires.
+  useEffect(() => {
+    if (!started) return;
+    if (inGetReady) {
+      const getReadySecond = Math.ceil(getReadyMs / 1000);
+      if (
+        getReadySecond >= 1 &&
+        getReadySecond <= 3 &&
+        lastGetReadyCueSecondRef.current !== getReadySecond
+      ) {
+        lastGetReadyCueSecondRef.current = getReadySecond;
+        cueCount(); // count-in
+      }
+      return;
+    }
+    if (!startCueFiredRef.current) {
+      startCueFiredRef.current = true;
+      cueStart();
+    }
+    const totalSec = entry.durationSec ?? 0;
+    if (
+      totalSec > 45 &&
+      !halfwayCueFiredRef.current &&
+      remainingSeconds <= Math.floor(totalSec / 2)
+    ) {
+      halfwayCueFiredRef.current = true;
+      cueHalfway();
+    }
+    if (
+      remainingSeconds >= 1 &&
+      remainingSeconds <= 3 &&
+      lastOutCueSecondRef.current !== remainingSeconds
+    ) {
+      lastOutCueSecondRef.current = remainingSeconds;
+      cueCount(); // count-out
+    }
+    if (countdown.isComplete && !completionCueFiredRef.current) {
+      completionCueFiredRef.current = true;
+      cueCompletion();
+    }
+  });
 
   const handleEndEarly = () => {
     const held = (entry.durationSec ?? 0) - Math.floor(countdown.remainingMs / 1000);
@@ -501,6 +615,7 @@ function RestPhase({
   onDifficultyChange,
   onEnjoymentChange,
   onNext,
+  onExtend,
 }: {
   restSec: number;
   nextLabel: string;
@@ -509,11 +624,67 @@ function RestPhase({
   onDifficultyChange: (d: Difficulty | undefined) => void;
   onEnjoymentChange: (e: number | undefined) => void;
   onNext: () => void;
+  /** §10.7 — "+15s taps are recorded as a fatigue signal." Called only for +15 (never −15/Skip). */
+  onExtend: () => void;
 }): React.JSX.Element {
   const countdown = useCountdown(restSec * 1000);
+  // §10.7 background rest timer: a local notification scheduled for the moment this rest would
+  // hit zero, so the alert still lands if the screen is locked or the app is backgrounded —
+  // cancelled and rescheduled whenever the remaining time actually changes, and cancelled outright
+  // on unmount/Next/Skip so a stale "rest complete" never fires after the user's moved on.
+  const notificationIdRef = useRef<string | null>(null);
+  const lastCueSecondRef = useRef<number | null>(null);
+
   useEffect(() => {
     countdown.controller.start();
+    void ensureNotificationPermission();
+    let cancelled = false;
+    void scheduleRestZeroNotification(restSec, nextLabel).then((id) => {
+      if (!cancelled) notificationIdRef.current = id;
+    });
+    return () => {
+      cancelled = true;
+      void cancelRestNotification(notificationIdRef.current);
+    };
   }, []);
+
+  // §10.7 — "Audio 3-2-1 and a haptic at zero." No deps array: re-checks every render (the same
+  // interval tick that drives the visible countdown), guarded by the ref so each second/zero
+  // fires exactly once.
+  useEffect(() => {
+    const remainingSeconds = Math.ceil(countdown.remainingMs / 1000);
+    if (
+      remainingSeconds >= 1 &&
+      remainingSeconds <= 3 &&
+      lastCueSecondRef.current !== remainingSeconds
+    ) {
+      lastCueSecondRef.current = remainingSeconds;
+      cueCount();
+    } else if (remainingSeconds <= 0 && lastCueSecondRef.current !== 0) {
+      lastCueSecondRef.current = 0;
+      cueRestZero();
+    }
+  });
+
+  const handleExtend = async (deltaMs: number) => {
+    countdown.controller.addMs(deltaMs);
+    if (deltaMs > 0) onExtend(); // fatigue signal — +15s only, never −15s
+    await cancelRestNotification(notificationIdRef.current);
+    const remainingSeconds = Math.max(0, Math.ceil(countdown.controller.remainingMs() / 1000));
+    notificationIdRef.current = await scheduleRestZeroNotification(remainingSeconds, nextLabel);
+  };
+
+  const handleSkip = async () => {
+    countdown.controller.addMs(-countdown.remainingMs);
+    await cancelRestNotification(notificationIdRef.current);
+    notificationIdRef.current = null;
+  };
+
+  const handleNext = async () => {
+    await cancelRestNotification(notificationIdRef.current);
+    notificationIdRef.current = null;
+    onNext();
+  };
 
   return (
     <View style={styles.hero}>
@@ -528,22 +699,18 @@ function RestPhase({
         <Pressable
           testID="rest-minus-15"
           style={styles.actionButton}
-          onPress={() => countdown.controller.addMs(-15_000)}
+          onPress={() => handleExtend(-15_000)}
         >
           <Text style={styles.actionButtonText}>−15s</Text>
         </Pressable>
         <Pressable
           testID="rest-plus-15"
           style={styles.actionButton}
-          onPress={() => countdown.controller.addMs(15_000)}
+          onPress={() => handleExtend(15_000)}
         >
           <Text style={styles.actionButtonText}>+15s</Text>
         </Pressable>
-        <Pressable
-          testID="rest-skip"
-          style={styles.actionButton}
-          onPress={() => countdown.controller.addMs(-countdown.remainingMs)}
-        >
+        <Pressable testID="rest-skip" style={styles.actionButton} onPress={handleSkip}>
           <Text style={styles.actionButtonText}>Skip</Text>
         </Pressable>
       </View>
@@ -557,7 +724,7 @@ function RestPhase({
         onEnjoymentChange={onEnjoymentChange}
       />
 
-      <Pressable testID="rest-next" style={styles.completeButton} onPress={onNext}>
+      <Pressable testID="rest-next" style={styles.completeButton} onPress={handleNext}>
         <Text style={styles.completeButtonText}>NEXT</Text>
       </Pressable>
     </View>
