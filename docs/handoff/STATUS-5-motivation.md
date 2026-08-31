@@ -121,13 +121,41 @@ spec §14, §6.4, §6.7, §9.1-9.4, §9.6-9.10, §10.1.
   - `npm run check` green (engine 873, store 37, data 2, app 32 across 13 suites; app suite count
     includes the two new files above).
 
+- [x] **Steps 6/7** (`2877bcc`) — every remaining §14.1 element:
+  - New migration `0003_lifetime_total_minutes.sql` (`rolled_up_stats.lifetime_total_minutes`,
+    REAL, incremented in `recordSessionCompletion` — the one true rolled-up-stats gap for §14.1.8;
+    everything else that section needs was already derivable). Followed ADR 0005's process (edit
+    `.sql` + `migrations/data.ts`'s embedded copy in the same commit; `migrate.test.ts`'s
+    byte-for-byte check passed).
+  - New `sessionsRepo.getCompletedSessionsForDashboard` — a light projection (localDate,
+    actualMinutes, estimatedMinutes, city, country) for the calendar/passport, deliberately not
+    reusing `getHistoryForGeneration`'s full entry/set-log tree (that one is shaped for the engine,
+    this one for two read-only UI lists).
+  - `dashboard.ts` gained `buildPassportSummary`, `buildCalendarDays`, `buildLifetimeCounters` —
+    13 new pure tests (`dashboard.test.ts`) covering dedup, the untrained-day-is-present-not-omitted
+    rule, and the actualMinutes-null fallback.
+  - `HomeScreen.tsx`: Passport (opt-in nudge when off, full card with city/country counts once
+    `passportEnabled && cities.length > 0`), calendar heatmap (28-day trailing window, untrained
+    days rendered as a neutral gray cell — never omitted, never red), muscle balance (horizontal
+    bars, OVER-WORKED shown as plain trailing text in the same row style as every other row, not a
+    color change), lifetime counters grid, and the estimate-accuracy trust line. All of these are
+    gated on `lifetimeSessionCount > 0` (progressive disclosure, per §14.2's "passport and
+    calendar appear once they have anything to show" — extended the same principle to the other
+    session-derived sections since a "0 sessions / 0 minutes" grid adds no value at cold start,
+    where the brief's actual requirement — board, hero, Today card, calibration note — is what
+    must show).
+  - **New test** `HomeScreen.afterSession.test.tsx` — the just-completed-a-session state the
+    brief's testing note explicitly asked for (not just zero-session and "the happy middle"):
+    drives a real generate -> start -> logSet -> completeSession sequence through the store, then
+    renders Home and asserts lifetime counters/muscle balance/calendar heatmap now render and the
+    zero-session calibration note is gone.
+  - `npm run check` green (engine 873, store 38, data 2, app 38 across 14 suites).
+
 ### In progress
-Starting step 6 (passport) + remaining §14.1 elements (calendar heatmap, muscle balance,
-lifetime counters, estimate accuracy) — plan says do these together since they all live in the
-same `HomeScreen.tsx` scroll and share the same `stats` object already fetched.
+Starting step 8 (SummaryScreen level-up/mastery celebration upgrade + share).
 
 ### Next
-See Plan above (steps 6-10).
+See Plan above (steps 8-10).
 
 ### Decisions / gotchas
 - One screen (`HomeScreen.tsx`) carries the whole §14.1 dashboard — see "Key findings" above.
