@@ -95,11 +95,39 @@ spec §14, §6.4, §6.7, §9.1-9.4, §9.6-9.10, §10.1.
     with an inline comment citing this exact carried-forward issue. Confirmed handled, not just
     present by accident.
 
+- [x] **Step 4/5** (`5217072`, `b55490c`) — `app/src/lib/dashboard.ts` (new, pure, tested —
+  `dashboard.test.ts`, 8 tests including a "zero-session board has every family, none mastered"
+  case): `buildProgressionBoard`, `nextUnlockHero` (picks the single most-imminent family, not a
+  list — matches §14's "one concrete, close reward"), `overWorkedMuscles`/`buildMuscleBalanceRows`
+  (built now, wired into `HomeScreen` in a later step). `HomeScreen.tsx` rewritten to the full
+  §10.1/§14.1 order: comeback banner → travel auto-suggest banner → Recovery Week suggest banner →
+  Today/Resume card → Quick Session → This week (bug fixed, see below) + travel button → Next
+  Unlock hero → Progression board (with the zero-session calibration note and §6.7 Mastery
+  badges). `GenerateScreen.tsx` gained the §9.9 manual Recovery Week toggle (route-param-seedable
+  from Home's suggestion banner, `generate(..., recoveryWeek)`); `navigation/types.ts`'s `Generate`
+  route now carries an optional `recoveryWeek` param.
+  - **Fixed the pre-existing "This week" dots bug** found during ramp-up: now
+    `statsRepo.rollingSessionCount`/`effectiveWeeklyDenominator` (travel-day-aware), not
+    `lifetimeSessionCount` capped at 7.
+  - **New test** `HomeScreen.dashboard.test.tsx` — the exact scenario the brief said would be
+    independently verified: mounts the real navigator against a **fresh, never-touched** on-device
+    db (separate Jest file -> separate db filename, so this is genuinely zero-session, not reset
+    state) and asserts the Today card, calibration note, Next Unlock hero, and every family's
+    board row are present with zero sessions ever run.
+  - **Scope simplification, recorded honestly**: the §9.3 travel-day auto-suggest banner detects
+    "a tz_change signal today" but has no persisted per-day dismissal — dismissing it only lasts
+    the current screen visit (no new schema column for this was added this wave). Functionally
+    correct, just not permanently silence-able within a day without marking travel.
+  - `npm run check` green (engine 873, store 37, data 2, app 32 across 13 suites; app suite count
+    includes the two new files above).
+
 ### In progress
-Starting the HomeScreen/§14 dashboard work (steps 4+).
+Starting step 6 (passport) + remaining §14.1 elements (calendar heatmap, muscle balance,
+lifetime counters, estimate accuracy) — plan says do these together since they all live in the
+same `HomeScreen.tsx` scroll and share the same `stats` object already fetched.
 
 ### Next
-See Plan above (steps 4-10).
+See Plan above (steps 6-10).
 
 ### Decisions / gotchas
 - One screen (`HomeScreen.tsx`) carries the whole §14.1 dashboard — see "Key findings" above.
