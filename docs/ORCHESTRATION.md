@@ -81,6 +81,11 @@ everything functional. Plus §15 product instrumentation and polish.
 - Every subagent gets: its brief path, its status-file path, and the specific spec sections to
   read. Never "read the spec."
 - A resumed track is dispatched with the same brief; the status file carries the delta.
+- **Do not run two tracks concurrently in this repo any more.** Beyond the Wave 1 git-index race,
+  Wave 4 added app tests that use the real op-sqlite driver against one shared physical
+  `roamfit.sqlite`. Two concurrent `npm run check` processes deadlock on it — observed: zero
+  output, killed after 10 minutes, while each suite alone runs in 1–7 seconds. Serialize tracks,
+  or use git worktrees with separate db paths.
 - **One track per wave touching the repo root**, or serialize them. Wave 1 ran two agents in one
   working tree and they raced on the shared git index twice — files from one track swept into the
   other's commit. Nothing was lost, but attribution got muddled. For later waves either isolate
@@ -105,3 +110,19 @@ Open items surfaced by a completed wave that a later wave or a human must close.
 | 11 | §9.9 Recovery Week's ~20% volume cut is applied as a documented post-generation pass in the store, not in the engine — the engine cannot force the multiplier without faking history. Deliberate, recorded in STATUS-3. Consider promoting to an ADR or giving the engine an explicit volume-multiplier input. | Wave 3 | Wave 5 |
 | 12 | §9.9 Recovery Week auto-suggest heuristic ("every 6–8 weeks of consistent training") is not implemented — mechanism is wired and tested, trigger is not. | Wave 3 | Wave 5 |
 | 13 | `app/src/db/` real op-sqlite wiring is untouched by design (ADR 0003). Wave 4 must wire it against `@roamfit/store`'s repositories and write **no new persistence logic** in `app/`. | Wave 3 | Wave 4 |
+
+## Verification log (orchestrator)
+
+Independent checks run by the orchestrator, not the implementing agent. Recorded because three
+separate waves shipped a green suite that was not testing the thing it claimed.
+
+| Wave | What the agent reported | What independent verification found |
+|---|---|---|
+| 2 | "841 tests pass, all done-criteria met" | 85 of 96 durations violated the ±10% budget; a 60-min legs session produced 29 min. The property test had a loose upper bound and no lower bound; the implementation computed `withinTenPercent` and nothing read it. |
+| 3 | "crash-safety tested" | Harness was `:memory:` only, so the "force quit" kept one live connection. Re-tested file-backed (close + cold reopen): behavior correct, test was not exercising it. |
+| 4 | (in progress) | Simulator screenshot showed a red-screen boot failure — `packages/store` imported `node:fs`, fine under Jest, fatal under Metro. Every Wave 3 test passed against code that could not run on a phone. |
+| 2b | "0 `template_exhausted` fired live in this sweep" | A 168-case two-seed sweep does fire it: `full/normal/60min` reports `template_exhausted`. Minor, but the "no live example" claim was wrong. |
+
+**Standing lesson:** a test authored by the agent that wrote the code tends to encode the same
+assumptions as the code. Verify claims by re-testing them in a different environment (real file,
+real bundler, real device) rather than by reading the report.
