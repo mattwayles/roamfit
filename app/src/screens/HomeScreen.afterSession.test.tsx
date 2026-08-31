@@ -6,8 +6,9 @@
  * is Home's rendering of the result, not re-proving the workout loop (already covered elsewhere).
  */
 import React from 'react';
+import { Share } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import { completeSession, generate, sessionsRepo } from '@roamfit/store';
 import { createRng, seedFromString } from '@roamfit/engine';
@@ -89,5 +90,14 @@ describe('Home after a completed session', () => {
 
     // The zero-session calibration note must be gone now that a session exists.
     expect(screen.queryByTestId('calibration-explanation')).toBeNull();
+
+    // §9.10 — the weekly summary share is a real (mocked) Share.share call, not a no-op button.
+    const shareSpy = jest
+      .spyOn(Share, 'share')
+      .mockResolvedValue({ action: 'sharedAction' } as never);
+    await fireEvent.press(screen.getByTestId('share-weekly-summary'));
+    expect(shareSpy).toHaveBeenCalledTimes(1);
+    expect(shareSpy.mock.calls[0][0]).toHaveProperty('message');
+    shareSpy.mockRestore();
   });
 });

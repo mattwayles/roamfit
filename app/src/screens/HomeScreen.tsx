@@ -20,7 +20,15 @@
  * into the engine).
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -51,6 +59,11 @@ import {
   type MuscleBalanceRow,
   type PassportSummary,
 } from '../lib/dashboard';
+import {
+  buildWeeklySummaryText,
+  ensureNotificationPermission,
+  scheduleMotivationNotifications,
+} from '../lib/motivationNotifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -129,6 +142,22 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       muscleBalance,
       lifetimeCounters,
     });
+
+    // §9.8 — re-schedule the seven weekday notifications on every Home open (cheap, idempotent by
+    // fixed identifier). Gated on `hasEverCompletedSession` — a fresh install with nothing to be
+    // "adaptive" about yet shouldn't be prompted for notification permission or nagged at all,
+    // consistent with §1.1's "never punish/never pressure" register extended to onboarding.
+    if (user.hasEverCompletedSession) {
+      void ensureNotificationPermission().then(() =>
+        scheduleMotivationNotifications({
+          startTimes: sessionsRepo.getCompletedSessionStartTimes(db),
+          hero: nextUnlockHero(board),
+          stats,
+          rollingCount: statsRepo.rollingSessionCount(stats, clock.today),
+          weeklyTarget: user.weeklyTarget,
+        }),
+      );
+    }
   }, [db, library, families]);
 
   useFocusEffect(
@@ -176,6 +205,23 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   const handleRecoveryWeekAccept = useCallback(() => {
     navigation.navigate('Generate', { recoveryWeek: true });
   }, [navigation]);
+
+  // §9.10 — share is a render step over data already on screen, never a new backend call.
+  const handleShareWeeklySummary = useCallback(() => {
+    if (!data) return;
+    const clock = nowEngineClock();
+    const rolling = statsRepo.rollingSessionCount(data.stats, clock.today);
+    const { body } = buildWeeklySummaryText(data.stats, rolling, data.user.weeklyTarget);
+    void Share.share({ message: `RoamFit — ${body}` });
+  }, [data]);
+
+  const handleSharePassport = useCallback(() => {
+    if (!data) return;
+    const { cities, countries, sessionsAbroad } = data.passport;
+    void Share.share({
+      message: `RoamFit — trained in ${cities.length} ${cities.length === 1 ? 'city' : 'cities'} and ${countries.length} ${countries.length === 1 ? 'country' : 'countries'} (${sessionsAbroad} ${sessionsAbroad === 1 ? 'session' : 'sessions'} abroad).`,
+    });
+  }, [data]);
 
   if (data === undefined) {
     return (
@@ -302,6 +348,11 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           {stats.weekStreak > 0 && (
             <Text style={styles.weekStreak}>{stats.weekStreak} week streak</Text>
           )}
+          {stats.lifetimeSessionCount > 0 && (
+            <Pressable testID="share-weekly-summary" onPress={handleShareWeeklySummary}>
+              <Text style={styles.shareLink}>Share</Text>
+            </Pressable>
+          )}
         </View>
         <Pressable testID="travel-day-button" style={styles.travelButton} onPress={handleTravelDay}>
           <Text style={styles.travelButtonIcon}>✈</Text>
@@ -378,6 +429,9 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
             abroad · {passport.cities.slice(0, 6).join(' · ')}
             {passport.cities.length > 6 ? '…' : ''}
           </Text>
+          <Pressable testID="share-passport" onPress={handleSharePassport}>
+            <Text style={styles.shareLink}>Share</Text>
+          </Pressable>
         </View>
       ) : (
         !user.passportEnabled &&
@@ -509,6 +563,7 @@ const styles = StyleSheet.create({
   weekLabel: { fontSize: 13, color: '#64748b', fontWeight: '600' },
   weekDots: { fontSize: 18, letterSpacing: 2, color: '#0f172a' },
   weekStreak: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  shareLink: { fontSize: 12, color: '#2563eb', fontWeight: '700', marginTop: 4 },
   travelButton: {
     backgroundColor: '#f1f5f9',
     borderRadius: 12,

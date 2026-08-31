@@ -828,6 +828,26 @@ export interface DashboardSessionSummary {
   country: string | null;
 }
 
+/** §9.8 — raw material for "adaptive to the observed training window": each completed session's
+ *  start instant plus the tz_id it was generated under, so the caller can derive the *local* hour
+ *  the user actually trains in (not the device's current tz, which may differ for a traveler
+ *  looking back at sessions from elsewhere). */
+export interface SessionStartTime {
+  startedAt: string;
+  tzId: string;
+}
+
+export function getCompletedSessionStartTimes(db: Db, limit = 90): SessionStartTime[] {
+  return db
+    .select({ startedAt: schema.sessions.startedAt, tzId: schema.sessions.tzId })
+    .from(schema.sessions)
+    .where(and(eq(schema.sessions.userId, USER_ID), eq(schema.sessions.status, 'completed')))
+    .orderBy(desc(schema.sessions.localDate))
+    .limit(limit)
+    .all()
+    .filter((r): r is { startedAt: string; tzId: string } => r.startedAt !== null);
+}
+
 export function getCompletedSessionsForDashboard(db: Db, limit = 365): DashboardSessionSummary[] {
   return db
     .select({
