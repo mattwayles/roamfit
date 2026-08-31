@@ -224,6 +224,7 @@ export function completeSession(
         muscleVolume,
         estimatedMinutes: session.estimatedMinutes,
         actualMinutes,
+        recoveryWeekManual: session.recoveryWeekManual,
       },
       now,
     );

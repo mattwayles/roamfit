@@ -11,6 +11,7 @@ import { getAllMilestones } from './repositories/milestones';
 import { getPendingDeferredWork } from './repositories/queues';
 import { completeSession } from './completion';
 import { ensureUser, updateUser } from './repositories/users';
+import { getStats, shouldSuggestRecoveryWeek } from './repositories/stats';
 import { library, families, clockFor, rngFor, utcInstantFor } from './testFixtures';
 
 function runSession(
@@ -145,6 +146,54 @@ describe('§9.9 Recovery Week — same code path as §9.4 comeback', () => {
       // none of them silently reset to null.
       const after = getAllProgressionStates(db);
       expect(Object.keys(after).length).toBe(Object.keys(before).length);
+    } finally {
+      close();
+    }
+  });
+});
+
+describe('§9.9 issue #12 — Recovery Week auto-suggest trigger', () => {
+  it('increments once per distinct ISO week of training, not once per session', () => {
+    const { db, close } = createTestDb();
+    try {
+      // Two sessions in the same ISO week (a Monday and the following Wednesday) must only
+      // advance the counter once — "weeks of consistent training," not "sessions."
+      runSession(db, '2026-05-04', 1, 1); // Monday
+      runSession(db, '2026-05-06', 2, 1); // same week, Wednesday
+      expect(getStats(db)!.weeksSinceLastRecoveryWeek).toBe(1);
+
+      runSession(db, '2026-05-11', 3, 1); // next week
+      expect(getStats(db)!.weeksSinceLastRecoveryWeek).toBe(2);
+    } finally {
+      close();
+    }
+  });
+
+  it('shouldSuggestRecoveryWeek is false below 6 weeks, true in the 6-8 window', () => {
+    const { db, close } = createTestDb();
+    try {
+      const mondays = ['2026-05-04', '2026-05-11', '2026-05-18', '2026-05-25', '2026-06-01'];
+      for (const [i, d] of mondays.entries()) runSession(db, d, i + 1, 1);
+      expect(shouldSuggestRecoveryWeek(getStats(db)!)).toBe(false); // 5 weeks
+
+      runSession(db, '2026-06-08', 6, 1); // 6th week
+      expect(getStats(db)!.weeksSinceLastRecoveryWeek).toBe(6);
+      expect(shouldSuggestRecoveryWeek(getStats(db)!)).toBe(true);
+    } finally {
+      close();
+    }
+  });
+
+  it('a completed Recovery Week session resets the counter to 0, not penalizes it', () => {
+    const { db, close } = createTestDb();
+    try {
+      for (const [i, d] of ['2026-05-04', '2026-05-11', '2026-05-18'].entries()) {
+        runSession(db, d, i + 1, 1);
+      }
+      expect(getStats(db)!.weeksSinceLastRecoveryWeek).toBe(3);
+
+      runSession(db, '2026-05-25', 4, 1, { recoveryWeek: true });
+      expect(getStats(db)!.weeksSinceLastRecoveryWeek).toBe(0);
     } finally {
       close();
     }

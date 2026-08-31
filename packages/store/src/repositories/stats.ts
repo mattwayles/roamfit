@@ -123,6 +123,10 @@ export interface RecordSessionCompletionInput {
   muscleVolume: MuscleVolumeEntry[];
   estimatedMinutes: number;
   actualMinutes: number;
+  /** §9.9 — this completed session was itself a Recovery Week (manual toggle or an accepted
+   *  auto-suggestion). Resets the "weeks since last Recovery Week" counter below rather than
+   *  incrementing it, mirroring §9.4's "credited, not penalized" framing. */
+  recoveryWeekManual: boolean;
 }
 
 /** The one write call at completion. Appends the ledger rows, updates the singleton stats row.
@@ -168,6 +172,21 @@ export function recordSessionCompletion(
       ? accuracySample
       : stats.estimateAccuracyEma + EMA_ALPHA * (accuracySample - stats.estimateAccuracyEma);
 
+  // §9.9 auto-suggest trigger (issue #12) — "every 6-8 weeks of consistent training." Tracked
+  // incrementally (no full-history rescan): a Recovery Week session zeroes the counter; any other
+  // session bumps it by 1 the first time a *new* ISO week produces a completed session (so
+  // multiple sessions in the same week don't over-count, and a week with zero sessions doesn't
+  // count as "consistent training" either — it simply doesn't advance the counter until training
+  // resumes, which is the correct "forgiving math" behavior per §9.1's own framing).
+  const isNewWeek =
+    stats.lastSessionLocalDate === null ||
+    isoWeekKey(stats.lastSessionLocalDate) !== isoWeekKey(input.localDate);
+  const weeksSinceLastRecoveryWeek = input.recoveryWeekManual
+    ? 0
+    : isNewWeek
+      ? stats.weeksSinceLastRecoveryWeek + 1
+      : stats.weeksSinceLastRecoveryWeek;
+
   db.update(schema.rolledUpStats)
     .set({
       lifetimeSessionCount: stats.lifetimeSessionCount + 1,
@@ -175,10 +194,18 @@ export function recordSessionCompletion(
       weekStreak,
       lastSessionLocalDate: input.localDate,
       estimateAccuracyEma,
+      weeksSinceLastRecoveryWeek,
       updatedAt: now,
     })
     .where(eq(schema.rolledUpStats.userId, USER_ID))
     .run();
+}
+
+/** §9.9 — "auto-suggested every 6-8 weeks of consistent training." Pure predicate over the
+ *  already-maintained counter; the caller decides what to do with `true` (show a banner) — this
+ *  never fires anything itself, consistent with §1.1 (nothing here nags). */
+export function shouldSuggestRecoveryWeek(stats: RolledUpStatsRecord): boolean {
+  return stats.weeksSinceLastRecoveryWeek >= 6 && stats.weeksSinceLastRecoveryWeek <= 8;
 }
 
 /** §9.1 rolling 7-day session count against `weekly_target`, with §9.3's travel-day denominator
