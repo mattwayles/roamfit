@@ -222,7 +222,7 @@ describe('§10.6 buildSwapReplacementEntry', () => {
     expect(result.repTarget).toBeUndefined();
   });
 
-  it('clamps the band into the new exercise\'s own suggested range', () => {
+  it("clamps the band into the new exercise's own suggested range", () => {
     const lightExercise = ex({ id: 'light', band: 'B1-B2' });
     const replaced = entry({ band: 'B5' });
     const result = buildSwapReplacementEntry(lightExercise, replaced);

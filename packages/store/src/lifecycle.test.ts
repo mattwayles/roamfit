@@ -143,7 +143,30 @@ describe('planned-vs-actual is preserved, not overwritten', () => {
       );
       if (!swapTarget) return; // pattern pool too thin in this fixture — not the point under test
 
-      recordSwap(db, entry.id, swapTarget.id, 0, utcInstantFor('2026-01-05', 10));
+      recordSwap(
+        db,
+        entry.id,
+        {
+          exerciseId: swapTarget.id,
+          band: entry.band,
+          sets: entry.sets,
+          repTarget: entry.repTarget ?? undefined,
+          durationSec: entry.durationSec ?? undefined,
+          restSec: entry.restSec,
+          tempoSec: entry.tempoSec,
+          notes: entry.notes ?? undefined,
+          effort: entry.effort,
+          progressionFamilyId: null,
+          progressionLevelIdAtTime: null,
+          pattern: swapTarget.pattern,
+          anchorClass: swapTarget.anchor_class,
+          unilateral: swapTarget.unilateral,
+          estimatedSec: entry.estimatedSec,
+          substitutedFor: originalExerciseId,
+        },
+        0,
+        utcInstantFor('2026-01-05', 10),
+      );
 
       const after = getSession(db, sessionId)!;
       const afterEntry = after.entries.find((e) => e.id === entry.id)!;

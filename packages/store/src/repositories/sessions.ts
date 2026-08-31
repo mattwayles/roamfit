@@ -456,10 +456,37 @@ export function recordRegenerateTap(db: Db, sessionId: string, now: string): voi
 // Mid-workout swap (§10.6, §8.3: what -> what, at which set).
 // ------------------------------------------------------------------------------------------
 
+/**
+ * §10.6 — the replacement exercise may have a different metric (reps vs. time), equipment, or
+ * band range than the one it replaces (e.g. swapping a band row for a bodyweight one), so a swap
+ * has to update the whole prescription, not just `exerciseId` — otherwise the entry would carry
+ * the *old* exercise's rep/duration/band shape into a set the new exercise can't actually perform
+ * that way. `replacement` is the engine's own `buildSwapReplacementEntry` output (`@roamfit/
+ * engine`'s §10.6 export) — the store persists it verbatim rather than recomputing any of it,
+ * per CLAUDE.md invariant 2 ("the engine decides, the store/UI never re-derive a prescription").
+ */
 export function recordSwap(
   db: Db,
   entryId: string,
-  toExerciseId: string,
+  replacement: Pick<
+    EngineSessionEntry,
+    | 'exerciseId'
+    | 'band'
+    | 'sets'
+    | 'repTarget'
+    | 'durationSec'
+    | 'restSec'
+    | 'tempoSec'
+    | 'notes'
+    | 'effort'
+    | 'progressionFamilyId'
+    | 'progressionLevelIdAtTime'
+    | 'pattern'
+    | 'anchorClass'
+    | 'unilateral'
+    | 'estimatedSec'
+    | 'substitutedFor'
+  >,
   atSetIndex: number,
   now: string,
 ): void {
@@ -470,8 +497,26 @@ export function recordSwap(
     .all()[0];
   if (!entry) return;
   const fromExerciseId = entry.exerciseId;
+  const toExerciseId = replacement.exerciseId;
   db.update(schema.sessionEntries)
-    .set({ exerciseId: toExerciseId })
+    .set({
+      exerciseId: replacement.exerciseId,
+      band: replacement.band as BandId | null,
+      sets: replacement.sets,
+      repTarget: replacement.repTarget ?? null,
+      durationSec: replacement.durationSec ?? null,
+      restSec: replacement.restSec,
+      tempoSec: replacement.tempoSec,
+      notes: replacement.notes ?? null,
+      effort: replacement.effort,
+      progressionFamilyId: replacement.progressionFamilyId ?? null,
+      progressionLevelIdAtTime: replacement.progressionLevelIdAtTime ?? null,
+      pattern: replacement.pattern,
+      anchorClass: replacement.anchorClass,
+      unilateral: replacement.unilateral,
+      estimatedSec: replacement.estimatedSec,
+      substitutedFor: replacement.substitutedFor ?? null,
+    })
     .where(eq(schema.sessionEntries.id, entryId))
     .run();
   incrementSwapAwayCount(db, fromExerciseId, now);
