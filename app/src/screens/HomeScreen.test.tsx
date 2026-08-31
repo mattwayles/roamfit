@@ -40,7 +40,7 @@ describe('Home -> Quick Session -> Workout', () => {
     await waitFor(() => expect(screen.getByTestId('today-card')).toBeTruthy());
     expect(screen.queryByTestId('resume-card')).toBeNull();
 
-    fireEvent.press(screen.getByTestId('quick-session-button'));
+    await fireEvent.press(screen.getByTestId('quick-session-button'));
 
     // Navigated into the Workout screen for a genuinely-created, genuinely-started session —
     // either the reps hero or the timed circle renders, proving the whole

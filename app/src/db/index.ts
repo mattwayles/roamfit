@@ -8,11 +8,32 @@
 import { open } from '@op-engineering/op-sqlite';
 import { schema } from '@roamfit/store';
 import type { Db } from '@roamfit/store';
-import { runMigrations } from '@roamfit/store';
+import { runMigrations, newId } from '@roamfit/store';
 import type { MigrationExecutor } from '@roamfit/store';
 import { drizzleOpSqlite } from './opSqliteSyncDriver';
 
-const DB_NAME = 'roamfit.sqlite';
+/**
+ * Test isolation (see docs/handoff/STATUS-4-loop.md — "npm run check hung when run concurrently
+ * with another `npm run check`"): several app tests (`HomeScreen.test.tsx`,
+ * `WorkoutScreen.rest.test.tsx`, `WorkoutScreen.resume.test.tsx`) deliberately exercise this real
+ * op-sqlite driver against a real file — that's what caught the `node:fs` Metro bug and the
+ * feedback-clear bug — but a *fixed* filename meant every test file, and every concurrently
+ * running Jest process (two agents, or a watch process plus a CI run), raced on the one physical
+ * `roamfit.sqlite`. `maxWorkers: 1` in `app/jest.config.js` only serialized files within a single
+ * Jest *process*; it could not and did not prevent two separate processes from colliding.
+ *
+ * Under Jest, `process.env.JEST_WORKER_ID` is always set — this branch gives every test file its
+ * own uniquely-named db (Jest resets the module registry per test file, so this runs once per
+ * file, computing a name that's unique to this process/worker/file combination). `JEST_WORKER_ID`
+ * is never set outside Jest, so the real app always uses the stable production filename.
+ * `newId()` (already the store's own id generator — no new dependency) supplies the randomness;
+ * deliberately not `node:crypto`, which — like `node:fs` before it — has no Metro/Hermes
+ * equivalent and would break the real on-device bundle if imported here (see ADR 0005).
+ */
+const DB_NAME =
+  process.env.JEST_WORKER_ID !== undefined
+    ? `roamfit-test-${process.env.JEST_WORKER_ID}-${newId()}.sqlite`
+    : 'roamfit.sqlite';
 
 let dbInstance: Db | null = null;
 
@@ -49,6 +70,11 @@ export function getDb(): Db {
   const client = open({ name: DB_NAME });
   client.executeSync('PRAGMA journal_mode = WAL');
   client.executeSync('PRAGMA foreign_keys = ON');
+  // Defense in depth alongside the per-process db name above: if anything ever DOES contend on
+  // one physical file (e.g. a future change reintroduces a fixed path), a locked db should fail
+  // fast with a clear SQLITE_BUSY error within a few seconds, not hang indefinitely — a hung
+  // `npm run check` reads as "the environment is broken," not as a bug report.
+  client.executeSync('PRAGMA busy_timeout = 5000');
 
   const executor: MigrationExecutor = {
     exec: (sql) => execMultiStatement(client, sql),

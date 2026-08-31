@@ -14,6 +14,7 @@ import {
   getSession,
   logSet,
   recordDemoMediaExpanded,
+  recordEntryFeedback,
   recordRegenerateTap,
   startSession,
 } from './repositories/sessions';
@@ -199,6 +200,38 @@ describe('§8.3 preference & aversion / comprehension signals', () => {
       expect(session.abandonedEntryId).toBe(entry.id);
       expect(session.abandonedSetIndex).toBe(1);
       expect(getSignalEventsByType(db, 'abandoned')).toHaveLength(1);
+    } finally {
+      close();
+    }
+  });
+});
+
+describe('§8.1 recordEntryFeedback — three-state omit/set/clear (found via app/WorkoutScreen.rest.test.tsx)', () => {
+  it('an explicit null clears a previously-set value; omitting the key leaves it untouched', () => {
+    const { db, close } = createTestDb();
+    try {
+      const sessionId = makeSession(db);
+      const entryId = getPendingSession(db)!.entries.find((e) => e.section === 'main')!.id;
+
+      recordEntryFeedback(
+        db,
+        entryId,
+        { difficulty: 'too_easy', enjoyment: 4 },
+        utcInstantFor('2026-03-01'),
+      );
+      let entry = getSession(db, sessionId)!.entries.find((e) => e.id === entryId)!;
+      expect(entry.difficultyFeedback).toBe('too_easy');
+      expect(entry.enjoymentFeedback).toBe(4);
+
+      // Omitting `enjoyment` entirely must not touch it while clearing `difficulty`.
+      recordEntryFeedback(db, entryId, { difficulty: null }, utcInstantFor('2026-03-01'));
+      entry = getSession(db, sessionId)!.entries.find((e) => e.id === entryId)!;
+      expect(entry.difficultyFeedback).toBeNull(); // "tap the same value again clears it"
+      expect(entry.enjoymentFeedback).toBe(4); // untouched
+
+      recordEntryFeedback(db, entryId, { enjoyment: null }, utcInstantFor('2026-03-01'));
+      entry = getSession(db, sessionId)!.entries.find((e) => e.id === entryId)!;
+      expect(entry.enjoymentFeedback).toBeNull();
     } finally {
       close();
     }

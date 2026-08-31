@@ -489,10 +489,21 @@ export function recordSwap(
 // immediately (the rest screen is the only place these controls appear).
 // ------------------------------------------------------------------------------------------
 
+/**
+ * §8.1 — "Tapping the same [value] again clears it." The `difficulty`/`enjoyment` keys are
+ * three-state, not two: an **omitted** key means "this call doesn't touch that field" (the rest
+ * screen calls this once per control, independently), while an explicit `null` means "the user
+ * just cleared it" — set the column back to unset. Only a real value feeds the exercise's EMA;
+ * clearing intentionally does not attempt to "un-feed" a prior contribution (the EMA is a
+ * decayed running signal, not a reversible ledger — nothing in §6/§8 asks for that).
+ */
 export function recordEntryFeedback(
   db: Db,
   entryId: string,
-  feedback: { difficulty?: 'too_easy' | 'just_right' | 'too_hard'; enjoyment?: number },
+  feedback: {
+    difficulty?: 'too_easy' | 'just_right' | 'too_hard' | null;
+    enjoyment?: number | null;
+  },
   now: string,
 ): void {
   const entry = db
@@ -504,11 +515,15 @@ export function recordEntryFeedback(
   const values: Record<string, unknown> = {};
   if (feedback.difficulty !== undefined) {
     values.difficultyFeedback = feedback.difficulty;
-    recordDifficultyFeedback(db, entry.exerciseId, feedback.difficulty, now);
+    if (feedback.difficulty !== null) {
+      recordDifficultyFeedback(db, entry.exerciseId, feedback.difficulty, now);
+    }
   }
   if (feedback.enjoyment !== undefined) {
     values.enjoymentFeedback = feedback.enjoyment;
-    recordEnjoymentFeedback(db, entry.exerciseId, feedback.enjoyment, now);
+    if (feedback.enjoyment !== null) {
+      recordEnjoymentFeedback(db, entry.exerciseId, feedback.enjoyment, now);
+    }
   }
   if (Object.keys(values).length > 0) {
     db.update(schema.sessionEntries).set(values).where(eq(schema.sessionEntries.id, entryId)).run();

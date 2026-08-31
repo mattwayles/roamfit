@@ -87,6 +87,9 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const [phase, setPhase] = useState<Phase>('exercise');
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [enjoyment, setEnjoyment] = useState<number | null>(null);
+  // §8.1 — which entry the rest screen's feedback controls apply to (the one just performed,
+  // not `current`'s post-reload "next up" entry). See the comment in `finishSetAndRest`.
+  const [restingEntryId, setRestingEntryId] = useState<string | null>(null);
   const setStartedAtRef = useRef<string>(nowUtcInstant());
   const workoutStopwatch = useRef(createStopwatchController(systemClock));
   const [, forceElapsedTick] = useState(0);
@@ -155,6 +158,11 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       },
       nowUtcInstant(),
     );
+    // §8.1 — feedback is about the exercise just performed, not whatever `reload()` (called
+    // right below) causes `current`/`entry` to recompute to next render (the *upcoming* entry,
+    // which is what `nextLabel`'s "Next up" preview correctly wants instead). Captured here,
+    // before reload, so the rest screen's feedback controls target the right exercise.
+    setRestingEntryId(entry.id);
     setDifficulty(null);
     setEnjoyment(null);
     setPhase('resting');
@@ -181,11 +189,21 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
   const handleDifficultyChange = (d: Difficulty | undefined) => {
     setDifficulty(d ?? null);
-    sessionsRepo.recordEntryFeedback(db, entry.id, { difficulty: d }, nowUtcInstant());
+    sessionsRepo.recordEntryFeedback(
+      db,
+      restingEntryId ?? entry.id,
+      { difficulty: d ?? null }, // explicit null = "cleared," per recordEntryFeedback's contract
+      nowUtcInstant(),
+    );
   };
   const handleEnjoymentChange = (e: number | undefined) => {
     setEnjoyment(e ?? null);
-    sessionsRepo.recordEntryFeedback(db, entry.id, { enjoyment: e }, nowUtcInstant());
+    sessionsRepo.recordEntryFeedback(
+      db,
+      restingEntryId ?? entry.id,
+      { enjoyment: e ?? null },
+      nowUtcInstant(),
+    );
   };
 
   return (
@@ -422,7 +440,9 @@ function RestPhase({
     <View style={styles.hero}>
       <Text style={styles.stage}>Rest</Text>
       <View style={styles.circleTimer} testID="rest-circle">
-        <Text style={styles.circleTimerText}>{Math.ceil(countdown.remainingMs / 1000)}</Text>
+        <Text style={styles.circleTimerText} testID="rest-remaining">
+          {Math.ceil(countdown.remainingMs / 1000)}
+        </Text>
       </View>
 
       <View style={styles.actionRow}>
