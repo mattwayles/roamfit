@@ -32,3 +32,8 @@ export { COMEBACK_VOLUME_MULTIPLIER, COMEBACK_WEEK_GAP_DAYS } from './progressio
 // ProgressionState, it never fabricates the first one.
 export { calibrationStartLevel } from './progression/ladder';
 export { defaultMicroForExercise } from './progression/micro';
+
+// Wave 4b wiring surface — §10.6 mid-workout swap. `app/` calls this to get 3-5 same-slot,
+// same-level, filter-respecting alternatives; it must never rank/filter candidates itself.
+export { alternativesForSlot, buildSwapReplacementEntry } from './selection/swap';
+export type { SwapSlotRequest, SwapAlternative } from './selection/swap';
