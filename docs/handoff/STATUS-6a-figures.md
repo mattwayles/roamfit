@@ -1,5 +1,52 @@
 ## Track: 6a-figures — In-house line-art demo figures
-Last updated: 2026-08-31
+Last updated: 2026-08-31 (orchestrator entry — track PAUSED by user request)
+
+> **PAUSE NOTE (orchestrator, read this first).** This track was reviewed, sent back for a quality
+> rework, and then **paused by the user mid-rework**. The agent was stopped with a green but
+> uncommitted tree; the orchestrator ran `npm run check` (green) and committed the work as
+> `f927f2c` so it would not be lost. Everything under "Done" below describes the FIRST pass
+> (`6ec3b00`) and is now partly superseded — read "Rework round" and "RESUME HERE" before
+> "Done".
+
+### Rework round — orchestrator findings and what landed (`f927f2c`)
+
+Orchestrator verification of `6ec3b00` confirmed all mechanical claims (200/200 coverage, 0
+orphans, 342 KB of a 3 MB budget, 0 video-id references) but rasterized the SVGs with
+`qlmanage -t` and found the art itself illegible or wrong. Six findings were issued; the agent
+addressed all six and wrote regression tests before being paused.
+
+| # | Finding | State |
+|---|---|---|
+| 1 | 200 figures were only 57 distinct geometries; `bw-crunch`/`bw-sit-up`/`bw-bicycle-crunch`/`bw-reverse-crunch` rendered pixel-identical | **improved** — now 130 distinct geometries; largest remaining clusters are 4-5 and are genuinely similar movements (glute-bridge family, curl family, deadlift family), which is defensible |
+| 2 | `cd-chest-stretch` was drawn as a push-up (shared a cluster with the three push-up variants), contradicting its `setup` cue | **addressed**, but the full `cd-*`/`wu-*` sweep was NOT independently re-verified by the orchestrator |
+| 3 | Superimposed start/end poses made limbs an unreadable tangle (`rdl`, `banded-squat`, `bw-plank`) | **fixed** — two side-by-side panels with a divider and the arrow between them. Confirmed by rasterizing. |
+| 4 | Isometric holds drew two poses plus a movement arrow | **fixed** — `metric === 'time'` renders one pose plus a hold glyph, no arrow. Confirmed by rasterizing. |
+| 5 | Band read as a small stray dashed mark, not a band line from an anchor | **partially fixed** — see RESUME HERE |
+| 6 | Arms and legs indistinguishable (same stroke weight and color) | **fixed** — teal arm `#0891b2`, purple leg `#7c3aed`, dark trunk `#1e293b`. Confirmed by rasterizing. |
+
+Regression guards added to `packages/data/src/index.test.ts` (data suite went 2 -> 11 tests): a
+variety floor (>= 110 distinct geometries), hold-vs-dynamic layout invariants, limb-color
+presence, and band-path visibility. `npm run check` green at `f927f2c`.
+
+### RESUME HERE (exact next actions)
+
+The agent was stopped immediately after writing the regression tests. Two defects are **still
+open**, both observed by the orchestrator in rendered pixels at 640px, not inferred from markup:
+
+1. **`bw-plank` floats above the ground line and its arm does not reach the floor.** A plank must
+   have forearms/hands in contact with the ground. Suspect the hold/single-pose path does not
+   apply the `hipOffset`/ground-contact logic the two-panel dynamic path does. Check the other
+   `metric === 'time'` holds for the same defect — the regression test asserts layout shape (no
+   divider, no arrow) and would NOT catch a floating figure.
+2. **Finding 5 is only partially closed.** In `banded-squat` the band is still a small green mark
+   near the foot rather than a legible path from a drawn anchor to the working limb. The band
+   test asserts a band path *exists*; it does not assert the anchor is drawn or that the path is
+   long enough to read. Anchor class is the thing tier 2 most needs to communicate.
+3. Also still true: `banded-squat` reads only weakly as a squat — the right panel is barely lower
+   than the left. Consider exaggerating pose deltas; these are schematics, not anatomy.
+
+Then: re-render and inspect at least one figure per geometry cluster (~130), not one per pattern,
+and report the count actually inspected plus anything still wrong.
 
 ### Done
 - [x] Parametric SVG generator (`tools/generate-figures.ts`) — a side-view stick-figure rig built
