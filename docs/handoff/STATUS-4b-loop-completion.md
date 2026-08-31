@@ -79,11 +79,25 @@ ADRs 0003/0004/0005, spec §10.3/§10.5/§10.6/§10.7/§10.8.
     `configureWorkoutAudioSession` is called with a hardcoded `false` (respect the silent switch),
     which is the spec-compliant default; wiring a real toggle is future work.
 
+- [x] **Issue #14 closed** — `WorkoutScreen.rest.test.tsx`'s flake root cause (confirmed, not
+  guessed): `RestPhase`/`TimedExercise`'s displayed countdown only updates on their own internal
+  250ms `setInterval` re-render tick (`useCountdown.ts`'s `forceTick`) — pressing `+15s`/`-15s`
+  mutates the wall-clock controller synchronously, but the *screen* doesn't reflect it until that
+  next tick. Under real CPU contention the event loop can starve past the default `waitFor`
+  budget (1000ms, 50ms poll) before that tick fires, timing the assertion out even though the
+  underlying state was already correct — a real "wait budget sized for an idle CPU," not db
+  contention (per-worker db naming already fixed that in the prior track). Fixed: a shared
+  `WAIT_OPTS = { timeout: 5000, interval: 50 }` applied to all 10 `waitFor` calls in the file —
+  still polling the same real assertions (not a fixed sleep), just with headroom over the 250ms
+  tick under load. **Verified, not assumed**: ran the target test 3x solo, then 2x concurrently,
+  both while pinning all CPU cores at 100% with `yes > /dev/null` background processes (one per
+  core) — all passed, where the prior version was reported to fail under exactly this shape of
+  load.
+
 ### Next (ordered)
-1. Issue #14 test fragility fix (`WorkoutScreen.rest.test.tsx` waitFor) — not started.
-2. §10.3 approval-time add-exercise / edit-rep-target + store additions (issue #17) — not started.
-3. §10.5 timed-exercise interaction test (issue #18) — not started.
-4. Re-run `expo run:ios`, capture evidence of the WORKING loop (not just bugs) into
+1. §10.3 approval-time add-exercise / edit-rep-target + store additions (issue #17) — not started.
+2. §10.5 timed-exercise interaction test (issue #18) — not started.
+3. Re-run `expo run:ios`, capture evidence of the WORKING loop (not just bugs) into
    `docs/handoff/evidence/` — including, this time, real confirmation that audio/haptics/the
    background notification actually work on-device, not just that they don't throw in Jest.
 

@@ -10,6 +10,19 @@
  * (an already-verified store call — the setup, not what's under test) so the screen lands
  * exactly on a reps exercise, avoiding the timed-exercise get-ready/countdown flow this test
  * isn't about.
+ *
+ * **Carried-forward issue #14** — this file used to pass 3/3 alone but fail under 2x concurrent
+ * CPU load. Root cause, confirmed by the orchestrator: not db contention (per-worker db naming
+ * already fixed that), a `waitFor` timeout. `RestPhase`'s displayed countdown only updates when
+ * its own internal 250ms `setInterval` fires a re-render (`useCountdown`'s `forceTick`, see
+ * `useCountdown.ts`) — pressing `+15s`/`-15s` mutates the wall-clock controller synchronously,
+ * but the *screen* doesn't reflect it until that next tick. Under real CPU contention, Node's
+ * event loop can starve past a default `waitFor` window (1000ms budget, 50ms poll) well before
+ * the interval actually fires, timing the assertion out even though the underlying state is
+ * already correct. `WAIT_OPTS` below gives every assertion in this file a timeout with real
+ * headroom over that 250ms tick under load, rather than the default — still "await the actual
+ * condition" (waitFor keeps polling the same real assertion), just no longer racing a budget
+ * that was sized for an idle CPU.
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -19,6 +32,10 @@ import { generate, sessionsRepo } from '@roamfit/store';
 import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
+
+// See the file header — real headroom over RestPhase/TimedExercise's 250ms display-refresh tick
+// under CPU contention, not the default 1000ms budget sized for an idle CPU.
+const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
 function mockNavigation() {
   return {
@@ -75,7 +92,7 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
         <Setup onReady={(d) => (db = d)} />
       </StoreProvider>,
     );
-    await waitFor(() => expect(db).toBeDefined());
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
 
     const clock = nowEngineClock();
     const utcInstant = nowUtcInstant();
@@ -114,16 +131,16 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
       </StoreProvider>,
     );
 
-    await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('complete-set'));
 
     // Rest auto-started.
-    await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), WAIT_OPTS);
     const restDisplay = () => Number(screen.getByTestId('rest-remaining').props.children);
     const initialRemaining = restDisplay();
 
     await fireEvent.press(screen.getByTestId('rest-plus-15'));
-    await waitFor(() => expect(restDisplay()).toBeGreaterThanOrEqual(initialRemaining));
+    await waitFor(() => expect(restDisplay()).toBeGreaterThanOrEqual(initialRemaining), WAIT_OPTS);
 
     await fireEvent.press(screen.getByTestId('rest-minus-15'));
     // (Back down — not asserting an exact value since real wall-clock ms pass between reads;
@@ -138,14 +155,14 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
         .getSession(db, sessionId)!
         .entries.find((e) => e.id === firstRepsEntry!.id)!;
       expect(entry.difficultyFeedback).toBe('too_easy');
-    });
+    }, WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('difficulty-too_easy'));
     await waitFor(() => {
       const entry = sessionsRepo
         .getSession(db, sessionId)!
         .entries.find((e) => e.id === firstRepsEntry!.id)!;
       expect(entry.difficultyFeedback).toBeNull();
-    });
+    }, WAIT_OPTS);
 
     await fireEvent.press(screen.getByTestId('enjoyment-4'));
     await waitFor(() => {
@@ -153,30 +170,32 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
         .getSession(db, sessionId)!
         .entries.find((e) => e.id === firstRepsEntry!.id)!;
       expect(entry.enjoymentFeedback).toBe(4);
-    });
+    }, WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('enjoyment-4'));
     await waitFor(() => {
       const entry = sessionsRepo
         .getSession(db, sessionId)!
         .entries.find((e) => e.id === firstRepsEntry!.id)!;
       expect(entry.enjoymentFeedback).toBeNull();
-    });
+    }, WAIT_OPTS);
 
     // Skip zeroes the remaining time and advances on Next.
     await fireEvent.press(screen.getByTestId('rest-skip'));
-    await waitFor(() => expect(restDisplay()).toBe(0));
+    await waitFor(() => expect(restDisplay()).toBe(0), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('rest-next'));
 
     // Next advanced the phase: either back to an exercise view (the next set/entry), or — if
     // that reps set happened to be the very last one in the session — straight to Summary.
     // Either is correct; which one depends on where in the generated plan `firstRepsEntry`
     // landed, which this test doesn't control.
-    await waitFor(() =>
-      expect(
-        screen.queryByTestId('complete-set') ??
-          screen.queryByTestId('timed-circle') ??
-          (navigation.replace.mock.calls.length > 0 ? true : null),
-      ).toBeTruthy(),
+    await waitFor(
+      () =>
+        expect(
+          screen.queryByTestId('complete-set') ??
+            screen.queryByTestId('timed-circle') ??
+            (navigation.replace.mock.calls.length > 0 ? true : null),
+        ).toBeTruthy(),
+      WAIT_OPTS,
     );
   });
 });
