@@ -8,6 +8,7 @@
  */
 import type { SessionEntry } from '../types';
 import { cooldownMinutes, mainBudgetSec, mainExerciseCountRange, warmupMinutes } from './formulas';
+import { withOneFewerSet } from '../prescription/prescribe';
 
 export interface SlotEntry {
   required: boolean;
@@ -53,15 +54,34 @@ export function fitMainEntries(
   // (`template.expandOptionalSlots`), not by letting this loop overshoot to compensate. If
   // required entries alone are already over the ceiling, that's on the caller to trim via
   // prescription (see `pipeline.ts`'s corrective sets multiplier) — this loop only ever adds.
+  //
+  // Two bugs, found together by an independent review of carried-forward issue #7 (§5.5/§5.6):
+  // (1) this loop used to `break` on the first optional entry that didn't fit, which makes slot
+  // *order* rather than slot *size* decide what gets in — a smaller entry later in the
+  // (priority-ordered) list could fit the remaining room but was never even tried. Now it tries
+  // every remaining optional entry regardless of an earlier miss.
+  // (2) even trying every entry, several real optional entries (e.g. an isolation exercise
+  // prescribed at 3 sets) can all be larger than the room actually left, while a *smaller*
+  // prescription of that same exercise (fewer sets) would fit and is still real, useful work —
+  // preferable to leaving the slot empty. Before giving up on a candidate that doesn't fit at its
+  // prescribed size, try it at one fewer set at a time (down to the 1-set floor); use the
+  // smallest trimmed version that fits, never one that still doesn't.
   const politeCeiling = budgetSec * 1.1;
   for (const entry of optional) {
-    const candidateTotal = total + entry.estimatedSec;
-    if (candidateTotal <= politeCeiling) {
-      chosen.push(entry);
-      total = candidateTotal;
-    } else {
-      break;
+    let candidate = entry;
+    let candidateTotal = total + candidate.estimatedSec;
+    while (candidateTotal > politeCeiling && candidate.sets > 1) {
+      const trimmed = withOneFewerSet(candidate);
+      if (trimmed.sets === candidate.sets) break; // no-op floor reached
+      candidate = trimmed;
+      candidateTotal = total + candidate.estimatedSec;
     }
+    if (candidateTotal <= politeCeiling) {
+      chosen.push(candidate);
+      total = candidateTotal;
+    }
+    // else: this entry genuinely can't fit even at the 1-set floor — skip it and keep trying the
+    // rest of the optional list, rather than stopping here.
   }
 
   const estimatedMinutes = Math.round((warmupSec + cooldownSec + total) / 60);

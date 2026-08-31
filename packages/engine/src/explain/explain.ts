@@ -49,7 +49,7 @@ export interface TimeBudgetDeviationFact {
   targetMinutes: number;
   estimatedMinutes: number;
   direction: 'under' | 'over';
-  reason: 'thin_pool' | 'structural_minimum';
+  reason: 'thin_pool' | 'template_exhausted' | 'structural_minimum';
 }
 
 export interface ExplanationInputs {
@@ -89,11 +89,13 @@ export function composeExplanation(input: ExplanationInputs): string {
   }
 
   if (input.timeBudgetDeviation) {
-    const { targetMinutes, estimatedMinutes, direction } = input.timeBudgetDeviation;
+    const { targetMinutes, estimatedMinutes, direction, reason } = input.timeBudgetDeviation;
     sentences.push(
-      direction === 'under'
-        ? `Runs about ${estimatedMinutes} min instead of your ${targetMinutes} min target — not enough fresh work in the pool right now to fill the rest.`
-        : `Runs about ${estimatedMinutes} min instead of your ${targetMinutes} min target — couldn't trim further without dropping a required exercise.`,
+      direction === 'over'
+        ? `Runs about ${estimatedMinutes} min instead of your ${targetMinutes} min target — couldn't trim further without dropping a required exercise.`
+        : reason === 'thin_pool'
+          ? `Runs about ${estimatedMinutes} min instead of your ${targetMinutes} min target — not enough fresh work in the pool right now to fill the rest.`
+          : `Runs about ${estimatedMinutes} min instead of your ${targetMinutes} min target — filled everything this template offers for a session this long.`,
     );
   }
 

@@ -396,13 +396,32 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
 
   // `withinTenPercent` is §5.6's actual requirement, not a decoration — read it. If the session
   // still falls outside ±10% after the corrective sets-trim above and every optional slot the
-  // (now-expanded) template could supply, that means the eligible pool genuinely is too thin (an
-  // 'under' deviation) or the required slots alone can't be trimmed further even at the sets
-  // floor (an 'over' deviation — should be rare to non-existent post-ADR-0002) — report it
-  // explicitly, the same way a PATTERN GAP is never silent (§5.2), rather than quietly returning
-  // an off-target plan. Direction and reason are named separately and deliberately: an overrun
-  // is not a shortfall, and a field that blurs the two would read as a content limitation when
-  // it's the opposite, more costly failure mode (§1.1).
+  // (now-expanded) template could supply, report it explicitly, the same way a PATTERN GAP is
+  // never silent (§5.2), rather than quietly returning an off-target plan. Direction and reason
+  // are named separately and deliberately: an overrun is not a shortfall, and a field that blurs
+  // the two would read as a content limitation when it's the opposite, more costly failure mode
+  // (§1.1).
+  //
+  // Carried-forward issue #7: an earlier version called every 'under' case 'thin_pool', which was
+  // wrong whenever the true cause was the template or the fit loop rather than the library — a
+  // wrong reason sends the next person to top up content that was never short. Distinguish:
+  //   - 'thin_pool': either (a) an optional accessory slot the template offered had ZERO eligible
+  //     candidates, or (b) a REQUIRED slot came back as a PATTERN GAP ('stated_imbalance' — no
+  //     band exception rescued it) — in both cases selection genuinely had nothing to put
+  //     somewhere, which is exactly what "the library/level is short" means, whether it's an
+  //     optional accessory or a required pattern that came up empty.
+  //   - 'template_exhausted': every slot the template offered — required and optional alike — DID
+  //     get filled, so the pool wasn't the limiter — the template's §5.6 exercise-count-sanity
+  //     ceiling simply stopped offering more slots before the time budget was used up.
+  const optionalAccessorySlotIds = new Set(
+    accessorySlots.filter((s) => !s.required).map((s) => s.id),
+  );
+  const filledOptionalSlotIds = new Set(mainSelection.picks.map((p) => p.slotId));
+  const anyOptionalSlotHadNoEligibleCandidate = [...optionalAccessorySlotIds].some(
+    (id) => !filledOptionalSlotIds.has(id),
+  );
+  const anyRequiredSlotWasAGap = patternGaps.some((g) => g.resolution === 'stated_imbalance');
+  const trueContentShortfall = anyOptionalSlotHadNoEligibleCandidate || anyRequiredSlotWasAGap;
   const timeBudgetDeviation: TimeBudgetDeviation | undefined = fit.withinTenPercent
     ? undefined
     : fit.estimatedMinutes < targetMinutes
@@ -410,7 +429,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
           targetMinutes,
           estimatedMinutes: fit.estimatedMinutes,
           direction: 'under',
-          reason: 'thin_pool',
+          reason: trueContentShortfall ? 'thin_pool' : 'template_exhausted',
         }
       : {
           targetMinutes,

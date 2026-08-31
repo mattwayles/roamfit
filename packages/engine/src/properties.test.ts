@@ -188,7 +188,14 @@ describe('property: invariants hold across the full request sweep', () => {
                 expect(withinBand).toBe(false);
                 expect(plan.explanation).toMatch(/min/); // surfaced in the §5.8 line, not silent
                 expect(plan.timeBudgetDeviation.direction).toBe('under');
-                expect(plan.timeBudgetDeviation.reason).toBe('thin_pool');
+                // Carried-forward issue #7: a shortfall reason must name its true cause.
+                // 'thin_pool' means an optional slot the template offered had zero eligible
+                // candidates; 'template_exhausted' means every offered slot filled but the
+                // template's own exercise-count ceiling ran out before the budget did. Both are
+                // legitimate 'under' reasons — never 'structural_minimum', which is 'over'-only.
+                expect(['thin_pool', 'template_exhausted']).toContain(
+                  plan.timeBudgetDeviation.reason,
+                );
                 expect(plan.estimatedMinutes).toBeLessThan(targetMinutes);
               } else {
                 expect(plan.estimatedMinutes).toBeGreaterThanOrEqual(targetMinutes * 0.9);

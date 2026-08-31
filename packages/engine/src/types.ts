@@ -206,14 +206,23 @@ export interface PatternGapNote {
 /**
  * §5.6 — "add or drop until within ±10% of target." Set ONLY when, after every fill/trim lever
  * the engine has (extra accessory slots, sets trimmed on required entries when they alone would
- * overshoot), the estimate still falls outside ±10% of `targetMinutes`. Named `*Deviation`, not
- * `*Shortfall` — an `'over'` deviation is an overrun, not a shortfall, and mislabeling it would
- * read as a content limitation when it's the opposite failure mode (§1.1 calls overrunning out
- * specifically as the churn risk). `reason` records why: `'thin_pool'` means the eligible pool
- * couldn't supply enough additional main work to reach the floor (an `'under'` case — a
- * legitimate content limitation); `'structural_minimum'` means required entries alone, even
- * trimmed to the sets floor, still exceed the ceiling (an `'over'` case — should be rare to
- * non-existent post-ADR-0002, since the 15-minute floor removes the main structural cause).
+ * overshoot, sets trimmed on optional entries that would otherwise not fit), the estimate still
+ * falls outside ±10% of `targetMinutes`. Named `*Deviation`, not `*Shortfall` — an `'over'`
+ * deviation is an overrun, not a shortfall, and mislabeling it would read as a content limitation
+ * when it's the opposite failure mode (§1.1 calls overrunning out specifically as the churn
+ * risk). `reason` records why, for an `'under'` case specifically (carried-forward issue #7 —
+ * an earlier version of this field called every shortfall `'thin_pool'` even when the true cause
+ * was the template or the fit loop, not the library; a wrong reason sends the next person to top
+ * up content that was never short):
+ *   - `'thin_pool'` — every accessory slot the template offered was tried and at least one had no
+ *     eligible exercise at all (selection returned nothing for it) — a genuine content limit.
+ *   - `'template_exhausted'` — every offered slot *was* filled, but §5.6's exercise-count-sanity
+ *     ceiling (`mainExerciseCountRange`) capped how many optional slots the template would even
+ *     offer before the time budget was used up. Not a library problem — raising the ceiling or
+ *     changing the template would close it, not adding exercises.
+ * `'structural_minimum'` means required entries alone, even trimmed to the sets floor, still
+ * exceed the ceiling (an `'over'` case — should be rare to non-existent post-ADR-0002, since the
+ * 15-minute floor removes the main structural cause).
  * This must never be silent — the same rule as PATTERN GAP: report it on the plan and in the
  * §5.8 explanation line, never just return a session that quietly misses the promised time.
  */
@@ -221,7 +230,7 @@ export interface TimeBudgetDeviation {
   targetMinutes: number;
   estimatedMinutes: number;
   direction: 'under' | 'over';
-  reason: 'thin_pool' | 'structural_minimum';
+  reason: 'thin_pool' | 'template_exhausted' | 'structural_minimum';
 }
 
 export interface SessionPlan {
