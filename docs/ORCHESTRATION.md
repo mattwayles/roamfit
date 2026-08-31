@@ -12,7 +12,7 @@ Every track is written to be **interrupted**. See the interruption protocol in `
 | 1 | Skeleton boots + full library/ladder data validated | **done** — verified `38fef15`/`5048e5f` |
 | 2 | Generation engine passes golden tests, <50ms, no I/O | **done** — verified `e56ed02` |
 | 3 | SQLite persistence + session lifecycle + signal capture | **done** — verified `1061651` |
-| 4 | Core workout loop end-to-end on device | not started |
+| 4 | Core workout loop end-to-end on device | **partial** — screens + timers + db landed; swap, audio/haptics, background rest timer open (track `4b-loop-completion`) |
 | 5 | Motivation surfaces: progression board, dashboard, passport | not started |
 | 6 | Media ladder, LLM proxy, Firebase sync, HealthKit | not started |
 | 7 | Airplane-mode acceptance gate + instrumentation + polish | not started |
@@ -110,6 +110,11 @@ Open items surfaced by a completed wave that a later wave or a human must close.
 | 11 | §9.9 Recovery Week's ~20% volume cut is applied as a documented post-generation pass in the store, not in the engine — the engine cannot force the multiplier without faking history. Deliberate, recorded in STATUS-3. Consider promoting to an ADR or giving the engine an explicit volume-multiplier input. | Wave 3 | Wave 5 |
 | 12 | §9.9 Recovery Week auto-suggest heuristic ("every 6–8 weeks of consistent training") is not implemented — mechanism is wired and tested, trigger is not. | Wave 3 | Wave 5 |
 | 13 | `app/src/db/` real op-sqlite wiring is untouched by design (ADR 0003). Wave 4 must wire it against `@roamfit/store`'s repositories and write **no new persistence logic** in `app/`. | Wave 3 | Wave 4 |
+| 14 | `WorkoutScreen.rest.test.tsx` passes 3/3 alone but fails under 2x concurrent CPU load — a `waitFor` timeout, not db contention (per-worker db names did fix the contention). Load-sensitive, so it will also flake on a busy CI box. Make the wait deterministic rather than time-bounded. | orchestrator, Wave 4 | Wave 4b |
+| 15 | §10.6 mid-workout swap is unbuilt — needs a small `packages/engine` export for same-slot/same-level alternatives. §10.6 calls this "the #1 real-world interaction." | Wave 4 | Wave 4b |
+| 16 | §10.8 audio ducking, haptics, and the backgrounded rest-timer local notification are unbuilt. The spec marks these non-negotiable. | Wave 4 | Wave 4b |
+| 17 | Approval-time add-exercise and edit-rep-target need small `packages/store` additions (§10.3). | Wave 4 | Wave 4b |
+| 18 | §10.5 timed-exercise screen has no interaction test; no end-to-end simulator walkthrough of the full loop has been done (no UI-automation tool in the sandbox). | Wave 4 | Wave 4b / Wave 7 |
 
 ## Verification log (orchestrator)
 
