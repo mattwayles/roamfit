@@ -9,8 +9,11 @@
     "platforms": ["ios"],
     "ios": {
       "bundleIdentifier": "com.roamfit.app",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
     },
-    "plugins": ["expo-dev-client"]
+    "plugins": ["expo-dev-client", "expo-audio", "expo-notifications"]
   }
 }
