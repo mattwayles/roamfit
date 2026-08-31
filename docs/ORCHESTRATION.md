@@ -14,7 +14,7 @@ Every track is written to be **interrupted**. See the interruption protocol in `
 | 3 | SQLite persistence + session lifecycle + signal capture | **done** — verified `1061651` |
 | 4 | Core workout loop end-to-end on device | **done** — verified `dbe4be1`. Orchestrator re-verified issue #14 with 8 concurrent runs, 8/8 clean (previously never zero). On-device walkthrough deferred to Wave 7 acceptance, where it belongs. |
 | 5 | Motivation surfaces: progression board, dashboard, passport | in progress — every §14.1 element built and `npm run check` green; not yet independently re-verified on-device or marked done. See `STATUS-5-motivation.md`. |
-| 6 | Media ladder, LLM proxy, Firebase sync, HealthKit | not started |
+| 6 | Media ladder, LLM proxy, Firebase sync, HealthKit | in progress — approval gate cleared 2026-08-31. Split into serialized tracks `6a-figures`, `6b-media-ladder`, `6c-llm-proxy`, `6d-sync-health`, `6e-video-cli`. |
 | 7 | Airplane-mode acceptance gate + instrumentation + polish | not started |
 
 ## Wave plan

@@ -8,6 +8,9 @@ Short-lived instructions and standing decisions from the user. Not edited by tra
   amended it: **stop after Wave 5 and wait for explicit approval before dispatching Wave 6.**
   Wave 5 (`5-motivation`) was already in flight when this was given; it continues.
   Do not dispatch Wave 6 (`6-network`) without the user saying so.
+- **2026-08-31 (later):** User said "Proceed with orchestration wave 6." **Gate cleared.** Wave 6
+  dispatched, split into four serialized tracks (`6a-figures`, `6b-media-ladder`, `6c-llm-proxy`,
+  `6d-sync-health`, `6e-video-cli`). Serialized per the concurrency rule in ORCHESTRATION.md.
 
 ## Standing human blocker
 
