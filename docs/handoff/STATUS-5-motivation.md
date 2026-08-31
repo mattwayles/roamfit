@@ -54,13 +54,52 @@ spec §14, §6.4, §6.7, §9.1-9.4, §9.6-9.10, §10.1.
 10. Grep-for-shame pass, `npm run check`, ORCHESTRATION.md update.
 
 ### Done
-(nothing committed yet this session — see plan above)
+- [x] **Step 1** (`e52c432`) — `packages/engine/src/progression/micro.ts`'s `microStepsToNextLevel`:
+  pure simulation of repeated `microAdvance` calls until a level change fires, capped at 100 steps
+  as a belt-and-braces guard. Exported from `packages/engine/src/index.ts`, along with the ladder
+  lookups (`findFamily`, `levelById`, `exerciseForLevel`, `isMaxLevel`, `levelOrdinal`, `nextLevel`)
+  the progression board UI needs — none of those were exported before this wave. 3 new tests in
+  `micro.test.ts` (walks the real advance sequence and confirms the count decrements by exactly 1
+  each step, hits exactly 1 the step before a level change, band vs. bodyweight).
+- [x] **Step 2 / issue #12** (`1d30847`) — confirmed via grep that `weeksSinceLastRecoveryWeek` was
+  declared in schema but never written anywhere. Implemented incrementally in
+  `packages/store/src/repositories/stats.ts`'s `recordSessionCompletion`: a Recovery Week
+  completion (`recoveryWeekManual`) resets the counter to 0; any other completed session bumps it
+  by 1 the first time a *new* ISO week (via the file's existing `isoWeekKey`) produces a session —
+  same-week repeats don't double-count. Added `shouldSuggestRecoveryWeek(stats)` (true for
+  6-8 weeks inclusive, per §9.9's literal "every 6-8 weeks"). Threaded `session.recoveryWeekManual`
+  through `completion.ts` into the new `RecordSessionCompletionInput` field. 3 new tests in
+  `completion.test.ts` covering: same-week de-dup, the false-then-true transition at 5→6 weeks,
+  and the reset-on-Recovery-Week-completion behavior (never "penalizes," per §1.1).
+- [x] **Issue #11** — ADR 0006 (`docs/decisions/0006-recovery-week-volume-cut-placement.md`):
+  decided to *keep* the ~20% volume cut as `generation.ts`'s store-level post-generation pass
+  rather than promote it into the engine this wave. Full reasoning in the ADR; short version: the
+  store-level pass already applies the engine's own exported `COMEBACK_VOLUME_MULTIPLIER` verbatim
+  (not a re-derived number), so the invariant-2 risk is narrow, and the "who decides a Recovery
+  Week is happening" question would stay a store/UI concern either way. Documents a real, narrow
+  known gap (post-hoc `Math.floor` can't rebalance across a pattern-gap substitution the way
+  in-prescription cutting could) rather than hiding it.
+- [x] **Issues #4/#5 confirmed, no code needed:**
+  - #4 (`hamstring-curl`/`tke` tagged `hip_extension`): confirmed the pattern enum *has* since
+    grown a `knee_flexion_loaded` bucket (`packages/data/src/schema.ts`/`validate.ts`), but the two
+    exercises' content rows were never migrated to it. Confirmed harmless to engine correctness:
+    their `primary`/`secondary` muscle tags (`hamstrings`/`quads`) are correct regardless of
+    pattern label, so §14.3 muscle-balance credit is accurate; the pattern tag only affects
+    which template slot they can fill, and filling the legs template's `hip_extension` accessory
+    slot with a knee-dominant isolation movement isn't a functional bug, just an imprecise label.
+    **Left open as a future content pass** (retag to `knee_flexion_loaded` now that the bucket
+    exists), not a Wave 5 blocker — recorded here rather than silently dropped.
+  - #5 (conditioning finishers forced to `tier: fill`): already resolved by Wave 2 —
+    `packages/engine/src/template/focusTemplate.ts`'s `TemplateSlot.isFinisher` flag exists
+    specifically to let a finisher slot draw from `tier: fill` regardless of pattern match quality,
+    with an inline comment citing this exact carried-forward issue. Confirmed handled, not just
+    present by accident.
 
 ### In progress
-Starting step 1 (engine `sessionsUntilNextLevel`).
+Starting the HomeScreen/§14 dashboard work (steps 4+).
 
 ### Next
-See Plan above, in order.
+See Plan above (steps 4-10).
 
 ### Decisions / gotchas
 - One screen (`HomeScreen.tsx`) carries the whole §14.1 dashboard — see "Key findings" above.
