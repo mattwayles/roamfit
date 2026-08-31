@@ -94,10 +94,29 @@ ADRs 0003/0004/0005, spec §10.3/§10.5/§10.6/§10.7/§10.8.
   core) — all passed, where the prior version was reported to fail under exactly this shape of
   load.
 
+- [x] **Issue #17 closed** — §10.3 approval-time editing, engine through UI:
+  - `packages/engine`: exported `applyHardFilters`, `effortCapForExercise`, and
+    `prescribeWarmupCooldown` (alongside the already-exported `prescribeAccessory`) so "add
+    exercise" candidates and their prescriptions come entirely from the engine, never invented in
+    `app/`.
+  - `packages/store`: `addEntryAtApproval`/`adjustRepTargetAtApproval` (see the `bdc1e19` commit
+    for the store/schema half — done in the previous increment).
+  - `app/src/screens/ApprovalScreen.tsx`: an "+ Add exercise" affordance per section opens an
+    inline picker (candidates from `applyHardFilters`, excluding exercises already in the plan);
+    picking one prescribes via `prescribeAccessory`/`prescribeWarmupCooldown` and persists via
+    `addEntryAtApproval`. Rep-target `+`/`-` steppers appear next to any entry with a rep target
+    and call `adjustRepTargetAtApproval`. The live time estimate needed **no new code** — it was
+    already a pure `reduce` over `session.entries`, so it updates for free on the next `reload()`
+    after any edit (add/remove/adjust-sets/adjust-rep-target all trigger one).
+  - New `app/src/screens/ApprovalScreen.test.tsx` — first dedicated interaction test for this
+    screen (previously only exercised indirectly per the prior STATUS file). Drives add-exercise,
+    rep-target edit, adjust-sets, and remove through the real screen against the real store, and
+    asserts the live estimate text actually changes after adding an exercise.
+  - `npm run check` green (engine 870, store 34, data 2, app 21 across 9 suites).
+
 ### Next (ordered)
-1. §10.3 approval-time add-exercise / edit-rep-target + store additions (issue #17) — not started.
-2. §10.5 timed-exercise interaction test (issue #18) — not started.
-3. Re-run `expo run:ios`, capture evidence of the WORKING loop (not just bugs) into
+1. §10.5 timed-exercise interaction test (issue #18) — not started.
+2. Re-run `expo run:ios`, capture evidence of the WORKING loop (not just bugs) into
    `docs/handoff/evidence/` — including, this time, real confirmation that audio/haptics/the
    background notification actually work on-device, not just that they don't throw in Jest.
 

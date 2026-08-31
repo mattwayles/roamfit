@@ -12,7 +12,12 @@ export { createRng, seedFromString } from './rng';
 export { daysBetween, addDays } from './dates';
 export { ENGINE_VERSION } from './version';
 export { generateSession, generateQuickSession } from './pipeline';
-export { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
+export {
+  applyHardFilters,
+  DEFAULT_ANCHORS_AVAILABLE,
+  effortCapForExercise,
+} from './filters/hardFilters';
+export type { HardFilterInput } from './filters/hardFilters';
 
 // --------------------------------------------------------------------------------------------
 // Wave 3 wiring surface — completion-time progression updates (§6.3/§6.7) and the comeback /
@@ -42,5 +47,5 @@ export type { SwapSlotRequest, SwapAlternative } from './selection/swap';
 // logic of its own (invariant 2: "the engine decides"), so adding a user-picked exercise to a
 // plan still has to go through the engine's own accessory-prescription formula rather than have
 // `app/`/`packages/store` invent sets/reps/rest by hand.
-export { prescribeAccessory } from './prescription/prescribe';
+export { prescribeAccessory, prescribeWarmupCooldown } from './prescription/prescribe';
 export type { PrescribeAccessoryInput } from './prescription/prescribe';
