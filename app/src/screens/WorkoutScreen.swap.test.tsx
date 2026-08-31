@@ -14,6 +14,11 @@ import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 
+// Generous timeout/poll, per issue #14: default waitFor budgets are sized for an idle
+// CPU and can be starved under real contention even when the underlying state is
+// already correct.
+const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
+
 function mockNavigation() {
   return {
     navigate: jest.fn(),
@@ -66,7 +71,7 @@ describe('§10.6 mid-workout swap, driven through WorkoutScreen', () => {
         <Setup onReady={(d) => (db = d)} />
       </StoreProvider>,
     );
-    await waitFor(() => expect(db).toBeDefined());
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
 
     const clock = nowEngineClock();
     const utcInstant = nowUtcInstant();
@@ -106,10 +111,10 @@ describe('§10.6 mid-workout swap, driven through WorkoutScreen', () => {
       </StoreProvider>,
     );
 
-    await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('swap-set'));
 
-    await waitFor(() => expect(screen.getByTestId('swap-sheet')).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('swap-sheet')).toBeTruthy(), WAIT_OPTS);
 
     // The session/rest-of-workout UI must be gone while the sheet is open, and the elapsed
     // workout timer (rendered above the phase view, unconditionally) must still be present and
@@ -132,10 +137,12 @@ describe('§10.6 mid-workout swap, driven through WorkoutScreen', () => {
     // an exercise view (reps or timed — the new exercise may have a different metric).
     expect(navigation.navigate).not.toHaveBeenCalled();
     expect(navigation.replace).not.toHaveBeenCalled();
-    await waitFor(() =>
-      expect(
-        screen.queryByTestId('complete-set') ?? screen.queryByTestId('timed-circle'),
-      ).toBeTruthy(),
+    await waitFor(
+      () =>
+        expect(
+          screen.queryByTestId('complete-set') ?? screen.queryByTestId('timed-circle'),
+        ).toBeTruthy(),
+      WAIT_OPTS,
     );
 
     // The store really recorded the swap: the entry's exerciseId changed, and the replaced

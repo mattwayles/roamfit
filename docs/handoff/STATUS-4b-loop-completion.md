@@ -168,23 +168,75 @@ ADRs 0003/0004/0005, spec §10.3/§10.5/§10.6/§10.7/§10.8.
     would be worth investigating, but this shift is expected and documented here per CLAUDE.md's
     instruction to flag exactly this.
 
+- [x] **Issue #14 re-diagnosed and actually closed.** My first pass (generous `waitFor` timeouts)
+  was insufficient — the orchestrator independently re-tested with two truly concurrent
+  `npx jest` processes in `app/` and found 2-5 failures on every run, plus a smoking-gun error the
+  raised timeout let surface: `ReferenceError: You are trying to 'require' a file after the Jest
+  environment has been torn down`, from `WorkoutScreen.rest`/`timedBilateral`/`timedUnilateral`
+  (later reproduced independently here, isolated further to `WorkoutScreen.swap.test.tsx` and
+  `.resume.test.tsx` as the most consistent failures — both predate this track's `WAIT_OPTS` fix,
+  never having received it).
+  - **Root cause, found and confirmed, not assumed**: `expo-notifications`'s own package code has
+    a **module-import-time side effect** — `DevicePushTokenAutoRegistration.fx.ts` (pulled in by
+    the package's own `index.ts`) calls `addPushTokenListener` the instant the module is
+    `require`d, starting a background async push-token registration/listener chain that this
+    app's code never asked for and has no handle to cancel. Under real contention (two Jest
+    processes competing for the CPU), that chain can still be in flight when Jest tears down a
+    test *file's* module registry at the end of its run — its next continuation's module lookup
+    then throws exactly the "torn down" error. The (unrelated-looking) "unable to find element"
+    failures in the same runs are the same starvation from the other side: real CPU contention
+    slowing the whole render/db pipeline past the wait budget.
+  - **I did audit whether this is instead a WorkoutScreen lifecycle bug**, per the request, before
+    concluding it isn't: every async path in `WorkoutScreen.tsx`/`RestPhase` was checked.
+    `RestPhase`'s `scheduleRestZeroNotification(...).then(id => { if (!cancelled) ... })` already
+    guards its only post-await state write with a `cancelled` flag set in the effect's own cleanup
+    (existing code, not new this pass). Every `setInterval` is cleared via standard `useEffect`
+    cleanup, which React runs synchronously on unmount — since JS is single-threaded, a tick
+    already in progress always completes before cleanup can run, so there is no "interval fires
+    after unmount" race possible in this codebase. `handleExtend`/`handleSkip`/`handleNext` write
+    to a `ref` (not React state) after an `await`, which is inert-if-unmounted by construction (no
+    React warning, no crash). **Conclusion: this is a third-party import-time side effect leaking
+    into the test harness, not an app-code unmount/cancellation bug** — recorded explicitly per
+    the request to say so if that's what the evidence shows, backed by the audit above and the fix
+    below actually closing the flake.
+  - **Fix**: `app/__mocks__/expo-notifications.js`, a Jest manual mock (Jest's own convention: a
+    file at `<rootDir>/__mocks__/<node_modules package>.js` replaces that package in every test
+    file automatically, no per-file `jest.mock()` needed) that mirrors the exact surface
+    `workoutNotifications.ts` calls, all no-op/instant — removing the background side effect at
+    its source under Jest, while changing nothing about the real package's behavior on-device.
+    Confirmed the push-token console.warn that was the visible symptom of the same side effect
+    disappeared after adding it.
+  - Also brought `WorkoutScreen.swap.test.tsx`/`.resume.test.tsx` up to the same `WAIT_OPTS`
+    (5000ms/50ms poll) standard as `.rest.test.tsx` — defense in depth, not the fix itself.
+  - **Verified the way requested, not with a single green run**: two concurrent `npx jest`
+    invocations in `app/`, run **6 times** across two separate sessions of testing (3 before this
+    status update, 3 more after the final `WAIT_OPTS` consistency pass) — **zero failures across
+    all 12 processes**, zero "torn down" errors, where the un-fixed baseline failed every single
+    time. `npm run check` (single-process) remains green throughout (engine 870, store 34,
+    data 2, app 23/11 suites).
+
 ### In progress (this increment)
 All five brief items (#14-#18) are now closed at the Jest/store/engine level, verified by
-`npm run check` green. Last remaining step: a real `expo run:ios` pass with evidence of the
-WORKING loop. `pod install` re-run to pick up the three new native deps (expo-audio,
-expo-haptics, expo-notifications) — succeeded, 101 pods. `expo run:ios --device "iPhone 17 Pro"`
-launched against an already-running Metro (`expo start --dev-client --port 8082`) — build in
-progress as this increment is being written; see "Next" for what remains once it completes.
+`npm run check` green AND by the concurrency re-verification above. Last remaining step: a real
+`expo run:ios` pass with evidence of the WORKING loop. `pod install` re-run to pick up the three
+new native deps (expo-audio, expo-haptics, expo-notifications) — succeeded, 101 pods.
+`expo run:ios --device "iPhone 17 Pro"` — build succeeded, app installed and launched
+successfully against a live Metro bundler (`expo start --dev-client --port 8082`), confirming the
+new native modules link and the app boots with no red screen. Home screen renders correctly on
+device with the new deps present (screenshot in progress — see Next for what's still owed).
 
 ### Next (ordered)
-1. Once the `expo run:ios` build finishes: screenshot Home -> Generate/Quick Session -> Approval
-   (confirm add-exercise/rep-target editing renders) -> Workout (confirm Swap sheet opens, timed
-   exercise get-ready/pause/end-early render) -> rest timer -> Summary, into
-   `docs/handoff/evidence/`. Note explicitly which parts could only be confirmed visually
-   (rendering, no crash) vs. which needed a real tap — same UI-automation limitation the prior
-   STATUS file flagged (no accessibility permission for `osascript`/System Events in this sandbox,
-   no `idb`). Audio/haptics/background-notification firing is NOT visually confirmable via
-   screenshot even with taps — flag that honestly as still Jest-only evidence.
+1. Finish the `expo run:ios` evidence pass: screenshot Home -> Generate -> Approval (confirm
+   add-exercise/rep-target editing renders) -> Workout (confirm Swap sheet opens, timed exercise
+   get-ready/pause/end-early render) -> rest timer -> Summary, into `docs/handoff/evidence/`. Real
+   taps via `osascript`/System Events on the Simulator window DO work in this environment (unlike
+   the prior STATUS file's finding — accessibility permission is granted here), confirmed by one
+   successful tap from Home into Generate; precise coordinate calibration for further taps
+   (window offset + point/pixel scale factor) was still being worked out when this update was
+   written — a next agent should nail that down (it's a fixed linear transform, not per-screen)
+   rather than re-derive it from scratch. Audio/haptics/background-notification firing is NOT
+   visually confirmable via screenshot even with perfect taps — flag that honestly as still
+   Jest-only evidence, same as documented throughout this file.
 
 ### Decisions / gotchas
 - `packages/engine` was flagged as owned by a concurrent track (`2b-timefit-slots`) in the prior

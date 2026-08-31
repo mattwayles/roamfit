@@ -16,6 +16,11 @@ import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 
+// Generous timeout/poll, per issue #14: default waitFor budgets are sized for an idle
+// CPU and can be starved under real contention even when the underlying state is
+// already correct.
+const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
+
 function mockNavigation() {
   return { navigate: jest.fn(), replace: jest.fn(), reset: jest.fn(), goBack: jest.fn() } as never;
 }
@@ -51,7 +56,7 @@ describe('WorkoutScreen crash-safety resume', () => {
         <SetupAndCleanup onReady={(d) => (db = d)} />
       </StoreProvider>,
     );
-    await waitFor(() => expect(db).toBeDefined());
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
 
     const library = exerciseLibrary;
     const families = familyLibrary;
@@ -112,7 +117,7 @@ describe('WorkoutScreen crash-safety resume', () => {
       </StoreProvider>,
     );
 
-    await waitFor(() => expect(screen.getByText(expectedExercise.name)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(expectedExercise.name)).toBeTruthy(), WAIT_OPTS);
     expect(screen.getByText(`Set ${expected.setIndex + 1} of ${expected.entry.sets}`)).toBeTruthy();
 
     // The specific regression this guards against: resuming at set 1 (index 0) of the exercise
