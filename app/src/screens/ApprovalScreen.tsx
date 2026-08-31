@@ -117,7 +117,10 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
           {bySection(section).map((entry) => (
             <View key={entry.id} style={styles.entryRow} testID={`entry-${entry.exerciseId}`}>
               <View style={styles.entryInfo}>
-                <Text style={styles.entryName}>{entry.exerciseId}</Text>
+                <Text style={styles.entryName}>
+                  {library.exercises.find((e) => e.id === entry.exerciseId)?.name ??
+                    entry.exerciseId}
+                </Text>
                 <Text style={styles.entryDetail}>
                   {entry.sets} × {entry.repTarget ?? `${entry.durationSec}s`}
                   {entry.band ? ` · ${entry.band}` : ''} · rest {entry.restSec}s

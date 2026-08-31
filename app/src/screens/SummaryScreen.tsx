@@ -95,7 +95,9 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
         .filter((e) => e.entryStatus !== 'removed_at_approval')
         .map((entry) => (
           <View key={entry.id} style={styles.entryBlock} testID={`summary-${entry.exerciseId}`}>
-            <Text style={styles.entryName}>{entry.exerciseId}</Text>
+            <Text style={styles.entryName}>
+              {library.exercises.find((e) => e.id === entry.exerciseId)?.name ?? entry.exerciseId}
+            </Text>
             {entry.setLogs.map((log) => (
               <Text key={log.id} style={styles.setLine}>
                 {statusIcon(log.status)} Set {log.setIndex + 1}:{' '}
