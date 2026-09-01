@@ -23,7 +23,11 @@ export const firebaseLogSink: LogSink = (event, fields) => {
   logger.info(event, fields);
 };
 import type { ParseFn } from './client';
-import { runCoachVoiceJob, type CoachVoiceJobInput, type CoachVoiceJobResult } from './jobs/coachVoice';
+import {
+  runCoachVoiceJob,
+  type CoachVoiceJobInput,
+  type CoachVoiceJobResult,
+} from './jobs/coachVoice';
 import { runDistillJob, type DistillJobInput, type DistillJobResult } from './jobs/distill';
 import { runIntakeJob, type IntakeJobInput, type IntakeJobResult } from './jobs/intake';
 import { COACH_VOICE_MODEL, DISTILLATION_MODEL, INTAKE_MODEL } from './models';
@@ -35,13 +39,16 @@ import { COACH_VOICE_MODEL, DISTILLATION_MODEL, INTAKE_MODEL } from './models';
  * operator runbook for the exact query and what a healthy vs. persistently-zero value means.
  * Never logs `input`/freeform user text — this line reports call metadata only.
  */
-function logLlmProxyCall(log: LogSink, fields: {
-  job: 'intake' | 'coachVoice' | 'distillFeedback';
-  model: string;
-  cacheReadInputTokens: number;
-  repaired: boolean;
-  usedFallback: boolean;
-}): void {
+function logLlmProxyCall(
+  log: LogSink,
+  fields: {
+    job: 'intake' | 'coachVoice' | 'distillFeedback';
+    model: string;
+    cacheReadInputTokens: number;
+    repaired: boolean;
+    usedFallback: boolean;
+  },
+): void {
   log('llm_proxy_call', fields);
 }
 
