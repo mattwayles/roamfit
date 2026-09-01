@@ -438,6 +438,28 @@ export const sessionMuscleVolume = sqliteTable(
 );
 
 // ------------------------------------------------------------------------------------------
+// §11.3 / §4.1 remote-config sync (track 6d). Local mirror of `video/{exercise_id}` — pulled
+// only, never pushed by the app (video_db.py / track 6e is the only writer on the Firestore
+// side). Supplies `curatedVideoId` at the media-ladder call site (issue #29/#30).
+// ------------------------------------------------------------------------------------------
+
+export const remoteVideoConfig = sqliteTable('remote_video_config', {
+  exerciseId: text('exercise_id').primaryKey(),
+  videoId: text('video_id'),
+  videoVerifiedAt: text('video_verified_at'),
+  videoFlagCount: integer('video_flag_count').notNull().default(0),
+  updatedAt: text('updated_at').notNull(),
+});
+
+/** Generic key/value sync watermark table — e.g. "how far has the video-config delta pull
+ *  gotten" or "how far has the append-only sessions push gotten." Deliberately not modeled on
+ *  `deferred_work` (that models discrete one-shot jobs; this is continuous cursor state). */
+export const syncCursor = sqliteTable('sync_cursor', {
+  name: text('name').primaryKey(),
+  value: text('value'),
+});
+
+// ------------------------------------------------------------------------------------------
 // Migration bookkeeping.
 // ------------------------------------------------------------------------------------------
 

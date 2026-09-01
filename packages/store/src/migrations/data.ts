@@ -272,6 +272,34 @@ const MIGRATION_0005_LLM_QUEUE_BACKOFF = `-- 0005_llm_queue_backoff.sql — §11
 ALTER TABLE deferred_work ADD COLUMN next_attempt_at TEXT;
 `;
 
+const MIGRATION_0006_SYNC = `-- 0006_sync.sql — §11.3 Firestore sync substrate (track 6d).
+--
+-- remote_video_config: local mirror of the \`video/{exercise_id}\` Firestore remote-config
+-- collection (§4.1's remote-config block, §11.4). Pulled, never pushed by the app — an operator
+-- (video_db.py, track 6e) is the only writer on the Firestore side. This is what supplies a real
+-- \`curatedVideoId\` at the WorkoutScreen media-ladder call site instead of the hard-coded \`null\`
+-- 6b left behind (issue #29/#30).
+--
+-- sync_cursor: a small generic key/value table for "how far has each sync pass gotten" —
+-- e.g. the delta-pull watermark for remote_video_config, and the push watermark for the
+-- append-only \`sessions\` push. Deliberately not reusing \`deferred_work\` for this: deferred_work
+-- models discrete one-shot jobs (§11.3's LLM/healthkit/geocode queues); a sync cursor is
+-- continuous incremental state, a different shape.
+
+CREATE TABLE remote_video_config (
+  exercise_id TEXT PRIMARY KEY,
+  video_id TEXT,
+  video_verified_at TEXT,
+  video_flag_count INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE sync_cursor (
+  name TEXT PRIMARY KEY,
+  value TEXT
+);
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -281,4 +309,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0003_lifetime_total_minutes.sql', sql: MIGRATION_0003_LIFETIME_TOTAL_MINUTES },
   { id: '0004_video_flags.sql', sql: MIGRATION_0004_VIDEO_FLAGS },
   { id: '0005_llm_queue_backoff.sql', sql: MIGRATION_0005_LLM_QUEUE_BACKOFF },
+  { id: '0006_sync.sql', sql: MIGRATION_0006_SYNC },
 ];

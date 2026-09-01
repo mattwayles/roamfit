@@ -31,7 +31,13 @@ import {
 } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { exerciseStateRepo, progressionStateRepo, sessionsRepo, usersRepo } from '@roamfit/store';
+import {
+  exerciseStateRepo,
+  progressionStateRepo,
+  remoteConfigRepo,
+  sessionsRepo,
+  usersRepo,
+} from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
 import { alternativesForSlot } from '@roamfit/engine';
 import type { SwapAlternative } from '@roamfit/engine';
@@ -424,9 +430,11 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             <DemoMedia
               figureSvg={figures[exercise.id]}
               videoSearchQuery={exercise.video_search}
-              // §11.4 — remote config isn't synced yet (track 6d, not started); always null
-              // until 6d wires a real read here. The ladder correctly falls back to the figure.
-              curatedVideoId={null}
+              // §11.4 — a synchronous local read of whatever `sync/firestoreSyncWorker.ts` last
+              // pulled into `remote_video_config` (track 6d). Null (never bundled, invariant 8)
+              // until a delta pull has actually resolved a curated id for this exercise; the
+              // ladder already falls back to the figure in that case.
+              curatedVideoId={remoteConfigRepo.getCuratedVideoId(db, exercise.id)}
               videoDemoted={videoFlagState.demoted}
               defaultOpen={isFirstEverPerformance}
               onExpand={handleDemoExpand}
