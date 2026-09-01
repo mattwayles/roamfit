@@ -9,6 +9,7 @@ export * from './migrate';
 export * from './generation';
 export * from './completion';
 export * from './llmQueueWorker';
+export * from './deviceQueueWorker';
 export * from './sync/lastWriteWins';
 export * from './sync/firestoreSyncClient';
 export * from './sync/firestoreSyncWorker';

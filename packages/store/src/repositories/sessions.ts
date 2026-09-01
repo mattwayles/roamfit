@@ -29,6 +29,7 @@ import {
 } from './exerciseState';
 import { logSignalEvent } from './signals';
 import { enqueueDeferredWork } from './queues';
+import { addMilestone } from './milestones';
 
 const USER_ID = 'local';
 
@@ -362,6 +363,56 @@ export function createPendingSession(db: Db, input: CreateSessionInput): string 
  *  the deterministic §5.8 line and flags `generatedBy: 'engine+llm'`. Safe to call any time
  *  before or after the session completes — coach voice is cosmetic, never gates a lifecycle
  *  transition. No-op if the session no longer exists (discarded before the job ran). */
+/** §9.6/§11.3 — applies a resolved `passport_geocode` deferred-work job onto the session it was
+ *  queued for. **Pins the result to the session's own `local_date`** (already fixed at creation
+ *  time, never touched here) — never the date the lookup happened to resolve on (invariant 6: all
+ *  calendar math uses `local_date`, never UTC; §11.3's location-queue rule states this
+ *  explicitly). Writes a `new_city` milestone the first time this city appears among the user's
+ *  *other* completed sessions — this is the one place that milestone type (present in the enum
+ *  since Wave 5 but never produced until now) actually gets written. A no-op if the session was
+ *  discarded before the lookup resolved (there's nothing left to pin it to). */
+export function applyGeocodeResult(
+  db: Db,
+  sessionId: string,
+  result: { city: string; country: string },
+  now: string,
+): void {
+  const session = getSession(db, sessionId);
+  if (!session) return;
+
+  const priorCityRows = db
+    .select({ city: schema.sessions.city })
+    .from(schema.sessions)
+    .where(
+      and(
+        eq(schema.sessions.userId, USER_ID),
+        eq(schema.sessions.status, 'completed'),
+        eq(schema.sessions.city, result.city),
+      ),
+    )
+    .all();
+  const isNewCity = priorCityRows.length === 0;
+
+  db.update(schema.sessions)
+    .set({ city: result.city, country: result.country, updatedAt: now })
+    .where(eq(schema.sessions.id, sessionId))
+    .run();
+
+  if (isNewCity) {
+    addMilestone(
+      db,
+      {
+        type: 'new_city',
+        payload: { city: result.city, country: result.country },
+        sessionId,
+        // Pinned to the session's own local_date, not `now` — the whole point of the queue.
+        localDate: session.localDate,
+      },
+      now,
+    );
+  }
+}
+
 export function applyCoachVoiceResult(
   db: Db,
   sessionId: string,
