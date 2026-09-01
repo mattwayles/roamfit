@@ -7,7 +7,7 @@
  */
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { familyLibrary } from '@roamfit/data';
 import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider } from '../state/StoreContext';
@@ -21,6 +21,12 @@ describe('§14.2 cold start — the dashboard is never empty', () => {
         </NavigationContainer>
       </StoreProvider>,
     );
+
+    // §13.3 — a truly from-scratch install shows the blocking first-launch disclaimer before
+    // anything else. Dismiss it exactly the way a real user would (a real tap), then proceed —
+    // this also happens to be the one test in this suite honest enough to exercise that gate.
+    await waitFor(() => expect(screen.getByTestId('disclaimer-gate')).toBeTruthy());
+    fireEvent.press(screen.getByTestId('disclaimer-acknowledge'));
 
     // Today card, not a resume card — nothing has ever been generated.
     await waitFor(() => expect(screen.getByTestId('today-card')).toBeTruthy());

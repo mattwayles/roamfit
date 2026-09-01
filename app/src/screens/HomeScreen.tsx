@@ -46,6 +46,7 @@ import type { ProgressionState } from '@roamfit/engine';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
+import { DISCLAIMER_TEXT } from './SettingsScreen';
 import {
   buildCalendarDays,
   buildLifetimeCounters,
@@ -156,6 +157,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           stats,
           rollingCount: statsRepo.rollingSessionCount(stats, clock.today),
           weeklyTarget: user.weeklyTarget,
+          quietHoursEnabled: user.notificationPrefs.quietHoursEnabled ?? true,
         }),
       );
     }
@@ -264,9 +266,41 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   const suggestRecoveryWeek = statsRepo.shouldSuggestRecoveryWeek(stats);
   const isZeroSession = stats.lifetimeSessionCount === 0;
 
+  // §13.3 — the medical disclaimer must be shown on first launch, blocking, before any other
+  // screen content. `hasAcknowledgedDisclaimer` is a one-way flag (usersRepo.acknowledgeDisclaimer)
+  // so this only ever fires once per install; the permanent copy lives in Settings (issue #20/#37's
+  // sibling gap — there was no settings screen at all before this wave).
+  if (!user.hasAcknowledgedDisclaimer) {
+    return (
+      <View style={styles.centered} testID="disclaimer-gate">
+        <ScrollView contentContainerStyle={styles.disclaimerGateContent}>
+          <Text style={styles.appName}>RoamFit</Text>
+          <Text style={styles.body} testID="disclaimer-gate-text">
+            {DISCLAIMER_TEXT}
+          </Text>
+          <Pressable
+            testID="disclaimer-acknowledge"
+            style={styles.primaryButton}
+            onPress={() => {
+              usersRepo.acknowledgeDisclaimer(db, nowUtcInstant());
+              load();
+            }}
+          >
+            <Text style={styles.primaryButtonText}>I understand</Text>
+          </Pressable>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.appName}>RoamFit</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.appName}>RoamFit</Text>
+        <Pressable testID="open-settings" onPress={() => navigation.navigate('Settings')}>
+          <Text style={styles.settingsLink}>Settings</Text>
+        </Pressable>
+      </View>
 
       {comebackTier !== 'none' && (
         <View testID="comeback-banner" style={styles.infoBanner}>
@@ -551,7 +585,18 @@ function Counter({ label, value }: { label: string; value: number }): React.JSX.
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { padding: 20, gap: 16, paddingBottom: 48 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   appName: { fontSize: 20, fontWeight: '700', color: '#111' },
+  settingsLink: { fontSize: 14, color: '#1d4ed8', fontWeight: '600' },
+  disclaimerGateContent: { padding: 24, gap: 16, alignItems: 'stretch' },
+  body: { fontSize: 14, lineHeight: 20, color: '#334155' },
+  primaryButton: {
+    backgroundColor: '#111',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+  },
+  primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   card: { borderRadius: 16, padding: 20, gap: 4 },
   todayCard: { backgroundColor: '#111' },
   resumeCard: { backgroundColor: '#1d4ed8' },

@@ -58,6 +58,11 @@ export const users = sqliteTable('users', {
   hasEverCompletedSession: integer('has_ever_completed_session', { mode: 'boolean' })
     .notNull()
     .default(false),
+  /** §13.3 — has this device's user ever dismissed the first-launch medical disclaimer. Migration
+   *  0007. */
+  hasAcknowledgedDisclaimer: integer('has_acknowledged_disclaimer', { mode: 'boolean' })
+    .notNull()
+    .default(false),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

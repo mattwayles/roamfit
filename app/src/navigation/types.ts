@@ -6,4 +6,5 @@ export type RootStackParamList = {
   Approval: { sessionId: string };
   Workout: { sessionId: string };
   Summary: { sessionId: string };
+  Settings: undefined;
 };

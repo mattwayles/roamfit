@@ -66,11 +66,13 @@ export function observedTrainingHour(hours: number[]): number | null {
   return best;
 }
 
-/** Quiet hours (§9.8) — a fixed 10pm-7am default (no settings screen to make this user-editable
- *  yet, noted as a scope simplification in STATUS-5-motivation.md). An hour inside the window is
- *  moved to the window's own end (a gentle morning default), never silently dropped — the user
- *  still gets exactly one notification that day, just not at 3am. */
-export function clampToQuietHours(hour: number): number {
+/** Quiet hours (§9.8) — a fixed 10pm-7am window, on by default. Wave 7 (issue #20) added a
+ *  settings-screen toggle to turn the whole clamp off (`enabled=false`); there is still no
+ *  arbitrary custom-hours picker, a deliberate scope cut recorded in STATUS-7-acceptance.md. An
+ *  hour inside the window is moved to the window's own end (a gentle morning default), never
+ *  silently dropped — the user still gets exactly one notification that day, just not at 3am. */
+export function clampToQuietHours(hour: number, enabled = true): number {
+  if (!enabled) return hour;
   const inQuiet =
     QUIET_HOURS_START > QUIET_HOURS_END
       ? hour >= QUIET_HOURS_START || hour < QUIET_HOURS_END
@@ -125,6 +127,8 @@ export interface ScheduleMotivationNotificationsInput {
   stats: statsRepo.RolledUpStatsRecord;
   rollingCount: number;
   weeklyTarget: number;
+  /** Issue #20 — user-editable via Settings. Defaults true (unchanged behavior) when omitted. */
+  quietHoursEnabled?: boolean;
 }
 
 /** Re-schedules all seven weekday notifications. Safe to call on every app open once the user
@@ -133,7 +137,10 @@ export async function scheduleMotivationNotifications(
   input: ScheduleMotivationNotificationsInput,
 ): Promise<void> {
   const observedHour = observedTrainingHour(sessionLocalHours(input.startTimes));
-  const nudgeHour = clampToQuietHours(observedHour ?? DEFAULT_HOUR);
+  const nudgeHour = clampToQuietHours(
+    observedHour ?? DEFAULT_HOUR,
+    input.quietHoursEnabled ?? true,
+  );
   const nudge = buildDailyNudgeText(input.hero);
   const summary = buildWeeklySummaryText(input.stats, input.rollingCount, input.weeklyTarget);
 

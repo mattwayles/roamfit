@@ -300,6 +300,16 @@ CREATE TABLE sync_cursor (
 );
 `;
 
+const MIGRATION_0007_DISCLAIMER = `-- 0007_disclaimer.sql — Wave 7 §13.3: "a medical disclaimer on
+-- first launch and permanently in settings." The settings-screen copy needs no schema (it's just
+-- always-rendered text), but first-launch gating needs one persisted bit: has this device's user
+-- ever acknowledged it. Defaults false so an existing installed user (already past first launch
+-- under an earlier build) sees the disclaimer exactly once on their next open, not on every open
+-- thereafter.
+
+ALTER TABLE users ADD COLUMN has_acknowledged_disclaimer INTEGER NOT NULL DEFAULT 0;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -310,4 +320,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0004_video_flags.sql', sql: MIGRATION_0004_VIDEO_FLAGS },
   { id: '0005_llm_queue_backoff.sql', sql: MIGRATION_0005_LLM_QUEUE_BACKOFF },
   { id: '0006_sync.sql', sql: MIGRATION_0006_SYNC },
+  { id: '0007_disclaimer.sql', sql: MIGRATION_0007_DISCLAIMER },
 ];

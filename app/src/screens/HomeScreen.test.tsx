@@ -13,13 +13,16 @@ import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider, useStore } from '../state/StoreContext';
-import { sessionsRepo } from '@roamfit/store';
+import { sessionsRepo, usersRepo } from '@roamfit/store';
 
 /** Clears any pending session left over from a previous run against the same on-device db file
  *  (the singleton `getDb()` in app/src/db persists across test runs unless reset), so this test
- *  is idempotent regardless of prior state. */
+ *  is idempotent regardless of prior state. Also pre-acknowledges §13.3's first-launch disclaimer
+ *  gate — this test's job is the Quick Session flow, not re-proving the gate (covered in
+ *  `HomeScreen.dashboard.test.tsx`). */
 function Cleanup({ children }: { children: React.ReactNode }): React.JSX.Element {
   const { db } = useStore();
+  usersRepo.acknowledgeDisclaimer(db, new Date().toISOString());
   const pending = sessionsRepo.getPendingSession(db);
   if (pending) sessionsRepo.discardSession(db, pending.id, {}, new Date().toISOString());
   return <>{children}</>;

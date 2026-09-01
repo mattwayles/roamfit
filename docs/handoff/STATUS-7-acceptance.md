@@ -59,14 +59,37 @@ Last updated: 2026-09-01
   - No new UI surface yet (see "Next" — a diagnostics read in Settings is still owed).
 - `npm run check` green (app 87, engine 897, data 17, store 108, functions 29; 0 lint errors).
 
+- [x] Settings screen + first-launch disclaimer gate + closed #20/#37, shas TBD at final commit:
+  - `app/src/screens/SettingsScreen.tsx` (new) — permanent §13.3 disclaimer text, §13.5 privacy
+    copy (location opt-in/city-level, health-write-never-read, freeform-text-is-user-content),
+    an Apple Health write toggle (issue #37 — the store patch already existed, there was simply
+    no UI), a notification quiet-hours on/off toggle (issue #20 — same shape: real column, no
+    UI), and a read-only §15 diagnostics panel (`instrumentationRepo
+    .computeInstrumentationSnapshot`, purely local).
+  - **Quiet-hours toggle is on/off only, not a custom-hours picker** — a deliberate scope cut,
+    not a silent gap. `clampToQuietHours(hour, enabled=true)` in `motivationNotifications.ts`
+    takes the flag; `HomeScreen.tsx` passes `user.notificationPrefs.quietHoursEnabled` through.
+  - First-launch disclaimer: migration `0007_disclaimer.sql` adds `users
+    .has_acknowledged_disclaimer` (no CHECK constraints elsewhere in this table, straightforward
+    `ALTER TABLE`). `HomeScreen.tsx` blocks on it before rendering anything else when false;
+    `usersRepo.acknowledgeDisclaimer` flips it one-way. Verified the migration sync test
+    (`migrate.test.ts`, an existing byte-for-byte `.sql`-vs-`data.ts` check) catches a drifted
+    copy — it did, on the first attempt, and was fixed to match exactly.
+  - `usersRepo.updateUser`'s `notificationPrefs` patch is a shallow merge, not a replace (a
+    settings screen writing one field must not clobber others). Mutation-verified in the new
+    `users.test.ts`: reverting the merge to `JSON.stringify({...patch.notificationPrefs})` (no
+    spread of `current.notificationPrefs`) failed both new tests; reverted back to the merge.
+  - Real regression this surfaced: 4 existing HomeScreen RNTL tests broke because a genuinely
+    cold test db now hits the disclaimer gate — fixed by pre-acknowledging in the 3 tests where
+    the gate isn't the point, and by actually tapping through it (real `fireEvent.press`) in
+    `HomeScreen.dashboard.test.tsx`, which is arguably a better test of the gate than a
+    dedicated unit test would have been.
+- `npm run check` green throughout (app 87, engine 897, data 17, store 112, functions 29).
+
 ### In progress
-- Settings screen next: disclaimer + privacy copy + HealthKit/notification toggles + a
-  diagnostics read of the instrumentation snapshot above.
+- Real simulator pass next.
 
 ### Next
-- Settings screen (disclaimer, privacy copy, HealthKit toggle, notification quiet hours,
-  instrumentation diagnostics read) — closes §13.3's "permanently in settings" requirement plus
-  issues #20/#37.
 - Real simulator pass: boot evidence, cold-start-no-network check, screenshot.
 - Carried-forward issue triage and final report.
 

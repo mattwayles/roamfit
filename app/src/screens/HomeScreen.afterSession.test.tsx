@@ -10,7 +10,7 @@ import { Share } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import { completeSession, generate, sessionsRepo } from '@roamfit/store';
+import { completeSession, generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import { createRng, seedFromString } from '@roamfit/engine';
 import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider, useStore } from '../state/StoreContext';
@@ -18,6 +18,7 @@ import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 
 function CompleteOneSession({ children }: { children: React.ReactNode }): React.JSX.Element {
   const { db } = useStore();
+  usersRepo.acknowledgeDisclaimer(db, new Date().toISOString()); // §13.3 gate — not this test's job
   const pending = sessionsRepo.getPendingSession(db);
   if (pending) sessionsRepo.discardSession(db, pending.id, {}, nowUtcInstant());
 

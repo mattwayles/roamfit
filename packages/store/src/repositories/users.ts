@@ -14,6 +14,18 @@ import { logSignalEvent } from './signals';
 
 const USER_ID = 'local';
 
+/** Shape of the `notification_prefs` JSON column. Every field optional/absent-means-default so an
+ *  existing row (or a fresh `{}`) is always valid — see `DEFAULT_NOTIFICATION_PREFS`. */
+export interface NotificationPrefs {
+  /** §9.8/§10.8 — issue #20. Off disables the 10pm-7am clamp entirely (notifications may land at
+   *  any observed-training hour); on (the default) is the original always-on behavior. */
+  quietHoursEnabled?: boolean;
+}
+
+export const DEFAULT_NOTIFICATION_PREFS: Required<NotificationPrefs> = {
+  quietHoursEnabled: true,
+};
+
 export interface UserRecord {
   id: string;
   units: 'kg' | 'lb';
@@ -22,9 +34,10 @@ export interface UserRecord {
   bandTensions: Record<string, unknown>;
   passportEnabled: boolean;
   healthWriteEnabled: boolean;
-  notificationPrefs: Record<string, unknown>;
+  notificationPrefs: NotificationPrefs;
   lastKnownTzId: string | null;
   hasEverCompletedSession: boolean;
+  hasAcknowledgedDisclaimer: boolean;
 }
 
 function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
@@ -36,9 +49,10 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
     bandTensions: JSON.parse(row.bandTensions),
     passportEnabled: row.passportEnabled,
     healthWriteEnabled: row.healthWriteEnabled,
-    notificationPrefs: JSON.parse(row.notificationPrefs),
+    notificationPrefs: JSON.parse(row.notificationPrefs) as NotificationPrefs,
     lastKnownTzId: row.lastKnownTzId,
     hasEverCompletedSession: row.hasEverCompletedSession,
+    hasAcknowledgedDisclaimer: row.hasAcknowledgedDisclaimer,
   };
 }
 
@@ -69,10 +83,13 @@ export interface UserPatch {
   anchorsAvailable?: Anchor[];
   passportEnabled?: boolean;
   healthWriteEnabled?: boolean;
+  /** Shallow-merged onto the existing `notificationPrefs`, not replaced wholesale — a settings
+   *  screen editing one field must not clobber others it doesn't know about. */
+  notificationPrefs?: NotificationPrefs;
 }
 
 export function updateUser(db: Db, patch: UserPatch, now: string): void {
-  ensureUser(db, now); // idempotent — a settings update before the user row exists must not no-op
+  const current = ensureUser(db, now); // idempotent — a settings update before the user row exists must not no-op
   const values: Record<string, unknown> = { updatedAt: now };
   if (patch.units !== undefined) values.units = patch.units;
   if (patch.weeklyTarget !== undefined) values.weeklyTarget = patch.weeklyTarget;
@@ -81,7 +98,23 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
   }
   if (patch.passportEnabled !== undefined) values.passportEnabled = patch.passportEnabled;
   if (patch.healthWriteEnabled !== undefined) values.healthWriteEnabled = patch.healthWriteEnabled;
+  if (patch.notificationPrefs !== undefined) {
+    values.notificationPrefs = JSON.stringify({
+      ...current.notificationPrefs,
+      ...patch.notificationPrefs,
+    });
+  }
   db.update(schema.users).set(values).where(eq(schema.users.id, USER_ID)).run();
+}
+
+/** §13.3 — marks the first-launch medical disclaimer acknowledged. One-way (no "un-acknowledge"
+ *  needed — the permanent settings-screen copy is the ongoing access point, not a re-prompt). */
+export function acknowledgeDisclaimer(db: Db, now: string): void {
+  ensureUser(db, now);
+  db.update(schema.users)
+    .set({ hasAcknowledgedDisclaimer: true, updatedAt: now })
+    .where(eq(schema.users.id, USER_ID))
+    .run();
 }
 
 export function markHasEverCompletedSession(db: Db, now: string): void {
