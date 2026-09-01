@@ -45,6 +45,7 @@ import PinnedNote from '../components/PinnedNote';
 import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
 import SwapSheet from '../components/SwapSheet';
+import DemoMedia from '../components/DemoMedia';
 import {
   configureWorkoutAudioSession,
   cueCompletion,
@@ -101,7 +102,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   useKeepAwake();
 
   const { sessionId } = route.params;
-  const { db, library, families } = useStore();
+  const { db, library, families, figures } = useStore();
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [phase, setPhase] = useState<Phase>('exercise');
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
@@ -304,6 +305,36 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     reload();
   };
 
+  // §11.4 — the callbacks DemoMedia fires; every persistence call goes through @roamfit/store,
+  // never inline here (ADR 0003 / issue #13). `videoFlagState` reads fresh on every render off
+  // the current entry's exercise, same pattern as `exState` above.
+  const videoFlagState = exerciseStateRepo.getVideoFlagState(db, entry.exerciseId);
+  const handleDemoExpand = () => {
+    sessionsRepo.recordDemoMediaExpanded(db, entry.id, nowUtcInstant());
+  };
+  const handleReportVideoIssue = () => {
+    const clockToday = nowUtcInstant().slice(0, 10);
+    exerciseStateRepo.reportVideoIssue(
+      db,
+      entry.exerciseId,
+      'user_report',
+      nowUtcInstant(),
+      clockToday,
+    );
+    reload();
+  };
+  const handleDemoPlayerError = () => {
+    const clockToday = nowUtcInstant().slice(0, 10);
+    exerciseStateRepo.reportVideoIssue(
+      db,
+      entry.exerciseId,
+      'player_error',
+      nowUtcInstant(),
+      clockToday,
+    );
+    reload();
+  };
+
   const handleDifficultyChange = (d: Difficulty | undefined) => {
     setDifficulty(d ?? null);
     sessionsRepo.recordEntryFeedback(
@@ -388,6 +419,21 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           {progression?.calibrating && <Text style={styles.calibrating}>Calibrating</Text>}
 
           <PinnedNote note={exState?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
+
+          {exercise && figures[exercise.id] && (
+            <DemoMedia
+              figureSvg={figures[exercise.id]}
+              videoSearchQuery={exercise.video_search}
+              // §11.4 — remote config isn't synced yet (track 6d, not started); always null
+              // until 6d wires a real read here. The ladder correctly falls back to the figure.
+              curatedVideoId={null}
+              videoDemoted={videoFlagState.demoted}
+              defaultOpen={isFirstEverPerformance}
+              onExpand={handleDemoExpand}
+              onReportIssue={handleReportVideoIssue}
+              onPlayerError={handleDemoPlayerError}
+            />
+          )}
 
           <Disclosure
             title="How to"

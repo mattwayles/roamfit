@@ -68,7 +68,9 @@ describe('DemoMedia', () => {
   it('online, curated id, not demoted: shows the embed and the report control', async () => {
     mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
     const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
-    expect(renderer.root.findAllByProps({ testID: 'demo-media-webview' }).length).toBeGreaterThan(0);
+    expect(renderer.root.findAllByProps({ testID: 'demo-media-webview' }).length).toBeGreaterThan(
+      0,
+    );
     expect(renderer.root.findByProps({ testID: 'demo-media-report' })).toBeTruthy();
   });
 

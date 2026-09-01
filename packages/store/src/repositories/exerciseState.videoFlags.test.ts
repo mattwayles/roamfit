@@ -31,7 +31,13 @@ describe('video flag / demotion', () => {
   it('two reports demote the exercise, and demotedAt is stamped', () => {
     const { db } = createTestDb();
     reportVideoIssue(db, EXERCISE_ID, 'user_report', NOW, LOCAL_DATE);
-    const after = reportVideoIssue(db, EXERCISE_ID, 'user_report', '2026-08-31T11:00:00.000Z', LOCAL_DATE);
+    const after = reportVideoIssue(
+      db,
+      EXERCISE_ID,
+      'user_report',
+      '2026-08-31T11:00:00.000Z',
+      LOCAL_DATE,
+    );
     expect(after.flagCount).toBe(2);
     expect(after.demoted).toBe(true);
     expect(after.demotedAt).toBe('2026-08-31T11:00:00.000Z');
@@ -53,7 +59,13 @@ describe('video flag / demotion', () => {
     const { db } = createTestDb();
     reportVideoIssue(db, EXERCISE_ID, 'user_report', NOW, LOCAL_DATE);
     reportVideoIssue(db, EXERCISE_ID, 'user_report', '2026-08-31T11:00:00.000Z', LOCAL_DATE);
-    const third = reportVideoIssue(db, EXERCISE_ID, 'user_report', '2026-08-31T12:00:00.000Z', LOCAL_DATE);
+    const third = reportVideoIssue(
+      db,
+      EXERCISE_ID,
+      'user_report',
+      '2026-08-31T12:00:00.000Z',
+      LOCAL_DATE,
+    );
     expect(third.flagCount).toBe(3);
     expect(third.demotedAt).toBe('2026-08-31T11:00:00.000Z');
   });

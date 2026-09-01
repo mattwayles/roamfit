@@ -135,10 +135,7 @@ export default function DemoMedia({
           )}
 
           {searchUrl && (
-            <Pressable
-              testID="demo-media-search-link"
-              onPress={() => Linking.openURL(searchUrl)}
-            >
+            <Pressable testID="demo-media-search-link" onPress={() => Linking.openURL(searchUrl)}>
               <Text style={styles.searchLink}>Watch a real person do this ↗</Text>
             </Pressable>
           )}
