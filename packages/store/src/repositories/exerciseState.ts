@@ -287,3 +287,92 @@ export function setSuppressedUntil(
     )
     .run();
 }
+
+// ------------------------------------------------------------------------------------------
+// §11.4 media-ladder link health — local half of "two reports demote to tier 2". See the
+// `video_flag_count`/`video_demoted_at` columns' comments in schema.ts for why this lives here
+// rather than a new table, and STATUS-6b-media-ladder.md for why user reports and automatic
+// player-error flags share one counter.
+// ------------------------------------------------------------------------------------------
+
+const VIDEO_DEMOTION_THRESHOLD = 2;
+
+export type VideoFlagSource = 'user_report' | 'player_error';
+
+export interface VideoFlagState {
+  flagCount: number;
+  demoted: boolean;
+  demotedAt: string | null;
+}
+
+function rowToVideoFlagState(row: {
+  videoFlagCount: number;
+  videoDemotedAt: string | null;
+}): VideoFlagState {
+  return {
+    flagCount: row.videoFlagCount,
+    demoted: row.videoDemotedAt !== null,
+    demotedAt: row.videoDemotedAt,
+  };
+}
+
+/** Read-only — never throws, never inserts a row (an exercise with no state yet has never been
+ *  flagged, so the safe default is "not demoted"). Callers resolving the media ladder should use
+ *  this rather than `getExerciseState`, which only surfaces the `@roamfit/engine`-shaped fields. */
+export function getVideoFlagState(db: Db, exerciseId: string): VideoFlagState {
+  const rows = db
+    .select({
+      videoFlagCount: schema.exerciseState.videoFlagCount,
+      videoDemotedAt: schema.exerciseState.videoDemotedAt,
+    })
+    .from(schema.exerciseState)
+    .where(
+      and(
+        eq(schema.exerciseState.userId, USER_ID),
+        eq(schema.exerciseState.exerciseId, exerciseId),
+      ),
+    )
+    .all();
+  return rows.length > 0
+    ? rowToVideoFlagState(rows[0])
+    : { flagCount: 0, demoted: false, demotedAt: null };
+}
+
+/** §11.4: "A one-tap 'this video is wrong or broken' sits under the player. Two reports demote
+ *  the exercise to tier 2 automatically." Also called for an automatic player-error flag (source
+ *  `'player_error'`) — see the file-header note on why the two share one counter. Idempotent past
+ *  the threshold: once demoted, further reports keep incrementing the count (useful context for a
+ *  future operator review) but never move `demotedAt`. */
+export function reportVideoIssue(
+  db: Db,
+  exerciseId: string,
+  source: VideoFlagSource,
+  now: string,
+  localDate: string,
+): VideoFlagState {
+  ensureRow(db, exerciseId, now);
+  const before = getVideoFlagState(db, exerciseId);
+  const nextCount = before.flagCount + 1;
+  const nowDemoting = !before.demoted && nextCount >= VIDEO_DEMOTION_THRESHOLD;
+  const nextDemotedAt = before.demoted ? before.demotedAt : nowDemoting ? now : null;
+
+  db.update(schema.exerciseState)
+    .set({ videoFlagCount: nextCount, videoDemotedAt: nextDemotedAt, updatedAt: now })
+    .where(
+      and(
+        eq(schema.exerciseState.userId, USER_ID),
+        eq(schema.exerciseState.exerciseId, exerciseId),
+      ),
+    )
+    .run();
+
+  logSignalEvent(db, {
+    sessionId: null,
+    type: 'video_flag_reported',
+    payload: { exerciseId, source, flagCount: nextCount, demoted: nextDemotedAt !== null },
+    utcInstant: now,
+    localDate,
+  });
+
+  return { flagCount: nextCount, demoted: nextDemotedAt !== null, demotedAt: nextDemotedAt };
+}

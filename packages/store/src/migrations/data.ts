@@ -253,6 +253,17 @@ const MIGRATION_0003_LIFETIME_TOTAL_MINUTES = `-- 0003_lifetime_total_minutes.sq
 ALTER TABLE rolled_up_stats ADD COLUMN lifetime_total_minutes REAL NOT NULL DEFAULT 0;
 `;
 
+const MIGRATION_0004_VIDEO_FLAGS = `-- 0004_video_flags.sql — §11.4 link-health local state: two video-quality flags (user reports
+-- and/or automatic player-error flags, sharing one counter — see STATUS-6b-media-ladder.md)
+-- demote an exercise's media ladder to tier 2 (the bundled figure) until a human re-curates.
+-- Lives on exercise_state (per user x exercise, invariant 7) rather than a new table because it
+-- is exactly that shape and exercise_state already has the ensure-row-on-first-write pattern this
+-- needs.
+
+ALTER TABLE exercise_state ADD COLUMN video_flag_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE exercise_state ADD COLUMN video_demoted_at TEXT;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -260,4 +271,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0001_init.sql', sql: MIGRATION_0001_INIT },
   { id: '0002_muscle_volume.sql', sql: MIGRATION_0002_MUSCLE_VOLUME },
   { id: '0003_lifetime_total_minutes.sql', sql: MIGRATION_0003_LIFETIME_TOTAL_MINUTES },
+  { id: '0004_video_flags.sql', sql: MIGRATION_0004_VIDEO_FLAGS },
 ];

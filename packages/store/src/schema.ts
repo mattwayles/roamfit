@@ -96,6 +96,14 @@ export const exerciseState = sqliteTable(
     removeAtApprovalCount: integer('remove_at_approval_count').notNull().default(0),
     pinnedNote: text('pinned_note'),
     suppressedUntil: text('suppressed_until'),
+    /** §11.4 link-health — local half of the "two reports demote to tier 2" rule. Counts both
+     *  explicit "this video is wrong or broken" taps and automatic player-error flags against one
+     *  counter (see STATUS-6b-media-ladder.md's Decisions section for why they're shared).
+     *  Genuinely local-only in v1: aggregating flags across users / feeding the operator's
+     *  `flagged` queue is remote-config sync, track 6d's job, not built yet. This column exists so
+     *  the demotion rule works fully offline before 6d exists. */
+    videoFlagCount: integer('video_flag_count').notNull().default(0),
+    videoDemotedAt: text('video_demoted_at'),
     updatedAt: text('updated_at').notNull(),
   },
   (t) => [uniqueIndex('ux_exercise_state_user_exercise').on(t.userId, t.exerciseId)],
@@ -303,6 +311,7 @@ export const signalEvents = sqliteTable(
         'rep_target_adjusted_at_approval',
         'regenerate',
         'demo_media_expanded',
+        'video_flag_reported',
         'pinned_note_created',
         'pinned_note_edited',
         'abandoned',
