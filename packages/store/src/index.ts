@@ -9,6 +9,9 @@ export * from './migrate';
 export * from './generation';
 export * from './completion';
 export * from './llmQueueWorker';
+export * from './sync/lastWriteWins';
+export * from './sync/firestoreSyncClient';
+export * from './sync/firestoreSyncWorker';
 
 export * as usersRepo from './repositories/users';
 export * as exerciseStateRepo from './repositories/exerciseState';
