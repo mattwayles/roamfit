@@ -68,3 +68,19 @@ export type { SwapSlotRequest, SwapAlternative } from './selection/swap';
 // `app/`/`packages/store` invent sets/reps/rest by hand.
 export { prescribeAccessory, prescribeWarmupCooldown } from './prescription/prescribe';
 export type { PrescribeAccessoryInput } from './prescription/prescribe';
+
+// Wave 6c wiring surface — §7.3 "validate anyway." The LLM proxy (a plain node Cloud Function,
+// not `app/`) depends on this package purely for these pure validators — never for exercise
+// selection, which stays the engine pipeline's job alone (invariant 2).
+export {
+  validateIntakeOutput,
+  validateCoachVoiceOutput,
+  validateDistillationOutput,
+  isKnownAnchor,
+} from './llm/validate';
+export type {
+  ValidationResult,
+  IntakeLlmOutput,
+  CoachVoiceLlmOutput,
+  DistillationLlmOutput,
+} from './llm/validate';
