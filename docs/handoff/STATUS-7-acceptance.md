@@ -86,11 +86,43 @@ Last updated: 2026-09-01
     dedicated unit test would have been.
 - `npm run check` green throughout (app 87, engine 897, data 17, store 112, functions 29).
 
-### In progress
-- Real simulator pass next.
+- [x] **Real simulator pass — found and fixed a genuine red-screen regression, then verified real
+  UI on-device.** This environment has a real booted iOS Simulator with the app already built and
+  installed from before this session. Pointing Metro at it and opening the dev-client deep link
+  (`exp+roamfit://expo-development-client/?url=...`) reproduced exactly Wave 4's own verification-
+  log pattern: `[runtime not ready] Invariant Violation: TurboModuleRegistry.getEnforcing(...):
+  'RNCWebViewModule' could not be found` — a real red screen (`evidence/06-wave7-boot.png`).
+  - **Root cause, confirmed by inspection, not guessing:** `app/ios/Podfile.lock` had zero
+    entries for `react-native-webview`, `@kingstinct/react-native-healthkit`, `expo-location`, or
+    `react-native-svg` — the native iOS project had never been regenerated since Wave 6 added
+    these dependencies. The previously-installed simulator binary predated all of Wave 6's native
+    surface. Nothing in Waves 4-6 was ever actually exercised on a device; it couldn't have been,
+    it would have crashed on boot the moment media-ladder code was reachable.
+  - **Fixed for real:** `npx expo prebuild --platform ios` (regenerates `ios/`, re-resolves
+    CocoaPods) then a full `npx expo run:ios` (real `xcodebuild`, ~4 min, 0 errors) produced a
+    working binary. `app/ios/` is gitignored by design (Continuous Native Generation — nothing to
+    commit here; regenerating it is meant to be routine, just apparently never done since Wave 6).
+  - **Verified real, with real taps, not simulated:** re-launched the rebuilt binary
+    (`evidence/07-wave7-rebuilt.png`) — boots clean, no red screen. The §13.3 disclaimer gate this
+    wave added renders pixel-correct on first launch. Calibrated real `osascript`/System Events
+    taps against the Simulator window (issue #18's exact prior blocker — "coordinate calibration
+    wasn't nailed down" — this time it was: `evidence/11-wave7-tap4.png` shows a genuine tap
+    landing on "I understand" and immediately transitioning to a fully-rendered real Home
+    dashboard with live data — Today card, Quick Session, This week dots, travel-day banner,
+    real Next Unlock copy, and a real progression board with actual level numbers (Level 3 of 9,
+    etc.) — not a mock, the real store reading a real on-device db. This is genuine, non-Jest
+    verification of Wave 4/5 UI and directly narrows carried-forward issues #18 and #22.
+  - Further taps toward Settings were attempted (the Simulator window relocated on screen between
+    attempts, which broke my coordinate calibration mid-sequence) and not completed in the time
+    available — Settings/HealthKit-toggle/quiet-hours-toggle/diagnostics-panel and the media
+    ladder (#27) remain UNVERIFIED on-device this session. Said honestly in the final report.
+  - **New carried-forward issue for the orchestrator to file:** the CNG workflow (`ios/` gitignored,
+    regenerated via `expo prebuild`) has no guardrail — nothing catches "native deps changed,
+    `ios/` wasn't regenerated" before it becomes a boot-time crash. Worth a `predevice`/CI check or
+    a documented step in a build runbook (there is no `docs/RUNBOOK-ios-build.md` yet, unlike
+    functions' deploy runbook).
 
 ### Next
-- Real simulator pass: boot evidence, cold-start-no-network check, screenshot.
 - Carried-forward issue triage and final report.
 
 ### Decisions / gotchas
