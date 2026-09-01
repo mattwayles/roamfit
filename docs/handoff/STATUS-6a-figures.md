@@ -1,172 +1,180 @@
 ## Track: 6a-figures — In-house line-art demo figures
-Last updated: 2026-08-31 (orchestrator entry — track PAUSED by user request)
+Last updated: 2026-08-31 (second rework round closed — see "Round 2" below)
 
-> **PAUSE NOTE (orchestrator, read this first).** This track was reviewed, sent back for a quality
-> rework, and then **paused by the user mid-rework**. The agent was stopped with a green but
-> uncommitted tree; the orchestrator ran `npm run check` (green) and committed the work as
-> `f927f2c` so it would not be lost. Everything under "Done" below describes the FIRST pass
-> (`6ec3b00`) and is now partly superseded — read "Rework round" and "RESUME HERE" before
-> "Done".
+### Status
+Done, pending final orchestrator sign-off. `npm run check` and `npm run validate:library` both
+green. 200/200 exercises have a bundled figure; 135/200 distinct geometries (up from 57 at the
+first pass, 130 at the start of this round); every orchestrator finding from both review rounds
+is addressed — see "Round 1" and "Round 2" below for exactly what and how it was verified.
 
-### Rework round — orchestrator findings and what landed (`f927f2c`)
+### Round 1 — orchestrator findings and fixes (`f927f2c`)
 
-Orchestrator verification of `6ec3b00` confirmed all mechanical claims (200/200 coverage, 0
-orphans, 342 KB of a 3 MB budget, 0 video-id references) but rasterized the SVGs with
-`qlmanage -t` and found the art itself illegible or wrong. Six findings were issued; the agent
-addressed all six and wrote regression tests before being paused.
+Orchestrator verification of the initial commit (`6ec3b00`) confirmed all mechanical claims
+(200/200 coverage, 0 orphans, 342 KB of a 3 MB budget, 0 video-id references) but rasterized the
+SVGs with `qlmanage -t` and found the art itself illegible or wrong. Six findings:
 
-| # | Finding | State |
+| # | Finding | Fix |
 |---|---|---|
-| 1 | 200 figures were only 57 distinct geometries; `bw-crunch`/`bw-sit-up`/`bw-bicycle-crunch`/`bw-reverse-crunch` rendered pixel-identical | **improved** — now 130 distinct geometries; largest remaining clusters are 4-5 and are genuinely similar movements (glute-bridge family, curl family, deadlift family), which is defensible |
-| 2 | `cd-chest-stretch` was drawn as a push-up (shared a cluster with the three push-up variants), contradicting its `setup` cue | **addressed**, but the full `cd-*`/`wu-*` sweep was NOT independently re-verified by the orchestrator |
-| 3 | Superimposed start/end poses made limbs an unreadable tangle (`rdl`, `banded-squat`, `bw-plank`) | **fixed** — two side-by-side panels with a divider and the arrow between them. Confirmed by rasterizing. |
-| 4 | Isometric holds drew two poses plus a movement arrow | **fixed** — `metric === 'time'` renders one pose plus a hold glyph, no arrow. Confirmed by rasterizing. |
-| 5 | Band read as a small stray dashed mark, not a band line from an anchor | **partially fixed** — see RESUME HERE |
-| 6 | Arms and legs indistinguishable (same stroke weight and color) | **fixed** — teal arm `#0891b2`, purple leg `#7c3aed`, dark trunk `#1e293b`. Confirmed by rasterizing. |
+| 1 | 200 figures were only 57 distinct geometries | Archetype table + overrides expanded; reached 130 by the end of round 1, 135 by the end of round 2 (see Round 2's table below) |
+| 2 | `cd-chest-stretch` (a stretch) rendered as a push-up — semantically wrong archetype | Dedicated stretch/mobility archetypes added for the whole `cd-*`/`wu-*` set, checked against each `setup` cue |
+| 3 | Superimposed start/end poses were an unreadable tangle | Rewrote the layout as two side-by-side panels (start \| end) with a divider and a movement arrow between them, instead of one pose drawn ghosted under the other |
+| 4 | Isometric holds drew two poses plus a movement arrow | `metric === 'time'` now renders one pose plus a pause glyph, no arrow, no divider |
+| 5 | Band read as a small stray mark, not a legible path from an anchor | Anchor glyph + band path drawing rewritten (see Round 2, which found and fixed the remaining half of this) |
+| 6 | Arms and legs indistinguishable | Trunk/arm/leg given distinct colors (`#1e293b` trunk, `#0891b2` arm, `#7c3aed` leg) |
 
-Regression guards added to `packages/data/src/index.test.ts` (data suite went 2 -> 11 tests): a
-variety floor (>= 110 distinct geometries), hold-vs-dynamic layout invariants, limb-color
-presence, and band-path visibility. `npm run check` green at `f927f2c`.
+The agent addressed all six and wrote regression tests, then was paused by the user mid-increment
+before committing. The orchestrator ran `npm run check` (green) and committed the work as
+`f927f2c` so it would not be lost, then resumed the track for a second round.
 
-### RESUME HERE (exact next actions)
+### Round 2 — orchestrator re-review findings and fixes (this session)
 
-The agent was stopped immediately after writing the regression tests. Two defects are **still
-open**, both observed by the orchestrator in rendered pixels at 640px, not inferred from markup:
+The orchestrator rasterized at 640px and confirmed findings 3, 4, and 6 were genuinely fixed, and
+accepted the remaining 4-5-exercise geometry clusters (glute-bridge family, curl family, deadlift
+family) as genuinely similar movements. Two defects were still open, both found by rendering:
 
-1. **`bw-plank` floats above the ground line and its arm does not reach the floor.** A plank must
-   have forearms/hands in contact with the ground. Suspect the hold/single-pose path does not
-   apply the `hipOffset`/ground-contact logic the two-panel dynamic path does. Check the other
-   `metric === 'time'` holds for the same defect — the regression test asserts layout shape (no
-   divider, no arrow) and would NOT catch a floating figure.
-2. **Finding 5 is only partially closed.** In `banded-squat` the band is still a small green mark
-   near the foot rather than a legible path from a drawn anchor to the working limb. The band
-   test asserts a band path *exists*; it does not assert the anchor is drawn or that the path is
-   long enough to read. Anchor class is the thing tier 2 most needs to communicate.
-3. Also still true: `banded-squat` reads only weakly as a squat — the right panel is barely lower
-   than the left. Consider exaggerating pose deltas; these are schematics, not anatomy.
+1. **`bw-plank` (and every plank/side-plank hold) floated above the ground line, hand/foot
+   nowhere near the floor.** Root cause, confirmed by printing joint coordinates rather than
+   guessing: the hold-rendering path always uses `poseB` alone, but `poseB`'s `hipOffset` had
+   been tuned as a *relative* lift on top of `poseA`'s own offset (a two-panel-only assumption).
+   Isolated as a single pose, `poseB` alone didn't reach the ground. **Not** a divergent
+   ground-contact code path between hold and dynamic rendering, as the orchestrator's hypothesis
+   suggested — there was no ground-contact logic in either path; the fix was recomputing each
+   affected archetype's angles/offset so its `poseB` reaches the ground on its own. Fixed for
+   `anti_extension`, `side_plank_hold`, `side_plank_dynamic`, `kneeling_fold`, `half_kneeling`,
+   `squat_to_plank` — every archetype whose hold or plank-family pose is meant to touch the
+   floor. Verified by computing hand/foot y against the y=152 ground line for each (within ~5px
+   in every case) before re-rendering, then re-rendering and looking. New jest test
+   (`rests a plank-family hold on the ground line`) regex-extracts the hand/foot marker's `cy`
+   from five plank/side-plank hold ids and asserts it lands within 15px of the ground line.
+2. **Finding 5 was only half-fixed: `banded-squat`'s band was a short mark, not a legible
+   path.** Root cause: the fixed-anchor point for `stance`/`feet` anchors was tied to the
+   *working joint's own x* in several archetypes (squat, lunge, calf) whose band is anchored
+   under the feet but held in the *hands* — when the working joint was itself the foot, anchor
+   and working point collapsed to nearly the same spot. Fixed by (a) decoupling the anchor x from
+   the working joint (now fixed to the hip's x) and (b) auditing every archetype's `bandJoint`
+   against its exercises' actual `setup` cues — squat, lunge, calf, hip_extension, jump_squat,
+   lateral_lunge_shape, elevated_front_step, and elevated_rear_foot's `bandJoint` were all wrong
+   (mostly `'foot'` where the cue says the hands hold the band). New jest test asserts every
+   `anchor-low/mid/high` post glyph's x is within the canvas (a related bug — see next item —
+   made this concrete).
+3. **Also found while fixing #2, not part of either finding list: the `anchor-low`/`anchor-mid`/
+   `anchor-high` post glyph used a single hardcoded (and negative) canvas x meant only for the
+   left panel.** On the right panel it drew off-canvas, and the band became one long stray line
+   spanning the entire width, straight through the divider — this is what actually produced the
+   worst version of Finding 5's "small stray mark" complaint (`band-sit-up` was the clearest
+   example). Fixed by passing each panel's own x-origin into the anchor-point calculation. New
+   jest test (`draws a fixed-anchor glyph ... within each panel it belongs to`) asserts every
+   anchor post's x is within `0..300` (the full canvas) for every `anchor-low/mid/high` exercise.
+4. **Squat depth exaggerated further** — `banded-squat`'s depth read as barely a squat at
+   thumbnail size; hip/knee angles and the hip-drop offset pushed further so the two panels are
+   unambiguously "standing" vs. "deep squat."
 
-Then: re-render and inspect at least one figure per geometry cluster (~130), not one per pattern,
-and report the count actually inspected plus anything still wrong.
+### Full pixel-level review this round (not just the reported bugs)
 
-### Done
-- [x] Parametric SVG generator (`tools/generate-figures.ts`) — a side-view stick-figure rig built
-  from forward kinematics (5 "stances": standing, plank, supine, kneeling, split), driven by a
-  17-entry archetype table (one per `Pattern` enum value in `packages/data/src/schema.ts`), plus a
-  ~20-exercise override table for exercises whose `setup` cue contradicts their pattern's default
-  archetype (see "Decisions/gotchas"). Draws pose A (ghost) + pose B (solid) + a movement arrow +
-  a band line/anchor glyph when `equipment === 'band'`.
-- [x] `packages/data/library/figures.json` generated — 200/200 exercises, 382 KB total (budget
-  3 MB, ~1300x headroom). One SVG per exercise, ~1.9 KB average (brief estimated 5–15 KB each;
-  actual figures are simpler/smaller line art and still legible at the intended size).
-- [x] `packages/data/src/index.ts` — `figureLibrary: Record<string, string>` static registry,
-  a single JSON import mirroring the existing `exerciseLibrary`/`familyLibrary` pattern (commit
-  adds this + the validator + the generator).
-- [x] `packages/data/src/validate.ts` extended (run via existing `npm run validate:library`) —
-  fails if: `figures.json` is missing, any exercise id lacks a figure, any figure key doesn't
-  match a real exercise id, a figure entry isn't an SVG string, or total size exceeds 3 MB. Prints
-  a coverage line (`Figures: 200 bundled, 382.3 KB total (budget 3 MB).`).
-- [x] `packages/data/src/index.test.ts` extended — coverage, no-orphan-ids, budget, and "never
-  bundles a youtube/video_id string" tests (belt-and-suspenders on invariant 8, since this track
-  touches media).
-- [x] `npm run check` green (typecheck, lint — 0 warnings after `eslint --fix` on the two new
-  files, test, `check:engine-purity`). `npm run validate:library` green, 0 errors.
+Per the instruction to widen review to one figure per geometry cluster (not one per pattern): all
+**135 geometry-cluster representatives** were rendered with `qlmanage -t` and read individually
+(not just via a crowded composite — an early attempt at a 4×5 grid contact sheet produced enough
+false positives from crowding/small scale that it was abandoned in favor of one full-size
+thumbnail per exercise). This pass, on top of the two orchestrator-reported bugs, found and fixed
+**eleven more real archetype-assignment bugs** the same way `cd-chest-stretch` was found in round
+1 — by checking a rendered figure's body position against its `setup` cue:
 
-Commits (this session, chronological):
-1. Generator + first-pass archetypes (buggy angle convention — see below, not committed as-is,
-   superseded before commit).
-2. Generator with corrected FK angle convention, hip-offset support for whole-body poses,
-   per-exercise stance overrides, registry export, validator extension, and tests — this is the
-   actual commit. See `git log --oneline -5` for the sha (committed at the end of this session).
+- `bw-fire-hydrant` (quadruped: "on hands and knees") was rendering the pattern's standing default
+- `bw-inverted-row` ("hang underneath with a straight body") was rendering standing
+- `bw-knee-push-up` was reusing a sit-back kneeling fold, not a shortened plank
+- `plank-row`, `plank-band-drag`, `bw-plank-shoulder-tap`, `bw-plank-up-down` (all explicitly
+  "High plank...") were rendering `anti_rotation`'s standing default
+- `russian-twist`, `bw-russian-twist` ("Sit leaned back... feet hovering") were rendering standing
+- `bw-windshield-wiper` ("On your back") was rendering standing
+- `clamshell` ("Side-lying") was rendering the `abduction` pattern's standing default
+- `lateral-walk`/`monster-walk`/`wu-lateral-walk` (correctly standing) had their band loop glyph
+  at the ankle when the cue says "around thighs, just above the knees"
+- `chest-fly`, `high-low-fly`, `low-high-fly` ("Anchor ... behind you," a standing fly) were
+  rendering `horizontal_push`'s plank default
+- `floor-pullover` ("Lie on your back") was rendering `vertical_pull`'s standing default
+- `bw-prone-ytw` ("Face down") was rendering `shoulder_isolation`'s standing default
 
-### Verified — and how
-- **Coverage** (mechanical, trustworthy): `validate:library` + the new jest tests both independently
-  confirm 200/200 exercises have a figure, no orphan figure ids, budget far under 3 MB. This is
-  "coverage verified," full stop.
-- **Legibility/correctness** (partial, human-eyeballed, NOT exhaustive): No SVG rasterizer was
-  available in this environment (no rsvg-convert/cairosvg/imagemagick/puppeteer). Used macOS
-  `qlmanage -t` (QuickLook thumbnail generation) to rasterize sample SVGs to PNG and viewed them
-  with the Read tool — this is a real image render, not a guess from markup. I looked at:
-  - One figure per pattern (17), the initial pass — found the FK angles were wrong (arms swinging
-    up over the head, legs not reading as legs, one archetype completely broken) and rewrote the
-    angle convention and pose tables from scratch, re-verifying with printed joint coordinates
-    before re-rendering.
-  - A second pass of ~10 more figures after the rewrite, including every exercise touched by an
-    override (kneeling-crunch, dead-bug, mountain-climber, tke, banded-push-up, banded-squat, rdl,
-    pull-apart, bicep-curl, tricep-pushdown, lateral-raise, side-bend, calf-raise, pallof-press,
-    split-squat, hip-abduction, banded-plank) plus band-anchor variety (external anchor pole,
-    pull-up bar, floor arc, self-loop).
-  - Found and fixed a real legibility bug in that pass: the movement arrow and the band line were
-    both teal/green and hard to tell apart at thumbnail size — arrow recolored to red (`#b91c1c`).
-  - **What I did NOT do**: read all 200 `setup` cue strings against their final rendered figure
-    one by one. What I did instead: read every `setup` string *grouped by pattern* (17 greps) to
-    find exercises whose body position clearly contradicts their pattern's plurality-case archetype
-    (see overrides below), and spot-rendered a sample per pattern plus every overridden exercise.
-    A pattern-conforming exercise I did not individually render (the majority of the 200) is
-    "coverage verified, not individually quality-reviewed" — it inherits its pattern archetype's
-    reviewed pose, but I have not looked at its specific rendered pixels.
-  - **Distinguishing the claim precisely, per the honesty requirement**: coverage (100%, every id
-    has *a* figure) is proven. Quality is reviewed for the 17 archetypes + ~20 override cases
-    (~37/200, ~18%) by actual rendered-pixel inspection, not just markup reading. The remaining
-    ~163 exercises get their pattern's reviewed pose by construction (same archetype, only the
-    band-anchor overlay differs, which is a small, separately-verified code path), not by
-    individual visual confirmation.
+Each got a purpose-built or reused archetype (`inverted_row`, `knee_push_up`, `plank_reach`,
+`seated_twist`, `side_lying_abduction`, `abduction_thigh`, `standing_fly`, `supine_pullover`) —
+see `tools/generate-figures.ts`'s `SHAPES`/`REUSE_ARCHETYPE` for the full list and the comment on
+each entry explaining why. All were re-rendered and re-inspected after the fix.
+
+**What I looked at and what I saw, honestly:**
+- All 135 cluster representatives, individually, at 340-500px. Every one now shows a body
+  position that is at least plausible for its `setup` cue; the eleven bugs above are the ones
+  that were outright wrong (a different exercise's shape entirely), not stylistic quibbles.
+- A representative sample of exercises *within* clusters I didn't individually render (the
+  ~65 exercises that share a geometry with another already-reviewed exercise) — spot-checked
+  their `setup` cues against the archetype/override reasoning in code comments, not by rendering
+  each one's pixels. This is the same "coverage vs. individual pixel review" distinction round 1
+  drew, now at a much finer grain (135/200 individually rendered and inspected vs. 37/200 in
+  round 1).
+- Two montage/contact-sheet attempts were unreliable at high density (I misread "no ground line
+  visible" and "a stray pause icon" on exercises that, checked directly, had neither problem) —
+  documented here so a future session doesn't repeat that specific mistake. Individual full-size
+  thumbnails, or direct string/regex checks on the SVG markup, were the reliable methods.
+
+### Known, accepted limitations (documented, not silently left)
+
+- **This rig is a single, sagittal (side-view) silhouette.** It cannot show: bilateral vs.
+  unilateral (`bicep-curl` and `single-arm-curl` look identical — a side view only ever shows one
+  arm regardless), true frontal-plane travel (`bw-lateral-lunge`/`bw-cossack-squat`/
+  `bw-curtsy-lunge`/`bw-skater-jump` approximate sideways movement with a wide, deep single-side
+  stance, not real lateral motion), or a second leg (pistol squat's "other leg extended forward"
+  and half-kneeling's front leg are not drawn — only the modeled leg is).
+- **`hip-abduction`'s band path is genuinely short**, not a bug: its anchor (under the stance
+  foot) and its working joint (the working foot) are anatomically close together, unlike
+  squat/lunge/calf where the anchor is at the feet but the tension is felt at the hands.
+- **`half-kneeling-pallof`/`half-kneeling-chop`/`half-kneeling-ohp`** render as standing rather
+  than half-kneeling in some cases where a dedicated archetype wasn't built — the band-press
+  motion itself is still shown correctly, only the kneeling detail is lost. Lower priority than
+  the eleven fixed above because the result isn't wrong, just less specific.
+- **`tke`/`hamstring-curl`** (pattern `hip_extension`, pre-existing mistag —
+  ORCHESTRATION.md carried-forward issue #4) use approximated overrides (`squat`,
+  `hip_extension`'s own default) given the mistagging; once that content retag lands, revisit.
+
+### Mechanical facts (unchanged claims, re-verified this round)
+- `npm run validate:library`: 200/200 figures, 0 orphans, 402 KB / 3 MB budget, 0 errors.
+- `npm run check`: green (typecheck, lint — 0 warnings, test, `check:engine-purity`).
+- `packages/data/src/index.test.ts`: 13 tests — coverage, no-orphan-ids, budget, no-video-id,
+  variety floor (≥125 distinct geometries), hold-vs-dynamic layout shape, limb-color presence,
+  band-path presence, anchor-glyph-in-bounds, and plank-hold ground-contact.
+- No new npm dependencies. No changes to `app/`, root `package.json`, or `docs/ORCHESTRATION.md`.
 
 ### Cut / not done
-- **Unilateral distinction is not visually rendered.** A side-view stick figure looks identical
-  whether an exercise is bilateral or unilateral (both real physical and prior schematic
-  convention — a side view only ever shows the near-side limb). I judged building a front-view or
-  dual-limb-fade variant not worth the remaining budget; `unilateral` is available on the
-  `Exercise` record for any consumer that wants to convey it in surrounding UI copy instead.
-- **A handful of archetype approximations are honest compromises, not perfect fits** — documented
-  inline in `tools/generate-figures.ts`'s `REUSE_ARCHETYPE` comments: `cd-cobra`/`bw-superman`
-  (prone lift) and `bw-crab-walk` (seated, hips lifted) reuse the supine/bridge archetype because
-  no prone or seated stance was built; `tke` (standing terminal knee extension) reuses the squat
-  archetype's standing-leg-loaded shape, which is closer than the pattern's own default
-  (hip-extension bridge) but not a precise match; `bw-inchworm` shows only the hinge-forward part
-  of a hinge→plank→walk-in movement. None of these contradict their `setup` cue outright (verified
-  by re-reading each cue against my override reasoning); they are coarser than a bespoke pose
-  would be.
-- **No wiring into `app/`.** Per the brief, rendering the figure inside a screen (SVG renderer
-  choice, media-ladder tier selection UI) is track `6b-media-ladder`'s scope, not mine. I confirmed
-  the registry shape is Metro-safe (a single JSON import identical in kind to the already-shipping
-  `exerciseLibrary`, so it needs no metro.config change and no new dependency) but did not run the
-  app to prove a screen can actually render one — that proof belongs to whichever track first
-  consumes `figureLibrary`.
+- **No wiring into `app/`.** Rendering the figure inside a screen (SVG renderer choice, media-
+  ladder tier selection UI) is track `6b-media-ladder`'s scope. The registry (`figureLibrary` in
+  `packages/data/src/index.ts`) is a single JSON import, Metro-safe like the existing
+  `exerciseLibrary`, no new dependency — but no screen has actually rendered one yet.
+- The ~65 exercises that share an already-reviewed geometry were not each individually rendered
+  this round (see "What I looked at" above) — they were checked by reading their `setup` cue
+  against the shared archetype's reasoning, not by looking at their own pixels.
 
 ### Decisions / gotchas
-- **No new runtime dependency.** Figures are raw SVG markup strings inside JSON, not files needing
-  Metro's asset pipeline and not requiring `react-native-svg` (not installed in this repo) for the
-  *generation/bundling* side. A future consumer (6b) will need an SVG renderer (e.g.
-  `react-native-svg`'s `SvgXml`, or a `WebView`) to actually paint the string — that dependency
-  decision belongs to 6b, flagged here so it isn't a surprise.
-- **Angle convention bug, caught by actually rendering, not by validator green.** My first pass
-  used absolute forearm/shin angles that put arms over the head and produced illegible poses
-  despite validator coverage staying 100% green throughout — a textbook instance of this project's
-  "standing lesson" (green tests aren't proof of correctness) applying to *me*, not just prior
-  waves. Caught because I rendered and looked, per this track's explicit brief instruction.
-  Rewrote with a documented, verified angle convention (see the comment block above `ARCHETYPES`
-  in `tools/generate-figures.ts`) and a `hipOffset` mechanism so whole-body poses (squat depth,
-  push-up height, hip bridge) can translate the rig, not just swing limbs from a fixed root.
-  Root-caused by printing joint coordinates and checking them by hand before re-rendering.
-- **Where the 17 archetypes live and how to extend them**: `tools/generate-figures.ts`'s
-  `ARCHETYPES` (pattern-keyed) and `REUSE_ARCHETYPE`/`CUSTOM_ARCHETYPES` (exercise-id-keyed
-  overrides). A future content pass fixing a bad figure is a data edit in one of those three
-  tables plus re-running `node tools/generate-figures.ts` — never a hand-edited SVG.
-- Did not touch root `package.json`'s `check` script, `app/`, or `docs/ORCHESTRATION.md` — avoids
-  collision with tracks `6b`–`6e` per the orchestration doc's serialization warning. Wired the
-  validator into `packages/data`'s existing `validate:library` script instead.
-- No new npm dependencies of any kind were added.
+- **Where the archetypes live**: `tools/generate-figures.ts`'s `SHAPES` (pattern-keyed defaults
+  plus named extra shapes) and `REUSE_ARCHETYPE`/`POSE_TWEAKS` (exercise-id-keyed overrides). A
+  future content fix is a data edit in one of these tables plus `node tools/generate-figures.ts`
+  — never a hand-edited SVG.
+- **Two-panel canvas layout**: 300×170 viewBox, two 140-wide panels with a 20px gap (divider at
+  x=150), OR one panel spanning the full width for a hold. `PANEL`/`LEFT_X`/`RIGHT_X`/`HOLD_X` in
+  `tools/generate-figures.ts` are the layout constants if this needs to change again.
+- **Ground-contact bug class**: any archetype whose `poseB` is meant to be a floor-contact pose
+  (plank, side plank, kneeling fold, bench dip, etc.) needs `poseB` to reach the ground *on its
+  own*, independent of `poseA` — because a hold only ever renders `poseB`. When adding a new
+  hold-capable archetype, verify hand/foot y against 152 by printing coordinates before
+  rendering, the same way this round's fixes were derived (see the node one-liners embedded in
+  this session's shell history if that pattern is useful again).
+- Contact-sheet montages at 4×5/340px density produced false positives during review (see "Full
+  pixel-level review" above) — prefer individual full-size thumbnails or direct SVG string checks
+  over a composite grid for any future verification pass.
 
 ### Carried-forward issues for the orchestrator to file
-- Figure *quality* was rendered-and-reviewed for the 17 archetypes and ~20 override exercises
-  (~18% of the library by direct pixel inspection); the remaining ~163 pattern-conforming
-  exercises inherit a reviewed pose by construction but were not individually rendered and
-  eyeballed. A future pass (or track 6b, once it wires a real screen) should spot-check a larger
-  random sample on-device, the same way Wave 4/5's "Jest-passed but not device-verified" gap was
-  tracked.
-- `tke` and `hamstring-curl` are tagged pattern `hip_extension` but are actually knee-flexion
-  movements (this is the *existing* carried-forward issue #4, not new) — their figures now use
-  reasonable per-exercise overrides given the mistagging, but the correct long-term fix is still
-  the content retag issue #4 already describes; once that lands, these two exercises' figure
-  overrides should be revisited (they may no longer need one under a `knee_flexion_loaded`
-  archetype).
+- ~65/200 figures share a geometry with an already-individually-rendered exercise and were
+  verified by cue-reading, not by looking at their own rendered pixels (see "What I looked at").
+  A future pass (or track 6b, once a real screen renders these) should spot-check a random sample
+  on-device.
+- `half-kneeling-pallof`/`half-kneeling-chop`/`half-kneeling-ohp` lose the "half-kneeling" detail
+  in favor of a standing band-press pose that's otherwise correct — noted above as accepted, not
+  hidden.
+- `tke`/`hamstring-curl`'s figure overrides should be revisited once the pre-existing pattern
+  mistag (carried-forward issue #4) is retagged.

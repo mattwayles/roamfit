@@ -104,8 +104,12 @@ interface PoseAngles {
    *  swinging from a fixed root. Defaults to no offset. */
   hipOffset?: Point;
   /** Small rectangle drawn under a joint to depict an elevated surface (step, bench, tailgate) —
-   *  used by the incline/decline/step-up/Bulgarian-split-squat family. */
+   *  used by the incline/decline/step-up family. */
   platformUnder?: 'hand' | 'foot';
+  /** A rear-foot-elevated bench, drawn at a fixed offset behind the hip rather than under a
+   *  joint — this rig only models one leg, so there is no "back foot" position to hang a
+   *  platform from the way `platformUnder` does (Bulgarian split squat). */
+  benchBehindHip?: boolean;
 }
 
 interface RigPoints {
@@ -204,16 +208,23 @@ const SHAPES: Record<string, Archetype> = {
   squat: {
     stance: 'standing',
     poseA: { torsoAngle: 270, shoulderAngle: 350, elbowAngle: 260, hipAngle: 92, kneeAngle: 88 },
+    // Depth exaggerated (hipAngle/kneeAngle/hipOffset all pushed further than a real squat)
+    // because this is a schematic, not anatomy — the orchestrator found the original delta too
+    // subtle to read as a squat at thumbnail size.
     poseB: {
-      torsoAngle: 255,
+      torsoAngle: 250,
       shoulderAngle: 350,
       elbowAngle: 260,
-      hipAngle: 110,
-      kneeAngle: 60,
-      hipOffset: { x: -6, y: 24 },
+      hipAngle: 122,
+      kneeAngle: 44,
+      hipOffset: { x: -8, y: 34 },
     },
     track: 'hip',
-    bandJoint: 'foot',
+    // Band exercises in this pattern are anchored under the feet ('stance') but held in the
+    // hands ('ends at shoulders', 'front-rack', etc. — see every squat-family setup cue); Finding
+    // 5's "small stray mark" was this defaulting to 'foot', which put the anchor and the working
+    // joint at the same point.
+    bandJoint: 'hand',
   },
   // Standing tall hinging forward at the hip, knees soft, arms holding the load down in front.
   hinge: {
@@ -243,7 +254,9 @@ const SHAPES: Record<string, Archetype> = {
       hipOffset: { x: -4, y: 22 },
     },
     track: 'hip',
-    bandJoint: 'foot',
+    // See squat's comment: 'stance'/'feet' anchors are under the feet, but the band is held in
+    // the hands ("ends over shoulders") for this pattern's band exercises.
+    bandJoint: 'hand',
   },
   // Hips down (bridge start) to hips fully extended (bridge top).
   hip_extension: {
@@ -258,7 +271,9 @@ const SHAPES: Record<string, Archetype> = {
       hipOffset: { x: 0, y: -20 },
     },
     track: 'hip',
-    bandJoint: 'foot',
+    // The band drapes over the hips for every exercise that reuses this shape ("band over hips"),
+    // not held in the hand or looped at the foot.
+    bandJoint: 'hip',
   },
   // Limbs together brought out to the side (lateral raise / band walk / clamshell family).
   abduction: {
@@ -267,6 +282,16 @@ const SHAPES: Record<string, Archetype> = {
     poseB: { torsoAngle: 270, shoulderAngle: 190, elbowAngle: 190, hipAngle: 95, kneeAngle: 90 },
     track: 'hand',
     bandJoint: 'foot',
+  },
+  // Same standing pose as `abduction`, but the band loops the *thighs* (lateral walk / monster
+  // walk), not the ankle — the loop glyph needs to sit at the knee, not the foot, or it reads as
+  // an ankle band even though the cue says "around thighs."
+  abduction_thigh: {
+    stance: 'standing',
+    poseA: { torsoAngle: 270, shoulderAngle: 100, elbowAngle: 100, hipAngle: 95, kneeAngle: 90 },
+    poseB: { torsoAngle: 270, shoulderAngle: 190, elbowAngle: 190, hipAngle: 95, kneeAngle: 90 },
+    track: 'hand',
+    bandJoint: 'knee',
   },
   // Heels down to full plantarflexion (calf raise) — small whole-body rise.
   calf: {
@@ -281,7 +306,9 @@ const SHAPES: Record<string, Archetype> = {
       hipOffset: { x: 0, y: -8 },
     },
     track: 'foot',
-    bandJoint: 'foot',
+    // Calf-raise band exercises hold the ends "at shoulders or hips," not the foot the band is
+    // anchored under — same fix as squat/lunge above.
+    bandJoint: 'hand',
   },
   // Hands centered at the chest pressed straight out to the side against rotation (pallof press).
   anti_rotation: {
@@ -295,13 +322,16 @@ const SHAPES: Record<string, Archetype> = {
   anti_extension: {
     stance: 'kneeling',
     poseA: { torsoAngle: 230, shoulderAngle: 130, elbowAngle: 90, hipAngle: 40, kneeAngle: 130 },
+    // Ground-contact verified by printing hand.y/foot.y: both land within ~5px of the y=152
+    // ground line (hand 147.5, foot 149.0), not floating in space (see STATUS-6a-figures.md's
+    // ground-contact fix notes — orchestrator found bw-plank floating in an earlier round).
     poseB: {
       torsoAngle: 200,
-      shoulderAngle: 110,
-      elbowAngle: 110,
-      hipAngle: 15,
-      kneeAngle: 15,
-      hipOffset: { x: 4, y: -6 },
+      shoulderAngle: 100,
+      elbowAngle: 100,
+      hipAngle: 55,
+      kneeAngle: 55,
+      hipOffset: { x: 4, y: 26 },
     },
     track: 'hip',
     bandJoint: 'foot',
@@ -386,7 +416,17 @@ const SHAPES: Record<string, Archetype> = {
   kneeling_fold: {
     stance: 'kneeling',
     poseA: { torsoAngle: 250, shoulderAngle: 300, elbowAngle: 320, hipAngle: 30, kneeAngle: 140 },
-    poseB: { torsoAngle: 150, shoulderAngle: 175, elbowAngle: 175, hipAngle: 25, kneeAngle: 140 },
+    // Ground-contact verified: hand (21.2, 152.0) and foot (112.5, 153.1) both land on the
+    // ground line and stay within the panel's x bounds (an earlier version put the hand at
+    // negative x, off the left edge of the canvas).
+    poseB: {
+      torsoAngle: 150,
+      shoulderAngle: 165,
+      elbowAngle: 165,
+      hipAngle: 40,
+      kneeAngle: 130,
+      hipOffset: { x: 48, y: 20 },
+    },
     track: 'shoulder',
     bandJoint: 'hand',
     forceHold: true,
@@ -405,13 +445,16 @@ const SHAPES: Record<string, Archetype> = {
   half_kneeling: {
     stance: 'kneeling',
     poseA: { torsoAngle: 270, shoulderAngle: 100, elbowAngle: 100, hipAngle: 100, kneeAngle: 92 },
+    // Ground-contact verified: foot.y 151.5, close enough to the ground line that the back
+    // shin reads as resting on the floor (this rig only models one leg, so the front knee/foot
+    // is not separately drawn — an accepted simplification, see STATUS-6a-figures.md).
     poseB: {
       torsoAngle: 260,
       shoulderAngle: 100,
       elbowAngle: 100,
       hipAngle: 40,
-      kneeAngle: 130,
-      hipOffset: { x: 0, y: 4 },
+      kneeAngle: 115,
+      hipOffset: { x: 0, y: 15 },
     },
     track: 'hip',
     bandJoint: 'hand',
@@ -430,13 +473,15 @@ const SHAPES: Record<string, Archetype> = {
   side_plank_hold: {
     stance: 'plank',
     poseA: { torsoAngle: 205, shoulderAngle: 130, elbowAngle: 90, hipAngle: 15, kneeAngle: 8 },
+    // Ground-contact verified: hand.y 152.5, foot.y 150.7 — both land on the y=152 ground line
+    // (see the anti_extension comment above for why this matters).
     poseB: {
       torsoAngle: 205,
       shoulderAngle: 130,
       elbowAngle: 90,
-      hipAngle: 15,
-      kneeAngle: 8,
-      hipOffset: { x: 0, y: -10 },
+      hipAngle: 35,
+      kneeAngle: 35,
+      hipOffset: { x: 0, y: 40 },
     },
     track: 'hip',
     bandJoint: 'foot',
@@ -449,17 +494,21 @@ const SHAPES: Record<string, Archetype> = {
       torsoAngle: 205,
       shoulderAngle: 130,
       elbowAngle: 90,
-      hipAngle: 15,
-      kneeAngle: 8,
-      hipOffset: { x: 0, y: 8 },
+      hipAngle: 35,
+      kneeAngle: 35,
+      hipOffset: { x: 0, y: 40 },
     },
+    // Both exercises that use this shape are metric === 'time' (side-plank-abduction,
+    // bw-side-plank-hip-dip), so only poseB ever renders (as a hold) — ground-contact verified
+    // the same way as side_plank_hold, with the knee/foot lifted slightly to show the top-leg
+    // raise/hip-dip motion rather than a flat plank.
     poseB: {
       torsoAngle: 205,
       shoulderAngle: 130,
       elbowAngle: 90,
       hipAngle: 30,
-      kneeAngle: 8,
-      hipOffset: { x: 0, y: -10 },
+      kneeAngle: 20,
+      hipOffset: { x: 0, y: 38 },
     },
     track: 'knee',
     bandJoint: 'knee',
@@ -554,7 +603,7 @@ const SHAPES: Record<string, Archetype> = {
       hipOffset: { x: 0, y: -18 },
     },
     track: 'hip',
-    bandJoint: 'foot',
+    bandJoint: 'hand', // squat-jump holds the band "at shoulders," same fix as the plain squat
   },
   // Hinge and swing into a forward broad jump.
   broad_jump: {
@@ -593,16 +642,18 @@ const SHAPES: Record<string, Archetype> = {
   squat_to_plank: {
     stance: 'kneeling',
     poseA: { torsoAngle: 260, shoulderAngle: 230, elbowAngle: 320, hipAngle: 100, kneeAngle: 60 },
+    // Same ground-touching angles as anti_extension's poseB (see its comment) — the plank end
+    // of a burpee/squat-thrust/sprawl needs hands on the floor just as much as a static plank.
     poseB: {
       torsoAngle: 200,
-      shoulderAngle: 110,
-      elbowAngle: 110,
-      hipAngle: 15,
-      kneeAngle: 15,
-      hipOffset: { x: 4, y: -6 },
+      shoulderAngle: 100,
+      elbowAngle: 100,
+      hipAngle: 55,
+      kneeAngle: 55,
+      hipOffset: { x: 4, y: 26 },
     },
     track: 'hip',
-    bandJoint: 'foot',
+    bandJoint: 'hand',
   },
   // Front foot elevated on a step, driving up through the heel (step-up).
   elevated_front_step: {
@@ -625,12 +676,19 @@ const SHAPES: Record<string, Archetype> = {
       platformUnder: 'foot',
     },
     track: 'hip',
-    bandJoint: 'foot',
+    bandJoint: 'hand', // the banded variant holds the band "ends at shoulders" too
   },
   // Rear foot elevated on a bench, dropping the front knee to depth (Bulgarian split squat).
   elevated_rear_foot: {
     stance: 'split',
-    poseA: { torsoAngle: 270, shoulderAngle: 110, elbowAngle: 110, hipAngle: 100, kneeAngle: 92 },
+    poseA: {
+      torsoAngle: 270,
+      shoulderAngle: 110,
+      elbowAngle: 110,
+      hipAngle: 100,
+      kneeAngle: 92,
+      benchBehindHip: true,
+    },
     poseB: {
       torsoAngle: 262,
       shoulderAngle: 110,
@@ -638,9 +696,10 @@ const SHAPES: Record<string, Archetype> = {
       hipAngle: 115,
       kneeAngle: 55,
       hipOffset: { x: -4, y: 20 },
+      benchBehindHip: true,
     },
     track: 'hip',
-    bandJoint: 'foot',
+    bandJoint: 'hand', // the banded variant holds the band "ends at shoulders"
   },
   // High plank driving one knee toward the chest, alternating (mountain climber).
   plank_knee_drive: {
@@ -719,6 +778,16 @@ const SHAPES: Record<string, Archetype> = {
     poseB: { torsoAngle: 270, shoulderAngle: 280, elbowAngle: 280, hipAngle: 100, kneeAngle: 92 },
     track: 'hand',
     bandJoint: 'hand',
+  },
+  // Hanging from a bar with straight arms (dead hang) — not the "hands pulled to the shoulder"
+  // end state that vertical_pull's default poseB would otherwise show for this hold.
+  dead_hang: {
+    stance: 'standing',
+    poseA: { torsoAngle: 270, shoulderAngle: 280, elbowAngle: 280, hipAngle: 95, kneeAngle: 90 },
+    poseB: { torsoAngle: 270, shoulderAngle: 280, elbowAngle: 280, hipAngle: 95, kneeAngle: 90 },
+    track: 'hand',
+    bandJoint: 'hand',
+    forceHold: true,
   },
   // Hinge over one leg, the other extending straight back (single-leg RDL).
   single_leg_hinge: {
@@ -903,7 +972,31 @@ const SHAPES: Record<string, Archetype> = {
       hipOffset: { x: -14, y: 20 },
     },
     track: 'hip',
-    bandJoint: 'foot',
+    bandJoint: 'hand',
+  },
+  // Push-up from the knees — a shortened plank (the "shin" folds back short instead of extending
+  // full leg-length) rather than kneeling_situp's sit-back fold, which was a worse fit found on
+  // review (see STATUS-6a-figures.md).
+  knee_push_up: {
+    stance: 'plank',
+    poseA: {
+      torsoAngle: 195,
+      shoulderAngle: 110,
+      elbowAngle: 60,
+      hipAngle: 60,
+      kneeAngle: 120,
+      hipOffset: { x: 0, y: 18 },
+    },
+    poseB: {
+      torsoAngle: 215,
+      shoulderAngle: 100,
+      elbowAngle: 100,
+      hipAngle: 60,
+      kneeAngle: 120,
+      hipOffset: { x: 0, y: -4 },
+    },
+    track: 'shoulder',
+    bandJoint: 'hand',
   },
   // Standing near-vertical, leaning into a wall with hands at shoulder height (wall push-up).
   wall_push_up: {
@@ -911,6 +1004,120 @@ const SHAPES: Record<string, Archetype> = {
     poseA: { torsoAngle: 250, shoulderAngle: 350, elbowAngle: 80, hipAngle: 95, kneeAngle: 90 },
     poseB: { torsoAngle: 270, shoulderAngle: 350, elbowAngle: 350, hipAngle: 95, kneeAngle: 90 },
     track: 'shoulder',
+    bandJoint: 'hand',
+  },
+  // Hanging underneath a low bar with a straight body, pulling the chest up to it (inverted
+  // row) — not a standing pull, which the default horizontal_pull archetype would otherwise show
+  // for this bodyweight exercise (found by rendering; the setup cue is explicit: "hang
+  // underneath with a straight body").
+  inverted_row: {
+    stance: 'plank',
+    poseA: {
+      torsoAngle: 200,
+      shoulderAngle: 280,
+      elbowAngle: 280,
+      hipAngle: 55,
+      kneeAngle: 55,
+      hipOffset: { x: 4, y: 26 },
+    },
+    poseB: {
+      torsoAngle: 200,
+      shoulderAngle: 250,
+      elbowAngle: 210,
+      hipAngle: 55,
+      kneeAngle: 55,
+      hipOffset: { x: 4, y: 26 },
+    },
+    track: 'hand',
+    bandJoint: 'hand',
+  },
+  // High plank, one arm lifting off the ground (row / drag / shoulder-tap / up-down family) —
+  // not anti_rotation's default standing press, which is wrong for every plank-* and
+  // bw-plank-* exercise in this pattern (found by rendering; every one of their setup cues
+  // starts "High plank..." or "From a forearm plank...").
+  plank_reach: {
+    stance: 'plank',
+    poseA: {
+      torsoAngle: 200,
+      shoulderAngle: 100,
+      elbowAngle: 100,
+      hipAngle: 55,
+      kneeAngle: 55,
+      hipOffset: { x: 4, y: 26 },
+    },
+    poseB: {
+      torsoAngle: 200,
+      shoulderAngle: 210,
+      elbowAngle: 250,
+      hipAngle: 55,
+      kneeAngle: 55,
+      hipOffset: { x: 4, y: 26 },
+    },
+    track: 'hand',
+    bandJoint: 'hand',
+  },
+  // Seated, leaned back with feet hovering, rotating hands across the body (Russian twist).
+  seated_twist: {
+    stance: 'supine',
+    poseA: {
+      torsoAngle: 320,
+      shoulderAngle: 300,
+      elbowAngle: 300,
+      hipAngle: 320,
+      kneeAngle: 330,
+      hipOffset: { x: 0, y: -8 },
+    },
+    poseB: {
+      torsoAngle: 320,
+      shoulderAngle: 20,
+      elbowAngle: 20,
+      hipAngle: 320,
+      kneeAngle: 330,
+      hipOffset: { x: 0, y: -8 },
+    },
+    track: 'hand',
+    bandJoint: 'foot',
+  },
+  // Standing, arms sweeping from wide to together in front of the chest (chest fly) — not
+  // horizontal_push's default plank, which is wrong for this pattern member (its cue is
+  // "Anchor at chest height behind you," a standing motion, not a push-up).
+  standing_fly: {
+    stance: 'standing',
+    poseA: { torsoAngle: 270, shoulderAngle: 190, elbowAngle: 190, hipAngle: 95, kneeAngle: 90 },
+    poseB: { torsoAngle: 270, shoulderAngle: 350, elbowAngle: 350, hipAngle: 95, kneeAngle: 90 },
+    track: 'hand',
+    bandJoint: 'hand',
+  },
+  // Side-lying, the top knee opening away from the bottom one (clamshell) — not abduction's
+  // default standing shape, which contradicts the "side-lying" setup cue.
+  side_lying_abduction: {
+    stance: 'supine',
+    poseA: {
+      torsoAngle: 0,
+      shoulderAngle: 340,
+      elbowAngle: 340,
+      hipAngle: 100,
+      kneeAngle: 260,
+      hipOffset: { x: 0, y: -8 },
+    },
+    poseB: {
+      torsoAngle: 0,
+      shoulderAngle: 340,
+      elbowAngle: 340,
+      hipAngle: 60,
+      kneeAngle: 260,
+      hipOffset: { x: 0, y: -8 },
+    },
+    track: 'knee',
+    bandJoint: 'knee',
+  },
+  // Lying on the back, straight arms sweeping from the chest to overhead (pullover) — not
+  // vertical_pull's default standing pull.
+  supine_pullover: {
+    stance: 'supine',
+    poseA: { torsoAngle: 0, shoulderAngle: 340, elbowAngle: 340, hipAngle: 100, kneeAngle: 260 },
+    poseB: { torsoAngle: 0, shoulderAngle: 260, elbowAngle: 260, hipAngle: 100, kneeAngle: 260 },
+    track: 'hand',
     bandJoint: 'hand',
   },
   // Kneeling with heels anchored, lowering the torso forward under control (Nordic curl).
@@ -1048,6 +1255,7 @@ const REUSE_ARCHETYPE: Record<string, string> = {
   'hollow-hold': 'flexion',
   'bw-hollow-hold': 'flexion',
   'cd-cobra': 'prone_extension',
+  'bw-prone-ytw': 'prone_extension', // "Face down" — not the shoulder_isolation pattern's standing default
   'bw-superman': 'prone_extension',
   'cd-childs-pose': 'kneeling_fold',
   'bw-crab-walk': 'hip_extension',
@@ -1065,6 +1273,17 @@ const REUSE_ARCHETYPE: Record<string, string> = {
   // entirely (known pre-existing mistag — ORCHESTRATION.md carried-forward issue #4) ---
   tke: 'squat',
   'bw-donkey-kick': 'donkey_kick',
+  // Fire hydrant (abduction pattern) is "on hands and knees," not the pattern's default standing
+  // shape — reuses donkey_kick (see that shape's comment on the sagittal-view limitation this
+  // shares with a true kick-back).
+  'bw-fire-hydrant': 'donkey_kick',
+  clamshell: 'side_lying_abduction',
+  'lateral-walk': 'abduction_thigh',
+  'monster-walk': 'abduction_thigh',
+  'wu-lateral-walk': 'abduction_thigh',
+  // Inverted row (horizontal_pull pattern) hangs underneath a bar with a straight body, not the
+  // pattern's default standing pull.
+  'bw-inverted-row': 'inverted_row',
 
   // --- hinge pattern: glute bridges were tagged `hinge` but are the supine bridge movement, not
   // a standing hinge — same class of archetype-assignment bug as the cd-* stretches below ---
@@ -1082,6 +1301,7 @@ const REUSE_ARCHETYPE: Record<string, string> = {
   'bw-jumping-jack': 'jumping_jack',
   'bw-high-knees': 'high_knees',
   'bw-squat-thrust': 'squat_to_plank',
+  'banded-burpee': 'squat_to_plank',
   'bw-burpee': 'squat_to_plank',
   'bw-sprawl': 'squat_to_plank',
 
@@ -1090,7 +1310,9 @@ const REUSE_ARCHETYPE: Record<string, string> = {
   // comment for the honest limitation this override doesn't fully solve ---
   'cd-hip-flexor': 'half_kneeling',
   'bw-step-up': 'elevated_front_step',
+  'step-up': 'elevated_front_step',
   'bw-bulgarian-split-squat': 'elevated_rear_foot',
+  'bulgarian-split-squat': 'elevated_rear_foot',
   'bw-lateral-lunge': 'lateral_lunge_shape',
   'bw-cossack-squat': 'lateral_lunge_shape',
   'bw-curtsy-lunge': 'lateral_lunge_shape',
@@ -1100,17 +1322,29 @@ const REUSE_ARCHETYPE: Record<string, string> = {
   // --- horizontal_push pattern: incline/decline/wall/knee are genuinely different body angles;
   // archer/one-arm are genuinely asymmetric; standing-chest-press/floor-press aren't a plank at
   // all (band-resisted press done standing / lying on the back) ---
-  'bw-knee-push-up': 'kneeling_situp', // reuse the closest existing "torso over bent knees" shape
+  'bw-knee-push-up': 'knee_push_up',
   'bw-wall-push-up': 'wall_push_up',
   'cd-chest-stretch': 'standing_reach',
+  'chest-fly': 'standing_fly',
+  'high-low-fly': 'standing_fly',
+  'low-high-fly': 'standing_fly',
   'standing-chest-press': 'standing_press',
   'floor-press': 'floor_press',
 
   // --- anti_rotation pattern ---
   'cd-thoracic-rotation': 'side_lying_rotation',
+  'plank-row': 'plank_reach',
+  'plank-band-drag': 'plank_reach',
+  'bw-plank-shoulder-tap': 'plank_reach',
+  'bw-plank-up-down': 'plank_reach',
+  'russian-twist': 'seated_twist',
+  'bw-russian-twist': 'seated_twist',
+  'bw-windshield-wiper': 'flexion',
 
   // --- vertical_pull pattern ---
   'cd-lat-stretch': 'lateral_flexion',
+  'bw-dead-hang': 'dead_hang',
+  'floor-pullover': 'supine_pullover',
 
   // --- vertical_push pattern: pike push-up, bench dip, and wall handstand push-up are not a
   // standing overhead press — a bug of the same class as the horizontal_push floor-press one ---
@@ -1179,19 +1413,29 @@ const POSE_TWEAKS: Record<string, PoseTweak> = {
 
 /** Returns the fixed anchor point (or null if the band has no external fixed point), in
  *  panel-local coordinates (before the panel's x-offset is applied). */
-function anchorPoint(anchor: string, rig: RigPoints): Point | null {
+/** `panelX` is the panel's own left edge (LEFT_X, RIGHT_X, or HOLD_X's panel origin) — needed so
+ *  a fixed-post anchor (anchor-low/mid/high) is placed relative to the panel actually being
+ *  drawn, not a single hardcoded canvas position. An earlier version hardcoded a negative x that
+ *  only made sense for the left panel; for the right panel it drew the post off-canvas and the
+ *  band as a long stray line spanning the whole width, through the divider (found by rendering
+ *  `band-sit-up` — see STATUS-6a-figures.md). */
+function anchorPoint(anchor: string, rig: RigPoints, panelX: number): Point | null {
   switch (anchor) {
     case 'anchor-low':
-      return { x: -22, y: 118 };
+      return { x: panelX + 18, y: 118 };
     case 'anchor-mid':
-      return { x: -22, y: 80 };
+      return { x: panelX + 18, y: 80 };
     case 'anchor-high':
-      return { x: -22, y: 30 };
+      return { x: panelX + 18, y: 30 };
     case 'pullup-bar':
       return { x: rig.hand.x, y: 8 };
     case 'feet':
     case 'stance':
-      return { x: rig.foot.x, y: 152 };
+      // Fixed to the hip's x, not the working joint's — several archetypes (squat, lunge, calf)
+      // anchor the band under the feet but the tension is felt at the *hand*; tying the anchor
+      // x to the working joint made the path collapse to a near-zero-length mark whenever the
+      // working joint itself was the foot (Finding 5's "small stray mark" in banded-squat).
+      return { x: rig.hip.x, y: 152 };
     default:
       return null; // none / self-low / thigh-loop / body-support — drawn as a loop on the body
   }
@@ -1236,17 +1480,30 @@ function bandPath(from: Point, to: Point): string {
   return `<path d="${d}" stroke="#16a34a" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
 }
 
-function bandSvg(exercise: Exercise, rig: RigPoints, archetype: Archetype): string {
-  if (exercise.equipment !== 'band') return '';
+function anchorSvg(
+  exercise: Exercise,
+  rig: RigPoints,
+  archetype: Archetype,
+  panelX: number,
+): string {
   const workingJoint = rig[archetype.bandJoint];
-  const fixed = anchorPoint(exercise.anchor, rig);
-  if (fixed) {
-    return anchorGlyph(exercise.anchor, fixed) + bandPath(fixed, workingJoint);
+  if (exercise.equipment === 'band') {
+    const fixed = anchorPoint(exercise.anchor, rig, panelX);
+    if (fixed) {
+      return anchorGlyph(exercise.anchor, fixed) + bandPath(fixed, workingJoint);
+    }
+    // No external fixed point (none / self-low / thigh-loop / body-support): a visibly thicker
+    // loop directly on the body at the working joint shows band tension without inventing an
+    // anchor that doesn't exist.
+    return `<ellipse cx="${workingJoint.x.toFixed(1)}" cy="${workingJoint.y.toFixed(1)}" rx="11" ry="6" fill="none" stroke="#16a34a" stroke-width="3"/>`;
   }
-  // No external fixed point (none / self-low / thigh-loop / body-support): a visibly thicker
-  // loop directly on the body at the working joint shows band tension without inventing an
-  // anchor that doesn't exist.
-  return `<ellipse cx="${workingJoint.x.toFixed(1)}" cy="${workingJoint.y.toFixed(1)}" rx="11" ry="6" fill="none" stroke="#16a34a" stroke-width="3"/>`;
+  // Bodyweight exercises anchored to a fixture (a pull-up bar) still need that fixture drawn —
+  // a dead hang or a pull-up is unreadable without the bar, even though there's no elastic band.
+  // `body-support` (a bench) is handled by `platformUnder` on the pose itself, not here.
+  if (exercise.anchor === 'pullup-bar') {
+    return anchorGlyph('pullup-bar', { x: workingJoint.x, y: 8 });
+  }
+  return '';
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1286,6 +1543,17 @@ function platformSvg(joint: Point): string {
   return `<rect x="${(joint.x - 16).toFixed(1)}" y="${(joint.y - 3).toFixed(1)}" width="32" height="7" rx="1.5" fill="#cbd5e1"/>`;
 }
 
+/** A bench behind the hip for a rear-foot-elevated split stance — see `benchBehindHip`'s comment
+ *  on why this can't just be `platformUnder: 'foot'` (this rig only models the front leg). */
+function benchBehindHipSvg(hip: Point): string {
+  const x = hip.x - 46;
+  const y = hip.y + 12;
+  return (
+    `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="30" height="7" rx="1.5" fill="#cbd5e1"/>` +
+    `<rect x="${(x + 3).toFixed(1)}" y="${(y + 7).toFixed(1)}" width="4" height="14" fill="#cbd5e1"/>`
+  );
+}
+
 /** Solid, single-opacity rig with the trunk/arm/leg visually differentiated by color and the
  *  hand/foot marked with a dot, so a superimposed or side-by-side pose reads as a body, not a
  *  tangle of same-weight lines (Finding 3 / Finding 6). */
@@ -1293,9 +1561,11 @@ function rigSvg(rig: RigPoints, pose: PoseAngles): string {
   const platform = pose.platformUnder
     ? platformSvg(pose.platformUnder === 'hand' ? rig.hand : rig.foot)
     : '';
+  const bench = pose.benchBehindHip ? benchBehindHipSvg(rig.hip) : '';
   return (
     `<g>` +
     platform +
+    bench +
     `<circle cx="${rig.head.x.toFixed(1)}" cy="${rig.head.y.toFixed(1)}" r="${LEN.headR}" fill="none" stroke="${TRUNK_COLOR}" stroke-width="3"/>` +
     // Torso: thick and dark so it reads as the trunk, distinct from both limbs.
     `<path d="M ${rig.hip.x.toFixed(1)} ${rig.hip.y.toFixed(1)} L ${rig.shoulder.x.toFixed(1)} ${rig.shoulder.y.toFixed(1)}" stroke="${TRUNK_COLOR}" stroke-width="5.5" fill="none" stroke-linecap="round"/>` +
@@ -1377,7 +1647,9 @@ function generateFigure(exercise: Exercise): string {
   if (isHold) {
     const rig = translateRig(buildRig(archetype.stance, poseB), HOLD_X);
     parts.push(groundLine(10, CANVAS_W - 10, 152));
-    parts.push(bandSvg(exercise, rig, archetype));
+    // Hold layout has one panel spanning the whole canvas, so the anchor post sits near the
+    // canvas's own left edge rather than a per-panel origin.
+    parts.push(anchorSvg(exercise, rig, archetype, 0));
     parts.push(rigSvg(rig, poseB));
     parts.push(holdGlyph());
   } else {
@@ -1388,8 +1660,8 @@ function generateFigure(exercise: Exercise): string {
     parts.push(
       `<line x1="${PANEL.width + PANEL.gap / 2}" y1="10" x2="${PANEL.width + PANEL.gap / 2}" y2="162" stroke="#e2e8f0" stroke-width="2"/>`,
     );
-    parts.push(bandSvg(exercise, rigA, archetype));
-    parts.push(bandSvg(exercise, rigB, archetype));
+    parts.push(anchorSvg(exercise, rigA, archetype, LEFT_X));
+    parts.push(anchorSvg(exercise, rigB, archetype, RIGHT_X));
     parts.push(rigSvg(rigA, poseA));
     parts.push(rigSvg(rigB, poseB));
     parts.push(movementArrow(rigA[archetype.track].y, rigB[archetype.track].y));
