@@ -126,26 +126,109 @@ describe('figureLibrary (§11.4 tier 2 — bundled in-house line-art figures)', 
     },
   );
 
-  it('rests a plank-family hold on the ground line, not floating above it', () => {
-    // Regression guard for the orchestrator's other re-review finding: bw-plank's hold pose
-    // floated above the y=152 ground line with its arm nowhere near the floor. Every plank/side-
-    // plank hold's hand or foot marker must land within a few pixels of the ground line.
-    const groundedHoldIds = [
-      'bw-plank',
-      'banded-plank',
-      'bw-side-plank',
-      'bw-side-plank-hip-dip',
-      'side-plank-abduction',
-    ];
-    for (const id of groundedHoldIds) {
-      const svg = figureLibrary[id];
-      expect(svg).toBeDefined();
+  it('never draws a hand/foot marker below the ground line, across every figure', () => {
+    // Round-3 regression guard, replacing a round-2 test that checked only 5 hand-picked plank
+    // ids and used a *symmetric* 15px tolerance ("within 15px of the ground line" either side).
+    // That tolerance was wide enough to pass on art that was actually broken: bw-plank's foot
+    // sat at y=165.0 against a y=152 ground line — 13.0px THROUGH the floor — and the test still
+    // passed because 13.0 < 15. The round-2 status file also claimed every case was grounded
+    // "within ~5px," which this round's direct measurement of the committed SVGs (not a rerun of
+    // the same assumption) showed was false for bw-plank and 19 other figures (10.7-13.0px
+    // through the floor: the whole squat and plank/burpee/bear-crawl families).
+    //
+    // Feet do not sink into the floor, so the correct tolerance is asymmetric: floating a few px
+    // above the ground line is a fine simplification of this rig, landing below it never is. This
+    // check covers every one of the 200 bundled figures (not a hand-picked list), because the
+    // underlying bug classes (squat depth, plank/burpee end pose, lunge, jump-squat) span most of
+    // the standing/plank pattern families, not just the plank hold the orchestrator happened to
+    // spot. GROUND=152 matches the constant the generator draws groundLine() at
+    // (tools/generate-figures.ts); the marker circle radius is 2.8 (rigSvg's hand/foot dots).
+    const GROUND = 152;
+    const BELOW_GROUND_TOLERANCE = 1; // float-rounding slop only — never a real sink-through-floor amount
+    let checkedAtLeastOneMarker = false;
+    const violations: string[] = [];
+    for (const [id, svg] of Object.entries(figureLibrary)) {
       const markerYs = [...svg.matchAll(/<circle cx="[\d.]+" cy="([\d.]+)" r="2\.8"/g)].map((m) =>
         Number(m[1]),
       );
-      expect(markerYs.length).toBeGreaterThan(0);
-      const closestToGround = Math.min(...markerYs.map((y) => Math.abs(y - 152)));
-      expect(closestToGround).toBeLessThan(15);
+      for (const y of markerYs) {
+        checkedAtLeastOneMarker = true;
+        if (y >= GROUND + BELOW_GROUND_TOLERANCE) {
+          violations.push(
+            `${id}: marker at y=${y} (${(y - GROUND).toFixed(1)}px through the floor)`,
+          );
+        }
+      }
     }
+    expect(checkedAtLeastOneMarker).toBe(true);
+    expect(violations).toEqual([]);
+  });
+
+  it('draws every piece of geometry inside the canvas viewBox (0..300 x 0..170)', () => {
+    // Round-3 regression guard. The existing anchor-glyph test above only ever checked the
+    // anchor post's x — it never looked at limb geometry, so it missed ten figures (the leg-
+    // raise/reverse-crunch/flutter-kick/superman/prone-ytw/clamshell/russian-twist/dead-bug/
+    // crunch/windshield-wiper/floor-press cluster) whose arm reached 4-18px past the right edge
+    // of the 300-wide viewBox and got silently clipped (a slice through the head or an arm, not
+    // an error — SVG viewBox crops without complaint). This test parses every line, circle
+    // (center +/- radius), ellipse (center +/- rx/ry), rect (x/y/width/height), and path M/L
+    // command coordinate out of the actual generated markup, so it catches an overflow on *any*
+    // side from *any* drawing primitive, not just the one glyph the round-2 test happened to
+    // check.
+    const CANVAS_W = 300;
+    const CANVAS_H = 170;
+
+    function boundsOf(svg: string): { minX: number; maxX: number; minY: number; maxY: number } {
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      const grow = (x: number, y: number) => {
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y);
+        maxY = Math.max(maxY, y);
+      };
+      for (const m of svg.matchAll(
+        /<line x1="(-?[\d.]+)" y1="(-?[\d.]+)" x2="(-?[\d.]+)" y2="(-?[\d.]+)"/g,
+      )) {
+        grow(Number(m[1]), Number(m[2]));
+        grow(Number(m[3]), Number(m[4]));
+      }
+      for (const m of svg.matchAll(/<circle cx="(-?[\d.]+)" cy="(-?[\d.]+)" r="(-?[\d.]+)"/g)) {
+        const [cx, cy, r] = [Number(m[1]), Number(m[2]), Number(m[3])];
+        grow(cx - r, cy - r);
+        grow(cx + r, cy + r);
+      }
+      for (const m of svg.matchAll(
+        /<ellipse cx="(-?[\d.]+)" cy="(-?[\d.]+)" rx="(-?[\d.]+)" ry="(-?[\d.]+)"/g,
+      )) {
+        const [cx, cy, rx, ry] = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
+        grow(cx - rx, cy - ry);
+        grow(cx + rx, cy + ry);
+      }
+      for (const m of svg.matchAll(
+        /<rect x="(-?[\d.]+)" y="(-?[\d.]+)" width="(-?[\d.]+)" height="(-?[\d.]+)"/g,
+      )) {
+        const [x, y, w, h] = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
+        grow(x, y);
+        grow(x + w, y + h);
+      }
+      for (const m of svg.matchAll(/<path d="([^"]+)"/g)) {
+        const nums = (m[1].match(/-?[\d.]+/g) ?? []).map(Number);
+        for (let i = 0; i + 1 < nums.length; i += 2) grow(nums[i], nums[i + 1]);
+      }
+      return { minX, maxX, minY, maxY };
+    }
+
+    const violations: string[] = [];
+    for (const [id, svg] of Object.entries(figureLibrary)) {
+      const { minX, maxX, minY, maxY } = boundsOf(svg);
+      if (minX < 0) violations.push(`${id}: off the left edge (minX=${minX.toFixed(1)})`);
+      if (maxX > CANVAS_W) violations.push(`${id}: off the right edge (maxX=${maxX.toFixed(1)})`);
+      if (minY < 0) violations.push(`${id}: off the top edge (minY=${minY.toFixed(1)})`);
+      if (maxY > CANVAS_H) violations.push(`${id}: off the bottom edge (maxY=${maxY.toFixed(1)})`);
+    }
+    expect(violations).toEqual([]);
   });
 });

@@ -77,7 +77,16 @@ type StanceId = 'standing' | 'plank' | 'supine' | 'kneeling' | 'split';
 const STANCES: Record<StanceId, Point> = {
   standing: { x: 63, y: 90 },
   plank: { x: 75, y: 82 },
-  supine: { x: 70, y: 106 },
+  // x moved from 70 to 50 in round 3: several supine archetypes (flexion, reverse_crunch_shape,
+  // leg_raise_shape, prone_extension, side_lying_abduction, seated_twist, floor_press) rest an
+  // arm near torsoAngle 0 with the shoulder/elbow swung up toward ~340-350°, and at x:70 that
+  // reach ran the hand's local x up to ~155 — inside the RIGHT panel (translate +160) that's
+  // canvas x ~315, clipped 15-18px off the right edge (confirmed by extracting every drawn
+  // line/circle/path coordinate from the bundled SVGs, not by eyeballing). Shifting the whole
+  // supine stance 20px left gives every one of those archetypes room without touching their
+  // individually-tuned pose angles; verified afterward that no supine archetype's minimum local
+  // x went negative (see STATUS-6a-figures.md's round-3 notes for the full sweep).
+  supine: { x: 50, y: 106 },
   kneeling: { x: 60, y: 98 },
   split: { x: 68, y: 90 },
 };
@@ -184,7 +193,18 @@ const SHAPES: Record<string, Archetype> = {
   vertical_push: {
     stance: 'standing',
     poseA: { torsoAngle: 270, shoulderAngle: 350, elbowAngle: 260, hipAngle: 92, kneeAngle: 88 },
-    poseB: { torsoAngle: 270, shoulderAngle: 280, elbowAngle: 280, hipAngle: 92, kneeAngle: 88 },
+    // hipOffset nudges the locked-out hand down 4px from its unshifted position (hand.y 4.7):
+    // an anchor === 'none' band exercise using this pose (pike-push-up) draws a loop ellipse
+    // (ry 6) around the hand, whose top clipped 1.3px above the canvas without this margin
+    // (round 3).
+    poseB: {
+      torsoAngle: 270,
+      shoulderAngle: 280,
+      elbowAngle: 280,
+      hipAngle: 92,
+      kneeAngle: 88,
+      hipOffset: { x: 0, y: 4 },
+    },
     track: 'hand',
     bandJoint: 'hand',
   },
@@ -208,16 +228,19 @@ const SHAPES: Record<string, Archetype> = {
   squat: {
     stance: 'standing',
     poseA: { torsoAngle: 270, shoulderAngle: 350, elbowAngle: 260, hipAngle: 92, kneeAngle: 88 },
-    // Depth exaggerated (hipAngle/kneeAngle/hipOffset all pushed further than a real squat)
-    // because this is a schematic, not anatomy — the orchestrator found the original delta too
-    // subtle to read as a squat at thumbnail size.
+    // Depth exaggerated (hipAngle/kneeAngle pushed further than a real squat) because this is a
+    // schematic, not anatomy — the orchestrator found the original delta too subtle to read as a
+    // squat at thumbnail size. hipOffset.y is 22, not the 34 an earlier round used: at 34 the
+    // foot lands at y=162.7, 10.7px through the y=152 ground line (round 3 finding, confirmed by
+    // computing hip/knee/foot y directly rather than assuming — the deep knee/hip bend angles
+    // still read clearly as a squat at 22; only the whole-rig drop was reduced).
     poseB: {
       torsoAngle: 250,
       shoulderAngle: 350,
       elbowAngle: 260,
       hipAngle: 122,
       kneeAngle: 44,
-      hipOffset: { x: -8, y: 34 },
+      hipOffset: { x: -8, y: 22 },
     },
     track: 'hip',
     // Band exercises in this pattern are anchored under the feet ('stance') but held in the
@@ -245,13 +268,15 @@ const SHAPES: Record<string, Archetype> = {
   lunge: {
     stance: 'split',
     poseA: { torsoAngle: 270, shoulderAngle: 110, elbowAngle: 110, hipAngle: 100, kneeAngle: 92 },
+    // hipOffset.y 17, not 22 — at 22 the foot lands 3.2px through the ground line (round 3
+    // finding, same class of bug as squat's).
     poseB: {
       torsoAngle: 265,
       shoulderAngle: 110,
       elbowAngle: 110,
       hipAngle: 115,
       kneeAngle: 55,
-      hipOffset: { x: -4, y: 22 },
+      hipOffset: { x: -4, y: 17 },
     },
     track: 'hip',
     // See squat's comment: 'stance'/'feet' anchors are under the feet, but the band is held in
@@ -322,16 +347,25 @@ const SHAPES: Record<string, Archetype> = {
   anti_extension: {
     stance: 'kneeling',
     poseA: { torsoAngle: 230, shoulderAngle: 130, elbowAngle: 90, hipAngle: 40, kneeAngle: 130 },
-    // Ground-contact verified by printing hand.y/foot.y: both land within ~5px of the y=152
-    // ground line (hand 147.5, foot 149.0), not floating in space (see STATUS-6a-figures.md's
-    // ground-contact fix notes — orchestrator found bw-plank floating in an earlier round).
+    // Straight-line plank, redesigned round 3. hipAngle/kneeAngle both 10 make the leg exactly
+    // collinear with the torso (torsoAngle 190 continued past the hip is 190-180=10) — shoulder,
+    // hip, knee, and foot all sit on one straight diagonal, which is the actual coaching cue
+    // ("straight line from head through hips to heels"). The arm is a separate straight prop
+    // (shoulderAngle/elbowAngle both 20, not collinear with the body line) tuned so hand.y lands
+    // within 0.1px of foot.y — both ~2.3px above the y=152 ground line. Computed by printing
+    // coordinates, not assumed: hip.y=141.0, shoulder.y=134.0, hand.y=149.8, foot.y=149.7.
+    // The previous version (hand 155.6, foot 165.0 — floating THROUGH the floor by 3.6-13.0px,
+    // per an old comment here claiming ~147/~149 that was never rechecked against actual output)
+    // used hipAngle 155 / kneeAngle 165, which is NOT collinear with torsoAngle 190 (needs
+    // exactly 190-180=10) and produced the hinge/pike shape the orchestrator flagged as reading
+    // like a pike, not a plank.
     poseB: {
-      torsoAngle: 200,
-      shoulderAngle: 100,
-      elbowAngle: 100,
-      hipAngle: 55,
-      kneeAngle: 55,
-      hipOffset: { x: 4, y: 26 },
+      torsoAngle: 190,
+      shoulderAngle: 20,
+      elbowAngle: 20,
+      hipAngle: 10,
+      kneeAngle: 10,
+      hipOffset: { x: 4, y: 43 },
     },
     track: 'hip',
     bandJoint: 'foot',
@@ -419,13 +453,14 @@ const SHAPES: Record<string, Archetype> = {
     // Ground-contact verified: hand (21.2, 152.0) and foot (112.5, 153.1) both land on the
     // ground line and stay within the panel's x bounds (an earlier version put the hand at
     // negative x, off the left edge of the canvas).
+    // hipOffset.y 17.5, not 20 — at 20 the foot lands 1.1px through the ground line (round 3).
     poseB: {
       torsoAngle: 150,
       shoulderAngle: 165,
       elbowAngle: 165,
       hipAngle: 40,
       kneeAngle: 130,
-      hipOffset: { x: 48, y: 20 },
+      hipOffset: { x: 48, y: 17.5 },
     },
     track: 'shoulder',
     bandJoint: 'hand',
@@ -586,13 +621,15 @@ const SHAPES: Record<string, Archetype> = {
   // Squat depth exploding into an airborne extension (jump squat).
   jump_squat: {
     stance: 'standing',
+    // hipOffset.y 15, not 22 (poseA — was 5.2px through the ground) and -10, not -18 (poseB —
+    // the "hand" marker at the jump apex was clipped 5.7px above the canvas top). Both round 3.
     poseA: {
       torsoAngle: 255,
       shoulderAngle: 220,
       elbowAngle: 320,
       hipAngle: 110,
       kneeAngle: 60,
-      hipOffset: { x: -4, y: 22 },
+      hipOffset: { x: -4, y: 15 },
     },
     poseB: {
       torsoAngle: 270,
@@ -600,7 +637,7 @@ const SHAPES: Record<string, Archetype> = {
       elbowAngle: 320,
       hipAngle: 100,
       kneeAngle: 130,
-      hipOffset: { x: 0, y: -18 },
+      hipOffset: { x: 0, y: -10 },
     },
     track: 'hip',
     bandJoint: 'hand', // squat-jump holds the band "at shoulders," same fix as the plain squat
@@ -642,15 +679,16 @@ const SHAPES: Record<string, Archetype> = {
   squat_to_plank: {
     stance: 'kneeling',
     poseA: { torsoAngle: 260, shoulderAngle: 230, elbowAngle: 320, hipAngle: 100, kneeAngle: 60 },
-    // Same ground-touching angles as anti_extension's poseB (see its comment) — the plank end
-    // of a burpee/squat-thrust/sprawl needs hands on the floor just as much as a static plank.
+    // Same straight-line-plank angles as anti_extension's poseB (see its comment) — the plank
+    // end of a burpee/squat-thrust/sprawl needs hands and feet on the floor just as much as a
+    // static plank, without the pike/floor-penetration bug round 3 found and fixed there.
     poseB: {
-      torsoAngle: 200,
-      shoulderAngle: 100,
-      elbowAngle: 100,
-      hipAngle: 55,
-      kneeAngle: 55,
-      hipOffset: { x: 4, y: 26 },
+      torsoAngle: 190,
+      shoulderAngle: 20,
+      elbowAngle: 20,
+      hipAngle: 10,
+      kneeAngle: 10,
+      hipOffset: { x: 4, y: 43 },
     },
     track: 'hip',
     bandJoint: 'hand',
@@ -689,13 +727,14 @@ const SHAPES: Record<string, Archetype> = {
       kneeAngle: 92,
       benchBehindHip: true,
     },
+    // hipOffset.y 17, not 20 — at 20 the foot lands 1.2px through the ground line (round 3).
     poseB: {
       torsoAngle: 262,
       shoulderAngle: 110,
       elbowAngle: 110,
       hipAngle: 115,
       kneeAngle: 55,
-      hipOffset: { x: -4, y: 20 },
+      hipOffset: { x: -4, y: 17 },
       benchBehindHip: true,
     },
     track: 'hip',
@@ -807,13 +846,15 @@ const SHAPES: Record<string, Archetype> = {
   // Hinge continuing into an explosive upright row to the chin (deadlift high-pull).
   hinge_to_pull: {
     stance: 'standing',
+    // hipOffset.x 8, not 6 — at 6 the hand marker's left edge clipped ~1px off the canvas
+    // (round 3; same shared poseA/fix as hinge_to_press).
     poseA: {
       torsoAngle: 200,
       shoulderAngle: 130,
       elbowAngle: 130,
       hipAngle: 105,
       kneeAngle: 100,
-      hipOffset: { x: 6, y: 4 },
+      hipOffset: { x: 8, y: 4 },
     },
     poseB: { torsoAngle: 270, shoulderAngle: 280, elbowAngle: 60, hipAngle: 92, kneeAngle: 88 },
     track: 'hand',
@@ -822,13 +863,14 @@ const SHAPES: Record<string, Archetype> = {
   // Hinge continuing into an explosive pull and overhead press (clean and press).
   hinge_to_press: {
     stance: 'standing',
+    // Same fix and reason as hinge_to_pull's poseA (round 3): hipOffset.x 8, not 6.
     poseA: {
       torsoAngle: 200,
       shoulderAngle: 130,
       elbowAngle: 130,
       hipAngle: 105,
       kneeAngle: 100,
-      hipOffset: { x: 6, y: 4 },
+      hipOffset: { x: 8, y: 4 },
     },
     poseB: { torsoAngle: 270, shoulderAngle: 280, elbowAngle: 280, hipAngle: 92, kneeAngle: 88 },
     track: 'hand',
@@ -837,13 +879,15 @@ const SHAPES: Record<string, Archetype> = {
   // Squat depth standing up into an overhead press (thruster / squat-to-press).
   squat_to_press: {
     stance: 'standing',
+    // hipOffset.y 15, not 24 — at 24 the foot lands 7.2px through the ground line (round 3, same
+    // leg angles/fix as jump_squat's poseA).
     poseA: {
       torsoAngle: 255,
       shoulderAngle: 350,
       elbowAngle: 260,
       hipAngle: 110,
       kneeAngle: 60,
-      hipOffset: { x: -6, y: 24 },
+      hipOffset: { x: -6, y: 15 },
     },
     poseB: { torsoAngle: 270, shoulderAngle: 280, elbowAngle: 280, hipAngle: 92, kneeAngle: 88 },
     track: 'hand',
@@ -852,13 +896,14 @@ const SHAPES: Record<string, Archetype> = {
   // Squat standing up into a diagonal chop across the body (squat-to-chop).
   squat_to_chop: {
     stance: 'standing',
+    // hipOffset.y 15, not 24 — same fix and reason as squat_to_press's poseA (round 3).
     poseA: {
       torsoAngle: 255,
       shoulderAngle: 20,
       elbowAngle: 20,
       hipAngle: 110,
       kneeAngle: 60,
-      hipOffset: { x: -6, y: 24 },
+      hipOffset: { x: -6, y: 15 },
     },
     poseB: { torsoAngle: 270, shoulderAngle: 300, elbowAngle: 300, hipAngle: 92, kneeAngle: 88 },
     track: 'hand',
@@ -868,13 +913,16 @@ const SHAPES: Record<string, Archetype> = {
   // standing overhead press.
   pike_push_up: {
     stance: 'plank',
+    // hipOffset.y 4, not -14, on both poses — at -14 the hand marker clipped up to 14.3px above
+    // the canvas top (round 3, found by sweeping every drawn coordinate, not just the right
+    // edge — the head-lowering pike position pushes the hand furthest up of any archetype).
     poseA: {
       torsoAngle: 245,
       shoulderAngle: 260,
       elbowAngle: 340,
       hipAngle: 355,
       kneeAngle: 15,
-      hipOffset: { x: -10, y: -14 },
+      hipOffset: { x: -10, y: 4 },
     },
     poseB: {
       torsoAngle: 245,
@@ -882,7 +930,7 @@ const SHAPES: Record<string, Archetype> = {
       elbowAngle: 250,
       hipAngle: 355,
       kneeAngle: 15,
-      hipOffset: { x: -10, y: -14 },
+      hipOffset: { x: -10, y: 4 },
     },
     track: 'head',
     bandJoint: 'hand',
@@ -928,13 +976,15 @@ const SHAPES: Record<string, Archetype> = {
       kneeAngle: 260,
       hipOffset: { x: 0, y: -15 },
     },
+    // hipOffset.y -29, not -35 — at -35 the foot marker clipped ~5px above the canvas top
+    // (round 3).
     poseB: {
       torsoAngle: 90,
       shoulderAngle: 100,
       elbowAngle: 60,
       hipAngle: 260,
       kneeAngle: 260,
-      hipOffset: { x: 0, y: -35 },
+      hipOffset: { x: 0, y: -29 },
     },
     track: 'head',
     bandJoint: 'hand',
@@ -963,13 +1013,14 @@ const SHAPES: Record<string, Archetype> = {
   lateral_lunge_shape: {
     stance: 'split',
     poseA: { torsoAngle: 270, shoulderAngle: 100, elbowAngle: 100, hipAngle: 100, kneeAngle: 92 },
+    // hipOffset.y 16, not 20 — at 20 the foot lands 2.0px through the ground line (round 3).
     poseB: {
       torsoAngle: 255,
       shoulderAngle: 220,
       elbowAngle: 320,
       hipAngle: 100,
       kneeAngle: 50,
-      hipOffset: { x: -14, y: 20 },
+      hipOffset: { x: -14, y: 16 },
     },
     track: 'hip',
     bandJoint: 'hand',
@@ -1164,7 +1215,10 @@ const SHAPES: Record<string, Archetype> = {
   // Straight-leg raise: legs lift together, torso stays down.
   leg_raise_shape: {
     stance: 'supine',
-    poseA: { torsoAngle: 0, shoulderAngle: 350, elbowAngle: 350, hipAngle: 95, kneeAngle: 90 },
+    // poseA's hipAngle/kneeAngle 60/60, not 95/90 — the near-vertical original pointed the
+    // resting leg almost straight down from the hip and drove the foot 3.9px through the y=152
+    // ground line; a shallower angle lays the straight leg out along the floor instead (round 3).
+    poseA: { torsoAngle: 0, shoulderAngle: 350, elbowAngle: 350, hipAngle: 60, kneeAngle: 60 },
     poseB: { torsoAngle: 0, shoulderAngle: 350, elbowAngle: 350, hipAngle: 350, kneeAngle: 355 },
     track: 'foot',
     bandJoint: 'foot',
@@ -1172,7 +1226,8 @@ const SHAPES: Record<string, Archetype> = {
   // V-up: torso and legs rise together to meet in the middle.
   v_up_shape: {
     stance: 'supine',
-    poseA: { torsoAngle: 0, shoulderAngle: 340, elbowAngle: 340, hipAngle: 95, kneeAngle: 90 },
+    // Same fix and reason as leg_raise_shape's poseA (round 3): 60/60, not 95/90.
+    poseA: { torsoAngle: 0, shoulderAngle: 340, elbowAngle: 340, hipAngle: 60, kneeAngle: 60 },
     poseB: {
       torsoAngle: 320,
       shoulderAngle: 320,
