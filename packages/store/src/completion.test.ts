@@ -9,6 +9,7 @@ import {
 } from './repositories/sessions';
 import { getAllProgressionStates } from './repositories/progressionState';
 import { getAllMilestones } from './repositories/milestones';
+import { getAllExerciseStates } from './repositories/exerciseState';
 import { getPendingDeferredWork } from './repositories/queues';
 import { completeSession } from './completion';
 import { ensureUser, updateUser } from './repositories/users';
@@ -298,6 +299,12 @@ describe('Wave 7 §11.6 adversarial pass — kill during the completion transact
       expect(reread).not.toBeNull(); // still pending/active — completion never committed
       expect(getAllMilestones(db)).toHaveLength(0); // no milestone survived the rollback
       expect(getStats(db)).toBeNull(); // recordSessionCompletion's stats row never committed
+      // The assertion that actually distinguishes atomic from non-atomic, and the one this
+      // test's own comment described but never made: `completeSession` writes per-entry exercise
+      // state BEFORE `recordSessionCompletion` throws. Without the wrapping transaction those
+      // writes commit and survive; with it they roll back. Every other assertion here passes
+      // either way, because nothing after the throw ever runs regardless.
+      expect(Object.keys(getAllExerciseStates(db))).toHaveLength(0);
     } finally {
       close();
     }
