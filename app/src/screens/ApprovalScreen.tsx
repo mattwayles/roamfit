@@ -211,11 +211,12 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
 
   /** §10.10 abandon — the session is still `planned` here (nothing has run yet), so there is no
    *  in-progress exercise/set to attribute the §8.3 "abandoned" signal to; `discardSession` is
-   *  called with no entry context, same as every other call site, never a parallel path. Routes
-   *  to Generate **with the pickers**, not a re-run of the discarded plan. */
+   *  called with no entry context, same as every other call site, never a parallel path. Returns
+   *  to Home rather than bouncing the user straight back into the generator (invariant 4 —
+   *  never punish, never nag). */
   const handleAbandon = () => {
     sessionsRepo.discardSession(db, sessionId, {}, nowUtcInstant());
-    navigation.navigate('Generate');
+    navigation.navigate('Home');
   };
 
   return (

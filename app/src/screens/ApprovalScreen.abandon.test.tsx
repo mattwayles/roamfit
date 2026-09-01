@@ -1,7 +1,7 @@
 /**
  * §10.10 abandon, entry point on Approval — a `planned` (not-yet-started) session. Confirm
- * before destroy applies here too, and confirming must clear the pending slot and route to
- * Generate.
+ * before destroy applies here too, and confirming must clear the pending slot and return to
+ * Home.
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -49,7 +49,7 @@ async function createPendingSession(db: ReturnType<typeof useStore>['db']): Prom
 }
 
 describe('§10.10 abandon a pending workout, driven from Approval', () => {
-  it('confirming discards the planned session and navigates to Generate, without a confirm-less single tap doing anything', async () => {
+  it('confirming discards the planned session and navigates Home, without a confirm-less single tap doing anything', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -81,7 +81,7 @@ describe('§10.10 abandon a pending workout, driven from Approval', () => {
 
     await fireEvent.press(screen.getByTestId('abandon-confirm-yes'));
 
-    await waitFor(() => expect(navigation.navigate).toHaveBeenCalledWith('Generate'), WAIT_OPTS);
+    await waitFor(() => expect(navigation.navigate).toHaveBeenCalledWith('Home'), WAIT_OPTS);
     expect(sessionsRepo.getPendingSession(db)).toBeNull();
     expect(sessionsRepo.getSession(db, sessionId)!.status).toBe('discarded');
   });

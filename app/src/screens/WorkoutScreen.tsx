@@ -231,8 +231,9 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
   /** §10.10 abandon — discards the session entirely via the existing `discardSession` (never a
    *  parallel path), recording exactly which exercise/set the user was on for the §8.3
-   *  "abandoned" signal, then routes to Generate **with the pickers** (not a re-run of the
-   *  discarded plan) per the user's explicit ask. */
+   *  "abandoned" signal, then returns to Home. Abandoning is not a request to start another
+   *  workout (invariant 4 — never punish, never nag): Home is the neutral landing spot, and
+   *  generating again is one tap away from there if that is what the user wants. */
   const handleAbandon = () => {
     sessionsRepo.discardSession(
       db,
@@ -240,7 +241,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       { abandonedEntryId: entry.id, abandonedSetIndex: setIndex },
       nowUtcInstant(),
     );
-    navigation.navigate('Generate');
+    navigation.navigate('Home');
   };
 
   const handleSwapSelect = (alt: SwapAlternative) => {
