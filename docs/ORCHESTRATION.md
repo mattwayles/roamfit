@@ -142,6 +142,30 @@ Open items surfaced by a completed wave that a later wave or a human must close.
 | 43 | **`distill.ts` interpolates `sessionExerciseIds` into its cached system block**, so that job's prompt cache can only hit on same-session repeats. Found by `6f` while writing the #36 verification procedure — a real, previously-undocumented cache-variance source. Fixing it means moving the id list out of the cached prefix. | 6f-deploy | Wave 7 / future |
 | 42 | **Two independent `video_flag_count` counters, no reconciliation.** The per-uid `exercise_state` counter (what `video_db.py flagged` reads, and what drives local tier-2 demotion) and the `video/{exerciseId}` remote-config field (what `set` resets) are each individually correct, but nothing rolls the former up into the latter — no Cloud Function does it. Issue #30's actual ask (an operator can see and act on user flags) **is** closed; this is the residue. | 6e-video-cli | future |
 
+## Concurrency incident — 2026-09-01, caused by the orchestrator
+
+Track `8-session-control`'s agent reported its working tree changing under it: `AbandonSessionButton.tsx`
+reverting to a broken single-tap variant twice, and a commit appearing that it had not run. **Its report was
+accurate, and the orchestrator caused it — two separate violations of this file's own concurrency rule:**
+
+1. The orchestrator edited and committed in the same working tree while that agent was live.
+2. Believing the agent had stalled, the orchestrator dispatched a **second** agent (`8b-abandon-pause`) onto
+   the same feature and the same files while the first was still running. That second agent writing its own
+   `AbandonSessionButton.tsx` is what the first saw "revert".
+
+Consequences, all verified after the fact:
+- **Commit `6ed788a` is mislabelled.** Its message describes the reorder UI and deleting a non-terminating
+  screen test; its actual diff is the *agent's* abandon + pause work (`AbandonSessionButton.tsx`,
+  `sessionProgress.ts`, four test files, `WorkoutScreen` pause changes) swept up by a `git add -A`. The reorder
+  UI it describes is in `8c8937a`. History was not rewritten — the mislabel is recorded here instead.
+- The killed second agent left a **deliberate mutation** (the `paused` guard removed from `WorkoutScreen.tsx`)
+  uncommitted in the tree. Caught and reverted before any commit; the guard is present and mutation-verified.
+- No work was lost, and `npm run check` is green at `b6e3534`.
+
+**Standing lesson, stronger than before:** "serialize tracks" also means the orchestrator does not edit the tree
+while an agent is live, and a silent agent is not necessarily a stalled one — check `git log`/`git status`
+before concluding it has stopped, and never dispatch a replacement onto live files.
+
 ## Verification log (orchestrator)
 
 Independent checks run by the orchestrator, not the implementing agent. Recorded because three
