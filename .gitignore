@@ -48,3 +48,4 @@ yarn-error.log*
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+tools/__pycache__/
