@@ -138,7 +138,10 @@ export function validateCoachVoiceOutput(
   sessionExerciseIds: readonly string[],
 ): ValidationResult {
   const errors: string[] = [];
-  if (typeof output.rewrittenExplanation !== 'string' || output.rewrittenExplanation.trim() === '') {
+  if (
+    typeof output.rewrittenExplanation !== 'string' ||
+    output.rewrittenExplanation.trim() === ''
+  ) {
     errors.push('rewrittenExplanation must be a non-empty string');
   } else if (output.rewrittenExplanation.length > MAX_EXPLANATION_LENGTH) {
     errors.push(`rewrittenExplanation exceeds ${MAX_EXPLANATION_LENGTH} characters`);

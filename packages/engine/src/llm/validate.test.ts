@@ -69,7 +69,10 @@ describe('§7.3 "validate anyway" — LLM output validation', () => {
     const sessionIds = ['bw-push-up', 'band-row'];
 
     it('accepts a plain rewritten explanation with no cue expansion', () => {
-      const result = validateCoachVoiceOutput({ rewrittenExplanation: 'Nice work today.' }, sessionIds);
+      const result = validateCoachVoiceOutput(
+        { rewrittenExplanation: 'Nice work today.' },
+        sessionIds,
+      );
       expect(result.valid).toBe(true);
     });
 
@@ -150,7 +153,7 @@ describe('§7.3 "validate anyway" — LLM output validation', () => {
     // adversarial retrospective text into naming an exercise the user never did, the validator
     // must reject it rather than let it flow into a signal event. Fails if the containment check
     // is ever dropped.
-    it('rejects an exercise id that is not one of this session\'s own entries', () => {
+    it("rejects an exercise id that is not one of this session's own entries", () => {
       const result = validateDistillationOutput(
         { aversionExerciseIds: ['bw-burpee-not-in-this-session'] },
         sessionIds,
