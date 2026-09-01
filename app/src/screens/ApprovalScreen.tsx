@@ -105,6 +105,33 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     reload();
   };
 
+  /** §10.3 re-order — section-scoped (warm-ups never move past main work; see
+   *  `reorderEntriesAtApproval`'s own doc comment). `direction` swaps the entry with its
+   *  immediate neighbor *within this section's currently-displayed list* — a no-op at either
+   *  boundary. Persisted via the store, never computed/invented here (ADR 0003 / issue #13); the
+   *  Workout screen picks up the new order for free the next time it reads `session.entries`
+   *  (already sorted by `orderIndex`), no separate wiring needed there. */
+  const handleMoveEntry = (
+    section: Section,
+    entry: sessionsRepo.SessionEntryRecord,
+    direction: -1 | 1,
+  ) => {
+    const list = bySection(section);
+    const index = list.findIndex((e) => e.id === entry.id);
+    const swapIndex = index + direction;
+    if (index === -1 || swapIndex < 0 || swapIndex >= list.length) return;
+    const reordered = [...list];
+    [reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]];
+    sessionsRepo.reorderEntriesAtApproval(
+      db,
+      sessionId,
+      section,
+      reordered.map((e) => e.id),
+      nowUtcInstant(),
+    );
+    reload();
+  };
+
   /** §10.3 "add exercise" candidates — the same hard filters (§13.1/§13.2/§5.3) generation
    *  itself runs, via the engine's own `applyHardFilters`, never reimplemented here. Excludes
    *  exercises already active in this session (adding a duplicate isn't a meaningful edit). */
@@ -189,8 +216,29 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
       {(['warmup', 'main', 'cooldown'] as const).map((section) => (
         <View key={section} style={styles.sectionBlock}>
           <Text style={styles.sectionHeading}>{section}</Text>
-          {bySection(section).map((entry) => (
+          {bySection(section).map((entry, index, list) => (
             <View key={entry.id} style={styles.entryRow} testID={`entry-${entry.exerciseId}`}>
+              <View style={styles.reorderColumn}>
+                <Pressable
+                  testID={`move-up-${entry.exerciseId}`}
+                  style={[styles.reorderButton, index === 0 && styles.reorderButtonDisabled]}
+                  disabled={index === 0}
+                  onPress={() => handleMoveEntry(section, entry, -1)}
+                >
+                  <Text style={styles.reorderButtonText}>▲</Text>
+                </Pressable>
+                <Pressable
+                  testID={`move-down-${entry.exerciseId}`}
+                  style={[
+                    styles.reorderButton,
+                    index === list.length - 1 && styles.reorderButtonDisabled,
+                  ]}
+                  disabled={index === list.length - 1}
+                  onPress={() => handleMoveEntry(section, entry, 1)}
+                >
+                  <Text style={styles.reorderButtonText}>▼</Text>
+                </Pressable>
+              </View>
               <View style={styles.entryInfo}>
                 <Text style={styles.entryName}>
                   {library.exercises.find((e) => e.id === entry.exerciseId)?.name ??
@@ -315,6 +363,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
   },
+  reorderColumn: { gap: 2 },
+  reorderButton: {
+    width: 28,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reorderButtonDisabled: { opacity: 0.3 },
+  reorderButtonText: { fontSize: 11, fontWeight: '700', color: '#334155' },
   entryInfo: { flex: 1, gap: 2 },
   entryName: { fontSize: 15, fontWeight: '600', color: '#0f172a' },
   entryDetail: { fontSize: 13, color: '#64748b' },

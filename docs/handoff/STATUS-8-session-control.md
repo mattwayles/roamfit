@@ -44,9 +44,31 @@ bug fixed in `c7453b9`).
 
 ### Done
 - [x] Ramp-up complete, plan above written before any code.
+- [x] **Step 1 (store) — `9009e22`.** `reorderEntriesAtApproval` in
+  `packages/store/src/repositories/sessions.ts`, `reorder_at_approval` signal type in
+  `schema.ts`. Section-scoped: permutes only the `orderIndex` slots the section's own active
+  entries already hold, refuses (no-op) a wrong-length/cross-section/duplicate id list. Three new
+  tests in `lifecycle.test.ts`. Mutation-verified: removing the permutation-validity guard fails
+  the cross-section test (asserted `orderIndex` stayed put, got moved instead).
+- [x] **Step 2 (app — reorder UI) — pending commit.** `ApprovalScreen.tsx` gets per-entry ▲/▼
+  buttons (`move-up-<exerciseId>`/`move-down-<exerciseId>`), section-scoped, boundary-disabled.
+  New `ApprovalScreen.reorder.test.tsx` proves the full round trip: reorder at Approval -> START
+  -> render the real `WorkoutScreen` -> the exercise it lands on (after fast-forwarding warmup)
+  is the one the user moved to first, not the engine's original pick. Mutation-verified: removing
+  the `reorderEntriesAtApproval` call from `handleMoveEntry` (leaving only `reload()`) fails this
+  test.
+  - **Test-writing gotcha for whoever continues this file**: `render()` from
+    `@testing-library/react-native` v14 is `async` (must be awaited to get a real result object
+    with `.unmount()` — carried-forward issue #6's actual root cause per STATUS-4-loop.md).
+    Mock navigation objects (`{navigate: jest.fn(), replace: jest.fn(), ...}`) don't actually
+    unmount the previous screen the way real react-navigation does, so a round-trip test that
+    renders screen A then screen B in the same test must explicitly call `(await
+    render(...)).unmount()` on A first, or both trees stay mounted and text queries become
+    ambiguous / the second screen's effects race the first's.
 
 ### In progress
-- Next action: implement step 1 (store `reorderEntriesAtApproval`).
+- Next action: step 3 (abandon feature — shared confirm component + Home/Approval/Workout
+  wiring).
 
 ### Decisions / gotchas
 - No new dependencies. Reorder is button-based (▲/▼), not a drag library — sensible given the
