@@ -38,13 +38,35 @@ Last updated: 2026-09-01
   "force-quit... during the completion transaction specifically."
 - `npm run check` green after both (app 87, engine 897, data 17, store 96, functions 29).
 
+- [x] `packages/store/src/repositories/instrumentation.ts` (+ `.test.ts`, 12 tests) — §15 local-
+  first instrumentation. All local reads, zero network, computed on demand (no batching/buffering
+  daemon to keep alive, no wire protocol). Covers every §15 bullet:
+  - Funnel (generate/started/completed + both drop-off stages) and estimate-accuracy/completion-
+    by-length were fully derivable from existing `sessions` columns — no new writes needed.
+  - Swap/removal-rate-per-exercise and video-flag-rate were already tracked as running counters
+    on `exercise_state` for other reasons (§4.4) — this just ranks them.
+  - Superset-pair completion reads the existing `session_entries.group` (A1/A2) column.
+  - Abandon point reads `discardSession`'s existing `abandonedEntryId`/`abandonedSetIndex`.
+  - Explicit feedback capture rate reads `difficultyFeedback`/`enjoymentFeedback`.
+  - **Offline share was the one true gap** — nothing recorded connectivity at generation time.
+    Added a `session_generated` signal-event type (schema.ts, no migration needed — signal_events
+    .type has no SQL CHECK constraint) logged by `generate()` when the caller supplies a fresh
+    `online` reading; wired into `GenerateScreen.tsx` via a best-effort background
+    `getNetworkStatus()` call on mount (never awaited on the generate path — stays `undefined`,
+    and nothing is logged, until it resolves, which is honest under invariant 1).
+  - Activation and D1/D7/D30 retention approximate "install" as the user row's `createdAt` (this
+    app has no real OS install timestamp available) — documented as an approximation in the file.
+  - No new UI surface yet (see "Next" — a diagnostics read in Settings is still owed).
+- `npm run check` green (app 87, engine 897, data 17, store 108, functions 29; 0 lint errors).
+
 ### In progress
-- Moving to §15 instrumentation next.
+- Settings screen next: disclaimer + privacy copy + HealthKit/notification toggles + a
+  diagnostics read of the instrumentation snapshot above.
 
 ### Next
-- §15 instrumentation module + call-site wiring.
-- Settings screen (disclaimer, privacy copy, HealthKit toggle, notification quiet hours) — closes
-  §13.3's "permanently in settings" requirement plus issues #20/#37.
+- Settings screen (disclaimer, privacy copy, HealthKit toggle, notification quiet hours,
+  instrumentation diagnostics read) — closes §13.3's "permanently in settings" requirement plus
+  issues #20/#37.
 - Real simulator pass: boot evidence, cold-start-no-network check, screenshot.
 - Carried-forward issue triage and final report.
 

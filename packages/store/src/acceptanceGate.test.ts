@@ -31,7 +31,7 @@ import { getAllProgressionStates } from './repositories/progressionState';
 import { getExerciseState } from './repositories/exerciseState';
 import { getStats } from './repositories/stats';
 import { getPendingDeferredWork } from './repositories/queues';
-import { updateUser, getUser } from './repositories/users';
+import { updateUser } from './repositories/users';
 import { completeSession } from './completion';
 import { addDays, library, families, clockFor, rngFor, utcInstantFor } from './testFixtures';
 
@@ -65,7 +65,12 @@ function runOneSession(
   const approvalSession = getPendingSession(db)!;
   const firstEntry = approvalSession.entries[0];
   if (firstEntry?.repTarget != null) {
-    adjustRepTargetAtApproval(db, firstEntry.id, firstEntry.repTarget, utcInstantFor(localDate, hour));
+    adjustRepTargetAtApproval(
+      db,
+      firstEntry.id,
+      firstEntry.repTarget,
+      utcInstantFor(localDate, hour),
+    );
   }
 
   startSession(db, sessionId, utcInstantFor(localDate, hour));
@@ -91,7 +96,11 @@ function runOneSession(
     }
   }
 
-  const result = completeSession(db, { sessionId, library, families }, utcInstantFor(localDate, hour, 30));
+  const result = completeSession(
+    db,
+    { sessionId, library, families },
+    utcInstantFor(localDate, hour, 30),
+  );
   return { sessionId, result, localDate };
 }
 

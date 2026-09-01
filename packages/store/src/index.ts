@@ -24,3 +24,4 @@ export * as statsRepo from './repositories/stats';
 export * as queuesRepo from './repositories/queues';
 export * as remoteConfigRepo from './repositories/remoteConfig';
 export * as syncCursorRepo from './repositories/syncCursor';
+export * as instrumentationRepo from './repositories/instrumentation';

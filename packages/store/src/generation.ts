@@ -16,6 +16,7 @@ import type { EngineClock, GenerationRequest, Rng, SessionPlan, UserState } from
 import type { ExerciseLibrary, FamilyLibrary } from '@roamfit/data';
 import type { Db } from './db';
 import { buildUserProfile, ensureUser, observeTzId } from './repositories/users';
+import { logSignalEvent } from './repositories/signals';
 import { getAllExerciseStates } from './repositories/exerciseState';
 import {
   ensureProgressionStatesInitialized,
@@ -53,6 +54,11 @@ export interface GenerateInput {
    *  `applyComebackToProgressionStates('week', ...)` transform §9.4 uses for an auto-detected
    *  gap — see the module doc above for why this is a pre-transform rather than a request flag. */
   recoveryWeek?: boolean;
+  /** §15 instrumentation only — "offline share" (proportion of sessions generated with no
+   *  connectivity). Optional and best-effort: omit when the caller doesn't have a fresh reading
+   *  (e.g. tests, or a caller that hasn't checked). Never read by generation itself — this is
+   *  purely an analytics side effect, logged once as a `session_generated` signal event. */
+  online?: boolean;
 }
 
 export interface GenerateResult {
@@ -109,6 +115,20 @@ export function generate(db: Db, input: GenerateInput): GenerateResult {
     // multiplier post-generation is a deliberate, minimal exception recorded in
     // STATUS-3-persistence.md, not a silent reimplementation of engine prescription logic.
     plan = scaleSessionSets(plan, COMEBACK_VOLUME_MULTIPLIER);
+  }
+
+  if (input.online !== undefined) {
+    logSignalEvent(db, {
+      sessionId: null, // no session id exists yet at this point in the pipeline
+      type: 'session_generated',
+      payload: {
+        online: input.online,
+        focus: input.request.focus,
+        targetMinutes: input.request.targetMinutes,
+      },
+      utcInstant: input.utcInstant,
+      localDate: input.clock.today,
+    });
   }
 
   return {

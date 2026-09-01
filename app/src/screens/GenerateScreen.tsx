@@ -20,6 +20,7 @@ import { generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
+import { getNetworkStatus } from '../lib/networkStatus';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Generate'>;
 
@@ -50,11 +51,26 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
   // here. Either way it's just a request flag until the user taps Generate — never applied
   // silently, per the brief's "always available as a manual toggle" requirement.
   const [recoveryWeek, setRecoveryWeek] = useState(route.params?.recoveryWeek ?? false);
+  // §15 "offline share" instrumentation only — never read by generation logic itself, and never
+  // awaited on the critical path (invariant 1): a best-effort background reading, undefined until
+  // it resolves, in which case `generate()` simply logs nothing for this session (see
+  // `generation.ts`'s `online` doc comment) rather than blocking or guessing.
+  const [online, setOnline] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
     const user = usersRepo.ensureUser(db, nowUtcInstant());
     setAnchors(user.anchorsAvailable);
   }, [db]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getNetworkStatus().then((status) => {
+      if (!cancelled) setOnline(status.online);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const toggleAnchor = useCallback(
     (anchor: Anchor) => {
@@ -80,6 +96,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
         rng: createRng(seedFromString(utcInstant)),
         utcInstant,
         recoveryWeek,
+        online,
       });
       const sessionId = sessionsRepo.createPendingSession(db, {
         plan,
@@ -93,7 +110,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
     } finally {
       setGenerating(false);
     }
-  }, [db, library, families, focus, effort, minutes, recoveryWeek, navigation]);
+  }, [db, library, families, focus, effort, minutes, recoveryWeek, online, navigation]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

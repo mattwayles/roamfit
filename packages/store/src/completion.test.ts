@@ -276,7 +276,9 @@ describe('Wave 7 §11.6 adversarial pass — kill during the completion transact
       // in the same transaction. Spying on `recordSessionCompletion` to throw lands the failure
       // strictly after those earlier writes have already executed against the transaction's live
       // connection — exactly "force-quit mid-completion, after some of it already ran".
-      const statsRepo = jest.requireActual('./repositories/stats') as typeof import('./repositories/stats');
+      const statsRepo = jest.requireActual(
+        './repositories/stats',
+      ) as typeof import('./repositories/stats');
       const spy = jest.spyOn(statsRepo, 'recordSessionCompletion').mockImplementation(() => {
         throw new Error('simulated force-quit mid-completion-transaction');
       });

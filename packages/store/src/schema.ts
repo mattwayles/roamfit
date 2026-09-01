@@ -322,6 +322,13 @@ export const signalEvents = sqliteTable(
         // real limitation-tag vocabulary by `@roamfit/engine`'s validators before this is ever
         // written. Never applied automatically to anything — a suggestion only.
         'llm_distillation_result',
+        // §15/Wave 7 — the one piece of §15 instrumentation with no existing raw signal to
+        // derive it from: "offline share, proportion of sessions generated with no
+        // connectivity" (§11 validation). Logged once per `generate()` call when the caller
+        // supplies a known online/offline reading; payload: {online: boolean}. No CHECK
+        // constraint backs this enum (see migration 0001 — signal_events.type is plain TEXT), so
+        // adding a value here needs no migration.
+        'session_generated',
       ],
     }).notNull(),
     /** JSON, shape depends on `type` — e.g. swap: {fromExerciseId, toExerciseId, atSetIndex}. */
