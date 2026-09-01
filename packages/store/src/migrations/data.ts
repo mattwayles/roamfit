@@ -264,6 +264,14 @@ ALTER TABLE exercise_state ADD COLUMN video_flag_count INTEGER NOT NULL DEFAULT 
 ALTER TABLE exercise_state ADD COLUMN video_demoted_at TEXT;
 `;
 
+const MIGRATION_0005_LLM_QUEUE_BACKOFF = `-- 0005_llm_queue_backoff.sql — §11.3 LLM queue: exponential backoff needs a per-row "not
+-- eligible before" timestamp. \`created_at\` alone isn't enough once a job has already failed once
+-- (its retry delay is relative to the last attempt, not to when it was first enqueued).
+-- NULL means "eligible immediately" (the common case: a freshly-enqueued, never-attempted job).
+
+ALTER TABLE deferred_work ADD COLUMN next_attempt_at TEXT;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -272,4 +280,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0002_muscle_volume.sql', sql: MIGRATION_0002_MUSCLE_VOLUME },
   { id: '0003_lifetime_total_minutes.sql', sql: MIGRATION_0003_LIFETIME_TOTAL_MINUTES },
   { id: '0004_video_flags.sql', sql: MIGRATION_0004_VIDEO_FLAGS },
+  { id: '0005_llm_queue_backoff.sql', sql: MIGRATION_0005_LLM_QUEUE_BACKOFF },
 ];

@@ -28,6 +28,7 @@ import {
   recordEnjoymentFeedback,
 } from './exerciseState';
 import { logSignalEvent } from './signals';
+import { enqueueDeferredWork } from './queues';
 
 const USER_ID = 'local';
 
@@ -345,7 +346,32 @@ export function createPendingSession(db: Db, input: CreateSessionInput): string 
   for (const row of rows) {
     db.insert(schema.sessionEntries).values(row).run();
   }
+
+  // §7.1/§11.3 — coach voice is async, cached per session, never blocking: the deterministic
+  // `explanation` line above is what the approval screen shows immediately and forever if this
+  // job never completes. Enqueued here (not awaited, not even attempted here) so this function
+  // stays synchronous and offline-safe; a separate queue worker drains it when connectivity
+  // exists (see `repositories/queues.ts` / `llmQueueWorker.ts`).
+  enqueueDeferredWork(db, 'llm_coach_voice', id, {}, input.utcInstant);
+
   return id;
+}
+
+/** §7.1 coach voice landing: called by the §11.3 queue worker only after
+ *  `@roamfit/engine`'s `validateCoachVoiceOutput` has already accepted the response. Replaces
+ *  the deterministic §5.8 line and flags `generatedBy: 'engine+llm'`. Safe to call any time
+ *  before or after the session completes — coach voice is cosmetic, never gates a lifecycle
+ *  transition. No-op if the session no longer exists (discarded before the job ran). */
+export function applyCoachVoiceResult(
+  db: Db,
+  sessionId: string,
+  rewrittenExplanation: string,
+  now: string,
+): void {
+  db.update(schema.sessions)
+    .set({ explanation: rewrittenExplanation, generatedBy: 'engine+llm', updatedAt: now })
+    .where(eq(schema.sessions.id, sessionId))
+    .run();
 }
 
 // ------------------------------------------------------------------------------------------

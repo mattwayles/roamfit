@@ -8,6 +8,7 @@ export * from './dates';
 export * from './migrate';
 export * from './generation';
 export * from './completion';
+export * from './llmQueueWorker';
 
 export * as usersRepo from './repositories/users';
 export * as exerciseStateRepo from './repositories/exerciseState';

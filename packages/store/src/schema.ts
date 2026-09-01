@@ -316,6 +316,12 @@ export const signalEvents = sqliteTable(
         'pinned_note_edited',
         'abandoned',
         'tz_change',
+        // §7.1/§11.3 — added in 6c-llm-proxy: the queue worker's record of what feedback
+        // distillation surfaced for this session (suspected limitation, band-too-light /
+        // aversion exercise ids), already validated against the session's own exercises and the
+        // real limitation-tag vocabulary by `@roamfit/engine`'s validators before this is ever
+        // written. Never applied automatically to anything — a suggestion only.
+        'llm_distillation_result',
       ],
     }).notNull(),
     /** JSON, shape depends on `type` — e.g. swap: {fromExerciseId, toExerciseId, atSetIndex}. */
@@ -386,7 +392,11 @@ export const deferredWork = sqliteTable(
   {
     id: text('id').primaryKey(),
     kind: text('kind', {
-      enum: ['llm_distillation', 'healthkit_write', 'passport_geocode'],
+      // §7.1 — 'llm_coach_voice' added in 6c-llm-proxy (§11.3 queue worker); the other three
+      // predate it (Wave 5/6b). This is a plain TS-level enum with no SQL CHECK constraint
+      // (verified against migrations/data.ts before relying on that), so adding a literal here
+      // needs no migration.
+      enum: ['llm_distillation', 'llm_coach_voice', 'healthkit_write', 'passport_geocode'],
     }).notNull(),
     sessionId: text('session_id').notNull(),
     payload: text('payload').notNull().default('{}'),
@@ -396,6 +406,8 @@ export const deferredWork = sqliteTable(
     attempts: integer('attempts').notNull().default(0),
     createdAt: text('created_at').notNull(),
     processedAt: text('processed_at'),
+    /** §11.3 exponential backoff — see migration 0005. NULL = eligible immediately. */
+    nextAttemptAt: text('next_attempt_at'),
   },
   (t) => [index('ix_deferred_work_status').on(t.status)],
 );
