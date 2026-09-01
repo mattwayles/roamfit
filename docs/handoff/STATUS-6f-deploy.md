@@ -39,20 +39,50 @@ Last updated: 2026-09-01
         Restored the correct build command, re-ran, all 3 green again.
       - New dependency: `esbuild@0.28.2` (devDependency, `functions/` workspace only).
 
+- [x] **Issue #34 — `app/` wiring for the LLM queue.** `app/src/lib/llmProxyClient.ts`:
+      `createLlmProxyCaller()` implements `packages/store`'s `LlmProxyCaller` interface via
+      `firebase/functions`' `httpsCallable`, calling the deployed `llmCoachVoice`/
+      `llmDistillFeedback` Cloud Functions. Same shape as `firestoreSyncClient.ts` on purpose:
+      lazy `require()` of `firebase/app`/`firebase/functions` (never a static top-level import,
+      so this file is safe to import under Jest), degrades to `null` whenever the six
+      `EXPO_PUBLIC_FIREBASE_*` env vars aren't configured (this environment included — no
+      Firebase project, exactly the documented default). `opportunisticSync.ts` now also drains
+      `processLlmQueue` inside its own try/catch, third worker alongside the pre-existing device
+      queue and Firestore sync — every worker isolated, a null caller skips the call entirely
+      rather than even attempting one. No change to `packages/store`'s `LlmQueueWorker`/
+      `llmQueueWorker.ts` — only the `app/`-side seam it already documented as missing.
+      - **Verified the critical path is untouched**: did not modify any file under
+        `app/src/screens/` reachable from generate/approve/run/complete/log, nor
+        `packages/store`'s `sessions.ts`/`completion.ts`/`generation.ts`. The only new call site
+        is `opportunisticSync.ts`, itself only invoked from `HomeScreen.tsx`'s pre-existing
+        `useFocusEffect` (6d's trigger, unchanged).
+      - **Verified by mutation**, per the verification bar:
+        `app/src/lib/opportunisticSync.test.ts` asserts `runOpportunisticSync` never throws even
+        when every worker rejects and every caller-factory throws, and that a `null`
+        caller/client means the worker is never even attempted. Removed the `try/catch` around
+        the new `processLlmQueue` call — the "never throws" test failed immediately with the
+        injected caller-factory error surfacing as an unhandled rejection, exactly the defect
+        class the brief named ("does anything... throw when the proxy is unreachable?").
+        Restored, re-ran, green. `app/src/lib/llmProxyClient.test.ts` locks in the same
+        unconfigured-environment-returns-null contract `firestoreSyncClient.test.ts` already
+        proves for its sibling.
+      - No new dependencies — `firebase/functions` ships inside the already-installed `firebase`
+        package (`app/package.json`, added by 6d).
+
 ### In progress
-Starting issue #34 next — `LlmProxyCaller` app-side implementation, following
-`firestoreSyncClient.ts` + `opportunisticSync.ts`'s established shape (lazy-loaded `firebase/functions`
-`httpsCallable`, degrades to a no-op/never-called caller when unconfigured, wired into
-`opportunisticSync.ts` behind its own try/catch, never on the critical path).
+Starting issue #36 next — make `cacheReadInputTokens` observable via a structured log line in
+the Cloud Function jobs, and write the exact verification procedure into the operator runbook.
+Then write the full operator runbook (deploy commands incl.
+`firebase functions:secrets:set ANTHROPIC_API_KEY`) and finalize this status file.
 
 ### Next
-- Issue #34: `app/src/lib/llmProxyClient.ts` (the `LlmProxyCaller` implementation),
-  wire `processLlmQueue` into `opportunisticSync.ts`.
-- Issue #36: make `cacheReadInputTokens` observable via a structured log line in the Cloud
-  Function jobs; write the exact verification procedure into the operator runbook.
-- Write the operator runbook (deploy commands in order incl. `firebase functions:secrets:set
-  ANTHROPIC_API_KEY`, and the cache-verification procedure).
-- Final status update + report to orchestrator.
+- Issue #36: add a structured log line in each Cloud Function job (or `src/index.ts`'s callable
+  wrappers) that includes `cacheReadInputTokens` so an operator can read it from Cloud Logging
+  after a real deploy. Write the exact verification procedure (what to run, what a healthy value
+  looks like, what a persistent zero means) into the operator runbook.
+- Write the operator runbook as a real file (likely `docs/handoff/RUNBOOK-6f-deploy.md` or a
+  section of this status file — decide and note it here).
+- Final status update + report to orchestrator with carried-forward issues.
 
 ### Decisions / gotchas
 - **Why esbuild, not `tsc` with `module: commonjs`:** the monorepo's workspace packages
