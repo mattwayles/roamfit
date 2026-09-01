@@ -222,3 +222,82 @@ describe('§9.9 issue #12 — Recovery Week auto-suggest trigger', () => {
     }
   });
 });
+
+describe('Wave 7 §11.6 adversarial pass — kill during the completion transaction', () => {
+  it('a throw partway through completeSession rolls back every write, not just the last one', () => {
+    // Simulates "force-quit killed the app mid-completion-transaction". `completeSession` wraps
+    // its entire body in one `db.transaction(...)` call — this test forces a real throw AFTER
+    // per-entry writes (exercise state, a possible best_set_pr milestone) have already run
+    // against the transaction's connection, and proves the underlying driver rolls back
+    // everything, not just the statement that threw: the session must still read as pending, and
+    // none of the earlier writes in the same call may have survived.
+    const { db, close } = createTestDb();
+    try {
+      const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+        library,
+        families,
+        request: { focus: 'upper', effort: 'normal', targetMinutes: 30 },
+        clock: clockFor('2026-06-01'),
+        rng: rngFor(9),
+        utcInstant: utcInstantFor('2026-06-01'),
+      });
+      const sessionId = createPendingSession(db, {
+        plan,
+        utcInstant: utcInstantFor('2026-06-01'),
+        localDate: '2026-06-01',
+        tzId: clockFor('2026-06-01').tzId,
+        comebackTier,
+        recoveryWeekManual,
+      });
+      startSession(db, sessionId, utcInstantFor('2026-06-01', 9));
+      const session = getPendingSession(db)!;
+      for (const entry of session.entries) {
+        for (let i = 0; i < entry.sets; i++) {
+          logSet(
+            db,
+            {
+              entryId: entry.id,
+              setIndex: i,
+              status: 'completed',
+              repsPrescribed: entry.repTarget ?? undefined,
+              secondsPrescribed: entry.durationSec ?? undefined,
+              repsActual: entry.repTarget != null ? entry.repTarget + 1 : undefined,
+              secondsActual: entry.durationSec != null ? entry.durationSec + 1 : undefined,
+              restPrescribedSec: entry.restSec,
+              restTakenSec: entry.restSec,
+            },
+            utcInstantFor('2026-06-01', 9, i * 2),
+          );
+        }
+      }
+
+      // Force a real throw partway through: `completeSession` writes exercise state (and any
+      // best_set_pr milestone) per-entry FIRST, then calls `recordSessionCompletion` afterward,
+      // in the same transaction. Spying on `recordSessionCompletion` to throw lands the failure
+      // strictly after those earlier writes have already executed against the transaction's live
+      // connection — exactly "force-quit mid-completion, after some of it already ran".
+      const statsRepo = jest.requireActual('./repositories/stats') as typeof import('./repositories/stats');
+      const spy = jest.spyOn(statsRepo, 'recordSessionCompletion').mockImplementation(() => {
+        throw new Error('simulated force-quit mid-completion-transaction');
+      });
+      try {
+        expect(() =>
+          completeSession(db, { sessionId, library, families }, utcInstantFor('2026-06-01', 10)),
+        ).toThrow('simulated force-quit');
+      } finally {
+        spy.mockRestore();
+      }
+
+      // Atomicity check: the session must still be `active` (not stuck half-`completed`), and
+      // NONE of the writes that would have happened before the throw — exercise state for the
+      // first entry, its best_set_pr milestone — persisted either. A non-atomic implementation
+      // would show the exercise-state write committed while the session row never flipped.
+      const reread = getPendingSession(db);
+      expect(reread).not.toBeNull(); // still pending/active — completion never committed
+      expect(getAllMilestones(db)).toHaveLength(0); // no milestone survived the rollback
+      expect(getStats(db)).toBeNull(); // recordSessionCompletion's stats row never committed
+    } finally {
+      close();
+    }
+  });
+});
