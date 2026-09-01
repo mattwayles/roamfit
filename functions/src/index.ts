@@ -1,8 +1,10 @@
 /**
  * §7.3 Cloud Function entry points. **Not deployed or verified against a real Firebase project
- * in this track** — no `firebase.json`/project config exists yet in this repo (that is 6d's
- * scope, Firestore sync), and there is no emulator run backing this file. Deploy verification is
- * an explicit gap; see `docs/handoff/STATUS-6c-llm-proxy.md`.
+ * from this environment** — `firebase.json`/`.firebaserc`/`firestore.rules` now exist at the repo
+ * root (added by track 6d, closing issue #35's "no firebase.json" half), but actually deploying
+ * needs real credentials this environment doesn't have, and there is still no emulator run
+ * backing this file. See `docs/handoff/STATUS-6d-sync-health.md` for the operator steps to
+ * deploy and the remaining unverified gap (a real end-to-end call, `cache_read_input_tokens`).
  *
  * All three callables are thin: read the request, call the matching pure job function from
  * `src/jobs/`, return its result. All product logic (validation, repair, fallback, prompt

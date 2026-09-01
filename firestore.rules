@@ -1,0 +1,51 @@
+rules_version = '2';
+
+// §11.3/§13.5 — Firestore is a sync target only, never a read dependency for the app's core
+// loop (CLAUDE.md invariant). Every per-user document here is written/read by
+// `sync/firestoreSyncClient.ts`'s real implementation in `app/`, scoped to the signed-in user's
+// own uid (v1 uses Firebase anonymous auth — see STATUS-6d-sync-health.md). `video/{exerciseId}`
+// is operator-curated remote config (§11.4/§11.5, `video_db.py`/track 6e) written only via the
+// Admin SDK with a service-account credential, which bypasses these rules entirely — so its
+// client-facing rule below is read-only by design, not merely by convention.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsUser(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // §4.4/§4.5/§11.3 per-user synced state — exercise_state and rolled_up_stats.
+    match /users/{uid}/exercise_state/{exerciseId} {
+      allow read, write: if ownsUser(uid);
+    }
+
+    match /users/{uid}/rolled_up_stats/{docId} {
+      allow read, write: if ownsUser(uid);
+    }
+
+    // §4.6/§11.3 sessions — append-only from the client's perspective. Create/update (the app
+    // never deletes a completed session) allowed for the owner; no client delete.
+    match /users/{uid}/sessions/{sessionId} {
+      allow read, create, update: if ownsUser(uid);
+      allow delete: if false;
+    }
+
+    // §4.1/§11.4/§11.5 — the curated video remote config. Readable by any signed-in user
+    // (non-sensitive, universal content); never writable from a client. `video_db.py` writes
+    // through the Admin SDK, which is not subject to these rules — this `allow write: if false`
+    // is a defense-in-depth statement, not the actual enforcement mechanism for the operator
+    // path, but it does prevent a compromised or malicious client from ever curating its own
+    // video ids (invariant 8: never invent a video id).
+    match /video/{exerciseId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Everything else is denied by default (no catch-all allow — this project's whole surface
+    // is the four collections above).
+  }
+}
