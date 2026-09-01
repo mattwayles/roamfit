@@ -7770,6 +7770,167 @@
         "type": "figure",
         "id": "bw-archer-pull-up"
       }
+    },
+    {
+      "id": "wu-scap-push-up",
+      "name": "Warm-Up Scapular Push-Up",
+      "aliases": [
+        "wu scap push up",
+        "scapular push up warm up",
+        "scap push up"
+      ],
+      "focus": [
+        "upper",
+        "full"
+      ],
+      "pattern": "shoulder_isolation",
+      "primary": [
+        "upper_back"
+      ],
+      "secondary": [
+        "chest",
+        "front_delts"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "role": "warmup",
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "wrist_extension"
+      ],
+      "setup": "High plank, arms straight. Without bending your elbows, let your shoulder blades spread apart, then squeeze them together toward your spine. Small range, no elbow bend.",
+      "video_search": "https://www.youtube.com/results?search_query=Warm-Up+Scapular+Push-Up+warm+up+how+to",
+      "demo_media": {
+        "type": "figure",
+        "id": "wu-scap-push-up"
+      }
+    },
+    {
+      "id": "wu-band-scarecrow",
+      "name": "Warm-Up Band Scarecrow",
+      "aliases": [
+        "wu band scarecrow",
+        "band scarecrow",
+        "external rotation warm up"
+      ],
+      "focus": [
+        "upper",
+        "full"
+      ],
+      "pattern": "shoulder_isolation",
+      "primary": [
+        "rear_delts"
+      ],
+      "secondary": [
+        "upper_back"
+      ],
+      "equipment": "band",
+      "band": "B1",
+      "anchor": "none",
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "role": "warmup",
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [],
+      "setup": "Band held wide in both hands, elbows bent 90 degrees and pinned at your sides. Rotate your forearms outward against the band, then back to center. Elbows stay glued to your ribs the whole time.",
+      "video_search": "https://www.youtube.com/results?search_query=resistance+band+Warm-Up+Band+Scarecrow+warm+up+how+to",
+      "demo_media": {
+        "type": "figure",
+        "id": "wu-band-scarecrow"
+      }
+    },
+    {
+      "id": "wu-thread-the-needle",
+      "name": "Thread the Needle",
+      "aliases": [
+        "wu thread the needle",
+        "thread the needle warm up"
+      ],
+      "focus": [
+        "upper",
+        "full"
+      ],
+      "pattern": "anti_rotation",
+      "primary": [
+        "upper_back"
+      ],
+      "secondary": [
+        "obliques"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_class": "none",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "role": "warmup",
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "wrist_extension"
+      ],
+      "setup": "On hands and knees. Thread one arm underneath your body, rotating your chest toward the floor, then reverse and rotate that same arm up toward the ceiling, following it with your eyes. Slow and controlled; switch sides.",
+      "video_search": "https://www.youtube.com/results?search_query=Thread+the+Needle+warm+up+how+to",
+      "demo_media": {
+        "type": "figure",
+        "id": "wu-thread-the-needle"
+      }
+    },
+    {
+      "id": "wu-band-row",
+      "name": "Warm-Up Band Row",
+      "aliases": [
+        "wu band row",
+        "warm up row",
+        "band row warm up"
+      ],
+      "focus": [
+        "upper",
+        "full"
+      ],
+      "pattern": "horizontal_pull",
+      "primary": [
+        "upper_back"
+      ],
+      "secondary": [
+        "rear_delts",
+        "biceps"
+      ],
+      "equipment": "band",
+      "band": "B1",
+      "anchor": "anchor-mid",
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "role": "warmup",
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [],
+      "setup": "Band anchored at chest height. Step back for light tension, elbows drive straight back to row the band to your ribs, then extend forward with control. Light and easy, 15-20 reps.",
+      "video_search": "https://www.youtube.com/results?search_query=resistance+band+Warm-Up+Band+Row+warm+up+how+to",
+      "demo_media": {
+        "type": "figure",
+        "id": "wu-band-row"
+      }
     }
   ]
 }

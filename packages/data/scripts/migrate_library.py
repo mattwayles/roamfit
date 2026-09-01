@@ -525,6 +525,113 @@ FAMILY_LEVELS = {
     ],
 }
 
+# ---------------------------------------------------------------------------
+# Track 6g-warmups (closes ORCHESTRATION.md carried-forward issue #33): the warmup pool is thin
+# on genuinely shoulder-specific `focus: upper` content. Of the 9 pre-track warmups, only
+# wu-pull-apart is a genuinely shoulder-specific survivor of a shoulder_overhead limitation
+# (wu-cat-cow/wu-world-greatest are spine/hip mobility that happen to carry focus: upper). Four
+# new warm-ups, all horizontal-plane/scapular work with no overhead arc, so none legitimately need
+# a shoulder_overhead tag. Contraindications set explicitly per the same "tag on the movement's
+# actual demand" standard the contraindications-review sign-off used, not derived from
+# PATTERN_BASE_CONTRA (which would force shoulder_overhead onto shoulder_isolation-pattern
+# entries — exactly the tag these are meant to genuinely avoid).
+NEW_WARMUPS = [
+    {
+        "id": "wu-scap-push-up",
+        "name": "Warm-Up Scapular Push-Up",
+        "aliases": ["wu scap push up", "scapular push up warm up", "scap push up"],
+        "focus": ["upper", "full"],
+        "pattern": "shoulder_isolation",
+        "primary": ["upper_back"],
+        "secondary": ["chest", "front_delts"],
+        "equipment": "bodyweight",
+        "band": None,
+        "anchor": "none",
+        "unilateral": False,
+        "difficulty": "easy",
+        "setup": (
+            "High plank, arms straight. Without bending your elbows, let your shoulder blades "
+            "spread apart, then squeeze them together toward your spine. Small range, no elbow "
+            "bend."
+        ),
+        # Straight-arm weight-bearing plank position — same standard as the push-up/plank sweep
+        # in the contraindications review ("ends under hands, in a plank" loads the wrist in
+        # extension). No shoulder tag: the range of motion at the shoulder itself is small and
+        # purely scapular, matching bw-scap-push-up's existing (untagged-for-shoulder) precedent.
+        "contraindications": {"wrist_extension"},
+    },
+    {
+        "id": "wu-band-scarecrow",
+        "name": "Warm-Up Band Scarecrow",
+        "aliases": ["wu band scarecrow", "band scarecrow", "external rotation warm up"],
+        "focus": ["upper", "full"],
+        "pattern": "shoulder_isolation",
+        "primary": ["rear_delts"],
+        "secondary": ["upper_back"],
+        "equipment": "band",
+        "band": "B1",
+        "anchor": "none",
+        "unilateral": False,
+        "difficulty": "easy",
+        "setup": (
+            "Band held wide in both hands, elbows bent 90 degrees and pinned at your sides. "
+            "Rotate your forearms outward against the band, then back to center. Elbows stay "
+            "glued to your ribs the whole time."
+        ),
+        # Genuinely fine untagged: elbows pinned at the sides the whole movement means no
+        # overhead arc and no horizontal load — the same class as pull-apart/face-pull in the
+        # contraindications review's "genuinely fine" 14.
+        "contraindications": set(),
+    },
+    {
+        "id": "wu-thread-the-needle",
+        "name": "Thread the Needle",
+        "aliases": ["wu thread the needle", "thread the needle warm up"],
+        "focus": ["upper", "full"],
+        # Active rotational mobility drill, not literally "anti-rotation" — same judgment call
+        # already made for cd-thoracic-rotation (PATTERN_OVERRIDES above), kept consistent here
+        # rather than inventing a new bucket.
+        "pattern": "anti_rotation",
+        "primary": ["upper_back"],
+        "secondary": ["obliques"],
+        "equipment": "bodyweight",
+        "band": None,
+        "anchor": "none",
+        "unilateral": True,
+        "difficulty": "easy",
+        "setup": (
+            "On hands and knees. Thread one arm underneath your body, rotating your chest toward "
+            "the floor, then reverse and rotate that same arm up toward the ceiling, following it "
+            "with your eyes. Slow and controlled; switch sides."
+        ),
+        # Quadruped support hand bears weight momentarily, same standard as bird-dog.
+        "contraindications": {"wrist_extension"},
+    },
+    {
+        "id": "wu-band-row",
+        "name": "Warm-Up Band Row",
+        "aliases": ["wu band row", "warm up row", "band row warm up"],
+        "focus": ["upper", "full"],
+        "pattern": "horizontal_pull",
+        "primary": ["upper_back"],
+        "secondary": ["rear_delts", "biceps"],
+        "equipment": "band",
+        "band": "B1",
+        "anchor": "anchor-mid",
+        "unilateral": False,
+        "difficulty": "easy",
+        "setup": (
+            "Band anchored at chest height. Step back for light tension, elbows drive straight "
+            "back to row the band to your ribs, then extend forward with control. Light and "
+            "easy, 15-20 reps."
+        ),
+        # Untagged for the same reason door-row/seated-row are: a light standing row, not the
+        # bodyweight-loaded or plank-supported horizontal pulls that earned shoulder_horizontal
+        # in the review (bw-inverted-row, plank-row).
+        "contraindications": set(),
+    },
+]
+
 FAMILIES_OUT = Path(__file__).resolve().parents[1] / "library/families.json"
 
 
@@ -679,6 +786,44 @@ def main():
             "difficulty": e["difficulty"],
             "progression_family": fam,
             "progression_level_id": lvl,
+            "contraindications": sorted(e["contraindications"]),
+            "setup": e["setup"],
+            "video_search": video_search,
+            "demo_media": {"type": "figure", "id": ex_id},
+        }
+        out_exercises.append(new)
+
+    # newly authored warmups (track 6g-warmups, closes issue #33)
+    for e in NEW_WARMUPS:
+        ex_id = e["id"]
+        # no progression family for warmups, matching every existing wu-* record
+        anchor = e["anchor"]
+        equipment = e["equipment"]
+        search_prefix = "resistance+band+" if equipment == "band" else ""
+        video_search = (
+            "https://www.youtube.com/results?search_query="
+            f"{search_prefix}{e['name'].replace(' ', '+')}+warm+up+how+to"
+        )
+        new = {
+            "id": ex_id,
+            "name": e["name"],
+            "aliases": e["aliases"],
+            "focus": e["focus"],
+            "pattern": e["pattern"],
+            "primary": e["primary"],
+            "secondary": e["secondary"],
+            "equipment": equipment,
+            "band": e["band"],
+            "anchor": anchor,
+            "anchor_class": anchor_class_for(anchor, ex_id),
+            "unilateral": e["unilateral"],
+            "metric": "reps",
+            "default_seconds": None,
+            "tier": "fill",
+            "role": "warmup",
+            "difficulty": e["difficulty"],
+            "progression_family": None,
+            "progression_level_id": None,
             "contraindications": sorted(e["contraindications"]),
             "setup": e["setup"],
             "video_search": video_search,

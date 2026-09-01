@@ -1645,6 +1645,95 @@ const SHAPES: Record<string, Archetype> = {
     track: 'hand',
     bandJoint: 'hand',
   },
+  // Track 6g-warmups (issue #33): elbows pinned at the sides, forearms rotating outward against
+  // a band (scarecrow / external rotation) — not shoulder_isolation's default front-raise arm
+  // swing, which would draw the arm lifting away from the body instead of staying tucked. The
+  // upper arm (shoulderAngle) is fixed at the "hanging by the side" angle in both poses — only
+  // the forearm (elbowAngle) rotates, which is the actual movement and also why this never
+  // approaches overhead: the hand stays near elbow height throughout (computed: hand.y 76-80 vs.
+  // shoulder.y 60, well below shoulder level in both poses — verified with a throwaway forward-
+  // kinematics script before writing this, not assumed). hipOffset grounds the standing foot
+  // (round 4 convention — see horizontal_pull's comment); foot lands at y=149.9.
+  band_scarecrow: {
+    stance: 'standing',
+    poseA: {
+      torsoAngle: 270,
+      shoulderAngle: 100,
+      elbowAngle: 190,
+      hipAngle: 95,
+      kneeAngle: 90,
+      hipOffset: { x: 0, y: 10 },
+    },
+    poseB: {
+      torsoAngle: 270,
+      shoulderAngle: 100,
+      elbowAngle: 340,
+      hipAngle: 95,
+      kneeAngle: 90,
+      hipOffset: { x: 0, y: 10 },
+    },
+    track: 'hand',
+    bandJoint: 'hand',
+  },
+  // Track 6g-warmups (issue #33): high plank, straight arms throughout — only the shoulder
+  // girdle rises and sinks (scapular protraction/retraction), not the elbow (scapular push-up).
+  // Reuses horizontal_push's own grounding approach (per-pose hipOffset so the hand lands at
+  // y~150 independently in each pose, computed with a throwaway forward-kinematics script rather
+  // than assumed — see STATUS-6g-warmups.md) rather than horizontal_push's archetype itself,
+  // whose elbow bends 60-100deg (a real push-up), which is the wrong movement for this drill.
+  scap_push_up: {
+    stance: 'plank',
+    poseA: {
+      torsoAngle: 205,
+      shoulderAngle: 100,
+      elbowAngle: 100,
+      hipAngle: 15,
+      kneeAngle: 15,
+      hipOffset: { x: 0, y: 39.5 },
+    },
+    poseB: {
+      torsoAngle: 225,
+      shoulderAngle: 100,
+      elbowAngle: 100,
+      hipAngle: 15,
+      kneeAngle: 15,
+      hipOffset: { x: 0, y: 50.9 },
+    },
+    track: 'shoulder',
+    bandJoint: 'hand',
+  },
+  // Track 6g-warmups (issue #33): quadruped, one arm threading under the body and rotating open
+  // toward the ceiling (thread the needle). Same stance/leg angles as quadruped_reach (kneeling,
+  // hipAngle/kneeAngle 15/15) but its own hipOffset — quadruped_reach's own y=15.1 grounds ITS
+  // arm angles (shoulderAngle/elbowAngle 100/100), not this archetype's "threaded under" angles
+  // (60/60), which land the hand higher up for the same offset (found by rendering: first attempt
+  // reused 15.1 verbatim and landed the hand at y=142.6, 9.4px above the 6px tolerance — fixed by
+  // recomputing offy for this archetype's own poseA angles with the same forward-kinematics
+  // script, landing the hand at y=149.98). poseB swings the arm up and away from the floor (the
+  // "open" rotation) rather than back down — that's fine for the ground-contact test, which
+  // checks the whole two-panel figure for a single grounded point, not each pose independently
+  // (poseA already supplies one).
+  thread_needle: {
+    stance: 'kneeling',
+    poseA: {
+      torsoAngle: 195,
+      shoulderAngle: 60,
+      elbowAngle: 60,
+      hipAngle: 15,
+      kneeAngle: 15,
+      hipOffset: { x: 0, y: 22.5 },
+    },
+    poseB: {
+      torsoAngle: 195,
+      shoulderAngle: 280,
+      elbowAngle: 280,
+      hipAngle: 15,
+      kneeAngle: 15,
+      hipOffset: { x: 0, y: 22.5 },
+    },
+    track: 'hand',
+    bandJoint: 'hand',
+  },
   // Side-lying, the top knee opening away from the bottom one (clamshell) — not abduction's
   // default standing shape, which contradicts the "side-lying" setup cue. hipOffset.y 44, not
   // -8 (round 4 — see flexion's comment): the side of the body rests on the ground throughout,
@@ -1896,6 +1985,13 @@ const REUSE_ARCHETYPE: Record<string, string> = {
   'bird-dog': 'quadruped_reach',
   'bw-bird-dog': 'quadruped_reach',
   'wu-deadbug-bw': 'quadruped_reach',
+
+  // --- track 6g-warmups (issue #33): shoulder-safe warmup variety ---
+  'wu-band-scarecrow': 'band_scarecrow',
+  'wu-scap-push-up': 'scap_push_up',
+  'wu-thread-the-needle': 'thread_needle',
+  // wu-band-row intentionally has no override — it's a standing row, which is exactly
+  // horizontal_pull's own pattern-default archetype (same as door-row/seated-row).
 
   // --- hip_extension pattern: this pattern is only correctly a supine bridge for the true
   // glute-bridge movement; the other two members of the pattern are a different body position
