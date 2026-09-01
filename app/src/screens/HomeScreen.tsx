@@ -169,7 +169,15 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       // data first (invariant 1); reloads afterward only so an applied change (a resolved
       // geocode, a curated video id) shows up without the user having to background/foreground
       // the app again.
-      void runOpportunisticSync(db, nowUtcInstant()).then(load);
+      // `.catch` is not decoration: without it a rejection here (from the sync itself, or from
+      // the `load` that follows it) becomes an unhandled promise rejection with nothing absorbing
+      // it. Invariant 1 says the network layer can never affect the core loop — that has to hold
+      // even when the fire-and-forget chain itself fails. See HomeScreen.syncIsolation.test.tsx.
+      void runOpportunisticSync(db, nowUtcInstant())
+        .then(load)
+        .catch(() => {
+          /* Home already rendered from local SQLite; a failed background sync changes nothing. */
+        });
     }, [db, load]),
   );
 
