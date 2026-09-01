@@ -4,7 +4,7 @@ import { applyHardFilters, DEFAULT_ANCHORS_AVAILABLE, effortCapForExercise } fro
 const lib = exerciseLibrary.exercises;
 
 describe('hard filters (§5.1 step 1 / §13.2)', () => {
-  it('never returns a bodyweight_bearing-anchor exercise when the anchor is not enabled (§13.1 default-off)', () => {
+  it('never returns an exercise whose anchor is not enabled (§13.1 default-off)', () => {
     const out = applyHardFilters({
       library: lib,
       request: {},
@@ -12,7 +12,15 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
       limitations: [],
       today: '2026-08-30',
     });
-    expect(out.every((e) => e.anchor_class !== 'bodyweight_bearing')).toBe(true);
+    // The real invariant: nothing appears whose anchor the user has not enabled.
+    expect(out.every((e) => DEFAULT_ANCHORS_AVAILABLE.includes(e.anchor))).toBe(true);
+    // §5.3 says all bodyweight_bearing anchors are off by default. ADR 0007 carves out exactly
+    // one documented exception — `low-bar` (bw-inverted-row), which is on by default while
+    // staying bodyweight_bearing so the §13.1 effort cap still binds. Pin that the carve-out is
+    // exactly one anchor wide, so a future edit cannot quietly widen it.
+    const bearing = out.filter((e) => e.anchor_class === 'bodyweight_bearing');
+    expect([...new Set(bearing.map((e) => e.anchor))]).toEqual(['low-bar']);
+    expect(bearing.every((e) => effortCapForExercise(e, 'hard') === 'normal')).toBe(true);
   });
 
   it('includes bodyweight_bearing exercises once the anchor is explicitly enabled', () => {

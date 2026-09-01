@@ -58,6 +58,7 @@ const ANCHOR_VALUES: Anchor[] = [
   'anchor-mid',
   'anchor-high',
   'pullup-bar',
+  'low-bar',
 ];
 const ANCHOR_CLASS_VALUES: AnchorClass[] = ['none', 'band_tension', 'bodyweight_bearing'];
 const METRIC_VALUES: Metric[] = ['reps', 'time', 'amrap'];
@@ -89,7 +90,7 @@ const LADDER_FAMILY_IDS = [
   'anti_extension',
 ];
 
-const BODYWEIGHT_BEARING_ANCHORS: Anchor[] = ['pullup-bar', 'body-support'];
+const BODYWEIGHT_BEARING_ANCHORS: Anchor[] = ['pullup-bar', 'body-support', 'low-bar'];
 
 function anchorClassFor(anchor: Anchor): AnchorClass {
   if (BODYWEIGHT_BEARING_ANCHORS.includes(anchor)) return 'bodyweight_bearing';

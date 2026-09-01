@@ -528,12 +528,18 @@ FAMILY_LEVELS = {
 FAMILIES_OUT = Path(__file__).resolve().parents[1] / "library/families.json"
 
 
+# Carried-forward issue #2, closed 2026-09-01. bw-inverted-row was `anchor: pullup-bar`, which
+# made it bodyweight_bearing -- off by default AND effort-capped. The user relaxed availability
+# only: it now uses its own `low-bar` anchor (its cue is "RV ladder rung, picnic table edge, low
+# branch" -- far more available than a pull-up bar), which is in DEFAULT_ANCHORS_AVAILABLE but is
+# still bodyweight_bearing so the §13.1 effort cap is untouched. See ADR 0007.
+ANCHOR_OVERRIDE = {
+    "bw-inverted-row": "low-bar",
+}
+
+
 def anchor_class_for(anchor: str, ex_id: str = "") -> str:
-    # TODO(issue #2): user approved relaxing bw-inverted-row's bodyweight_bearing gate
-    # 2026-08-31, but anchor_class has only 3 values and bodyweight_bearing gates two separate
-    # things (hardFilters.ts effort cap + §5.3 anchor-off-by-default). Awaiting a decision on
-    # which to relax; needs an ADR either way. Deliberately NOT applied yet.
-    if anchor in ("pullup-bar", "body-support"):
+    if anchor in ("pullup-bar", "body-support", "low-bar"):
         return "bodyweight_bearing"
     if anchor == "none":
         return "none"
@@ -613,7 +619,7 @@ def main():
         role = role_for(ex_id)
         metric, default_seconds = metric_for(ex_id)
         tier = tier_for(ex_id, pattern, role)
-        anchor = e["anchor"]
+        anchor = ANCHOR_OVERRIDE.get(ex_id, e["anchor"])
         fam, lvl = family_assignment.get(ex_id, (None, None))
         new = {
             "id": ex_id,
@@ -646,7 +652,7 @@ def main():
     for e in NEW_EXERCISES:
         ex_id = e["id"]
         fam, lvl = family_assignment.get(ex_id, (None, None))
-        anchor = e["anchor"]
+        anchor = ANCHOR_OVERRIDE.get(ex_id, e["anchor"])
         equipment = e["equipment"]
         search_prefix = "resistance+band+" if equipment == "band" else ""
         video_search = (

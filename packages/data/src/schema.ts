@@ -40,7 +40,11 @@ export type Anchor =
   | 'anchor-low'
   | 'anchor-mid'
   | 'anchor-high'
-  | 'pullup-bar';
+  | 'pullup-bar'
+  // A waist-height fixed bar (RV ladder rung, picnic table edge, low branch). Distinct from
+  // 'pullup-bar' because it is far more widely available and is partial-support, not a full
+  // dynamic hang. Still bodyweight_bearing, so the §13.1 effort cap applies. See ADR 0007.
+  | 'low-bar';
 
 /** Derived mechanically from `anchor` (§13.1). Drives the anchor-safety hard filter. */
 export type AnchorClass = 'none' | 'band_tension' | 'bodyweight_bearing';

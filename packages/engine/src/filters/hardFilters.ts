@@ -15,8 +15,13 @@ import type { Anchor, Exercise } from '@roamfit/data';
 import { daysBetween } from '../dates';
 import type { EquipmentPreference, GenerationRequest, LocalDate, Limitation } from '../types';
 
-/** §5.3 defaults: all band-tension anchors on, all bodyweight-bearing anchors off. Callers
- *  (app/settings layer) own the persisted list; this is a convenience for tests and cold start. */
+/** §5.3 defaults: all band-tension anchors on, all bodyweight-bearing anchors off — with one
+ *  documented exception, `low-bar` (ADR 0007, carried-forward issue #2). A waist-height bar is
+ *  near-universally available, and an inverted row is partial-support rather than a full dynamic
+ *  hang, so it is on by default. It remains `bodyweight_bearing`, so `effortCapForExercise` still
+ *  caps it at `normal` — availability was relaxed, the §13.1 safety cap was not.
+ *  Callers (app/settings layer) own the persisted list; this is a convenience for tests and cold
+ *  start. */
 export const DEFAULT_ANCHORS_AVAILABLE: readonly Anchor[] = [
   'none',
   'stance',
@@ -26,6 +31,7 @@ export const DEFAULT_ANCHORS_AVAILABLE: readonly Anchor[] = [
   'anchor-low',
   'anchor-mid',
   'anchor-high',
+  'low-bar',
 ];
 
 function isEquipmentEligible(exercise: Exercise, pref: EquipmentPreference | undefined): boolean {

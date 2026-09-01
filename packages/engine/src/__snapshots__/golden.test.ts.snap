@@ -11,6 +11,7 @@ exports[`golden: generateSession output is pinned Quick Session, upper, seed 4 1
     "anchor-low",
     "anchor-mid",
     "anchor-high",
+    "low-bar",
   ],
   "cooldown": [
     {
@@ -135,6 +136,7 @@ exports[`golden: generateSession output is pinned abs, 30min, normal — never a
     "anchor-low",
     "anchor-mid",
     "anchor-high",
+    "low-bar",
   ],
   "cooldown": [
     {
@@ -358,6 +360,7 @@ exports[`golden: generateSession output is pinned cold-start legs, 20min, easy, 
     "anchor-low",
     "anchor-mid",
     "anchor-high",
+    "low-bar",
   ],
   "cooldown": [
     {
@@ -511,6 +514,7 @@ exports[`golden: generateSession output is pinned cold-start upper, 30min, norma
     "anchor-low",
     "anchor-mid",
     "anchor-high",
+    "low-bar",
   ],
   "cooldown": [
     {
@@ -735,6 +739,7 @@ exports[`golden: generateSession output is pinned mid-progression full, 45min, h
     "anchor-low",
     "anchor-mid",
     "anchor-high",
+    "low-bar",
   ],
   "cooldown": [
     {

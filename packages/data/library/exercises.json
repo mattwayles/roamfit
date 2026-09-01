@@ -6196,7 +6196,7 @@
       ],
       "equipment": "bodyweight",
       "band": null,
-      "anchor": "pullup-bar",
+      "anchor": "low-bar",
       "anchor_class": "bodyweight_bearing",
       "unilateral": false,
       "metric": "reps",
