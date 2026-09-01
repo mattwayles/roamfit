@@ -1,13 +1,150 @@
 ## Track: 6a-figures — In-house line-art demo figures
-Last updated: 2026-08-31 (third rework round closed — see "Round 3" below)
+Last updated: 2026-08-31 (fourth rework round closed — see "Round 4" below)
 
 ### Status
 Done, pending final orchestrator sign-off. `npm run check` and `npm run validate:library` both
 green. 200/200 exercises have a bundled figure; 135/200 distinct geometries (up from 57 at the
-first pass, 130 at the start of round 2, unchanged through round 3 — none of round 3's fixes were
-archetype-assignment changes, just angle/offset tuning); every orchestrator finding from all three
-review rounds is addressed — see "Round 1", "Round 2", and "Round 3" below for exactly what and
-how each was verified. Commit: `c7ecf99`.
+first pass, 130 at the start of round 2, unchanged through rounds 3-4 — none of those rounds'
+fixes were archetype-assignment changes, just angle/offset tuning); every orchestrator finding
+from all four review rounds is addressed — see "Round 1" through "Round 4" below for exactly what
+and how each was verified. Commit: `41369f5`.
+
+### Round 4 — ground detachment / Finding D (this session, sha `41369f5`)
+
+The orchestrator accepted round 3's findings (A/B/C all independently re-verified, including
+re-running the new tests against the round-3-minus-1 committed art to confirm they weren't
+tautological) and found one new defect class: round 3 fixed ground *penetration* but never
+checked ground *detachment* — a figure floating in mid-air with nothing touching down reads as
+broken exactly the way sinking through the floor does, and the round-3 test's tolerance
+(`y < GROUND + 1`, no upper bound) let unlimited float straight through.
+
+**Scope, measured before touching anything**: writing a script that parses every drawn coordinate
+in the committed SVGs (every `<line>` endpoint except the decorative ground line/divider, every
+`<circle>` center, every M/L point in every `<path>` — skipping paths with a `Q` curve, which is
+only ever the anchor-post arc decoration) and takes the closest point to the y=152 ground line
+per figure found **148 figures** more than 6px above the line with nothing else grounded (the
+orchestrator's own count, by a related but not identical method, was 114+; both numbers point at
+the same underlying bug, and the higher count is the more conservative one to fix against). Worst
+cases: `bw-pike-push-up` (59-62px), `bw-dip` (55-58px), `russian-twist`/`bw-russian-twist` and
+`bw-boat-hold` (54px), `mountain-climber`/`bw-mountain-climber` (42-48px), `bw-nordic-curl`
+(38-41px), `cd-hamstring-band`/`cd-figure-four` (37-46px), `cd-cobra` (34px),
+`kneeling-crunch`/`band-sit-up`/`bw-decline-push-up` (24-27px) — matching the orchestrator's named
+examples closely (a few px of difference between the two measurement methods, not a discrepancy
+in which figures were broken).
+
+**Method, per the brief's own instruction**: for each flagged archetype, read the exercise's
+`setup` cue and decide which joint (if any) is the actual ground-contact point — not always the
+hip, which the first attempt at this assumed. Two concrete corrections that assumption forced:
+- **Path midpoints, not just endpoints, can be the deepest point.** `pike_push_up`'s bent elbow
+  (a mid-arm point, not the hand or shoulder endpoint) swung 5.4px through the floor in an
+  otherwise-grounded pose — invisible to a test that only checks named joints. The new jest test
+  parses every path coordinate for exactly this reason.
+- **A shared archetype can't always be grounded.** `vertical_pull`'s default pose is reused by
+  both standing lat-pulldown-style exercises (should ground) and bar-hanging pull-up variants
+  (must NOT ground — feet are supposed to be off the floor). Since this rig has one pose per
+  archetype, not per exercise, grounding it would incorrectly plant the hanging exercises' feet
+  on the floor. Left ungrounded and documented in the new test's `ELEVATED_ALLOWLIST`, not fixed
+  by inventing a workaround this round.
+
+**Two systemic root causes, not 40 unrelated bugs**:
+1. `STANCES.standing`'s hip (y=90) sits 12 units above the max reach of the standard standing leg
+   (upperLeg 26 + lowerLeg 24 = 50, but 90+50=140 < 152) — a **geometric impossibility**, not a
+   tuning miss: no angle choice lets a straight leg from that hip reach the ground. Every
+   plain-standing archetype with no `hipOffset` floated its foot with literally nothing at the
+   floor, masked for band exercises whose `anchor` is a fixed point (`anchor-low/mid/high`,
+   `stance`/`feet`) because that anchor's own decoration (a post or arc) is *always* drawn at
+   y=152 regardless of where the foot actually is — the eye reads "something is grounded" without
+   the foot itself being that something. Fixed ~20 standing archetypes individually (`hipOffset:
+   {x:0,y:10}` on whichever pose represents feet-planted, doubled where two different-length
+   limbs needed independent verification) rather than moving the shared `STANCES.standing.y`,
+   which would have re-broken every squat/lunge/jump-squat pose round 3 spent its whole budget
+   grounding.
+2. `STANCES.supine`'s hip/shoulder (y=106) sit 46 units above the ground with **nothing at all**
+   closing that gap for "lying on the back" archetypes — masked for a few (`hip_extension`) by an
+   arm angle that happened to reach close to the floor anyway, not by design. Fixed ~15 supine
+   archetypes, each targeting whichever joint is genuinely deepest in that specific pose (`flexion`'s
+   own bent-knee-down leg shape puts the knee lower than the hip; grounding the literal hip there
+   would drive the knee 20+ units through the floor, so the fix grounds the knee instead and
+   documents why — redesigning that leg shape, shared by the whole crunch family and long since
+   individually reviewed in rounds 1-2, was out of this round's scope). Where a pose's original
+   `hipOffset` already differed from its sibling pose's (encoding a real hip lift — a reverse
+   crunch, a bicycle crunch), that *relative* delta was preserved on top of the new grounded
+   baseline, re-verified against that pose's own joints so the preserved lift doesn't overshoot
+   back through the floor.
+
+**pike_push_up was redesigned, not re-offset.** Its hand sat *above* the head and shoulder
+(hand.y=18.6, shoulder.y=49.7, head.y=40.7 — physically backward for hands planted on the floor)
+because `torsoAngle` put the shoulder above the hip instead of below it. Rebuilt as a true
+inverted V: hip as the apex (smallest y), a collinear torso+arm line reaching the hands and a
+separate collinear hip+leg line reaching the feet, at *different* angles from each other (148°
+vs 64° from horizontal) because the arm+torso chain (64 units) is longer than the leg chain (50
+units) and needs a shallower angle to land at the same depth. Verified by computing joint y
+directly: hand 150.6, foot 150.0 in the resting pose.
+
+**Quadruped family** (`donkey_kick`, `quadruped_reach`/bird-dog, `cat_cow`) — grounds the support
+hand in whichever pose it's meant to stay planted (both poses for `donkey_kick`/`cat_cow`, since
+the support arm doesn't move; only the "get-set" pose for `quadruped_reach`, whose reach pose
+moves both the drawn arm and leg). Documented limitation: this rig draws one arm and one leg, so
+it cannot also ground the un-drawn, stationary *opposite* support leg at the same time — an
+extension of the same single-limb-sagittal-view limitation documented since round 2.
+
+**New jest test** (`grounds every figure at the floor line, in both directions, except an
+explicit elevated allowlist`) replaces round 3's marker-only, one-sided test. It parses every
+line/circle/path coordinate in the actual SVG (not just hand/foot `<circle>` markers) and asserts
+the single closest-to-ground point in each figure lands within `[GROUND-2, GROUND+6]` — a few px
+either side — for every exercise **not** in an explicit `ELEVATED_ALLOWLIST` of 12 exercises
+across 5 archetypes, each with its own one-line justification in the test itself:
+- `bw-dead-hang`, `assisted-pull-up`, `bw-pull-up`, `bw-chin-up`, `bw-archer-pull-up` — hanging
+  from a bar, feet are meant to be off the ground.
+- `lat-pulldown`, `straight-arm-pulldown` — share `vertical_pull`'s default pose with the hanging
+  exercises above; grounding it would incorrectly ground those too (the archetype-sharing
+  limitation described above). **Not** claimed as intentionally elevated — flagged honestly as an
+  unfixed rig limitation.
+- `step-up`, `bw-step-up` — the working foot is correctly elevated on the step; this rig has no
+  way to draw the stationary back/support foot (pre-existing single-leg simplification).
+- `hollow-hold`, `bw-hollow-hold` — cue is explicitly "arms and legs extended and hovering"; the
+  shared crunch-family leg shape doesn't perfectly match this hold's straight-leg extension,
+  leaving a residual float consistent with the pose's own description.
+- `bw-diamond-push-up` — a `shoulderDelta` tweak on top of `horizontal_push`'s now-grounded hand
+  nudges it a few px as a side effect; still reads as hands-on-the-floor.
+
+The tolerance (`[-2, +6]`) was set from the actual measured range across the 188 non-allowlisted
+figures after the fix (worst case +4.4px, `dead-bug`; -1.5px, `hip-abduction`'s pre-existing
+band-path decorative dip — not a body joint, see that archetype's code comment), not chosen to
+make a formula pass.
+
+**Method verification, as required**: wrote the new test, ran it against `a392710`'s committed
+`figures.json` (checked out the same way as round 3 — `git show a392710:... > figures.json`, ran
+the suite, restored) and confirmed it failed with 148 violations matching the sweep above almost
+exactly, before touching the generator. Restored and confirmed 14/14 pass afterward.
+
+**Legibility, lower priority per the brief**: `bw-boat-hold`'s torso and legs no longer nearly
+overlap into one stroke (`seated_boat`'s leg angle widened from 10-20° off the torso angle to a
+near-horizontal 45°, so the V reads clearly) and `leg-raise`'s raised leg no longer overlaps the
+torso with the band loop landing on the head instead of the ankle (`leg_raise_shape`'s raised-leg
+angle widened from 350/355° — nearly collinear with the flat torso and arm — to 320/330°, which
+separates the leg, and with it the foot-anchored band loop, from the trunk/arm cluster).
+
+**What I verified and how**: the parsing script above (now duplicated into the jest test) run
+against the real, regenerated `figures.json` after every change — 0 canvas-bounds violations
+(carried from round 3), 0 ground-contact violations at the new [-2,+6] tolerance outside the
+allowlist. Rendered and visually inspected `bw-boat-hold`, `mountain-climber`, `bw-pike-push-up`
+(both the redesign and the final canvas-bounds fix), `bw-dip`, `russian-twist`, `cd-cobra`, and
+`leg-raise` with `qlmanage -t -s 700` after every substantive change, not just once at the end.
+
+**What remains unverified or intentionally not fixed this round**:
+- The ~65/200 figures sharing a geometry with an already-individually-rendered exercise (same
+  caveat carried since round 2 — this round's fixes were angle/offset tuning on existing
+  archetypes, not new archetype assignments, so the coverage argument is unchanged).
+- `flexion`'s bent-knee-down leg shape (the reason its grounding targets the knee, not the hip)
+  is a genuine oddity for a "lying on the back" pose and arguably its own bug, but redesigning it
+  touches the whole crunch family (already reviewed twice); flagged here rather than fixed.
+- The `vertical_pull` archetype-sharing gap (`lat-pulldown`/`straight-arm-pulldown` left
+  ungrounded because the pose is shared with genuinely-hanging exercises) is a real, if minor
+  (12px), unfixed defect — splitting the archetype is the actual fix and is out of this round's
+  budget.
+- `hip_extension`'s `bw-crab-walk`/`hamstring-curl` overrides inherit the pattern's pre-existing
+  mistag (ORCHESTRATION.md carried-forward issue #4), unchanged from prior rounds.
 
 ### Round 3 — orchestrator re-review findings and fixes (this session, sha `c7ecf99`)
 
