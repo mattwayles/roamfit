@@ -35,9 +35,20 @@ import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 type Props = NativeStackScreenProps<RootStackParamList, 'Approval'>;
 type Section = 'warmup' | 'main' | 'cooldown';
 
-function estimateMinutes(session: SessionRecord): number {
+/**
+ * §5.6 — `estimatedSec` is ALREADY the complete per-entry cost: `formulas.ts`'s
+ * `repExerciseSec`/`timedExerciseSec` both return `sets × (work + rest) + setup`. The engine's own
+ * time-fit stage (`timefit/fitSession.ts`) sums exactly this field against the target budget, so
+ * summing it here is what makes the approval screen agree with the session the engine actually
+ * built.
+ *
+ * This previously read `sets * (estimatedSec + restSec)`, which multiplied an already-complete
+ * total by the set count again and re-added rest — inflating a real 30-minute session to ~86-105
+ * displayed minutes (2.8x). The engine was never wrong; only this label was.
+ */
+export function estimateMinutes(session: SessionRecord): number {
   const activeEntries = session.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
-  const totalSec = activeEntries.reduce((sum, e) => sum + e.sets * (e.estimatedSec + e.restSec), 0);
+  const totalSec = activeEntries.reduce((sum, e) => sum + e.estimatedSec, 0);
   return Math.round(totalSec / 60);
 }
 
