@@ -205,7 +205,12 @@ CONTRA_EXTRA = {
     "banded-push-up": {"wrist_extension"},
     "close-grip-push-up": {"wrist_extension", "elbow"},
     "floor-press": {"wrist_extension"},
-    "bw-wall-push-up": set(),  # hands vertical on wall, no wrist extension load
+    # Was `set()` with the note "hands vertical on wall, no wrist extension load".
+    # Overridden by user sign-off 2026-08-31 (contraindications review): the wall angle is
+    # gentler than a floor push-up, but it is still extension under load and every other
+    # rung of the ladder carries the tag. Consistency + the missing-tag-is-a-safety-issue
+    # asymmetry win over the angle argument.
+    "bw-wall-push-up": {"wrist_extension"},
     "bw-incline-push-up": {"wrist_extension"},
     "bw-knee-push-up": {"wrist_extension"},
     "bw-push-up": {"wrist_extension"},
@@ -344,17 +349,39 @@ CONTRA_EXTRA = {
     "cd-cobra": {"lower_back_extension"},
     "cd-hip-flexor": {"hip"},
     "cd-figure-four": {"hip"},
+    # --- contraindications review sign-off, 2026-08-31 (carried-forward issue #1) ---
+    # 16 of 18 suspected-missing tags accepted. `cd-thoracic-rotation` and `wu-pull-apart` were
+    # deliberately left untagged; see docs/review/contraindications-review.md for the reasoning.
+    # shoulder_overhead — loaded or end-range overhead arcs
+    "wu-shoulder-passthrough": {"shoulder_overhead"},
+    "overhead-pull-apart": {"shoulder_overhead"},
+    "cd-lat-stretch": {"shoulder_overhead"},
+    "cd-shoulder-distraction": {"shoulder_overhead"},
+    "cd-shoulder-band-stretch": {"shoulder_overhead"},
+    "wu-arm-circles": {"shoulder_overhead"},
+    # lower_back_flexion — sustained loaded hip hinge, and loaded lateral spinal flexion
+    "bent-over-row": {"lower_back_flexion"},
+    "single-arm-row": {"lower_back_flexion"},
+    "side-bend": {"lower_back_flexion"},
+    "cd-lat-side-bend": {"lower_back_flexion"},
+    # lower_back_extension — finishes high under loaded rotation
+    "reverse-woodchop": {"lower_back_extension"},
+    "half-kneeling-chop": {"lower_back_extension"},
+    # hip — abduction / external rotation under band tension
+    "clamshell": {"hip"},
+    "bw-fire-hydrant": {"hip"},
+    # upper limb
+    "bw-inverted-row": {"shoulder_horizontal", "elbow"},
+    # picked up by the push-up/plank sweep the review sheet asked for: "ends under hands, in a
+    # plank" is a high plank, so the wrist is loaded in extension. bw-plank stays untagged --
+    # "Forearms under shoulders" means a forearm plank loads no extended wrist.
+    "banded-plank": {"wrist_extension"},
 }
 
 CONTRA_REMOVE = {
     # base-pattern tag would over-apply; strip where the specific exercise doesn't load it
     "bw-wall-push-up": {"shoulder_horizontal"},
     "face-pull": set(),
-    "cd-lat-stretch": {"shoulder_overhead"},  # gentle static stretch, not a loaded overhead press
-    "cd-shoulder-band-stretch": {"shoulder_overhead"},
-    "wu-arm-circles": {"shoulder_overhead"},
-    "wu-shoulder-passthrough": {"shoulder_overhead"},
-    "cd-shoulder-distraction": {"shoulder_overhead"},
 }
 
 ALIAS_EXTRA = {
@@ -501,7 +528,11 @@ FAMILY_LEVELS = {
 FAMILIES_OUT = Path(__file__).resolve().parents[1] / "library/families.json"
 
 
-def anchor_class_for(anchor: str) -> str:
+def anchor_class_for(anchor: str, ex_id: str = "") -> str:
+    # TODO(issue #2): user approved relaxing bw-inverted-row's bodyweight_bearing gate
+    # 2026-08-31, but anchor_class has only 3 values and bodyweight_bearing gates two separate
+    # things (hardFilters.ts effort cap + §5.3 anchor-off-by-default). Awaiting a decision on
+    # which to relax; needs an ADR either way. Deliberately NOT applied yet.
     if anchor in ("pullup-bar", "body-support"):
         return "bodyweight_bearing"
     if anchor == "none":
@@ -595,7 +626,7 @@ def main():
             "equipment": e["equipment"],
             "band": None if e.get("band") in (None, "none") else e.get("band"),
             "anchor": anchor,
-            "anchor_class": anchor_class_for(anchor),
+            "anchor_class": anchor_class_for(anchor, ex_id),
             "unilateral": e["unilateral"],
             "metric": metric,
             "default_seconds": default_seconds,
@@ -633,7 +664,7 @@ def main():
             "equipment": equipment,
             "band": e["band"],
             "anchor": anchor,
-            "anchor_class": anchor_class_for(anchor),
+            "anchor_class": anchor_class_for(anchor, ex_id),
             "unilateral": e["unilateral"],
             "metric": "reps",
             "default_seconds": None,

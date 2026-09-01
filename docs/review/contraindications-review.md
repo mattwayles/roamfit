@@ -78,5 +78,42 @@ These are light, supported, or small-range movements where no tag is the defensi
 
 ## Sign-off
 
-- [ ] Reviewed by: ____________________  date: __________
-- [ ] Decisions applied to `migrate_library.py` and `npm run validate:library` re-run
+- [x] Reviewed by: **Matthew Wayles**  date: **2026-08-31**
+- [x] Decisions applied to `migrate_library.py` and `npm run validate:library` re-run (0 errors)
+
+### Decision: 16 of the 18 tagged, plus 1 from the sweep
+
+**Tagged (16):** `wu-shoulder-passthrough`, `overhead-pull-apart`, `cd-lat-stretch`,
+`cd-shoulder-distraction`, `cd-shoulder-band-stretch`, `wu-arm-circles` (`shoulder_overhead`);
+`bent-over-row`, `single-arm-row`, `side-bend`, `cd-lat-side-bend` (`lower_back_flexion`);
+`reverse-woodchop`, `half-kneeling-chop` (`lower_back_extension`); `clamshell`,
+`bw-fire-hydrant` (`hip`); `bw-wall-push-up` (`wrist_extension`); `bw-inverted-row`
+(`shoulder_horizontal` + `elbow`).
+
+**Deliberately NOT tagged (2):**
+- `cd-thoracic-rotation` — a mobility staple often prescribed *for* back complaints. Tagging it
+  removes a useful cooldown from exactly the people most likely to benefit. Closest call here.
+- `wu-pull-apart` — `pull-apart` and `face-pull` both sit in the "genuinely fine" 14 untagged.
+  Tagging only the lighter warm-up version would be inconsistent in the wrong direction.
+
+**From the consistency sweep (question 2): 1 addition, not the ~20 expected.** The push-up/plank
+family is 25 exercises and 22 already carried `wrist_extension`. Only `banded-plank` was missing
+it ("ends under hands, in a plank" — a high plank). `bw-plank` stays untagged: "Forearms under
+shoulders" means a forearm plank loads no extended wrist.
+
+**Overridden prior judgment, recorded so it isn't lost.** `bw-wall-push-up` previously carried an
+explicit `set()` in `CONTRA_EXTRA` with the note *"hands vertical on wall, no wrist extension
+load"*. That argument is real — the wall angle is much gentler than a floor push-up. It was
+overridden at sign-off on consistency (every other rung carries the tag) and on the asymmetry that
+a spurious tag only shrinks the pool while a missing one is a safety failure.
+
+**Consequence accepted knowingly:** tagging `wu-shoulder-passthrough` and `wu-arm-circles` leaves a
+shoulder-injured user with **no shoulder-relevant warm-up at all** — the warm-up pool is 9 records
+and those were 2 of its 3 upper-body entries. Filed as carried-forward issue #33 (needs 3-4 new
+shoulder-safe upper-body warm-ups). The filter was kept correct rather than under-tagged to
+protect a thin pool.
+
+**Question 1 (`bw-inverted-row` anchor class) is NOT closed by this sheet** — see issue #2.
+
+> Reviewed against movement mechanics, not clinical guidance. A physiotherapist's pass before
+> launch is still worth having.

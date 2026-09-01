@@ -659,7 +659,9 @@
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [],
+      "contraindications": [
+        "shoulder_overhead"
+      ],
       "setup": "Arms overhead holding band. Pull apart and lower slightly behind head, then return.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Overhead+Band+Pull-Apart+proper+form+tutorial",
       "demo_media": {
@@ -771,7 +773,9 @@
       "difficulty": "medium",
       "progression_family": "horizontal_pull",
       "progression_level_id": "horizontal_pull.l4",
-      "contraindications": [],
+      "contraindications": [
+        "lower_back_flexion"
+      ],
       "setup": "Stand mid-band, hinge to ~45 deg with a flat back. Row band to your hips.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Bent-Over+Row+proper+form+tutorial",
       "demo_media": {
@@ -810,7 +814,9 @@
       "difficulty": "medium",
       "progression_family": "horizontal_pull",
       "progression_level_id": "horizontal_pull.l7",
-      "contraindications": [],
+      "contraindications": [
+        "lower_back_flexion"
+      ],
       "setup": "Stand on band with opposite foot, hinge, row one arm to hip. Resist trunk rotation.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Single-Arm+Bent-Over+Row+proper+form+tutorial",
       "demo_media": {
@@ -2343,7 +2349,9 @@
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [],
+      "contraindications": [
+        "hip"
+      ],
       "setup": "Side-lying, band around thighs, knees bent. Open the top knee without rolling the hips back.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Clamshell+proper+form+tutorial",
       "demo_media": {
@@ -2758,7 +2766,9 @@
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [],
+      "contraindications": [
+        "lower_back_extension"
+      ],
       "setup": "Stand on the band with one foot, both hands at the opposite hip. Sweep diagonally up and across above the far shoulder.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Low-to-High+Woodchop+proper+form+tutorial",
       "demo_media": {
@@ -3026,7 +3036,8 @@
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l4",
       "contraindications": [
-        "core_pressure"
+        "core_pressure",
+        "wrist_extension"
       ],
       "setup": "Band across upper back, ends under hands, in a plank. Brace hard. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Plank+proper+form+tutorial",
@@ -3225,7 +3236,9 @@
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [],
+      "contraindications": [
+        "lower_back_flexion"
+      ],
       "setup": "Stand on band with one foot, band in the same-side hand. Bend away from it, then return to upright.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Side+Bend+proper+form+tutorial",
       "demo_media": {
@@ -3720,7 +3733,9 @@
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [],
+      "contraindications": [
+        "shoulder_overhead"
+      ],
       "setup": "Wide grip on band, sweep from hips overhead and behind you, then back. Widen grip if it feels tight.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Shoulder+Pass-Through+warm+up+how+to",
       "demo_media": {
@@ -3992,7 +4007,9 @@
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [],
+      "contraindications": [
+        "shoulder_overhead"
+      ],
       "setup": "Progressively larger circles forward and back.",
       "video_search": "https://www.youtube.com/results?search_query=Arm+Circles+warm+up+how+to",
       "demo_media": {
@@ -4065,7 +4082,9 @@
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [],
+      "contraindications": [
+        "shoulder_overhead"
+      ],
       "setup": "Anchor high, hold band with one hand and step back, hinging to let the lat lengthen. 30s per side.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Lat+Stretch+how+to+stretch",
       "demo_media": {
@@ -4103,7 +4122,9 @@
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [],
+      "contraindications": [
+        "shoulder_overhead"
+      ],
       "setup": "Band around the wrist at chest height, step away and let it gently traction the shoulder. 30s per side.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Shoulder+Distraction+how+to+stretch",
       "demo_media": {
@@ -4532,7 +4553,9 @@
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [],
+      "contraindications": [
+        "lower_back_extension"
+      ],
       "setup": "Half-kneeling with the band under the front foot. Pull diagonally up and across to the opposite shoulder, hips square.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Half-Kneeling+Band+Chop+proper+form+tutorial",
       "demo_media": {
@@ -4883,7 +4906,9 @@
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [],
+      "contraindications": [
+        "lower_back_flexion"
+      ],
       "setup": "Reach one arm overhead and lean away, breathing into the ribs. 30s per side. No anchor needed.",
       "video_search": "https://www.youtube.com/results?search_query=Standing+Lat+Side+Bend+how+to+stretch",
       "demo_media": {
@@ -4920,7 +4945,9 @@
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [],
+      "contraindications": [
+        "shoulder_overhead"
+      ],
       "setup": "Wide grip on the band, slowly pass it overhead and behind you, pausing where it's tight. 30s.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Shoulder+Stretch+how+to+stretch",
       "demo_media": {
@@ -5699,7 +5726,9 @@
       "difficulty": "easy",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l1",
-      "contraindications": [],
+      "contraindications": [
+        "wrist_extension"
+      ],
       "setup": "Hands at shoulder height on any solid vertical surface \u2014 the side of the RV, the truck, or a tree trunk. Lower the chest to it and press back. The easiest push-up regression.",
       "video_search": "https://www.youtube.com/results?search_query=Wall+Push-Up+proper+form+tutorial",
       "demo_media": {
@@ -6177,7 +6206,10 @@
       "difficulty": "medium",
       "progression_family": "horizontal_pull",
       "progression_level_id": "horizontal_pull.l5",
-      "contraindications": [],
+      "contraindications": [
+        "elbow",
+        "shoulder_horizontal"
+      ],
       "setup": "Grip a waist-height bar \u2014 RV ladder rung, picnic table edge, low branch \u2014 and hang underneath with a straight body. Pull the chest to the bar. Walk the feet in to make it easier.",
       "video_search": "https://www.youtube.com/results?search_query=Inverted+Row+proper+form+tutorial",
       "demo_media": {
@@ -7125,7 +7157,9 @@
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [],
+      "contraindications": [
+        "hip"
+      ],
       "setup": "On hands and knees, lift one knee out to the side keeping it bent. Keep the hips square.",
       "video_search": "https://www.youtube.com/results?search_query=Fire+Hydrant+proper+form+tutorial",
       "demo_media": {
