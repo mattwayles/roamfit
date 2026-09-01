@@ -10,8 +10,10 @@ import {
   PendingSessionExistsError,
   recordSwap,
   removeEntryAtApproval,
+  reorderEntriesAtApproval,
   startSession,
 } from './repositories/sessions';
+import { getSignalEventsForSession } from './repositories/signals';
 import { getExerciseState } from './repositories/exerciseState';
 import { library, families, clockFor, rngFor, utcInstantFor } from './testFixtures';
 
@@ -195,6 +197,106 @@ describe('planned-vs-actual is preserved, not overwritten', () => {
       expect(afterEntry).toBeDefined();
       expect(afterEntry.entryStatus).toBe('removed_at_approval');
       expect(getExerciseState(db, entry.exerciseId)?.removeAtApprovalCount).toBe(1);
+    } finally {
+      close();
+    }
+  });
+});
+
+describe('§10.3 re-order at approval — section-scoped', () => {
+  it('reversing a section persists the new order and round-trips through getSession', () => {
+    const { db, close } = createTestDb();
+    try {
+      const { id: sessionId } = makeSession(db);
+      const before = getSession(db, sessionId)!;
+      const mainIds = before.entries
+        .filter((e) => e.section === 'main' && e.entryStatus !== 'removed_at_approval')
+        .map((e) => e.id);
+      if (mainIds.length < 2) return; // fixture too thin for this assertion to mean anything
+
+      const reversed = [...mainIds].reverse();
+      reorderEntriesAtApproval(db, sessionId, 'main', reversed, utcInstantFor('2026-01-05', 8));
+
+      const after = getSession(db, sessionId)!;
+      const afterMainIds = after.entries
+        .filter((e) => e.section === 'main' && e.entryStatus !== 'removed_at_approval')
+        .map((e) => e.id);
+      expect(afterMainIds).toEqual(reversed);
+      expect(afterMainIds).not.toEqual(mainIds);
+
+      // Warmup/cooldown order and orderIndex bands are untouched by a main-section reorder.
+      const warmupIdsBefore = before.entries.filter((e) => e.section === 'warmup').map((e) => e.id);
+      const warmupIdsAfter = after.entries.filter((e) => e.section === 'warmup').map((e) => e.id);
+      expect(warmupIdsAfter).toEqual(warmupIdsBefore);
+
+      // §8.3 signal recorded.
+      const events = getSignalEventsForSession(db, sessionId).filter(
+        (e) => e.type === 'reorder_at_approval',
+      );
+      expect(events).toHaveLength(1);
+      expect(events[0].payload).toEqual({ section: 'main', orderedEntryIds: reversed });
+    } finally {
+      close();
+    }
+  });
+
+  it('warm-ups can never sort after main work — a cross-section id list is refused as a no-op', () => {
+    const { db, close } = createTestDb();
+    try {
+      const { id: sessionId } = makeSession(db);
+      const before = getSession(db, sessionId)!;
+      const mainIds = before.entries
+        .filter((e) => e.section === 'main' && e.entryStatus !== 'removed_at_approval')
+        .map((e) => e.id);
+      const warmupEntry = before.entries.find((e) => e.section === 'warmup')!;
+
+      // Smuggle a warmup entry id into a "main" reorder call — this must not move it into the
+      // main section's orderIndex band. Without the validation this is exactly the bug class
+      // that would let a warm-up sort after main work.
+      const tampered = [warmupEntry.id, ...mainIds.slice(1)];
+      reorderEntriesAtApproval(db, sessionId, 'main', tampered, utcInstantFor('2026-01-05', 8));
+
+      const after = getSession(db, sessionId)!;
+      const afterMainIds = after.entries
+        .filter((e) => e.section === 'main' && e.entryStatus !== 'removed_at_approval')
+        .map((e) => e.id);
+      // Unchanged — the malformed call was a no-op.
+      expect(afterMainIds).toEqual(mainIds);
+      const afterWarmupEntry = after.entries.find((e) => e.id === warmupEntry.id)!;
+      expect(afterWarmupEntry.section).toBe('warmup');
+      expect(afterWarmupEntry.orderIndex).toBe(warmupEntry.orderIndex);
+
+      expect(
+        getSignalEventsForSession(db, sessionId).filter((e) => e.type === 'reorder_at_approval'),
+      ).toHaveLength(0);
+    } finally {
+      close();
+    }
+  });
+
+  it('a partial or wrong-length id list is refused as a no-op', () => {
+    const { db, close } = createTestDb();
+    try {
+      const { id: sessionId } = makeSession(db);
+      const before = getSession(db, sessionId)!;
+      const mainIds = before.entries
+        .filter((e) => e.section === 'main' && e.entryStatus !== 'removed_at_approval')
+        .map((e) => e.id);
+      if (mainIds.length < 2) return;
+
+      reorderEntriesAtApproval(
+        db,
+        sessionId,
+        'main',
+        mainIds.slice(0, mainIds.length - 1), // missing one id
+        utcInstantFor('2026-01-05', 8),
+      );
+
+      const after = getSession(db, sessionId)!;
+      const afterMainIds = after.entries
+        .filter((e) => e.section === 'main' && e.entryStatus !== 'removed_at_approval')
+        .map((e) => e.id);
+      expect(afterMainIds).toEqual(mainIds);
     } finally {
       close();
     }

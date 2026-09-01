@@ -321,6 +321,11 @@ export const signalEvents = sqliteTable(
         'pinned_note_edited',
         'abandoned',
         'tz_change',
+        // §10.3/§8.3 — "the user always drags an exercise last is real information." Payload:
+        // {section, orderedEntryIds}. Section-scoped, same shape as every other approval-edit
+        // signal in this enum. `signal_events.type` is plain TEXT (no CHECK constraint), so
+        // adding this value needs no migration.
+        'reorder_at_approval',
         // §7.1/§11.3 — added in 6c-llm-proxy: the queue worker's record of what feedback
         // distillation surfaced for this session (suspected limitation, band-too-light /
         // aversion exercise ids), already validated against the session's own exercises and the

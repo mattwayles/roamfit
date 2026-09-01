@@ -550,6 +550,70 @@ export function adjustRepTargetAtApproval(
 }
 
 /**
+ * §10.3 — "add / remove / swap exercises... " covers re-ordering too (real user request from
+ * device testing, not a spec line by itself, but §10.3's warmup/main/cooldown structure is —
+ * see the comment below for why this stays section-scoped).
+ *
+ * `orderedEntryIds` must be exactly the set of this session's currently-active (not
+ * `removed_at_approval`) entries in `section`, in the caller's desired order — anything else
+ * (wrong length, an id from another section, a removed/unknown id) is refused as a no-op rather
+ * than partially applied, same defensive shape as `removeEntryAtApproval`'s "entry not found"
+ * guard.
+ *
+ * **Deliberately reassigns the section's own existing `orderIndex` values, not a fresh
+ * contiguous 0..N range.** Warmup/main/cooldown occupy disjoint `orderIndex` bands (see
+ * `entryValues` above), and `addEntryAtApproval` can append an entry with an `orderIndex` outside
+ * the "normal" contiguous range for its section (it always uses global-max + 1). Reassigning only
+ * among the *slots this section's own entries already hold* — never touching another section's
+ * rows, never inventing new index values — is what makes "warm-ups must stay before main work"
+ * hold structurally rather than by convention: there is no code path here that could move a
+ * warmup entry's `orderIndex` past a main entry's, because the set of values available to permute
+ * into is fixed to what warmup already owned.
+ */
+export function reorderEntriesAtApproval(
+  db: Db,
+  sessionId: string,
+  section: 'warmup' | 'main' | 'cooldown',
+  orderedEntryIds: string[],
+  now: string,
+): void {
+  const sectionEntries = db
+    .select()
+    .from(schema.sessionEntries)
+    .where(
+      and(eq(schema.sessionEntries.sessionId, sessionId), eq(schema.sessionEntries.section, section)),
+    )
+    .all()
+    .filter((e) => e.entryStatus !== 'removed_at_approval');
+
+  const currentIds = new Set(sectionEntries.map((e) => e.id));
+  const isValidPermutation =
+    orderedEntryIds.length === sectionEntries.length &&
+    new Set(orderedEntryIds).size === orderedEntryIds.length &&
+    orderedEntryIds.every((id) => currentIds.has(id));
+  if (!isValidPermutation) return;
+
+  // The section's own slots, in ascending order — the fixed set of values this call may permute
+  // entries into (see the function doc comment for why this must not become a fresh 0..N range).
+  const slots = sectionEntries.map((e) => e.orderIndex).sort((a, b) => a - b);
+
+  orderedEntryIds.forEach((entryId, i) => {
+    db.update(schema.sessionEntries)
+      .set({ orderIndex: slots[i] })
+      .where(eq(schema.sessionEntries.id, entryId))
+      .run();
+  });
+
+  logSignalEvent(db, {
+    sessionId,
+    type: 'reorder_at_approval',
+    payload: { section, orderedEntryIds },
+    utcInstant: now,
+    localDate: getSession(db, sessionId)?.localDate ?? now.slice(0, 10),
+  });
+}
+
+/**
  * §10.3 — "add exercise" at approval. `prescription` is the engine's own output (`@roamfit/
  * engine`'s `prescribeAccessory`, called by `app/`) — the store persists it verbatim, same rule
  * as `recordSwap`'s replacement prescription (CLAUDE.md invariant 2: the engine decides).
