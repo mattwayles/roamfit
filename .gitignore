@@ -43,6 +43,9 @@ yarn-error.log*
 # typescript build info
 *.tsbuildinfo
 
+# functions/ build output (esbuild bundle, §7.3 — built fresh by `firebase.json`'s predeploy)
+functions/lib/
+
 # on-device sqlite db (op-sqlite's node fallback also writes one to cwd when jest exercises
 # app/src/db for real — see docs/handoff/STATUS-4-loop.md)
 *.sqlite

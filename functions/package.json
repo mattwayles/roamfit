@@ -3,21 +3,26 @@
   "private": true,
   "version": "0.0.1",
   "description": "§7.3 LLM proxy — Cloud Function. The only place the Anthropic API key is ever read (from the Cloud Functions runtime secret store, never committed). Deployed independently of the app bundle.",
-  "main": "src/index.ts",
+  "main": "lib/index.js",
   "types": "src/index.ts",
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=lib/index.js --external:firebase-functions --external:@anthropic-ai/sdk --external:zod",
     "test": "jest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.122.0",
-    "@roamfit/engine": "0.0.1",
     "firebase-functions": "7.3.2",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@roamfit/engine": "0.0.1",
     "@types/jest": "30.0.0",
     "@types/node": "22.10.5",
+    "esbuild": "0.28.2",
     "jest": "30.5.0",
     "ts-jest": "29.4.12",
     "typescript": "6.0.3"

@@ -7,8 +7,16 @@
     {
       "source": "functions",
       "codebase": "default",
-      "ignore": ["node_modules", ".git", "src/**/*.test.ts"],
-      "predeploy": ["npm --prefix functions run typecheck"]
+      "ignore": [
+        "node_modules",
+        ".git",
+        "src",
+        "*.test.ts",
+        "**/*.map",
+        "jest.config.js",
+        "tsconfig.json"
+      ],
+      "predeploy": ["npm --prefix functions run typecheck", "npm --prefix functions run build"]
     }
   ]
 }
