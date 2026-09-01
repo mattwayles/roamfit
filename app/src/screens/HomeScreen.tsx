@@ -64,6 +64,7 @@ import {
   ensureNotificationPermission,
   scheduleMotivationNotifications,
 } from '../lib/motivationNotifications';
+import { runOpportunisticSync } from '../lib/opportunisticSync';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -164,7 +165,12 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     useCallback(() => {
       load();
       setTravelDismissed(false);
-    }, [load]),
+      // §11.3 — fire-and-forget. Never awaited by render, never blocks Home from showing local
+      // data first (invariant 1); reloads afterward only so an applied change (a resolved
+      // geocode, a curated video id) shows up without the user having to background/foreground
+      // the app again.
+      void runOpportunisticSync(db, nowUtcInstant()).then(load);
+    }, [db, load]),
   );
 
   const hero = useMemo(() => (data ? nextUnlockHero(data.board) : null), [data]);

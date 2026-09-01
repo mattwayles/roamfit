@@ -11,9 +11,23 @@
       "bundleIdentifier": "com.roamfit.app",
       "supportsTablet": false,
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": ["audio"],
+        "NSLocationWhenInUseUsageDescription": "RoamFit uses your location once, at the end of a workout, to pin the city and country on your Passport. It's never tracked in the background."
       }
     },
-    "plugins": ["expo-dev-client", "expo-audio", "expo-notifications"]
+    "plugins": [
+      "expo-dev-client",
+      "expo-audio",
+      "expo-notifications",
+      "expo-location",
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "RoamFit does not read any Health data — this permission is unused.",
+          "NSHealthUpdateUsageDescription": "RoamFit writes each completed workout to Health. It never reads your health data.",
+          "background": false
+        }
+      ]
+    ]
   }
 }
