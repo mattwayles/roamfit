@@ -223,6 +223,15 @@ describe('§10.3 re-order at approval — section-scoped', () => {
         .map((e) => e.id);
       expect(afterMainIds).toEqual(reversed);
       expect(afterMainIds).not.toEqual(mainIds);
+      // `orderIndex` is the sort key every consumer reads — WorkoutScreen included, which adds no
+      // ordering logic of its own and just walks `session.entries`. A stale or duplicated index
+      // would silently run the old order on the Workout screen while this list looked correct,
+      // so pin that the returned sequence really is strictly increasing and collision-free.
+      const afterMainIdx = after.entries
+        .filter((e) => e.section === 'main' && e.entryStatus !== 'removed_at_approval')
+        .map((e) => e.orderIndex);
+      expect([...afterMainIdx].sort((a, b) => a - b)).toEqual(afterMainIdx);
+      expect(new Set(afterMainIdx).size).toBe(afterMainIdx.length);
 
       // Warmup/cooldown order and orderIndex bands are untouched by a main-section reorder.
       const warmupIdsBefore = before.entries.filter((e) => e.section === 'warmup').map((e) => e.id);

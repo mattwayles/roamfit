@@ -45,13 +45,14 @@ import type { AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
+import { findCurrentEntry } from '../lib/sessionProgress';
 import { useCountdown } from '../lib/useCountdown';
-import { createStopwatchController, systemClock } from '../lib/wallClockTimer';
 import PinnedNote from '../components/PinnedNote';
 import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
 import SwapSheet from '../components/SwapSheet';
 import DemoMedia from '../components/DemoMedia';
+import AbandonSessionButton from '../components/AbandonSessionButton';
 import {
   configureWorkoutAudioSession,
   cueCompletion,
@@ -70,22 +71,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Workout'>;
 
 type Phase = 'exercise' | 'resting';
 
-function activeEntries(session: SessionRecord): sessionsRepo.SessionEntryRecord[] {
-  return session.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
-}
-
-/** The first not-yet-fully-logged (entry, setIndex) pair, in plan order — this is the entire
- *  crash-safety resume rule (§10.8): reconstructed purely from `set_logs` rows on every read,
- *  no separate cursor to go stale. */
+/** §10.8 crash-safety resume — see `sessionProgress.ts` for the shared implementation (also used
+ *  by HomeScreen's abandon action to record §8.3's "abandoned, and at exactly which exercise"). */
 function findCurrent(
   session: SessionRecord,
 ): { entry: sessionsRepo.SessionEntryRecord; setIndex: number } | null {
-  for (const entry of activeEntries(session)) {
-    if (entry.setLogs.length < entry.sets) {
-      return { entry, setIndex: entry.setLogs.length };
-    }
-  }
-  return null;
+  return findCurrentEntry(session);
 }
 
 function levelBadge(
@@ -120,13 +111,20 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   // completed, not whatever `current`'s post-reload setIndex points at during the rest phase.
   const [restingSetIndex, setRestingSetIndex] = useState<number | null>(null);
   const setStartedAtRef = useRef<string>(nowUtcInstant());
-  const workoutStopwatch = useRef(createStopwatchController(systemClock));
   const [, forceElapsedTick] = useState(0);
   // §10.6 mid-workout swap — closed by default; opened from the Swap action on either
-  // exercise-phase sub-view. The session stopwatch above is unaffected either way (it's a ref,
-  // not paused by this state), satisfying "no interruption of the session timer."
+  // exercise-phase sub-view. Unaffected by pausing/navigating away either way, satisfying "no
+  // interruption of the session timer."
   const [swapOpen, setSwapOpen] = useState(false);
   const [swapExcludeAnchor, setSwapExcludeAnchor] = useState(false);
+  // §10.4/§10.8 — "pause an active workout and navigate away" (real device-testing request).
+  // Setting this unmounts the entire active-phase subtree (`TimedExercise`/`RepsExercise`/
+  // `RestPhase`) below, on the render *before* the nav transition to Home even starts — see
+  // `handlePause`'s own comment for why that ordering matters (react-navigation doesn't unmount
+  // the outgoing screen until its transition animation finishes, so without this a stray
+  // `setInterval` tick from the phase engine could still fire a cue or, worse, a premature
+  // `onComplete`/`logSet` during that window).
+  const [paused, setPaused] = useState(false);
 
   const reload = useCallback(
     () => setSession(sessionsRepo.getSession(db, sessionId)),
@@ -135,7 +133,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
   useEffect(() => {
     reload();
-    if (!workoutStopwatch.current.isRunning()) workoutStopwatch.current.start();
     const id = setInterval(() => forceElapsedTick((n) => n + 1), 1000);
     // §10.8 — configured once for the life of the session, re-asserted here rather than only at
     // app boot: the guard against Wave 6's YouTube player having last left the shared audio
@@ -216,6 +213,35 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const progression = entry.progressionFamilyId
     ? progressionStateRepo.getProgressionState(db, entry.progressionFamilyId)
     : null;
+
+  /** §10.4/§10.8 — "Pause" (workout-level, distinct from the existing per-set
+   *  `pause-resume-timer` §10.5 control). Setting `paused` first — in the same handler, before
+   *  `navigation.navigate` — unmounts the active phase subtree on this render, well before the
+   *  screen-transition animation completes; that's what actually stops cues, the background rest
+   *  notification, and any further phase-engine ticks (their existing `useEffect` cleanups
+   *  already do this on unmount — confirmed by reading `TimedExercise`/`RestPhase`, not assumed).
+   *  Nothing is discarded: the session stays `active`, §10.10's pending slot is untouched, and
+   *  Home's resume card (`pending.status === 'active' -> navigate('Workout')`) already covers
+   *  getting back here at exactly the same (entry, setIndex) — reusing that mechanism rather
+   *  than inventing a second one. */
+  const handlePause = () => {
+    setPaused(true);
+    navigation.navigate('Home');
+  };
+
+  /** §10.10 abandon — discards the session entirely via the existing `discardSession` (never a
+   *  parallel path), recording exactly which exercise/set the user was on for the §8.3
+   *  "abandoned" signal, then routes to Generate **with the pickers** (not a re-run of the
+   *  discarded plan) per the user's explicit ask. */
+  const handleAbandon = () => {
+    sessionsRepo.discardSession(
+      db,
+      sessionId,
+      { abandonedEntryId: entry.id, abandonedSetIndex: setIndex },
+      nowUtcInstant(),
+    );
+    navigation.navigate('Generate');
+  };
 
   const handleSwapSelect = (alt: SwapAlternative) => {
     sessionsRepo.recordSwap(db, entry.id, alt.replacement, setIndex, nowUtcInstant());
@@ -360,15 +386,30 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     );
   };
 
+  // §10.4 "Elapsed workout timer" — derived from the already-persisted `session.startedAt`
+  // (§10.10 sets it once, in `startSession`) rather than a component-local stopwatch ref. A
+  // local ref silently reset to ~0 on every remount, which is exactly what pausing (navigating
+  // away and back — see `handlePause`) does to this component; deriving from wall-clock-since-
+  // `startedAt` instead is correct across that unmount/remount for free, no new persistence
+  // needed, and it's the same "re-derive from an absolute instant, never a per-tick counter"
+  // principle `wallClockTimer.ts` documents for the other timers on this screen.
+  const elapsedMs = session.startedAt ? Date.now() - Date.parse(session.startedAt) : 0;
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.stage}>{entry.section}</Text>
-      <Text style={styles.elapsed}>
-        Elapsed {Math.floor(workoutStopwatch.current.elapsedMs() / 60000)}m{' '}
-        {Math.floor((workoutStopwatch.current.elapsedMs() % 60000) / 1000)}s
+      <Text style={styles.elapsed} testID="workout-elapsed">
+        Elapsed {Math.floor(elapsedMs / 60000)}m {Math.floor((elapsedMs % 60000) / 1000)}s
       </Text>
 
-      {phase === 'exercise' ? (
+      <View style={styles.sessionActionsRow}>
+        <Pressable testID="pause-workout" style={styles.sessionActionButton} onPress={handlePause}>
+          <Text style={styles.sessionActionButtonText}>Pause</Text>
+        </Pressable>
+        <AbandonSessionButton onConfirm={handleAbandon} />
+      </View>
+
+      {paused ? null : phase === 'exercise' ? (
         swapOpen ? (
           <SwapSheet
             alternatives={swapAlternatives}
@@ -417,7 +458,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         />
       )}
 
-      {phase === 'exercise' && (
+      {!paused && phase === 'exercise' && (
         <>
           {levelBadge(entry, families) && (
             <Text style={styles.levelBadge}>{levelBadge(entry, families)}</Text>
@@ -995,6 +1036,9 @@ const styles = StyleSheet.create({
   container: { padding: 20, gap: 16 },
   stage: { fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' },
   elapsed: { fontSize: 12, color: '#94a3b8' },
+  sessionActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sessionActionButton: { paddingVertical: 10, paddingHorizontal: 4, minHeight: 44, justifyContent: 'center' },
+  sessionActionButtonText: { fontSize: 13, fontWeight: '600', color: '#334155' },
   hero: { alignItems: 'center', gap: 12 },
   exerciseName: { fontSize: 26, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
   target: { fontSize: 20, fontWeight: '600', color: '#334155' },

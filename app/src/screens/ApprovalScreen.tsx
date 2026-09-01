@@ -31,6 +31,7 @@ import type { Exercise } from '@roamfit/data';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
+import AbandonSessionButton from '../components/AbandonSessionButton';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Approval'>;
 type Section = 'warmup' | 'main' | 'cooldown';
@@ -208,6 +209,15 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     navigation.replace('Workout', { sessionId });
   };
 
+  /** §10.10 abandon — the session is still `planned` here (nothing has run yet), so there is no
+   *  in-progress exercise/set to attribute the §8.3 "abandoned" signal to; `discardSession` is
+   *  called with no entry context, same as every other call site, never a parallel path. Routes
+   *  to Generate **with the pickers**, not a re-run of the discarded plan. */
+  const handleAbandon = () => {
+    sessionsRepo.discardSession(db, sessionId, {}, nowUtcInstant());
+    navigation.navigate('Generate');
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.explanation}>{session.explanation}</Text>
@@ -339,6 +349,8 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
       <Pressable testID="start-button" style={styles.startButton} onPress={handleStart}>
         <Text style={styles.startButtonText}>START</Text>
       </Pressable>
+
+      <AbandonSessionButton onConfirm={handleAbandon} />
     </ScrollView>
   );
 }

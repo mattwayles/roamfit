@@ -46,6 +46,8 @@ import type { ProgressionState } from '@roamfit/engine';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
+import { findCurrentEntry } from '../lib/sessionProgress';
+import AbandonSessionButton from '../components/AbandonSessionButton';
 import { DISCLAIMER_TEXT } from './SettingsScreen';
 import {
   buildCalendarDays,
@@ -213,6 +215,24 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     }
   }, [db, library, families, navigation]);
 
+  /** §10.10 abandon (real device-testing request) — discards the pending session entirely via
+   *  the existing `discardSession` (never a parallel path) and routes to Generate **with the
+   *  pickers**, never a re-run of the discarded plan. Computes the exact (entry, setIndex) the
+   *  user was on, if any, for the §8.3 "abandoned, and at exactly which exercise" signal — a
+   *  `planned` (not-yet-started) session has nothing to compute, which `findCurrentEntry`
+   *  already handles by returning `null`. */
+  const handleAbandonPending = useCallback(() => {
+    if (!data?.pending) return;
+    const current = findCurrentEntry(data.pending);
+    sessionsRepo.discardSession(
+      db,
+      data.pending.id,
+      { abandonedEntryId: current?.entry.id, abandonedSetIndex: current?.setIndex },
+      nowUtcInstant(),
+    );
+    navigation.navigate('Generate');
+  }, [data, db, navigation]);
+
   const handleTravelDay = useCallback(() => {
     statsRepo.recordTravelDay(db, nowUtcInstant());
     load();
@@ -342,23 +362,26 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       )}
 
       {pending ? (
-        <Pressable
-          testID="resume-card"
-          style={[styles.card, styles.resumeCard]}
-          onPress={() =>
-            navigation.navigate(pending.status === 'active' ? 'Workout' : 'Approval', {
-              sessionId: pending.id,
-            })
-          }
-        >
-          <Text style={styles.cardEyebrow}>Resume session</Text>
-          <Text style={styles.cardTitle}>
-            {pending.focus} · {pending.targetMinutes} min · {pending.effort}
-          </Text>
-          <Text style={styles.cardSubtitle}>
-            {pending.status === 'active' ? 'In progress — tap to continue' : 'Ready to approve'}
-          </Text>
-        </Pressable>
+        <>
+          <Pressable
+            testID="resume-card"
+            style={[styles.card, styles.resumeCard]}
+            onPress={() =>
+              navigation.navigate(pending.status === 'active' ? 'Workout' : 'Approval', {
+                sessionId: pending.id,
+              })
+            }
+          >
+            <Text style={styles.cardEyebrow}>Resume session</Text>
+            <Text style={styles.cardTitle}>
+              {pending.focus} · {pending.targetMinutes} min · {pending.effort}
+            </Text>
+            <Text style={styles.cardSubtitle}>
+              {pending.status === 'active' ? 'In progress — tap to continue' : 'Ready to approve'}
+            </Text>
+          </Pressable>
+          <AbandonSessionButton onConfirm={handleAbandonPending} label="Abandon and start fresh" />
+        </>
       ) : (
         <Pressable
           testID="today-card"
