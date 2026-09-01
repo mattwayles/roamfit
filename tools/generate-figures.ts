@@ -1654,7 +1654,7 @@ const SHAPES: Record<string, Archetype> = {
   // shoulder.y 60, well below shoulder level in both poses — verified with a throwaway forward-
   // kinematics script before writing this, not assumed). hipOffset grounds the standing foot
   // (round 4 convention — see horizontal_pull's comment); foot lands at y=149.9.
-  band_scarecrow: {
+  band_external_rotation: {
     stance: 'standing',
     poseA: {
       torsoAngle: 270,
@@ -1987,7 +1987,7 @@ const REUSE_ARCHETYPE: Record<string, string> = {
   'wu-deadbug-bw': 'quadruped_reach',
 
   // --- track 6g-warmups (issue #33): shoulder-safe warmup variety ---
-  'wu-band-scarecrow': 'band_scarecrow',
+  'wu-band-external-rotation': 'band_external_rotation',
   'wu-scap-push-up': 'scap_push_up',
   'wu-thread-the-needle': 'thread_needle',
   // wu-band-row intentionally has no override — it's a standing row, which is exactly

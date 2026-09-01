@@ -561,8 +561,14 @@ NEW_WARMUPS = [
         "contraindications": {"wrist_extension"},
     },
     {
-        "id": "wu-band-scarecrow",
-        "name": "Warm-Up Band Scarecrow",
+        # Named for what the cue actually describes: elbows pinned at the sides, forearms
+        # rotating outward. Originally authored as "Band Scarecrow" — renamed because a scarecrow
+        # is performed with the upper arms ABDUCTED to shoulder height, which is the very class of
+        # movement this record exists to avoid. `video_search` is built from `name`, so the wrong
+        # name would have pointed a shoulder-limited user's tier-3 search at a demo of a movement
+        # we deliberately excluded for them.
+        "id": "wu-band-external-rotation",
+        "name": "Warm-Up Band External Rotation",
         "aliases": ["wu band scarecrow", "band scarecrow", "external rotation warm up"],
         "focus": ["upper", "full"],
         "pattern": "shoulder_isolation",

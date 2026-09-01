@@ -14,7 +14,7 @@ status file's own commit — this track lands in one commit alongside itself).
   own issue #33 text drew between `wu-pull-apart` and the coincidentally-tagged `wu-cat-cow`/
   `wu-world-greatest`):
   - **Before: 1** (`wu-pull-apart`).
-  - **After: 5** (`wu-pull-apart`, `wu-scap-push-up`, `wu-band-scarecrow`, `wu-thread-the-needle`,
+  - **After: 5** (`wu-pull-apart`, `wu-scap-push-up`, `wu-band-external-rotation`, `wu-thread-the-needle`,
     `wu-band-row`).
   - All 5 also survive a `shoulder_horizontal` limitation (not just the required "at least one").
 - Verified with a python script mirroring `packages/data/src/index.test.ts`'s filter logic,
@@ -36,8 +36,8 @@ status file's own commit — this track lands in one commit alongside itself).
       exact formulas) before touching any code:
       - `wu-scap-push-up` (bodyweight, plank, scapular protraction/retraction, straight arms) —
         new archetype `scap_push_up`.
-      - `wu-band-scarecrow` (band, elbows pinned at sides, external rotation) — new archetype
-        `band_scarecrow`.
+      - `wu-band-external-rotation` (band, elbows pinned at sides, external rotation) — new archetype
+        `band_external_rotation`.
       - `wu-thread-the-needle` (bodyweight, quadruped, thoracic/shoulder rotation) — new
         archetype `thread_needle`, reuses `quadruped_reach`'s verified grounding offset.
       - `wu-band-row` (band, standing, elbow-driven horizontal row) — reuses the existing
@@ -51,7 +51,7 @@ status file's own commit — this track lands in one commit alongside itself).
       before adding any new records. Re-ran after adding the records: passes.
 - [x] Added `NEW_WARMUPS` (4 records) to `packages/data/scripts/migrate_library.py`, re-ran it —
       204 exercises written (was 200).
-- [x] Added 3 new figure archetypes (`band_scarecrow`, `scap_push_up`, `thread_needle`) plus
+- [x] Added 3 new figure archetypes (`band_external_rotation`, `scap_push_up`, `thread_needle`) plus
       `REUSE_ARCHETYPE` entries to `tools/generate-figures.ts` (`wu-band-row` needed no override —
       it's a standing row, exactly `horizontal_pull`'s own pattern default, same as `door-row`/
       `seated-row`). Regenerated `figures.json` (204 figures, 410.7 KB / 3 MB budget).
@@ -72,7 +72,7 @@ status file's own commit — this track lands in one commit alongside itself).
         (confirms no elbow bend — a real scap push-up doesn't bend the elbow), chest height
         visibly lower in the left panel than the right — reads as the scapular
         protraction/retraction the cue describes, in a plank position.
-      - `wu-band-scarecrow`: standing figure, forearm sweeping from across the body to out to the
+      - `wu-band-external-rotation`: standing figure, forearm sweeping from across the body to out to the
         side at a constant, non-overhead height (band loop drawn at the hand in both panels) —
         matches "elbows pinned at your sides, forearms rotate."
       - `wu-thread-the-needle`: quadruped figure, the moving arm reaches low (near the floor, left

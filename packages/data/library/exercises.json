@@ -7814,8 +7814,8 @@
       }
     },
     {
-      "id": "wu-band-scarecrow",
-      "name": "Warm-Up Band Scarecrow",
+      "id": "wu-band-external-rotation",
+      "name": "Warm-Up Band External Rotation",
       "aliases": [
         "wu band scarecrow",
         "band scarecrow",
@@ -7846,10 +7846,10 @@
       "progression_level_id": null,
       "contraindications": [],
       "setup": "Band held wide in both hands, elbows bent 90 degrees and pinned at your sides. Rotate your forearms outward against the band, then back to center. Elbows stay glued to your ribs the whole time.",
-      "video_search": "https://www.youtube.com/results?search_query=resistance+band+Warm-Up+Band+Scarecrow+warm+up+how+to",
+      "video_search": "https://www.youtube.com/results?search_query=resistance+band+Warm-Up+Band+External+Rotation+warm+up+how+to",
       "demo_media": {
         "type": "figure",
-        "id": "wu-band-scarecrow"
+        "id": "wu-band-external-rotation"
       }
     },
     {
