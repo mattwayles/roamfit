@@ -122,8 +122,87 @@ Last updated: 2026-09-01
     a documented step in a build runbook (there is no `docs/RUNBOOK-ios-build.md` yet, unlike
     functions' deploy runbook).
 
-### Next
-- Carried-forward issue triage and final report.
+### Final status
+Shas: `b98d410` (§11.6 harness + completion atomicity), `1a14f7f` (§15 instrumentation), `09e5e98`
+(Settings + disclaimer, closes #20/#37), `d4e2511` (real-device fix + evidence). `npm run check`
+green at every boundary (final: app 87, engine 897, data 17, store 112, functions 29; 0 lint
+errors).
+
+**Closed this wave, with real verification (not just "tests pass"):**
+- #20 (notification quiet-hours setting) and #37 (HealthKit write opt-in setting) — real toggles
+  in a real new Settings screen, backed by store columns that already existed.
+- Completion-transaction atomicity under a forced mid-transaction throw — new test, mutation-
+  verified.
+- The literal §11.6 3-day/5-session sequence at the store/engine level — new test, mutation-
+  verified. Explicitly NOT a claim that the UI/device gate passes — see below.
+- A genuine, previously-unknown red-screen native-build regression (stale `ios/` missing
+  react-native-webview/healthkit/location/svg pods) — found, root-caused, and fixed for real via
+  `expo prebuild` + `expo run:ios`, then verified with real taps on a real rebuilt binary.
+
+**Not closed — left open, with exactly what's needed:**
+- **#1 contraindication review — still unsigned.** `docs/review/contraindications-review.md` has
+  32 untagged + 18 suspected-missing-tag exercises. §13.2 makes this a hard safety filter and the
+  pregnancy preset depends on it. **A human must review and sign off before this app ships.** I
+  did not touch this file — it needs domain judgment, not code.
+- **#16 (audio/haptics/backgrounded-notification device verification)** — still Jest-only. I
+  fixed the build that was blocking any device verification at all, but ran out of session time
+  before reaching the Workout screen on the rebuilt binary to actually hear a tone or feel a
+  haptic. A human (or a future session) can now do this — the build works.
+- **#22/#18 (Wave 4/5 UI on-device)** — partially closed this session: Home dashboard and the new
+  disclaimer gate are now real-device-verified (screenshots, real taps). Generate/Approval/
+  Workout/Summary screens and the Settings screen itself were NOT reached — same reason as #16.
+- **#27 (media ladder device verification)** — still open. The WebView crash that would have
+  blocked this outright is now fixed, but I didn't get to a screen with a media block this
+  session. Straightforward next step now that the binary boots.
+- **#36 (prompt caching real call)** — cannot close without a deployed Cloud Function and a live
+  Anthropic API key, neither of which exists in this sandbox. Structural proof stands (per the
+  6c/6f verification log entries); a human with `firebase deploy` and a key must make one real
+  call and check `cache_read_input_tokens` per `docs/RUNBOOK-functions-deploy.md`.
+- **#38 (anonymous Firebase Auth session not persisted)** — untouched; real gap, zero impact on
+  the core loop (nothing reads it as a dependency), reasonable to defer.
+- **#40 (sync trigger is screen-focus, not a real foreground/connectivity signal)** — untouched;
+  considered an `AppState` listener but cut for time given #16/#18/#27 device work took priority
+  once the build was fixed. Straightforward follow-up: an `AppState.addEventListener('change', ...)`
+  in `HomeScreen.tsx` alongside the existing `useFocusEffect`.
+- **Adversarial timezone dateline / mid-session-force-quit / long-gap / cold-start / ladder-max /
+  safety-filter passes** — largely already covered by pre-existing Jest suites I audited rather
+  than duplicated (`comeback.test.ts` for 7/21-day gaps and Recovery Week window, `dashboard.test.ts`
+  for cold start and Mastery, `hardFilters.test.ts`/`pipeline.test.ts`/`swap.test.ts` for the
+  safety sweep including bodyweight_bearing effort cap and swap-alternative anchor gating,
+  `wallClockTimer.test.ts` for clock-suspension/negative-clamp). `daysBetween`'s UTC-midnight-
+  anchored arithmetic degrades sanely (never throws, clamps to a harmless negative gap) on a
+  westbound-dateline-crossing local_date sequence — reasoned through the code, not given its own
+  new adversarial test this session (a real gap, listed for a human/future session, not silently
+  claimed done).
+
+**New carried-forward issue to file:** no build-time guardrail catches "native deps changed but
+`ios/` wasn't regenerated" before it becomes a boot-time crash — worth a `docs/RUNBOOK-ios-build.md`
+or a CI check (e.g. diff `Podfile.lock` package names against `package.json` deps).
+
+**New dependencies:** none. (`expo prebuild`/CocoaPods pulled in pods for existing package.json
+deps that were never linked before — not new deps, just linking deps that already existed.)
+
+**Deliberate cuts, stated plainly:**
+- Quiet-hours setting is on/off only, not a custom-hours time picker.
+- §15 instrumentation has no dedicated UI beyond the Settings diagnostics panel — no
+  export/CSV/analytics-dashboard surface, which was never asked for and would be a real feature,
+  not a Wave 7 task.
+- No new dedicated adversarial-timezone test file — relied on auditing existing coverage plus
+  code-reading `daysBetween`, given the time budget was better spent on the real-device fix.
+
+### Human checklist, in order
+1. Sign off `docs/review/contraindications-review.md` (§13.2 hard safety gate — blocks release).
+2. On a real device or the now-working simulator build: walk Generate → Approval → Workout
+   (rep-based, timed, superset) → Summary, listening/feeling for audio+haptics (#16), and open a
+   media block to confirm the figure/embed/fallback ladder (#27).
+3. Reach Settings from Home (tap the "Settings" link, top-right) and exercise every toggle plus
+   the diagnostics panel — untested by any automated suite this session.
+4. Literally: airplane-mode-before-first-launch on a physical device, 5 workouts / 3 days, watch
+   for anything that silently degrades.
+5. Deploy `functions/` (`docs/RUNBOOK-functions-deploy.md`) and make one real LLM call to observe
+   `cache_read_input_tokens` > 0, closing #36.
+6. Consider adding a `docs/RUNBOOK-ios-build.md` (or CI check) so the stale-`ios/` class of bug
+   this session found doesn't recur silently.
 
 ### Decisions / gotchas
 - (filled in as they arise)
