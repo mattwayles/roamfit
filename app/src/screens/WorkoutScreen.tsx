@@ -617,12 +617,27 @@ function RepsExercise({
         <Text style={styles.completeButtonText}>COMPLETE</Text>
       </Pressable>
 
+      {/* Same treatment as the session-level Pause/Abandon controls: found mid-set, at arm's
+          length, so targets rather than sentences. The accessible names carry the meaning, and
+          ⇄ is the same glyph the approval card uses for swap. */}
       <View style={styles.actionRow}>
-        <Pressable testID="swap-set" style={styles.actionButton} onPress={onSwap}>
-          <Text style={styles.actionButtonText}>Swap</Text>
+        <Pressable
+          testID="swap-set"
+          accessibilityRole="button"
+          accessibilityLabel="Swap this exercise for another"
+          style={[styles.heroIconButton, styles.heroSwapButton]}
+          onPress={onSwap}
+        >
+          <Text style={[styles.heroIconText, styles.heroSwapText]}>⇄</Text>
         </Pressable>
-        <Pressable testID="skip-set" style={styles.actionButton} onPress={onSkip}>
-          <Text style={styles.actionButtonText}>Skip set</Text>
+        <Pressable
+          testID="skip-set"
+          accessibilityRole="button"
+          accessibilityLabel="Skip this set"
+          style={styles.heroIconButton}
+          onPress={onSkip}
+        >
+          <Text style={styles.heroIconText}>▸▸</Text>
         </Pressable>
       </View>
     </View>
@@ -948,12 +963,27 @@ function TimedExercise({
         </>
       )}
 
+      {/* Same treatment as the session-level Pause/Abandon controls: found mid-set, at arm's
+          length, so targets rather than sentences. The accessible names carry the meaning, and
+          ⇄ is the same glyph the approval card uses for swap. */}
       <View style={styles.actionRow}>
-        <Pressable testID="swap-set" style={styles.actionButton} onPress={onSwap}>
-          <Text style={styles.actionButtonText}>Swap</Text>
+        <Pressable
+          testID="swap-set"
+          accessibilityRole="button"
+          accessibilityLabel="Swap this exercise for another"
+          style={[styles.heroIconButton, styles.heroSwapButton]}
+          onPress={onSwap}
+        >
+          <Text style={[styles.heroIconText, styles.heroSwapText]}>⇄</Text>
         </Pressable>
-        <Pressable testID="skip-set" style={styles.actionButton} onPress={onSkip}>
-          <Text style={styles.actionButtonText}>Skip set</Text>
+        <Pressable
+          testID="skip-set"
+          accessibilityRole="button"
+          accessibilityLabel="Skip this set"
+          style={styles.heroIconButton}
+          onPress={onSkip}
+        >
+          <Text style={styles.heroIconText}>▸▸</Text>
         </Pressable>
       </View>
     </View>
@@ -1158,7 +1188,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   completeButtonText: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  actionRow: { flexDirection: 'row', gap: 12 },
+  actionRow: { flexDirection: 'row', gap: 12, justifyContent: 'center' },
+  heroIconButton: {
+    width: 76,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroIconText: { fontSize: 22, fontWeight: '800', color: '#334155', lineHeight: 26 },
+  // Swap is the one control here that changes *what* you are doing rather than how this set
+  // goes, so it carries the same blue the approval card gives it.
+  heroSwapButton: { backgroundColor: '#dbeafe' },
+  heroSwapText: { color: '#1d4ed8' },
   actionButton: {
     paddingHorizontal: 16,
     paddingVertical: 12,

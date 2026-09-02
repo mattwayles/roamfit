@@ -63,6 +63,57 @@ function fastForwardTo(
   }
 }
 
+describe('active workout controls', () => {
+  it('Skip and Swap are large icon buttons with accessible names', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('hero-icons-seed')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    sessionsRepo.startSession(db, sessionId, nowUtcInstant());
+
+    render(
+      <StoreProvider>
+        <WorkoutScreen
+          navigation={mockNavigation() as never}
+          route={{ key: 'Workout', name: 'Workout', params: { sessionId } } as never}
+        />
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('swap-set')).toBeTruthy(), WAIT_OPTS);
+    // A glyph cannot carry meaning on its own, so the name has to.
+    expect(screen.getByLabelText('Swap this exercise for another')).toBeTruthy();
+    expect(screen.getByLabelText('Skip this set')).toBeTruthy();
+    // The session-level controls are named too, and Pause says which way it will go.
+    expect(screen.getByLabelText('Pause workout')).toBeTruthy();
+    expect(screen.getByLabelText('Abandon workout')).toBeTruthy();
+    // The old text labels are gone.
+    expect(screen.queryByText('Skip set')).toBeNull();
+  });
+});
+
 describe('band chip on the active workout screen', () => {
   it('shows the prescribed band, in the user’s own colour, during an active set', async () => {
     let db!: ReturnType<typeof useStore>['db'];
