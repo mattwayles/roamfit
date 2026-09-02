@@ -28,11 +28,11 @@ their micro-state is seeded and advanced against a **bodyweight** one:
       This is the migration guard: without it, an existing user already sitting at
       `vertical_push.l4` with a bodyweight-shaped `micro` (band `null`) would, the moment the anchor
       became a band exercise, skip the whole B2→B3 ladder on their next advance and drop a level
-      early on a miss. — 3f2d3b0
+      early on a miss. — f28f0a9
 - [x] `packages/data/library/families.json` — `vertical_push.l4.anchor_exercise_id` is now
       `banded-push-press`; `bw-dip` stays in `exercise_ids` as a sibling. Tripwire added to
       `packages/engine/src/progression/ladder.test.ts` (verified to fail on the old anchor before
-      being committed green). — 76bd6a9
+      being committed green). — 906fb2a
 - [x] `docs/BACKLOG.md` — the two rungs with the identical defect parked under Desired Fixes.
 
 ### In progress
