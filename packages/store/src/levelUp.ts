@@ -1,29 +1,26 @@
 /**
- * ADR 0012 — "this is too easy, move me up a level", applied immediately to the session in front
- * of the user.
+ * ADR 0012 — "this rung is below me", raised one level.
  *
- * Distinct from a swap (§10.6), which says "not this exercise, give me a different one at the
- * same difficulty" and penalises the exercise via `swapAwayCount`. This says "this rung is below
- * me", advances the family's `ProgressionState`, and rewrites the entry to the new rung. The old
- * exercise is not penalised — the user has no complaint about it, they have outgrown it.
+ * This operates on the **family**, not on a session entry. It was originally wired to a button on
+ * a planned exercise (approval, then mid-workout), which meant advancing the ladder and rewriting
+ * that session's entry in one step. Device feedback moved the control to the §14.1.4 progression
+ * board instead, which is the honest home for it: a ladder position is a property of the user,
+ * not of whatever session happens to be on screen, and the board is the one place that already
+ * shows "Level 3 of 9 — Knee Push-Up". Adjusting it there, before generating, is also the only
+ * version that needs no session to exist at all.
  *
- * Invariant 2 holds: every number written here comes from the engine (`levelUpForTooEasy`,
- * `resolveLadderSlot`, `prescribeLaddered`). This module decides nothing about training, it only
- * persists what the engine returned.
+ * Invariant 2 holds: the transition itself is the engine's (`levelUpForTooEasy`) and eligibility
+ * is the engine's hard filters. This module only persists the result.
  */
-import { eq } from 'drizzle-orm';
 import {
   applyHardFilters,
   findFamily,
   levelUpForTooEasy,
-  prescribeLaddered,
   resolveLadderSlot,
 } from '@roamfit/engine';
-import type { BandId, EngineClock, Rng, SessionEntry as EngineSessionEntry } from '@roamfit/engine';
+import type { EngineClock, Rng } from '@roamfit/engine';
 import type { ExerciseLibrary, FamilyLibrary, ProgressionFamilyId } from '@roamfit/data';
 import type { Db } from './db';
-import * as schema from './schema';
-import { getSession } from './repositories/sessions';
 import { logSignalEvent } from './repositories/signals';
 import { buildUserProfile } from './repositories/users';
 import { getAllProgressionStates, upsertProgressionState } from './repositories/progressionState';
@@ -33,45 +30,38 @@ export type LevelUpOutcome =
   | { status: 'levelled_up'; exerciseId: string; exerciseName: string; levelId: string }
   /** Already at the top of this ladder — §6.7 Mastery territory, not a failure. */
   | { status: 'at_max' }
-  /** This entry isn't laddered (an accessory, warmup or cooldown), so there is no level to move. */
-  | { status: 'not_laddered' }
-  /** Advanced the ladder, but every exercise at the new rung is hard-filtered out for this user
-   *  (anchor or limitation), so the plan is unchanged. Progression state is NOT written in this
-   *  case — moving someone to a rung they cannot perform would strand them there. */
+  /** No such family, or no progression state for it yet. */
+  | { status: 'unknown_family' }
+  /** The next rung exists, but every exercise on it is hard-filtered out for this user (anchor or
+   *  limitation). Nothing is written — moving someone onto a rung they cannot perform would
+   *  strand them there, with no way off it but failing it. */
   | { status: 'no_eligible_exercise' };
 
 export interface LevelUpInput {
-  entryId: string;
+  familyId: ProgressionFamilyId;
   library: ExerciseLibrary;
   families: FamilyLibrary;
   clock: EngineClock;
+  /** Only used to pick among the new rung's sibling exercises (ADR 0010) so the result can name
+   *  one. Nothing from the draw is persisted — which sibling gets programmed is decided fresh at
+   *  generation, as always. */
   rng: Rng;
 }
 
-export function levelUpEntry(db: Db, input: LevelUpInput, now: string): LevelUpOutcome {
-  const { entryId, library, families, clock, rng } = input;
+export function levelUpFamily(db: Db, input: LevelUpInput, now: string): LevelUpOutcome {
+  const { familyId, library, families, clock, rng } = input;
 
-  const entry = db
-    .select()
-    .from(schema.sessionEntries)
-    .where(eq(schema.sessionEntries.id, entryId))
-    .all()[0];
-  if (!entry) return { status: 'not_laddered' };
-
-  const familyId = entry.progressionFamilyId as ProgressionFamilyId | null;
-  if (!familyId) return { status: 'not_laddered' };
   const family = findFamily(families.families, familyId);
-  if (!family) return { status: 'not_laddered' };
+  if (!family) return { status: 'unknown_family' };
 
   const states = getAllProgressionStates(db);
   const state = states[familyId];
-  if (!state) return { status: 'not_laddered' };
+  if (!state) return { status: 'unknown_family' };
 
   const advanced = levelUpForTooEasy(state, family, library.exercises);
   if (!advanced) return { status: 'at_max' };
 
-  // Resolve the new rung against the user's actual hard filters *before* committing the level
-  // change, so a rung they cannot perform is a no-op rather than a trap.
+  // Check the new rung against the user's real hard filters BEFORE committing.
   const profile = buildUserProfile(db, clock.today);
   const pool = applyHardFilters({
     library: library.exercises,
@@ -89,58 +79,22 @@ export function levelUpEntry(db: Db, input: LevelUpInput, now: string): LevelUpO
     rng,
   });
   // `resolveLadderSlot` walks *down* when a rung is unavailable, which is right during generation
-  // but wrong here: silently handing back a lower rung than the one just unlocked would look like
-  // the button did nothing, or worse, moved the user backwards.
+  // and wrong here: a walk-down means the rung just unlocked has nothing the user can actually do.
   if (!resolved || resolved.substitutedFrom) return { status: 'no_eligible_exercise' };
 
   upsertProgressionState(db, advanced.state, now);
 
-  const prescription: EngineSessionEntry = prescribeLaddered({
-    exercise: resolved.exercise,
-    familyId,
-    levelId: advanced.state.levelId,
-    micro: advanced.state.micro,
-    requestedEffort: entry.effort,
-    // A level-up is not a recovery-treated entry; the §5.2 48h drop that may have applied to the
-    // old rung was about the old exercise's muscles and is re-derived at next generation.
-    recoveryTreatment: false,
-  });
-
-  const fromExerciseId = entry.exerciseId;
-  db.update(schema.sessionEntries)
-    .set({
-      exerciseId: prescription.exerciseId,
-      band: prescription.band as BandId | null,
-      sets: prescription.sets,
-      repTarget: prescription.repTarget ?? null,
-      durationSec: prescription.durationSec ?? null,
-      restSec: prescription.restSec,
-      tempoSec: prescription.tempoSec,
-      notes: prescription.notes ?? null,
-      effort: prescription.effort,
-      progressionFamilyId: prescription.progressionFamilyId,
-      progressionLevelIdAtTime: prescription.progressionLevelIdAtTime,
-      pattern: prescription.pattern,
-      anchorClass: prescription.anchorClass,
-      unilateral: prescription.unilateral,
-      estimatedSec: prescription.estimatedSec,
-    })
-    .where(eq(schema.sessionEntries.id, entryId))
-    .run();
-
   logSignalEvent(db, {
-    sessionId: entry.sessionId,
+    sessionId: null,
     type: 'level_up_too_easy',
     payload: {
-      entryId,
       familyId,
       fromLevelId: state.levelId,
       toLevelId: advanced.state.levelId,
-      fromExerciseId,
-      toExerciseId: prescription.exerciseId,
+      toExerciseId: resolved.exercise.id,
     },
     utcInstant: now,
-    localDate: getSession(db, entry.sessionId)?.localDate ?? now.slice(0, 10),
+    localDate: clock.today,
   });
 
   return {

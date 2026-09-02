@@ -110,23 +110,39 @@ user-assigned videos are all still true, and none of them describe a ladder posi
 
 ---
 
-## Amendment, 2026-09-01 — the approval-side level-up button was replaced by Swap
+## Amendment, 2026-09-01 — the control lives on the progression board
 
-Device feedback on the approval screen replaced "Too easy — level up" with a Swap control (the
-same §10.6 picker the workout screen uses). Decision 4 above therefore now reads **mid-workout
-only**, not "approval and mid-workout".
+Decision 4 above ("the control appears at approval and mid-workout") is **superseded**. Both of
+those buttons are removed. The control now lives on one §14.1.4 progression board row per family.
 
-Nothing about the level-up mechanism changed: `levelUpForTooEasy`, `levelUpEntry`, the
-`level_up_too_easy` signal and the mid-workout control are all untouched and still tested.
+Approval was replaced by a Swap control first, which left the level-up mid-workout only — and that
+put back exactly the friction this ADR existed to remove, since an already-trained user could no
+longer correct a too-low rung without first starting a session of wall push-ups. The board is the
+resolution, and is a better home than either original placement:
 
-**The known cost.** With the cold start at level 1, an already-trained user reviewing their first
-plan sees wall push-ups and dead bugs and can no longer fix that *before* starting — they have to
-begin the session and use the mid-workout control. That is exactly the friction decision 4 existed
-to remove, and it is now half back.
+- **A ladder position is a property of the user, not of a session.** Editing it from inside a
+  planned or running workout was always a category error; it only looked natural because that is
+  where the exercise happened to be on screen.
+- **The board is the one surface that already shows the rung** — "Level 3 of 9 — Knee Push-Up".
+  The control now sits directly under the thing it changes.
+- **It needs no session to exist.** Correcting your starting rungs is a thing you do *before*
+  generating anything, which is what an already-trained user hitting a level-1 cold start actually
+  wants to do.
+- **It scales.** All eight families are adjustable in one screen, rather than only whichever ones
+  today's session happened to include.
 
-Swap does not substitute for it: `alternativesForSlot` offers exercises of *comparable*
-difficulty, so it changes which exercise you do, not which rung you are on.
+### What changed in code
 
-If the level-1 start turns out to feel punishing on device, the cheapest fix is to surface the
-level-up inside the swap sheet — "this is too easy, move me up" sits naturally beside "give me a
-different one", costs no extra row on the card, and needs no new store or engine work.
+`levelUpEntry` (advance the family *and* rewrite a session entry) is replaced by `levelUpFamily`
+(advance the family, full stop). Everything else is unchanged: `levelUpForTooEasy`, the
+pre-commit hard-filter check that refuses to strand a user on an unusable rung, the
+`level_up_too_easy` signal, and the repeatable one-rung-per-tap behaviour.
+
+The signal now carries no `sessionId` (there is no session), and no `entryId`/`fromExerciseId`.
+It still carries `familyId` and both level ids, which is what makes it useful for tuning the cold
+start later.
+
+### Consequence
+
+Nothing is offered on a mastered family — §6.7 Mastery is the top of the ladder, and there is no
+rung above it to move to.

@@ -20,9 +20,11 @@ User decisions already made (do not re-litigate):
       enforces byte-for-byte sync between the two).
 - [x] Approval screen control (`level-up-<exerciseId>`) and mid-workout control (`level-up-set`),
       both with dedicated screen tests driven through the real screens and the real store.
-- [~] **The approval-side control was later removed** and replaced by Swap, from device feedback.
-      See ADR 0012's amendment. Mid-workout level-up is unchanged. The cost: a trained user can no
-      longer fix a too-low starting rung *before* starting a session — watch for this on device.
+- [x] **Final placement: the §14.1.4 progression board**, one control per family row. The
+      approval and mid-workout buttons are both gone; `levelUpEntry` is replaced by
+      `levelUpFamily`. See ADR 0012's amendment for why the board is the right home. This also
+      resolves the gap the approval removal opened — a trained user can now correct every starting
+      rung before generating anything, which is the whole point of a level-1 cold start.
 
 ### In progress
 - Nothing. `npm run check` is green.

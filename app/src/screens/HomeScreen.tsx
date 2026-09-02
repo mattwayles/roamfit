@@ -33,6 +33,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   generate,
+  levelUpFamily,
   milestonesRepo,
   progressionStateRepo,
   sessionsRepo,
@@ -96,6 +97,9 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   const [data, setData] = useState<HomeData | undefined>(undefined);
   const [startingQuick, setStartingQuick] = useState(false);
   const [travelDismissed, setTravelDismissed] = useState(false);
+  /** ADR 0012 — one-line result of the last board level-up. Informational only: never blocks,
+   *  never nags, replaced rather than stacked (invariant 4). */
+  const [levelUpNotice, setLevelUpNotice] = useState<string | null>(null);
 
   const load = useCallback(() => {
     const clock = nowEngineClock();
@@ -164,6 +168,36 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       );
     }
   }, [db, library, families]);
+
+  /**
+   * ADR 0012 — the user says a rung is below them, so raise it. One rung per tap and repeatable,
+   * because the cold start is level 1 and someone already training taps until the exercise on the
+   * board looks like something they would actually do.
+   *
+   * Everything real happens in `levelUpFamily` (which is the engine's work, via the store); this
+   * only decides what to say about the outcome and reloads the board.
+   */
+  const handleLevelUp = (entry: FamilyBoardEntry) => {
+    const result = levelUpFamily(
+      db,
+      {
+        familyId: entry.familyId,
+        library,
+        families,
+        clock: nowEngineClock(),
+        rng: createRng(seedFromString(nowUtcInstant())),
+      },
+      nowUtcInstant(),
+    );
+    if (result.status === 'levelled_up') {
+      setLevelUpNotice(`${entry.familyName}: now at ${result.exerciseName}.`);
+    } else if (result.status === 'at_max') {
+      setLevelUpNotice(`${entry.familyName} is already at the top of its ladder — nice.`);
+    } else if (result.status === 'no_eligible_exercise') {
+      setLevelUpNotice(`The next ${entry.familyName} level needs an anchor you don't have set up.`);
+    }
+    load();
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -458,6 +492,11 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
         </Text>
       )}
       <View testID="progression-board" style={styles.board}>
+        {levelUpNotice != null && (
+          <Text testID="board-level-up-notice" style={styles.boardLevelUpNotice}>
+            {levelUpNotice}
+          </Text>
+        )}
         {board.map((entry) => (
           <View key={entry.familyId} style={styles.boardRow} testID={`board-row-${entry.familyId}`}>
             <View style={styles.boardRowHeader}>
@@ -482,6 +521,24 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
                   ? `${entry.sessionsToNextLevel} ${entry.sessionsToNextLevel === 1 ? 'session' : 'sessions'} from ${entry.nextExerciseName}`
                   : ''}
             </Text>
+            {/* ADR 0012 — raise the rung from the board, before generating anything. The board is
+                where a ladder position is actually shown, and a level is a property of the user
+                rather than of any one session, so this is the place to correct it. Nothing to
+                offer at the top of a ladder (§6.7 Mastery). */}
+            {!entry.isMastery && (
+              <Pressable
+                testID={`board-level-up-${entry.familyId}`}
+                accessibilityRole="button"
+                accessibilityLabel={`${entry.exerciseName} is too easy — move up a level`}
+                style={styles.boardLevelUpButton}
+                onPress={() => handleLevelUp(entry)}
+              >
+                <Text style={styles.boardLevelUpText} numberOfLines={1}>
+                  Too easy — level up
+                  {entry.nextExerciseName ? ` to ${entry.nextExerciseName}` : ''}
+                </Text>
+              </Pressable>
+            )}
           </View>
         ))}
       </View>
@@ -713,6 +770,17 @@ const styles = StyleSheet.create({
   masteryBadgeText: { fontSize: 11, fontWeight: '700', color: '#713f12' },
   boardExerciseName: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
   boardUnlockLine: { fontSize: 12, color: '#64748b' },
+  boardLevelUpButton: {
+    marginTop: 8,
+    minHeight: 36,
+    borderRadius: 8,
+    backgroundColor: '#dbeafe',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  boardLevelUpText: { fontSize: 13, fontWeight: '600', color: '#1d4ed8' },
+  boardLevelUpNotice: { fontSize: 13, color: '#1d4ed8', paddingBottom: 4 },
   passportCard: {
     backgroundColor: '#f0fdf4',
     borderRadius: 16,
