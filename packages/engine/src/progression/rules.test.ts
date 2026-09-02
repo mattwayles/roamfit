@@ -1,5 +1,5 @@
 import { familyLibrary, exerciseLibrary } from '@roamfit/data';
-import { applySessionResult } from './rules';
+import { applySessionResult, levelUpForTooEasy } from './rules';
 import { findFamily } from './ladder';
 import { defaultMicroForExercise } from './micro';
 import type { ProgressionState } from '../types';
@@ -145,5 +145,86 @@ describe('§6.3 advance / regress / drop-a-level', () => {
     const result = applySessionResult(state, family, library, perf({ allSetsAtOrAboveTop: true }));
     expect(result.event).toEqual({ kind: 'mastery_pr_check' });
     expect(result.state.levelId).toBe('horizontal_push.l9'); // never advances past the top
+  });
+});
+
+// ADR 0012 — the user's explicit "this is too easy". Unlike everything else in rules.ts this is
+// an instruction, not an inference from logged performance.
+describe('levelUpForTooEasy (ADR 0012)', () => {
+  const horizontalPush = familyLibrary.families.find((f) => f.id === 'horizontal_push')!;
+  const library = exerciseLibrary.exercises;
+
+  function stateAt(levelId: string, overrides: Partial<ProgressionState> = {}): ProgressionState {
+    const level = horizontalPush.levels.find((l) => l.level_id === levelId)!;
+    const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
+    return {
+      familyId: 'horizontal_push',
+      levelId,
+      micro: defaultMicroForExercise(exercise),
+      calibrating: false,
+      consecutiveHits: 0,
+      consecutiveMisses: 0,
+      lastLevelChangeAt: null,
+      ...overrides,
+    };
+  }
+
+  it('advances exactly one rung and reports a level_up', () => {
+    const result = levelUpForTooEasy(stateAt('horizontal_push.l1'), horizontalPush, library)!;
+    expect(result.state.levelId).toBe('horizontal_push.l2');
+    expect(result.event).toEqual({ kind: 'level_up', levelId: 'horizontal_push.l2' });
+  });
+
+  it('is repeatable — five taps climb five rungs', () => {
+    let state = stateAt('horizontal_push.l1');
+    for (let i = 0; i < 5; i++) {
+      state = levelUpForTooEasy(state, horizontalPush, library)!.state;
+    }
+    expect(state.levelId).toBe('horizontal_push.l6');
+  });
+
+  it('resets micro-state to the new level default', () => {
+    const climbed = stateAt('horizontal_push.l1', {
+      micro: { repTarget: 12, band: null, tempoSec: 4, restSec: 30, sets: 4 },
+    });
+    const result = levelUpForTooEasy(climbed, horizontalPush, library)!;
+    const l2 = horizontalPush.levels.find((l) => l.level_id === 'horizontal_push.l2')!;
+    const l2Exercise = library.find((e) => e.id === l2.anchor_exercise_id)!;
+    expect(result.state.micro).toEqual(defaultMicroForExercise(l2Exercise));
+  });
+
+  it('resets the streaks — they described progress at the level just left', () => {
+    const result = levelUpForTooEasy(
+      stateAt('horizontal_push.l3', { consecutiveHits: 2, consecutiveMisses: 1 }),
+      horizontalPush,
+      library,
+    )!;
+    expect(result.state.consecutiveHits).toBe(0);
+    expect(result.state.consecutiveMisses).toBe(0);
+  });
+
+  it('preserves the calibrating flag either way', () => {
+    expect(
+      levelUpForTooEasy(stateAt('horizontal_push.l1', { calibrating: true }), horizontalPush, library)!
+        .state.calibrating,
+    ).toBe(true);
+    expect(
+      levelUpForTooEasy(stateAt('horizontal_push.l1', { calibrating: false }), horizontalPush, library)!
+        .state.calibrating,
+    ).toBe(false);
+  });
+
+  it('is undefined at the top of the ladder rather than silently holding', () => {
+    const top = horizontalPush.levels[horizontalPush.levels.length - 1].level_id;
+    expect(levelUpForTooEasy(stateAt(top), horizontalPush, library)).toBeUndefined();
+  });
+
+  it('works outside calibration, where the automatic path cannot jump a level', () => {
+    // rules.ts only micro-advances on a logged hit; it takes a full micro sequence to change
+    // level. That is the gap this closes for a user who started at level 1.
+    const state = stateAt('horizontal_push.l1', { calibrating: false });
+    expect(levelUpForTooEasy(state, horizontalPush, library)!.state.levelId).toBe(
+      'horizontal_push.l2',
+    );
   });
 });

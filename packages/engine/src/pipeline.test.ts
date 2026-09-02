@@ -61,9 +61,18 @@ describe('generateSession — pipeline wiring', () => {
       expect(plan.explanation.length).toBeGreaterThan(0);
       expect(plan.engineVersion).toBeTruthy();
       expect(plan.focus).toBe(focus);
-      // §13.1 default: no bodyweight_bearing anchor exercise anywhere in the plan.
+      // §13.1 default. This used to assert no `bodyweight_bearing` entry appeared at all, which
+      // was never the actual rule — ADR 0007 put `low-bar` in DEFAULT_ANCHORS_AVAILABLE precisely
+      // so bar-supported work could be programmed. It only held because every family used to be
+      // seeded at the 30th percentile, where no bearing exercise happened to sit. ADR 0012 moved
+      // the cold start to level 1, and `vertical_pull.l1` is a hang, so the real rule is what is
+      // pinned now: any bearing exercise must use an anchor the user actually has, and §13.1's
+      // effort cap must have been applied to it.
       for (const entry of [...plan.warmup, ...plan.main, ...plan.cooldown]) {
-        expect(entry.anchorClass).not.toBe('bodyweight_bearing');
+        if (entry.anchorClass !== 'bodyweight_bearing') continue;
+        const exercise = exerciseLibrary.exercises.find((e) => e.id === entry.exerciseId)!;
+        expect(DEFAULT_ANCHORS_AVAILABLE).toContain(exercise.anchor);
+        expect(entry.effort).not.toBe('hard');
       }
     }
   });

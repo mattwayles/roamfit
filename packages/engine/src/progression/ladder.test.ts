@@ -43,8 +43,14 @@ describe('§6.1/§4.2 ladder lookups (stable level_id, never a positional index)
     expect(levelOrdinal(horizontalPush, 'horizontal_push.l5')).toEqual({ n: 5, of: 9 });
   });
 
-  it('§6.5 cold start places a family at ~30th percentile of its ladder', () => {
-    // round((9-1) * 0.3) = round(2.4) = 2 -> 0-based index 2 -> the 3rd level.
-    expect(calibrationStartLevel(horizontalPush).level_id).toBe('horizontal_push.l3');
+  it('cold start places every family at level 1 (ADR 0012)', () => {
+    // §6.5 started users at ~the 30th percentile, i.e. horizontal_push.l3 (knee push-ups) for a
+    // 9-rung ladder. ADR 0012 starts at the bottom instead: a ladder you are placed partway up by
+    // guesswork is not a ladder. `levelUpForTooEasy` is the escape hatch for anyone already past
+    // the lower rungs.
+    expect(calibrationStartLevel(horizontalPush).level_id).toBe('horizontal_push.l1');
+    for (const family of familyLibrary.families) {
+      expect(calibrationStartLevel(family).level_id).toBe(family.levels[0].level_id);
+    }
   });
 });

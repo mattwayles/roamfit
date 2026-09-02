@@ -41,8 +41,9 @@ export const CONSECUTIVE_BOTTOM_REGRESSIONS_TO_DROP_LEVEL = 2;
 export const CALIBRATION_SESSIONS = 3;
 /** §6.5 — "exceeding the rep target by ≥25%" advances a full level during calibration. */
 export const CALIBRATION_OVERSHOOT_RATIO = 0.25;
-/** §6.5 — every family starts at ~30th percentile of its ladder. */
-export const CALIBRATION_START_PERCENTILE = 0.3;
+/** Retired by ADR 0012 — the cold start is level 1, not a percentile guess. Kept out of the
+ *  ladder entirely rather than set to 0, so nothing reintroduces a "start them partway up" seed
+ *  without reading the ADR first. */
 
 /** §9.4 comeback thresholds. */
 export const COMEBACK_WEEK_GAP_DAYS = 7;

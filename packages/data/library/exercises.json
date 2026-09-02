@@ -7582,6 +7582,39 @@
       ],
       "setup": "On hands and knees, toes tucked, knees hovering an inch off the floor. Keep a flat back and breathe. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=Bear+Hold+proper+form+tutorial"
+    },
+    {
+      "id": "banded-lat-pull-hold",
+      "name": "Banded Lat Pull Hold",
+      "aliases": [],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "vertical_pull",
+      "primary": [
+        "lats"
+      ],
+      "secondary": [
+        "rear_delts",
+        "biceps"
+      ],
+      "equipment": "band",
+      "band": "B1-B2",
+      "anchor": "anchor-high",
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "core",
+      "role": "main",
+      "difficulty": "easy",
+      "progression_family": "vertical_pull",
+      "progression_level_id": "vertical_pull.l1",
+      "contraindications": [
+        "shoulder_overhead"
+      ],
+      "setup": "Anchor the band high, hold both ends and pull down to chest height. Hold that position, shoulders down and back. Time-based.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Lat+Pull+Hold+proper+form+tutorial"
     }
   ]
 }

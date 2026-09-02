@@ -169,3 +169,44 @@ export function applySessionResult(
 }
 
 export type { SessionPerformance } from './rules.types';
+
+/**
+ * ADR 0012 — the user's explicit "this is too easy, move me up" for one family.
+ *
+ * Distinct from every other transition in this file: those are *inferred* from logged
+ * performance at session completion, whereas this is a direct instruction, applied the moment it
+ * is given so the current session can be rewritten around it. It is deliberately repeatable —
+ * a user who belongs five rungs up taps it five times and sees each exercise on the way — because
+ * the cold start is now level 1 (`calibrationStartLevel`) and automatic calibration alone cannot
+ * climb far enough for an already-trained user.
+ *
+ * The new level's micro-state resets to that level's default, exactly as a `level_up` does:
+ * arriving at a rung by declaring the last one easy is still arriving at it fresh.
+ *
+ * Returns `undefined` at the top of the ladder — the caller should leave the plan alone and say
+ * so (§6.7 Mastery is the right treatment there, not a silent no-op).
+ */
+export function levelUpForTooEasy(
+  state: ProgressionState,
+  family: ProgressionFamily,
+  library: readonly Exercise[],
+): ApplySessionResult | undefined {
+  const next = nextLevel(family, state.levelId);
+  if (!next) return undefined;
+  const nextExercise = library.find((e) => e.id === next.anchor_exercise_id);
+  return {
+    state: {
+      ...state,
+      levelId: next.level_id,
+      micro: nextExercise ? defaultMicro(nextExercise) : state.micro,
+      // The streaks describe progress toward an *inferred* transition at the level just left.
+      // They mean nothing at the new level, so they reset, as they do on any level change.
+      consecutiveHits: 0,
+      consecutiveMisses: 0,
+      // Still calibrating if it was: a user fixing their starting rung by hand is exactly what
+      // calibration is for, and ending it early would strand them if they overshoot.
+      calibrating: state.calibrating,
+    },
+    event: { kind: 'level_up', levelId: next.level_id },
+  };
+}

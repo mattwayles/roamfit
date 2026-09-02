@@ -175,6 +175,28 @@ const NEW = [
     contraindications: ['shoulder_overhead'],
     setup: 'Grip a waist-height bar and walk your feet forward until your arms take some weight. Hang back with straight arms. Time-based.',
   }),
+  // ADR 0012 — with the cold start moved to level 1, vertical_pull.l1 became every new user's
+  // first pull, and both its exercises (bw-dead-hang on `pullup-bar`, bw-low-bar-hang on
+  // `low-bar`) need a bar. A user with neither gets a permanent PATTERN GAP, because
+  // resolveLadderSlot can only walk *down* and there is nothing below l1. This is the band
+  // option that makes the bottom rung reachable with no fixed point but an overhead anchor.
+  band({
+    id: 'banded-lat-pull-hold',
+    name: 'Banded Lat Pull Hold',
+    focus: ['upper'],
+    pattern: 'vertical_pull',
+    primary: ['lats'],
+    secondary: ['rear_delts', 'biceps'],
+    band: 'B1-B2',
+    anchor: 'anchor-high',
+    metric: 'time',
+    default_seconds: 30,
+    difficulty: 'easy',
+    family: 'vertical_pull',
+    level: 'vertical_pull.l1',
+    contraindications: ['shoulder_overhead'],
+    setup: 'Anchor the band high, hold both ends and pull down to chest height. Hold that position, shoulders down and back. Time-based.',
+  }),
   band({
     id: 'prone-band-pulldown',
     name: 'Prone Band Pulldown',

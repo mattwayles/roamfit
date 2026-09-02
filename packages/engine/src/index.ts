@@ -32,7 +32,7 @@ export { OVER_WORKED_MULTIPLIER } from './selection/constants';
 // same state transition at session completion, and (b) drive an explicitly-triggered Recovery
 // Week through the identical `applyComebackToProgressionStates('week', ...)` transform rather
 // than a parallel implementation.
-export { applySessionResult } from './progression/rules';
+export { applySessionResult, levelUpForTooEasy } from './progression/rules';
 export type { ProgressionEvent, ApplySessionResult } from './progression/rules';
 export type { SessionPerformance } from './progression/rules.types';
 export { assessComeback, applyComebackToProgressionStates } from './progression/comeback';
@@ -52,6 +52,7 @@ export {
   findFamily,
   levelById,
   exerciseForLevel,
+  exercisesForLevel,
   isMaxLevel,
   levelOrdinal,
   nextLevel,
