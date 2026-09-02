@@ -14,6 +14,8 @@ const PATTERN_LABELS: Record<Pattern, string> = {
   hinge: 'hip-hinging',
   lunge: 'lunging',
   hip_extension: 'glute work',
+  knee_flexion: 'hamstring work',
+  knee_extension: 'quad work',
   abduction: 'hip work',
   calf: 'calf work',
   anti_rotation: 'anti-rotation core work',

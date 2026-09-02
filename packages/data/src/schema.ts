@@ -18,6 +18,10 @@ export type Pattern =
   | 'hinge'
   | 'lunge'
   | 'hip_extension'
+  // Knee-dominant isolation, split by direction to match the elbow_flexion/elbow_extension
+  // precedent. Both were previously mis-tagged `hip_extension`, which is a different joint.
+  | 'knee_flexion'
+  | 'knee_extension'
   | 'abduction'
   | 'calf'
   | 'anti_rotation'

@@ -1929,7 +1929,7 @@
       "focus": [
         "legs"
       ],
-      "pattern": "hip_extension",
+      "pattern": "knee_flexion",
       "primary": [
         "hamstrings"
       ],
@@ -1947,7 +1947,7 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "hip"
+        "knee_flexion_loaded"
       ],
       "setup": "Lie face down, band looped around one ankle with the other end pinned under the opposite knee. Curl the heel toward your glutes.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Hamstring+Curl+proper+form+tutorial"
@@ -2262,7 +2262,7 @@
       "focus": [
         "legs"
       ],
-      "pattern": "hip_extension",
+      "pattern": "knee_extension",
       "primary": [
         "quads"
       ],
@@ -2279,9 +2279,7 @@
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [
-        "hip"
-      ],
+      "contraindications": [],
       "setup": "Anchor low, band behind one knee, step away into tension. Straighten the knee against the pull.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Terminal+Knee+Extension+proper+form+tutorial"
     },
@@ -5141,7 +5139,7 @@
       "contraindications": [
         "wrist_extension"
       ],
-      "setup": "Hands at shoulder height on any solid vertical surface — the side of the RV, the truck, or a tree trunk. Lower the chest to it and press back. The easiest push-up regression.",
+      "setup": "Hands at shoulder height on any solid vertical surface \u2014 the side of the RV, the truck, or a tree trunk. Lower the chest to it and press back. The easiest push-up regression.",
       "video_search": "https://www.youtube.com/results?search_query=Wall+Push-Up+proper+form+tutorial"
     },
     {
@@ -5466,7 +5464,7 @@
         "shoulder_overhead",
         "wrist_extension"
       ],
-      "setup": "High plank, arms locked. Move only the shoulder blades — pinch them together, then push the floor away. Great warm-up.",
+      "setup": "High plank, arms locked. Move only the shoulder blades \u2014 pinch them together, then push the floor away. Great warm-up.",
       "video_search": "https://www.youtube.com/results?search_query=Scapular+Push-Up+proper+form+tutorial"
     },
     {
@@ -5574,7 +5572,7 @@
         "elbow",
         "shoulder_horizontal"
       ],
-      "setup": "Grip a waist-height bar — RV ladder rung, picnic table edge, low branch — and hang underneath with a straight body. Pull the chest to the bar. Walk the feet in to make it easier.",
+      "setup": "Grip a waist-height bar \u2014 RV ladder rung, picnic table edge, low branch \u2014 and hang underneath with a straight body. Pull the chest to the bar. Walk the feet in to make it easier.",
       "video_search": "https://www.youtube.com/results?search_query=Inverted+Row+proper+form+tutorial"
     },
     {
@@ -6266,7 +6264,7 @@
         "knee_flexion_loaded",
         "lower_back_extension"
       ],
-      "setup": "Kneel with your heels hooked under the RV step or truck frame. Lower your torso forward as slowly as you can, catch with your hands, push back. Brutal — start with 3 reps.",
+      "setup": "Kneel with your heels hooked under the RV step or truck frame. Lower your torso forward as slowly as you can, catch with your hands, push back. Brutal \u2014 start with 3 reps.",
       "video_search": "https://www.youtube.com/results?search_query=Nordic+Hamstring+Curl+proper+form+tutorial"
     },
     {
@@ -6635,7 +6633,7 @@
         "knee_impact",
         "wrist_extension"
       ],
-      "setup": "Burpee without the jump — drop to the plank and snap the hips down, then pop straight back up. Easier on the shoulders.",
+      "setup": "Burpee without the jump \u2014 drop to the plank and snap the hips down, then pop straight back up. Easier on the shoulders.",
       "video_search": "https://www.youtube.com/results?search_query=Sprawl+proper+form+tutorial"
     },
     {
@@ -6932,7 +6930,7 @@
         "shoulder_overhead",
         "wrist_extension"
       ],
-      "setup": "Kick up into a handstand against a wall, chest facing the wall, hands shoulder-width. Lower your head toward the floor under control, elbows tracking forward, then press back to full lockout. Keep reps small and deliberate — this is an advanced inversion; skip it without a wall and a clear head-landing zone.",
+      "setup": "Kick up into a handstand against a wall, chest facing the wall, hands shoulder-width. Lower your head toward the floor under control, elbows tracking forward, then press back to full lockout. Keep reps small and deliberate \u2014 this is an advanced inversion; skip it without a wall and a clear head-landing zone.",
       "video_search": "https://www.youtube.com/results?search_query=Wall+Handstand+Push-Up+proper+form+tutorial"
     },
     {

@@ -154,20 +154,32 @@ describe('accessory slot rotation (ADR 0010)', () => {
       .flatMap((s) => s.patterns);
   }
 
+  /** How many distinct accessory patterns `full` cycles through — measured, not asserted, so
+   *  adding an isolation pattern to the library does not fail these tests for no reason.
+   *  Declared after `base`/`extraPatterns` because it calls them. */
+  const FULL_ACCESSORY_COUNT = new Set(
+    Array.from({ length: 40 }, (_, offset) => extraPatterns(offset)[0]),
+  ).size;
+
   it('appends exactly one extra slot at a 30-minute target', () => {
     expect(extraPatterns(0)).toHaveLength(1);
   });
 
   it('advances the appended pattern as the offset advances, covering the whole list', () => {
     const seen = new Set<string>();
-    for (let offset = 0; offset < 9; offset++) seen.add(extraPatterns(offset)[0]);
-    expect(seen.size).toBe(9); // every accessory pattern `full` can draw from
+    // Derived, not hardcoded: the accessory list grows whenever a new isolation pattern is added
+    // to the library (it went 9 -> 11 with knee_flexion/knee_extension), and a literal here just
+    // fails the next time that happens for no reason.
+    for (let offset = 0; offset < FULL_ACCESSORY_COUNT; offset++) {
+      seen.add(extraPatterns(offset)[0]);
+    }
+    expect(seen.size).toBe(FULL_ACCESSORY_COUNT); // every accessory pattern `full` can draw from
     expect(seen.has('elbow_flexion')).toBe(true);
   });
 
   it('wraps rather than running off the end of the pattern list', () => {
-    expect(extraPatterns(9)).toEqual(extraPatterns(0));
-    expect(extraPatterns(19)).toEqual(extraPatterns(1));
+    expect(extraPatterns(FULL_ACCESSORY_COUNT)).toEqual(extraPatterns(0));
+    expect(extraPatterns(FULL_ACCESSORY_COUNT * 2 + 1)).toEqual(extraPatterns(1));
   });
 
   it('defaults to the old offset-0 behavior when no offset is given', () => {

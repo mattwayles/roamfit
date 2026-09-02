@@ -158,12 +158,14 @@ function fullSlots(
  */
 const ACCESSORY_PATTERNS_BY_FOCUS: Record<Focus, Pattern[]> = {
   upper: UPPER_ISOLATION,
-  legs: ['abduction', 'hip_extension', 'calf'],
+  legs: ['abduction', 'hip_extension', 'knee_flexion', 'knee_extension', 'calf'],
   abs: ['anti_rotation', 'flexion', 'lateral_flexion'],
   full: [
     ...UPPER_ISOLATION,
     'abduction',
     'hip_extension',
+    'knee_flexion',
+    'knee_extension',
     'calf',
     'anti_rotation',
     'flexion',

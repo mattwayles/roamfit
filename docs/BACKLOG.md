@@ -42,8 +42,6 @@ foregrounding it. Same for force-quit mid-set and `findCurrent()` resume.
 - **Anonymous Firebase Auth session isn't persisted.** No RN AsyncStorage backing, so cross-device
   continuity silently doesn't work. Zero impact on the core loop — nothing reads it on the critical
   path.
-- **`hamstring-curl` and `tke` are tagged `hip_extension`** but are knee movements. A
-  `knee_flexion_loaded` pattern now exists; retag them. Content-only change plus a validator run.
 - **Glyph rendering is unverified on device.** `❚❚` `■` `⇄` `▸▸` `✕` `⠿` are all plain-text glyphs
   chosen to avoid iOS emoji substitution, but that has only been reasoned about, never seen.
 - **Card height vs. long exercise names.** `CARD_HEIGHT` (approval card) is a fixed 132pt sized for a
@@ -82,6 +80,10 @@ foregrounding it. Same for force-quit mid-set and `findCurrent()` resume.
 - **`vertical_push.l4` (`bw-dip`) needs `body-support`**, which is not default-available, so it is
   hard-filtered away for most users. `banded-push-press` covers the rung, but the anchor choice is
   worth revisiting.
+- **`tke` now carries no contraindications at all**, and `hamstring-curl` carries only
+  `knee_flexion_loaded`. Both previously said `hip`, inherited from the wrong pattern — neither
+  loads the hip. The new tags are defensible but were set by one non-clinical pass; they belong in
+  the review below.
 - **Get a second opinion on `contraindications[]` tagging**, especially `core_pressure` and
   `lower_back_extension` across the hinge, plank and hollow-hold families. This is the pregnancy hard
   filter — the highest-stakes judgment call in the content set, and it was made by one pass with no
