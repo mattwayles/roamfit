@@ -187,3 +187,52 @@ describe('accessory slot rotation (ADR 0010)', () => {
     expect(accessoryRotationOffset(history, 'full')).toBe(2);
   });
 });
+
+describe('full-body alternates the knee-dominant lower slot (squat <-> lunge)', () => {
+  function build(history: SessionHistoryRecord[]) {
+    return buildFocusTemplate({
+      focus: 'full',
+      targetMinutes: 30,
+      effort: 'normal',
+      library: lib,
+      history,
+    });
+  }
+
+  function kneePattern(history: SessionHistoryRecord[]) {
+    return build(history).slots.find((s) => s.id === 'full.lower_knee')!.patterns[0];
+  }
+
+  function sessionWith(exerciseId: string, status = 'completed'): SessionHistoryRecord {
+    return {
+      focus: 'full',
+      status,
+      entries: [{ exerciseId, role: 'main', status: 'completed' }],
+    } as unknown as SessionHistoryRecord;
+  }
+
+  it('leads with squat at cold start', () => {
+    expect(kneePattern([])).toBe('squat');
+  });
+
+  it('switches to lunge after a full-body session that squatted', () => {
+    expect(kneePattern([sessionWith('goblet-squat')])).toBe('lunge');
+  });
+
+  it('switches back to squat after a full-body session that lunged', () => {
+    expect(kneePattern([sessionWith('bw-walking-lunge')])).toBe('squat');
+  });
+
+  it('does not rotate on an abandoned session — discarded sessions never happened', () => {
+    expect(kneePattern([sessionWith('goblet-squat', 'discarded')])).toBe('squat');
+  });
+
+  it('still requires a hip-hinge slot alongside it, whichever way the knee slot went', () => {
+    for (const history of [[], [sessionWith('goblet-squat')]]) {
+      const { slots } = build(history);
+      const hinge = slots.find((s) => s.id === 'full.lower_hinge')!;
+      expect(hinge.patterns).toEqual(['hinge']);
+      expect(hinge.required).toBe(true);
+    }
+  });
+});

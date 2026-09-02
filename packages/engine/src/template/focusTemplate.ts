@@ -120,11 +120,18 @@ function fullSlots(
   history: readonly SessionHistoryRecord[],
   library: readonly Exercise[],
 ): TemplateSlot[] {
+  // The knee-dominant lower slot alternates squat <-> lunge, exactly as the upper slots already
+  // alternate push and pull variants. Both are laddered families with their own progression
+  // state, and `lunge` is otherwise unreachable in a full-body session — §5.5 gives `full` no
+  // lunge slot of its own, so the family sat idle while the squat rung repeated every session.
+  // The hip-dominant slot stays fixed on `hinge`: it is the only hip-hinge family there is, and
+  // dropping it would leave posterior chain uncovered.
+  const lowerKnee = alternate(history, library, 'full', ['squat', 'lunge']);
   const upperPush = alternate(history, library, 'full', ['horizontal_push', 'vertical_push']);
   const upperPull = alternate(history, library, 'full', ['horizontal_pull', 'vertical_pull']);
   const core = alternate(history, library, 'full', ['anti_extension', 'flexion', 'anti_rotation']);
   const slots: TemplateSlot[] = [
-    { id: 'full.lower_push', patterns: ['squat'], required: true },
+    { id: 'full.lower_knee', patterns: [lowerKnee], required: true },
     { id: 'full.lower_hinge', patterns: ['hinge'], required: true },
     { id: 'full.upper_push', patterns: [upperPush], required: true },
     { id: 'full.upper_pull', patterns: [upperPull], required: true },

@@ -31,6 +31,9 @@ User decisions already made (do not re-litigate):
   a scripted probe against the real library; none of it has been seen on a device. That belongs
   with the Wave 7 acceptance gate.
 - Optional follow-ups, none blocking:
+  - The knee-dominant full-body slot now alternates squat <-> lunge. `legs` sessions still give
+    squat, hinge and lunge a slot each, so the lunge family is no longer full-body-starved.
+    `hinge` deliberately does NOT alternate — it is the only hip-hinge family there is.
   - `horizontal_push` l7–l9 and `horizontal_pull` l4–l8 still have no siblings. They are high
     rungs no current user occupies; fill them when someone gets there.
   - `anti_extension` l4 and l6 (banded, timed, hard) have no siblings — the library has one
