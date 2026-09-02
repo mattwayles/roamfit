@@ -204,12 +204,19 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   const levelUps: LevelUpFact[] = [];
   const noveltyNames = new Set<string>();
 
-  const mostRecentSession = [...userState.history].reverse().find((s) => s.status !== 'discarded');
-  const mostRecentSessionDate = mostRecentSession?.localDate;
-  // ADR 0010 — what was programmed last time, so a level's sibling set can rotate rather than
-  // re-draw the same exercise. Discarded sessions never happened (§5.2), so they don't count here
-  // either; that is consistent with `sessionsAgo` and with the template's `alternate()`.
-  const recentExerciseIds = new Set(mostRecentSession?.entries.map((e) => e.exerciseId) ?? []);
+  // TRAINED recency (ADR 0011) — the last session the user actually did. Compared against
+  // `lastLevelChangeAt` below to decide whether a level-up is news, so an abandoned session must
+  // not qualify: nobody levelled up by quitting.
+  const lastTrainedSession = [...userState.history]
+    .reverse()
+    .find((s) => s.status !== 'discarded');
+  const mostRecentSessionDate = lastTrainedSession?.localDate;
+
+  // SEEN recency (ADR 0010 + ADR 0011) — what the generator last put in front of the user,
+  // abandoned sessions included, so a level's sibling set rotates rather than re-offering the
+  // exercise they just walked away from.
+  const lastSeenSession = userState.history[userState.history.length - 1];
+  const recentExerciseIds = new Set(lastSeenSession?.entries.map((e) => e.exerciseId) ?? []);
 
   // §5.1 step 4 — progression: resolve each laddered slot to a concrete exercise ONCE (this
   // does not depend on the sets multiplier, so it isn't repeated by the corrective pass below).

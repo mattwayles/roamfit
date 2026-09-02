@@ -28,7 +28,12 @@ const UPPER_ISOLATION: Pattern[] = ['elbow_flexion', 'elbow_extension', 'shoulde
 const ABS_PATTERNS: Pattern[] = ['anti_rotation', 'flexion', 'anti_extension', 'lateral_flexion'];
 
 /** Pattern of the most recent main-role exercise in the most recent session matching `focus`
- *  whose pattern is in `candidates`. Used to alternate a template choice session to session. */
+ *  whose pattern is in `candidates`. Used to alternate a template choice session to session.
+ *
+ *  ADR 0011 — this is a "what did the generator last *show* me" question, so **discarded sessions
+ *  count**. Abandoning is the strongest negative signal there is; answering it with the same
+ *  template again is the bug this fixes. Contrast `sessionsAgo` and the volume helpers, which ask
+ *  what the user actually *trained* and must stay blind to abandoned sessions. */
 function lastChosenPattern(
   history: readonly SessionHistoryRecord[],
   library: readonly Exercise[],
@@ -38,7 +43,7 @@ function lastChosenPattern(
   const byId = new Map(library.map((e) => [e.id, e]));
   for (let i = history.length - 1; i >= 0; i--) {
     const session = history[i];
-    if (session.focus !== focus || session.status === 'discarded') continue;
+    if (session.focus !== focus) continue;
     for (const entry of session.entries) {
       if (entry.role !== 'main') continue;
       const ex = byId.get(entry.exerciseId);
@@ -207,14 +212,15 @@ export function expandOptionalSlots(
   return { slots, leadPattern: base.leadPattern };
 }
 
-/** How many non-discarded sessions of this focus the user has behind them — the rotation counter
- *  for `expandOptionalSlots`. Discarded sessions never happened (§5.2), so abandoning a workout
- *  does not advance the accessory rotation, exactly as it does not advance `alternate()`. */
+/** How many sessions of this focus the generator has already shown the user — the rotation
+ *  counter for `expandOptionalSlots`. ADR 0011: **discarded sessions count**, so abandoning a
+ *  workout advances the accessory rotation exactly as it advances `alternate()`. Both are "what
+ *  did I last see" questions; neither is a claim that the user trained. */
 export function accessoryRotationOffset(
   history: readonly SessionHistoryRecord[],
   focus: Focus,
 ): number {
-  return history.filter((s) => s.focus === focus && s.status !== 'discarded').length;
+  return history.filter((s) => s.focus === focus).length;
 }
 
 export interface BuildTemplateInput {

@@ -22,6 +22,8 @@ User decisions already made (do not re-litigate):
 - [x] Accessory rotation in `expandOptionalSlots` — `2302836`.
 - [x] 35 sibling assignments from existing `tier: core` library entries — `43fd232`.
 - [x] 14 new exercises for the levels the library could not cover.
+- [x] Full-body knee slot alternates squat <-> lunge — `6025d6b`.
+- [x] ADR 0011 — abandoning rotates the template ("seen" vs "trained" recency).
 
 ### In progress
 - Nothing. The track is complete and `npm run check` is green.
@@ -44,6 +46,12 @@ User decisions already made (do not re-litigate):
     revisiting whether those anchors belong on a rung at all.
 
 ### Decisions / gotchas
+- **ADR 0011 splits recency in two.** "Seen" (what the generator last showed you) counts
+  discarded sessions: `lastChosenPattern`/`alternate()`, `accessoryRotationOffset`, and
+  `recentExerciseIds`. "Trained" (what the body did) does not: `sessionsAgo`, the volume/48h
+  helpers, `assessComeback`, `hasEverCompletedSession`, and all of progression. Both halves are
+  pinned by `packages/engine/src/abandonRotation.test.ts` — the risk of this change is one side
+  quietly drifting into the other, so do not relax either half without reading that file.
 - **Invariant 5 is not at risk.** `level_id` is unchanged; only the exercises inside a level
   change. No stored state names an exercise, so no migration and no user's progression resets.
 - Micro-progression math must ALWAYS use `anchor_exercise_id`, never the sibling that was

@@ -177,14 +177,14 @@ describe('accessory slot rotation (ADR 0010)', () => {
     expect(withoutArg).toEqual(extraPatterns(0));
   });
 
-  it('counts only non-discarded sessions of the same focus', () => {
+  it('counts every session of the same focus, abandoned ones included (ADR 0011)', () => {
     const history = [
       { focus: 'full', status: 'completed', entries: [] },
-      { focus: 'full', status: 'discarded', entries: [] }, // abandoned: never happened (§5.2)
-      { focus: 'upper', status: 'completed', entries: [] }, // different focus
+      { focus: 'full', status: 'discarded', entries: [] }, // shown to the user, so it counts
+      { focus: 'upper', status: 'completed', entries: [] }, // different focus, does not
       { focus: 'full', status: 'completed', entries: [] },
     ] as unknown as SessionHistoryRecord[];
-    expect(accessoryRotationOffset(history, 'full')).toBe(2);
+    expect(accessoryRotationOffset(history, 'full')).toBe(3);
   });
 });
 
@@ -223,8 +223,17 @@ describe('full-body alternates the knee-dominant lower slot (squat <-> lunge)', 
     expect(kneePattern([sessionWith('bw-walking-lunge')])).toBe('squat');
   });
 
-  it('does not rotate on an abandoned session — discarded sessions never happened', () => {
-    expect(kneePattern([sessionWith('goblet-squat', 'discarded')])).toBe('squat');
+  it('rotates on an abandoned session too — ADR 0011, abandoning is a "seen" signal', () => {
+    expect(kneePattern([sessionWith('goblet-squat', 'discarded')])).toBe('lunge');
+  });
+
+  it('keeps rotating across repeated abandonments', () => {
+    const history = [sessionWith('goblet-squat', 'discarded')];
+    expect(kneePattern(history)).toBe('lunge');
+    history.push(sessionWith('bw-walking-lunge', 'discarded'));
+    expect(kneePattern(history)).toBe('squat');
+    history.push(sessionWith('goblet-squat', 'discarded'));
+    expect(kneePattern(history)).toBe('lunge');
   });
 
   it('still requires a hip-hinge slot alongside it, whichever way the knee slot went', () => {
