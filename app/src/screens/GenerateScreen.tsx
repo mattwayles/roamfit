@@ -164,16 +164,50 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.sectionLabel}>Time</Text>
-      <OptionPicker
-        testID="time-picker"
-        accessibilityLabel="Session length"
-        options={TIME_OPTIONS.map((m) => ({ value: m, label: `${m} min` }))}
-        value={minutes}
-        onChange={setMinutes}
-        open={openPicker === 'time'}
-        onOpenChange={(next) => setOpenPicker(next ? 'time' : null)}
-      />
+      {/* The three single-choice fields share one row: they are the same kind of decision, they
+          each fit a third of the width once closed, and stacking them pushed the anchors and the
+          Generate button below the fold. An open list overlays what follows (see OptionPicker)
+          rather than growing the row, so the row's height never depends on which field is open. */}
+      <View style={styles.pickerRow}>
+        <View style={styles.pickerColumn}>
+          <Text style={styles.sectionLabel}>Time</Text>
+          <OptionPicker
+            testID="time-picker"
+            accessibilityLabel="Session length"
+            options={TIME_OPTIONS.map((m) => ({ value: m, label: `${m} min` }))}
+            value={minutes}
+            onChange={setMinutes}
+            open={openPicker === 'time'}
+            onOpenChange={(next) => setOpenPicker(next ? 'time' : null)}
+          />
+        </View>
+
+        <View style={styles.pickerColumn}>
+          <Text style={styles.sectionLabel}>Focus</Text>
+          <OptionPicker
+            testID="focus-picker"
+            accessibilityLabel="Focus"
+            options={FOCUS_OPTIONS.map((f) => ({ value: f, label: FOCUS_LABELS[f] }))}
+            value={focus}
+            onChange={setFocus}
+            open={openPicker === 'focus'}
+            onOpenChange={(next) => setOpenPicker(next ? 'focus' : null)}
+          />
+        </View>
+
+        <View style={styles.pickerColumn}>
+          <Text style={styles.sectionLabel}>Effort</Text>
+          <OptionPicker
+            testID="effort-picker"
+            accessibilityLabel="Effort"
+            options={EFFORT_OPTIONS.map((e) => ({ value: e, label: EFFORT_LABELS[e] }))}
+            value={effort}
+            onChange={setEffort}
+            open={openPicker === 'effort'}
+            onOpenChange={(next) => setOpenPicker(next ? 'effort' : null)}
+          />
+        </View>
+      </View>
 
       <Text style={styles.sectionLabel}>Anchors</Text>
       <Pressable
@@ -221,28 +255,6 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
           </View>
         ))}
 
-      <Text style={styles.sectionLabel}>Focus</Text>
-      <OptionPicker
-        testID="focus-picker"
-        accessibilityLabel="Focus"
-        options={FOCUS_OPTIONS.map((f) => ({ value: f, label: FOCUS_LABELS[f] }))}
-        value={focus}
-        onChange={setFocus}
-        open={openPicker === 'focus'}
-        onOpenChange={(next) => setOpenPicker(next ? 'focus' : null)}
-      />
-
-      <Text style={styles.sectionLabel}>Effort</Text>
-      <OptionPicker
-        testID="effort-picker"
-        accessibilityLabel="Effort"
-        options={EFFORT_OPTIONS.map((e) => ({ value: e, label: EFFORT_LABELS[e] }))}
-        value={effort}
-        onChange={setEffort}
-        open={openPicker === 'effort'}
-        onOpenChange={(next) => setOpenPicker(next ? 'effort' : null)}
-      />
-
       {/* A checkbox, not a card that changes its own label: with only the wording to go on it was
           not obvious this was an option you had *not* taken. The box states that directly. */}
       <Pressable
@@ -286,6 +298,10 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
 const styles = StyleSheet.create({
   container: { padding: 20, gap: 12 },
   sectionLabel: { fontSize: 13, fontWeight: '700', color: '#64748b', marginTop: 12 },
+  // `alignItems: flex-start` so a column never stretches to match a taller neighbour, and the row
+  // paints above the anchors section so an open drop-down is not covered by it.
+  pickerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, zIndex: 10 },
+  pickerColumn: { flex: 1 },
   disclosure: {
     flexDirection: 'row',
     alignItems: 'center',

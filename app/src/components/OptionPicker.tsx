@@ -48,7 +48,7 @@ export default function OptionPicker<T extends string | number>({
   const selected = options.find((o) => o.value === value);
 
   return (
-    <View>
+    <View style={open ? styles.rootOpen : undefined}>
       <Pressable
         testID={testID}
         accessibilityRole="button"
@@ -104,6 +104,10 @@ export default function OptionPicker<T extends string | number>({
 }
 
 const styles = StyleSheet.create({
+  /** The open list overlays what follows instead of pushing it down, so three pickers sitting
+   *  side by side keep their row height (and each other's alignment) when one of them opens.
+   *  Needs the open picker to paint above its siblings, hence the lift. */
+  rootOpen: { zIndex: 10 },
   trigger: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -113,12 +117,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#cbd5e1',
     backgroundColor: '#fff',
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
   },
   triggerOpen: { borderColor: '#111', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
-  triggerText: { flex: 1, fontSize: 16, fontWeight: '600', color: '#0f172a' },
-  caret: { fontSize: 14, color: '#64748b', paddingLeft: 8 },
+  // 15pt, not 16: three of these share a phone width now, and "Full body" has to fit beside the
+  // caret without truncating.
+  triggerText: { flex: 1, fontSize: 15, fontWeight: '600', color: '#0f172a' },
+  caret: { fontSize: 13, color: '#64748b', paddingLeft: 6 },
   list: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
     borderWidth: 1,
     borderTopWidth: 0,
     borderColor: '#111',
