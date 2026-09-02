@@ -144,6 +144,43 @@ describe('§6.2 reconcileMicroToObservedBand — the band the user actually used
   });
 });
 
+// A level's anchor can be re-pointed from a bodyweight exercise to a band one (this is what
+// happened to `vertical_push.l4`, whose bodyweight anchor was hard-filtered away from most users).
+// Progression state stored before such a change still carries `band: null` against an anchor that
+// now has a band range. Every band-branch calculation has to read that as "the lightest band this
+// exercise is authored for" — the band those users were being prescribed all along — rather than
+// as "no band left to climb", which would skip the band ladder entirely.
+describe('§6.2 micro-progression — a null band on a band anchor', () => {
+  const nullBand = (exercise: typeof bandedPush): ProgressionMicroState => ({
+    ...defaultMicroForExercise(exercise),
+    band: null,
+  });
+
+  it('climbs the band ladder instead of jumping straight to a level change', () => {
+    // banded-push-up is "B1-B2": maxed reps at an implied B1 must bump to B2, not level up.
+    const micro = { ...nullBand(bandedPush), repTarget: 12 };
+    const step = microAdvance(micro, bandedPush);
+    expect(step.levelChange).toBeNull();
+    expect(step.micro.band).toBe('B2');
+    expect(step.micro.repTarget).toBe(10);
+  });
+
+  it('still reports the floor, so it does not drop a level early', () => {
+    expect(isAtBottomMicroStep(nullBand(bandedPush), bandedPush)).toBe(true);
+    expect(microRegress(nullBand(bandedPush), bandedPush).levelChange).toBe('down');
+  });
+
+  it('repairs the null to a real band when the user logs what they trained with', () => {
+    const wide = library.find((e) => e.equipment === 'band' && e.band === 'B3-B5')!;
+    // Observed the implied band: nothing moves, but the null is written back as B3.
+    expect(reconcileMicroToObservedBand(nullBand(wide), wide, 'B3').band).toBe('B3');
+    // Observed something heavier: adopted, with reps reset as on any band change.
+    const heavier = reconcileMicroToObservedBand({ ...nullBand(wide), repTarget: 12 }, wide, 'B4');
+    expect(heavier.band).toBe('B4');
+    expect(heavier.repTarget).toBe(10);
+  });
+});
+
 describe('§6.4/§14.1.3 microStepsToNextLevel — Next Unlock substrate', () => {
   it('counts down to exactly 1 the step before a level change fires', () => {
     let micro = defaultMicroForExercise(bodyweightPush);

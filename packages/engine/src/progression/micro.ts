@@ -49,6 +49,25 @@ export function defaultMicroForExercise(exercise: Exercise): ProgressionMicroSta
   };
 }
 
+/**
+ * The band to reason about for a band exercise when `micro.band` is `null`.
+ *
+ * `micro.band` is seeded from the level's *anchor* (`defaultMicroForExercise`), so it is normally
+ * non-null exactly when the anchor is a band exercise. The two can fall out of step when a level's
+ * anchor is re-pointed from a bodyweight exercise to a band one: state stored before the change
+ * still carries `band: null` against an anchor that now has a band range. Without this fallback
+ * that state reads as "no band left to climb", which makes `microAdvance` skip the whole band
+ * ladder into a level-up and `isAtBottomMicroStep` report a floor that is not one.
+ *
+ * The fallback is the exercise's own lightest authored band — the same choice `prescribe.ts`
+ * already makes when it clamps a null band onto a band sibling, so the progression state converges
+ * on the band the user was actually being prescribed all along.
+ */
+function bandForExercise(micro: ProgressionMicroState, exercise: Exercise): BandId | null {
+  if (micro.band) return micro.band;
+  return parseBandRange(exercise.band)?.[0] ?? null;
+}
+
 export type LevelChangeDirection = 'up' | 'down' | null;
 
 export interface MicroStepResult {
@@ -68,9 +87,10 @@ export function microAdvance(micro: ProgressionMicroState, exercise: Exercise): 
       return { micro: { ...micro, repTarget: micro.repTarget + 1 }, levelChange: null };
     }
     const range = parseBandRange(exercise.band);
-    const maxBand = range?.[1] ?? micro.band;
-    if (micro.band && maxBand && BAND_ORDER.indexOf(micro.band) < BAND_ORDER.indexOf(maxBand)) {
-      const nextBand = BAND_ORDER[BAND_ORDER.indexOf(micro.band) + 1];
+    const band = bandForExercise(micro, exercise);
+    const maxBand = range?.[1] ?? band;
+    if (band && maxBand && BAND_ORDER.indexOf(band) < BAND_ORDER.indexOf(maxBand)) {
+      const nextBand = BAND_ORDER[BAND_ORDER.indexOf(band) + 1];
       return { micro: { ...micro, band: nextBand, repTarget: low }, levelChange: null };
     }
     return { micro, levelChange: 'up' };
@@ -102,10 +122,11 @@ export function microRegress(micro: ProgressionMicroState, exercise: Exercise): 
       return { micro: { ...micro, repTarget: micro.repTarget - 1 }, levelChange: null };
     }
     const range = parseBandRange(exercise.band);
-    const minBand = range?.[0] ?? micro.band;
-    if (micro.band && minBand && BAND_ORDER.indexOf(micro.band) > BAND_ORDER.indexOf(minBand)) {
+    const band = bandForExercise(micro, exercise);
+    const minBand = range?.[0] ?? band;
+    if (band && minBand && BAND_ORDER.indexOf(band) > BAND_ORDER.indexOf(minBand)) {
       const { high } = rangeForExercise(exercise);
-      const prevBand = BAND_ORDER[BAND_ORDER.indexOf(micro.band) - 1];
+      const prevBand = BAND_ORDER[BAND_ORDER.indexOf(band) - 1];
       return { micro: { ...micro, band: prevBand, repTarget: high }, levelChange: null };
     }
     return { micro, levelChange: 'down' };
@@ -149,7 +170,9 @@ export function reconcileMicroToObservedBand(
   exercise: Exercise,
   observedBand: BandId | null | undefined,
 ): ProgressionMicroState {
-  if (exercise.equipment !== 'band' || !observedBand || !micro.band) return micro;
+  if (exercise.equipment !== 'band' || !observedBand) return micro;
+  const current = bandForExercise(micro, exercise);
+  if (!current) return micro;
   const range = parseBandRange(exercise.band);
   let target = observedBand;
   if (range) {
@@ -158,8 +181,11 @@ export function reconcileMicroToObservedBand(
     if (BAND_ORDER.indexOf(target) > BAND_ORDER.indexOf(hi)) target = hi;
   }
   if (target === micro.band) return micro;
+  // A null `micro.band` that resolves to the same band the user trained with still needs writing
+  // back: the state is being repaired to the shape its anchor now has, even though nothing moved.
+  if (target === current) return { ...micro, band: target };
   const { low, high } = rangeForExercise(exercise);
-  const heavier = BAND_ORDER.indexOf(target) > BAND_ORDER.indexOf(micro.band);
+  const heavier = BAND_ORDER.indexOf(target) > BAND_ORDER.indexOf(current);
   return { ...micro, band: target, repTarget: heavier ? low : high };
 }
 
@@ -168,9 +194,10 @@ export function reconcileMicroToObservedBand(
 export function isAtBottomMicroStep(micro: ProgressionMicroState, exercise: Exercise): boolean {
   const { low } = rangeForExercise(exercise);
   if (exercise.equipment === 'band') {
+    const band = bandForExercise(micro, exercise);
     const range = parseBandRange(exercise.band);
-    const minBand = range?.[0] ?? micro.band;
-    return micro.repTarget <= low && (!micro.band || !minBand || micro.band === minBand);
+    const minBand = range?.[0] ?? band;
+    return micro.repTarget <= low && (!band || !minBand || band === minBand);
   }
   return (
     micro.repTarget <= low &&
