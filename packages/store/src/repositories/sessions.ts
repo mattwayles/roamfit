@@ -7,6 +7,7 @@
  * "which set was in progress" is entirely reconstructible from which `set_logs` rows exist.
  */
 import { eq, and, desc } from 'drizzle-orm';
+import { estimateEntrySec } from '@roamfit/engine';
 import type {
   BandId,
   Effort,
@@ -502,7 +503,10 @@ export function adjustSetsAtApproval(db: Db, entryId: string, newSets: number, n
   if (!entry || newSets === entry.sets) return;
   const type = newSets > entry.sets ? 'set_added_at_approval' : 'set_deleted_at_approval';
   db.update(schema.sessionEntries)
-    .set({ sets: newSets })
+    // §5.6 — `estimatedSec` is what the approval screen's "~N min" sums and what the time budget
+    // is denominated in, so it has to move with the shape of the entry. Recomputed by the engine,
+    // never re-derived here (invariant 2).
+    .set({ sets: newSets, estimatedSec: estimateEntrySec({ ...entry, sets: newSets }) })
     .where(eq(schema.sessionEntries.id, entryId))
     .run();
   logSignalEvent(db, {
@@ -532,7 +536,10 @@ export function adjustRepTargetAtApproval(
     .all()[0];
   if (!entry || entry.repTarget == null || newRepTarget === entry.repTarget) return;
   db.update(schema.sessionEntries)
-    .set({ repTarget: newRepTarget })
+    .set({
+      repTarget: newRepTarget,
+      estimatedSec: estimateEntrySec({ ...entry, repTarget: newRepTarget }),
+    })
     .where(eq(schema.sessionEntries.id, entryId))
     .run();
   logSignalEvent(db, {
@@ -543,6 +550,44 @@ export function adjustRepTargetAtApproval(
       exerciseId: entry.exerciseId,
       fromRepTarget: entry.repTarget,
       toRepTarget: newRepTarget,
+    },
+    utcInstant: now,
+    localDate: getSession(db, entry.sessionId)?.localDate ?? now.slice(0, 10),
+  });
+}
+
+/** §10.3 — the timed counterpart to `adjustRepTargetAtApproval`, for a `durationSec` entry (a
+ *  plank, a hang, a carry). Rep-based work had an approval-time edit surface and timed work did
+ *  not, which left half the library uneditable in the one screen whose whole job is editing the
+ *  plan. Identical reasoning throughout: plan-stage edit, before/after preserved in the signal,
+ *  `estimatedSec` recomputed by the engine. */
+export function adjustDurationAtApproval(
+  db: Db,
+  entryId: string,
+  newDurationSec: number,
+  now: string,
+): void {
+  const entry = db
+    .select()
+    .from(schema.sessionEntries)
+    .where(eq(schema.sessionEntries.id, entryId))
+    .all()[0];
+  if (!entry || entry.durationSec == null || newDurationSec === entry.durationSec) return;
+  db.update(schema.sessionEntries)
+    .set({
+      durationSec: newDurationSec,
+      estimatedSec: estimateEntrySec({ ...entry, durationSec: newDurationSec }),
+    })
+    .where(eq(schema.sessionEntries.id, entryId))
+    .run();
+  logSignalEvent(db, {
+    sessionId: entry.sessionId,
+    type: 'duration_adjusted_at_approval',
+    payload: {
+      entryId,
+      exerciseId: entry.exerciseId,
+      fromDurationSec: entry.durationSec,
+      toDurationSec: newDurationSec,
     },
     utcInstant: now,
     localDate: getSession(db, entry.sessionId)?.localDate ?? now.slice(0, 10),
@@ -581,7 +626,10 @@ export function reorderEntriesAtApproval(
     .select()
     .from(schema.sessionEntries)
     .where(
-      and(eq(schema.sessionEntries.sessionId, sessionId), eq(schema.sessionEntries.section, section)),
+      and(
+        eq(schema.sessionEntries.sessionId, sessionId),
+        eq(schema.sessionEntries.section, section),
+      ),
     )
     .all()
     .filter((e) => e.entryStatus !== 'removed_at_approval');

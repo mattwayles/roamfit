@@ -7,12 +7,12 @@
  * after the reorder and reading which exercise it lands on first.
  */
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import { generate, sessionsRepo } from '@roamfit/store';
-import ApprovalScreen from './ApprovalScreen';
+import ApprovalScreen, { CARD_PITCH } from './ApprovalScreen';
 import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
@@ -90,8 +90,25 @@ describe('§10.3 re-order at approval, driven through ApprovalScreen', () => {
 
     await waitFor(() => expect(screen.getByTestId('start-button')).toBeTruthy(), WAIT_OPTS);
 
-    // Move the second main exercise up one slot — it should become the new first.
-    await fireEvent.press(screen.getByTestId(`move-up-${originalSecond.exerciseId}`));
+    // Drag the second main exercise up one slot — it should become the new first. The ▲/▼
+    // buttons this replaced were two extra controls on an already-overcrowded row; on a phone a
+    // drag says the same thing directly. PanResponder surfaces as responder events, so that is
+    // what a drag looks like from a test's point of view.
+    // The handle's props come straight from `PanResponder.panHandlers`, so calling them is
+    // exercising the real wiring. Driven directly rather than through `fireEvent` because RNTL's
+    // event-name mapping does not reach `onResponderGrant`/`onResponderMove` — it silently fires
+    // nothing, which would make this test pass for the wrong reason.
+    const handle = screen.getByTestId(`drag-handle-${originalSecond.exerciseId}`);
+    const startY = 500;
+    await act(async () => {
+      handle.props.onResponderGrant({ nativeEvent: { pageY: startY } });
+    });
+    await act(async () => {
+      handle.props.onResponderMove({ nativeEvent: { pageY: startY - CARD_PITCH } });
+    });
+    await act(async () => {
+      handle.props.onResponderRelease({ nativeEvent: { pageY: startY - CARD_PITCH } });
+    });
 
     await waitFor(() => {
       const after = sessionsRepo

@@ -41,30 +41,32 @@ const EFFORT_OPTIONS: Effort[] = ['easy', 'normal', 'hard'];
  * Grouped by whether a fixed point is needed, which is the only distinction that matters when
  * you are deciding what to tick.
  */
-const ANCHOR_GROUPS: { title: string; anchors: { value: Anchor; label: string; hint?: string }[] }[] =
-  [
-    {
-      title: 'No fixed point needed',
-      anchors: [
-        { value: 'none', label: 'Bodyweight only', hint: 'no band at all' },
-        { value: 'stance', label: 'Stand on the band' },
-        { value: 'feet', label: 'Band under your feet' },
-        { value: 'self-low', label: 'Band around your own body' },
-        { value: 'thigh-loop', label: 'Band looped around a thigh' },
-      ],
-    },
-    {
-      title: 'Needs something to anchor to',
-      anchors: [
-        { value: 'anchor-low', label: 'Low point', hint: 'door base, post, heavy furniture' },
-        { value: 'anchor-mid', label: 'Mid point', hint: 'rail, handle, waist-height fixing' },
-        { value: 'anchor-high', label: 'High point', hint: 'bar, beam, top of a door' },
-        { value: 'low-bar', label: 'Waist-height bar', hint: 'picnic table, RV ladder, low branch' },
-        { value: 'pullup-bar', label: 'Pull-up bar', hint: 'takes your full hanging weight' },
-        { value: 'body-support', label: 'Bench or step', hint: 'something to dip or press off' },
-      ],
-    },
-  ];
+const ANCHOR_GROUPS: {
+  title: string;
+  anchors: { value: Anchor; label: string; hint?: string }[];
+}[] = [
+  {
+    title: 'No fixed point needed',
+    anchors: [
+      { value: 'none', label: 'Bodyweight only', hint: 'no band at all' },
+      { value: 'stance', label: 'Stand on the band' },
+      { value: 'feet', label: 'Band under your feet' },
+      { value: 'self-low', label: 'Band around your own body' },
+      { value: 'thigh-loop', label: 'Band looped around a thigh' },
+    ],
+  },
+  {
+    title: 'Needs something to anchor to',
+    anchors: [
+      { value: 'anchor-low', label: 'Low point', hint: 'door base, post, heavy furniture' },
+      { value: 'anchor-mid', label: 'Mid point', hint: 'rail, handle, waist-height fixing' },
+      { value: 'anchor-high', label: 'High point', hint: 'bar, beam, top of a door' },
+      { value: 'low-bar', label: 'Waist-height bar', hint: 'picnic table, RV ladder, low branch' },
+      { value: 'pullup-bar', label: 'Pull-up bar', hint: 'takes your full hanging weight' },
+      { value: 'body-support', label: 'Bench or step', hint: 'something to dip or press off' },
+    ],
+  },
+];
 
 const ANCHOR_COUNT = ANCHOR_GROUPS.reduce((n, g) => n + g.anchors.length, 0);
 

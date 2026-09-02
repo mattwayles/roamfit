@@ -26,10 +26,7 @@ import * as schema from './schema';
 import { getSession } from './repositories/sessions';
 import { logSignalEvent } from './repositories/signals';
 import { buildUserProfile } from './repositories/users';
-import {
-  getAllProgressionStates,
-  upsertProgressionState,
-} from './repositories/progressionState';
+import { getAllProgressionStates, upsertProgressionState } from './repositories/progressionState';
 
 export type LevelUpOutcome =
   /** Advanced. `exerciseName` is the new rung's exercise, for the confirmation copy. */

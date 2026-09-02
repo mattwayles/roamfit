@@ -43,11 +43,7 @@ export default function AbandonSessionButton({
           >
             <Text style={styles.cancelButtonText}>Keep going</Text>
           </Pressable>
-          <Pressable
-            testID="abandon-confirm-yes"
-            style={styles.discardButton}
-            onPress={onConfirm}
-          >
+          <Pressable testID="abandon-confirm-yes" style={styles.discardButton} onPress={onConfirm}>
             <Text style={styles.discardButtonText}>Discard</Text>
           </Pressable>
         </View>
@@ -56,7 +52,11 @@ export default function AbandonSessionButton({
   }
 
   return (
-    <Pressable testID="abandon-button" style={styles.abandonButton} onPress={() => setConfirming(true)}>
+    <Pressable
+      testID="abandon-button"
+      style={styles.abandonButton}
+      onPress={() => setConfirming(true)}
+    >
       <Text style={styles.abandonButtonText}>{label}</Text>
     </Pressable>
   );

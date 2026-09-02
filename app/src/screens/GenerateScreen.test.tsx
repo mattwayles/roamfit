@@ -62,7 +62,10 @@ describe('§10.2 Generate screen', () => {
     'a %d minute request produces a session of about that length, not a 60-minute fallback',
     async (minutes) => {
       const { navigation, getDb } = renderScreen();
-      await waitFor(() => expect(screen.getByTestId(`chip-${minutes} min`)).toBeTruthy(), WAIT_OPTS);
+      await waitFor(
+        () => expect(screen.getByTestId(`chip-${minutes} min`)).toBeTruthy(),
+        WAIT_OPTS,
+      );
       fireEvent.press(screen.getByTestId(`chip-${minutes} min`));
       // Re-query after the state update: `handleGenerate` closes over `minutes`, so pressing a
       // button element captured before the chip press would run the stale closure.

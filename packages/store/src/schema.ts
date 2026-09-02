@@ -356,6 +356,10 @@ export const signalEvents = sqliteTable(
         // about a wrong starting level, and the natural feed for tuning the cold start later.
         // `signal_events.type` is plain TEXT (no CHECK constraint), so this needs no migration.
         'level_up_too_easy',
+        // §10.3 — the timed counterpart to rep_target_adjusted_at_approval. Payload:
+        // {entryId, exerciseId, fromDurationSec, toDurationSec}. `signal_events.type` is plain
+        // TEXT (no CHECK constraint), so adding this value needs no migration.
+        'duration_adjusted_at_approval',
       ],
     }).notNull(),
     /** JSON, shape depends on `type` — e.g. swap: {fromExerciseId, toExerciseId, atSetIndex}. */

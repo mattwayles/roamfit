@@ -211,9 +211,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   // TRAINED recency (ADR 0011) — the last session the user actually did. Compared against
   // `lastLevelChangeAt` below to decide whether a level-up is news, so an abandoned session must
   // not qualify: nobody levelled up by quitting.
-  const lastTrainedSession = [...userState.history]
-    .reverse()
-    .find((s) => s.status !== 'discarded');
+  const lastTrainedSession = [...userState.history].reverse().find((s) => s.status !== 'discarded');
   const mostRecentSessionDate = lastTrainedSession?.localDate;
 
   // SEEN recency (ADR 0010 + ADR 0011) — what the generator last put in front of the user,

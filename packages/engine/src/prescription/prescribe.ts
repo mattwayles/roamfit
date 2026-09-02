@@ -238,23 +238,41 @@ function parseFirstBand(band: string | null): BandId | null {
  * largest, until the session is back in budget or every entry is at the sets floor (1). A no-op
  * (returns the same entry) once `sets` is already 1.
  */
+/**
+ * §5.6 `estimatedSec` for an entry whose shape has changed — the one place that arithmetic lives,
+ * so a caller editing sets/reps/duration never re-derives it (CLAUDE.md invariant 2). Takes loose
+ * fields rather than a `SessionEntry` so the store can call it with a database row.
+ *
+ * A stale `estimatedSec` is not cosmetic: the approval screen's "~N min estimated" is a plain sum
+ * over this field, and §5.6's whole time budget is denominated in it.
+ */
+export function estimateEntrySec(params: {
+  sets: number;
+  repTarget?: number | null;
+  durationSec?: number | null;
+  restSec: number;
+  tempoSec: number;
+  unilateral: boolean;
+}): number {
+  return params.durationSec != null
+    ? timedExerciseSec({
+        sets: params.sets,
+        durationSec: params.durationSec,
+        restSec: params.restSec,
+        unilateral: params.unilateral,
+      })
+    : repExerciseSec({
+        sets: params.sets,
+        // AMRAP entries have no repTarget; 10 is a reasonable formula estimate.
+        reps: params.repTarget ?? 10,
+        tempoSec: params.tempoSec,
+        restSec: params.restSec,
+        unilateral: params.unilateral,
+      });
+}
+
 export function withOneFewerSet(entry: SessionEntry): SessionEntry {
   if (entry.sets <= 1) return entry;
   const sets = entry.sets - 1;
-  const isTimed = entry.durationSec !== undefined;
-  const estimatedSec = isTimed
-    ? timedExerciseSec({
-        sets,
-        durationSec: entry.durationSec!,
-        restSec: entry.restSec,
-        unilateral: entry.unilateral,
-      })
-    : repExerciseSec({
-        sets,
-        reps: entry.repTarget ?? 10, // AMRAP entries have no repTarget; 10 is a reasonable formula estimate
-        tempoSec: entry.tempoSec,
-        restSec: entry.restSec,
-        unilateral: entry.unilateral,
-      });
-  return { ...entry, sets, estimatedSec };
+  return { ...entry, sets, estimatedSec: estimateEntrySec({ ...entry, sets }) };
 }

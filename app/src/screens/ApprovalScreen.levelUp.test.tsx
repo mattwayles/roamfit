@@ -67,9 +67,9 @@ describe('ADR 0012 — level up from the approval screen', () => {
       expect(states[family.id].levelId).toBe(family.levels[0].level_id);
     }
 
-    const entry = sessionsRepo.getSession(db, sessionId)!.entries.find(
-      (e) => e.progressionFamilyId,
-    )!;
+    const entry = sessionsRepo
+      .getSession(db, sessionId)!
+      .entries.find((e) => e.progressionFamilyId)!;
     const familyId = entry.progressionFamilyId as ProgressionFamilyId;
     const family = familyLibrary.families.find((f) => f.id === familyId)!;
 
@@ -111,9 +111,9 @@ describe('ADR 0012 — level up from the approval screen', () => {
     );
     await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
     const sessionId = await createPendingSession(db);
-    const accessory = sessionsRepo.getSession(db, sessionId)!.entries.find(
-      (e) => !e.progressionFamilyId,
-    )!;
+    const accessory = sessionsRepo
+      .getSession(db, sessionId)!
+      .entries.find((e) => !e.progressionFamilyId)!;
 
     render(
       <StoreProvider>

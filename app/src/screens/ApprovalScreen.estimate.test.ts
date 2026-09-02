@@ -38,7 +38,10 @@ it('never re-multiplies by sets or re-adds rest (the 2.8x inflation bug)', () =>
 
 it('excludes entries removed at approval', () => {
   const withRemoved = {
-    entries: [...entries, { id: 'x', sets: 3, estimatedSec: 600, restSec: 60, entryStatus: 'removed_at_approval' }],
+    entries: [
+      ...entries,
+      { id: 'x', sets: 3, estimatedSec: 600, restSec: 60, entryStatus: 'removed_at_approval' },
+    ],
   } as unknown as SessionRecord;
   expect(estimateMinutes(withRemoved)).toBe(27);
 });

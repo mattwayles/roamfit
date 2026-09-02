@@ -100,7 +100,10 @@ describe('§10.4/§10.8 pause an active workout and navigate away', () => {
         />
       </StoreProvider>,
     );
-    await waitFor(() => expect(screen.getAllByTestId('timed-circle').length).toBeGreaterThan(0), WAIT_OPTS);
+    await waitFor(
+      () => expect(screen.getAllByTestId('timed-circle').length).toBeGreaterThan(0),
+      WAIT_OPTS,
+    );
     // Never auto-starts on resume either.
     expect(screen.getAllByTestId('timed-remaining')[0]).toHaveTextContent('Tap to start');
   }, 20000);

@@ -36,6 +36,17 @@ import AbandonSessionButton from '../components/AbandonSessionButton';
 type Props = NativeStackScreenProps<RootStackParamList, 'Approval'>;
 type Section = 'warmup' | 'main' | 'cooldown';
 
+/** `dy` is raw finger travel (what the dragged card follows); `toIndex` is that travel snapped
+ *  to a row position (what every other card reacts to). */
+interface DragState {
+  section: Section;
+  entryId: string;
+  fromIndex: number;
+  toIndex: number;
+  startY: number;
+  dy: number;
+}
+
 /**
  * §5.6 — `estimatedSec` is ALREADY the complete per-entry cost: `formulas.ts`'s
  * `repExerciseSec`/`timedExerciseSec` both return `sets × (work + rest) + setup`. The engine's own
@@ -69,6 +80,14 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   /** ADR 0012 — one-line result of the last "too easy" tap. Informational only: never blocks,
    *  never nags, and is replaced rather than stacked (invariant 4). */
   const [levelUpNotice, setLevelUpNotice] = useState<string | null>(null);
+  /** The in-flight drag, or null. `dy` is raw finger travel (what the dragged card follows);
+   *  `toIndex` is that travel snapped to a row position (what every other card reacts to). */
+  const [drag, setDrag] = useState<DragState | null>(null);
+  /** The authoritative drag, mirrored into state purely to trigger re-renders. Responder events
+   *  arrive faster than React commits, and the commit at drag end must not live inside a
+   *  `setState` updater — updaters have to be pure, and React may run one twice, which would
+   *  apply the reorder twice. */
+  const dragRef = React.useRef<DragState | null>(null);
 
   const reload = useCallback(() => {
     setSession(sessionsRepo.getSession(db, sessionId));
@@ -140,31 +159,77 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     reload();
   };
 
-  /** §10.3 re-order — section-scoped (warm-ups never move past main work; see
-   *  `reorderEntriesAtApproval`'s own doc comment). `direction` swaps the entry with its
-   *  immediate neighbor *within this section's currently-displayed list* — a no-op at either
-   *  boundary. Persisted via the store, never computed/invented here (ADR 0003 / issue #13); the
-   *  Workout screen picks up the new order for free the next time it reads `session.entries`
-   *  (already sorted by `orderIndex`), no separate wiring needed there. */
-  const handleMoveEntry = (
-    section: Section,
-    entry: sessionsRepo.SessionEntryRecord,
-    direction: -1 | 1,
-  ) => {
-    const list = bySection(section);
-    const index = list.findIndex((e) => e.id === entry.id);
-    const swapIndex = index + direction;
-    if (index === -1 || swapIndex < 0 || swapIndex >= list.length) return;
+  /** The timed counterpart. Steps in 5s rather than 1s — a hold is not meaningfully edited a
+   *  second at a time, and 5s matches the granularity the §5.4 effort table itself works in. */
+  const handleAdjustDuration = (entry: sessionsRepo.SessionEntryRecord, delta: number) => {
+    if (entry.durationSec == null) return;
+    const next = Math.max(5, entry.durationSec + delta);
+    sessionsRepo.adjustDurationAtApproval(db, entry.id, next, nowUtcInstant());
+    reload();
+  };
+
+  /**
+   * §10.3 re-order, by dragging. This is a phone: the previous ▲/▼ buttons cost two more controls
+   * on an already-overcrowded row to express something a drag says directly.
+   *
+   * Hand-rolled on core `PanResponder` rather than pulling in a draggable-list library, which
+   * would mean adding `react-native-reanimated` + `react-native-gesture-handler` — two native
+   * dependencies, and therefore an Expo dev-client rebuild before the app would launch at all.
+   * The interaction here is narrow enough not to justify that: a vertical drag, within one
+   * section, over fixed-height cards, so the target index is just travel distance / row pitch.
+   *
+   * Section-scoped for the same reason the buttons were (see `reorderEntriesAtApproval`): warm-ups
+   * never move past main work. `scrollEnabled` is switched off for the duration so the ScrollView
+   * doesn't fight the gesture.
+   */
+  const beginDrag = (section: Section, entryId: string, index: number, pageY: number) => {
+    const next = { section, entryId, fromIndex: index, toIndex: index, startY: pageY, dy: 0 };
+    dragRef.current = next;
+    setDrag(next);
+  };
+
+  const updateDrag = (pageY: number) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const dy = pageY - d.startY;
+    const count = bySection(d.section).length;
+    const toIndex = Math.min(
+      Math.max(d.fromIndex + Math.round(dy / CARD_PITCH), 0),
+      Math.max(count - 1, 0),
+    );
+    const next = { ...d, dy, toIndex };
+    dragRef.current = next;
+    setDrag(next);
+  };
+
+  const endDrag = () => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    setDrag(null);
+    if (!d || d.toIndex === d.fromIndex) return;
+    const list = bySection(d.section);
     const reordered = [...list];
-    [reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]];
+    const [moved] = reordered.splice(d.fromIndex, 1);
+    reordered.splice(d.toIndex, 0, moved);
     sessionsRepo.reorderEntriesAtApproval(
       db,
       sessionId,
-      section,
+      d.section,
       reordered.map((e) => e.id),
       nowUtcInstant(),
     );
     reload();
+  };
+
+  /** How far a card should slide to show where the dragged one will land: the dragged card
+   *  follows the finger, and every card it has passed shifts one pitch the other way. */
+  const dragDisplacement = (section: Section, index: number, entryId: string): number => {
+    if (!drag || drag.section !== section) return 0;
+    if (drag.entryId === entryId) return drag.dy;
+    const { fromIndex, toIndex } = drag;
+    if (fromIndex < toIndex && index > fromIndex && index <= toIndex) return -CARD_PITCH;
+    if (fromIndex > toIndex && index >= toIndex && index < fromIndex) return CARD_PITCH;
+    return 0;
   };
 
   /** §10.3 "add exercise" candidates — the same hard filters (§13.1/§13.2/§5.3) generation
@@ -254,98 +319,31 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} scrollEnabled={drag === null}>
       <Text style={styles.explanation}>{session.explanation}</Text>
       <Text style={styles.estimate}>~{estimateMinutes(session)} min estimated</Text>
 
       {(['warmup', 'main', 'cooldown'] as const).map((section) => (
         <View key={section} style={styles.sectionBlock}>
           <Text style={styles.sectionHeading}>{section}</Text>
-          {bySection(section).map((entry, index, list) => (
-            <View key={entry.id} style={styles.entryRow} testID={`entry-${entry.exerciseId}`}>
-              <View style={styles.reorderColumn}>
-                <Pressable
-                  testID={`move-up-${entry.exerciseId}`}
-                  style={[styles.reorderButton, index === 0 && styles.reorderButtonDisabled]}
-                  disabled={index === 0}
-                  onPress={() => handleMoveEntry(section, entry, -1)}
-                >
-                  <Text style={styles.reorderButtonText}>▲</Text>
-                </Pressable>
-                <Pressable
-                  testID={`move-down-${entry.exerciseId}`}
-                  style={[
-                    styles.reorderButton,
-                    index === list.length - 1 && styles.reorderButtonDisabled,
-                  ]}
-                  disabled={index === list.length - 1}
-                  onPress={() => handleMoveEntry(section, entry, 1)}
-                >
-                  <Text style={styles.reorderButtonText}>▼</Text>
-                </Pressable>
-              </View>
-              <View style={styles.entryInfo}>
-                <Text style={styles.entryName}>
-                  {library.exercises.find((e) => e.id === entry.exerciseId)?.name ??
-                    entry.exerciseId}
-                </Text>
-                <Text style={styles.entryDetail}>
-                  {entry.sets} × {entry.repTarget ?? `${entry.durationSec}s`}
-                  {entry.band ? ` · ${entry.band}` : ''} · rest {entry.restSec}s
-                </Text>
-              </View>
-              <View style={styles.entryActions}>
-                {entry.repTarget != null && (
-                  <>
-                    <Pressable
-                      testID={`reps-minus-${entry.exerciseId}`}
-                      style={styles.smallButton}
-                      onPress={() => handleAdjustRepTarget(entry, -1)}
-                    >
-                      <Text style={styles.smallButtonText}>reps−</Text>
-                    </Pressable>
-                    <Pressable
-                      testID={`reps-plus-${entry.exerciseId}`}
-                      style={styles.smallButton}
-                      onPress={() => handleAdjustRepTarget(entry, 1)}
-                    >
-                      <Text style={styles.smallButtonText}>reps+</Text>
-                    </Pressable>
-                  </>
-                )}
-                <Pressable
-                  testID={`sets-minus-${entry.exerciseId}`}
-                  style={styles.smallButton}
-                  onPress={() => handleAdjustSets(entry, -1)}
-                >
-                  <Text style={styles.smallButtonText}>−</Text>
-                </Pressable>
-                <Pressable
-                  testID={`sets-plus-${entry.exerciseId}`}
-                  style={styles.smallButton}
-                  onPress={() => handleAdjustSets(entry, 1)}
-                >
-                  <Text style={styles.smallButtonText}>+</Text>
-                </Pressable>
-                {/* ADR 0012 — only laddered entries have a level to move. */}
-                {entry.progressionFamilyId != null && (
-                  <Pressable
-                    testID={`level-up-${entry.exerciseId}`}
-                    style={[styles.smallButton, styles.levelUpButton]}
-                    onPress={() => handleLevelUp(entry)}
-                  >
-                    <Text style={styles.smallButtonText}>too easy ▲</Text>
-                  </Pressable>
-                )}
-                <Pressable
-                  testID={`remove-${entry.exerciseId}`}
-                  style={[styles.smallButton, styles.removeButton]}
-                  onPress={() => handleRemove(entry)}
-                >
-                  <Text style={styles.smallButtonText}>✕</Text>
-                </Pressable>
-              </View>
-            </View>
+          {bySection(section).map((entry, index) => (
+            <EntryCard
+              key={entry.id}
+              entry={entry}
+              exerciseName={
+                library.exercises.find((e) => e.id === entry.exerciseId)?.name ?? entry.exerciseId
+              }
+              dragging={drag?.section === section && drag.entryId === entry.id}
+              displacement={dragDisplacement(section, index, entry.id)}
+              onDragStart={(y) => beginDrag(section, entry.id, index, y)}
+              onDragMove={updateDrag}
+              onDragEnd={endDrag}
+              onAdjustSets={(d) => handleAdjustSets(entry, d)}
+              onAdjustRepTarget={(d) => handleAdjustRepTarget(entry, d)}
+              onAdjustDuration={(d) => handleAdjustDuration(entry, d)}
+              onLevelUp={entry.progressionFamilyId != null ? () => handleLevelUp(entry) : undefined}
+              onRemove={() => handleRemove(entry)}
+            />
           ))}
 
           {addingSection === section ? (
@@ -406,7 +404,267 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   );
 }
 
+/** Fixed so a drag can compute a target index from travel distance without measuring every row.
+ *  The card's own content is laid out to fit exactly this height. */
+const CARD_HEIGHT = 132;
+const CARD_GAP = 8;
+/** Exported so a test can express a drag in rows rather than hardcoding a pixel count. */
+export const CARD_PITCH = CARD_HEIGHT + CARD_GAP;
+
+/** One editable exercise in the plan.
+ *
+ * Replaces a single cramped horizontal row that packed a reorder column, the name, the detail
+ * line and up to six buttons across one line — the name was squeezed to a couple of characters
+ * and every button label was clipped ("reps−" rendered as "reps", "too easy ▲" as "too e").
+ * Controls now sit on their own lines below the name, each stepper labelled with what it changes
+ * and showing its current value, so nothing depends on a label that might not fit.
+ */
+function EntryCard({
+  entry,
+  exerciseName,
+  dragging,
+  displacement,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
+  onAdjustSets,
+  onAdjustRepTarget,
+  onAdjustDuration,
+  onLevelUp,
+  onRemove,
+}: {
+  entry: sessionsRepo.SessionEntryRecord;
+  exerciseName: string;
+  dragging: boolean;
+  displacement: number;
+  onDragStart: (pageY: number) => void;
+  onDragMove: (pageY: number) => void;
+  onDragEnd: () => void;
+  onAdjustSets: (delta: number) => void;
+  onAdjustRepTarget: (delta: number) => void;
+  onAdjustDuration: (delta: number) => void;
+  onLevelUp?: () => void;
+  onRemove: () => void;
+}): React.JSX.Element {
+  const isTimed = entry.durationSec != null;
+
+  return (
+    <View
+      testID={`entry-${entry.exerciseId}`}
+      style={[
+        styles.card,
+        dragging && styles.cardDragging,
+        displacement !== 0 && { transform: [{ translateY: displacement }] },
+      ]}
+    >
+      <View style={styles.cardHeader}>
+        <View
+          testID={`drag-handle-${entry.exerciseId}`}
+          accessibilityRole="adjustable"
+          accessibilityLabel={`Reorder ${exerciseName}`}
+          style={styles.dragHandle}
+          // The raw responder props rather than `PanResponder`: all this gesture needs is
+          // `pageY`, and PanResponder would add a gestureState layer we do not use plus its own
+          // touch-history bookkeeping, which makes the handle far harder to drive from a test.
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          onResponderGrant={(e) => onDragStart(e.nativeEvent.pageY)}
+          onResponderMove={(e) => onDragMove(e.nativeEvent.pageY)}
+          onResponderRelease={onDragEnd}
+          onResponderTerminate={onDragEnd}
+        >
+          <Text style={styles.dragHandleText}>⠿</Text>
+        </View>
+        <View style={styles.cardTitleBlock}>
+          <Text style={styles.entryName} numberOfLines={2}>
+            {exerciseName}
+          </Text>
+          <Text style={styles.entryDetail}>
+            {entry.band ? `${entry.band} · ` : ''}rest {entry.restSec}s
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.stepperRow}>
+        <Stepper
+          label="Sets"
+          value={String(entry.sets)}
+          minusTestID={`sets-minus-${entry.exerciseId}`}
+          plusTestID={`sets-plus-${entry.exerciseId}`}
+          onMinus={() => onAdjustSets(-1)}
+          onPlus={() => onAdjustSets(1)}
+        />
+        {isTimed ? (
+          <Stepper
+            label="Time"
+            value={`${entry.durationSec}s`}
+            minusTestID={`duration-minus-${entry.exerciseId}`}
+            plusTestID={`duration-plus-${entry.exerciseId}`}
+            onMinus={() => onAdjustDuration(-5)}
+            onPlus={() => onAdjustDuration(5)}
+          />
+        ) : entry.repTarget != null ? (
+          <Stepper
+            label="Reps"
+            value={String(entry.repTarget)}
+            minusTestID={`reps-minus-${entry.exerciseId}`}
+            plusTestID={`reps-plus-${entry.exerciseId}`}
+            onMinus={() => onAdjustRepTarget(-1)}
+            onPlus={() => onAdjustRepTarget(1)}
+          />
+        ) : (
+          <View style={styles.stepper} />
+        )}
+      </View>
+
+      <View style={styles.cardActions}>
+        {/* ADR 0012 — only laddered entries have a level to move. */}
+        {onLevelUp != null ? (
+          <Pressable
+            testID={`level-up-${entry.exerciseId}`}
+            style={[styles.wideButton, styles.levelUpButton]}
+            onPress={onLevelUp}
+          >
+            <Text style={styles.levelUpButtonText} numberOfLines={1}>
+              Too easy — level up
+            </Text>
+          </Pressable>
+        ) : (
+          <View style={styles.wideButtonSpacer} />
+        )}
+        <Pressable
+          testID={`remove-${entry.exerciseId}`}
+          style={[styles.wideButton, styles.removeButton]}
+          onPress={onRemove}
+        >
+          <Text style={styles.removeButtonText} numberOfLines={1}>
+            Remove
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+/** A labelled −/value/+ group. The old buttons carried the label *inside* them ("reps−"), which
+ *  clipped; the label now sits above and the buttons carry only the glyph, which always fits. */
+function Stepper({
+  label,
+  value,
+  minusTestID,
+  plusTestID,
+  onMinus,
+  onPlus,
+}: {
+  label: string;
+  value: string;
+  minusTestID: string;
+  plusTestID: string;
+  onMinus: () => void;
+  onPlus: () => void;
+}): React.JSX.Element {
+  return (
+    <View style={styles.stepper}>
+      <Text style={styles.stepperLabel}>{label}</Text>
+      <View style={styles.stepperControls}>
+        <Pressable
+          testID={minusTestID}
+          accessibilityRole="button"
+          accessibilityLabel={`Decrease ${label.toLowerCase()}`}
+          style={styles.stepperButton}
+          onPress={onMinus}
+        >
+          <Text style={styles.stepperButtonText}>−</Text>
+        </Pressable>
+        <Text style={styles.stepperValue}>{value}</Text>
+        <Pressable
+          testID={plusTestID}
+          accessibilityRole="button"
+          accessibilityLabel={`Increase ${label.toLowerCase()}`}
+          style={styles.stepperButton}
+          onPress={onPlus}
+        >
+          <Text style={styles.stepperButtonText}>+</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  card: {
+    height: CARD_HEIGHT,
+    borderRadius: 14,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    justifyContent: 'space-between',
+  },
+  cardDragging: {
+    backgroundColor: '#fff',
+    borderColor: '#94a3b8',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+    zIndex: 10,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  dragHandle: {
+    width: 32,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -6,
+  },
+  dragHandleText: { fontSize: 20, color: '#94a3b8' },
+  cardTitleBlock: { flex: 1, paddingTop: 2 },
+  entryName: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
+  entryDetail: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  stepperRow: { flexDirection: 'row', gap: 10 },
+  stepper: { flex: 1 },
+  stepperLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  stepperControls: { flexDirection: 'row', alignItems: 'center' },
+  stepperButton: {
+    width: 40,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperButtonText: { fontSize: 20, fontWeight: '700', color: '#334155', lineHeight: 24 },
+  stepperValue: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  cardActions: { flexDirection: 'row', gap: 8 },
+  wideButton: {
+    flex: 1,
+    minHeight: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  wideButtonSpacer: { flex: 1 },
+  levelUpButton: { backgroundColor: '#dbeafe' },
+  levelUpButtonText: { fontSize: 13, fontWeight: '600', color: '#1d4ed8' },
+  removeButton: { backgroundColor: '#fee2e2' },
+  removeButtonText: { fontSize: 13, fontWeight: '600', color: '#b91c1c' },
+
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { padding: 20, gap: 16 },
   explanation: { fontSize: 15, color: '#334155', lineHeight: 20 },
@@ -418,39 +676,6 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textTransform: 'uppercase',
   },
-  entryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#f1f5f9',
-    borderRadius: 12,
-    padding: 12,
-  },
-  reorderColumn: { gap: 2 },
-  reorderButton: {
-    width: 28,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: '#e2e8f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reorderButtonDisabled: { opacity: 0.3 },
-  reorderButtonText: { fontSize: 11, fontWeight: '700', color: '#334155' },
-  entryInfo: { flex: 1, gap: 2 },
-  entryName: { fontSize: 15, fontWeight: '600', color: '#0f172a' },
-  entryDetail: { fontSize: 13, color: '#64748b' },
-  entryActions: { flexDirection: 'row', gap: 6 },
-  smallButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#e2e8f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  removeButton: { backgroundColor: '#fecaca' },
-  levelUpButton: { backgroundColor: '#dbeafe' },
   levelUpNotice: { paddingHorizontal: 16, paddingBottom: 8, color: '#1d4ed8', fontSize: 13 },
   addExerciseButton: {
     borderRadius: 10,
@@ -478,7 +703,6 @@ const styles = StyleSheet.create({
   addOptionText: { fontSize: 14, color: '#0f172a' },
   addCancel: { alignItems: 'center', paddingVertical: 6 },
   addCancelText: { color: '#64748b', fontWeight: '600' },
-  smallButtonText: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
   regenerateButton: {
     borderRadius: 14,
     padding: 14,

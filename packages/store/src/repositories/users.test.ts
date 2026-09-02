@@ -71,7 +71,11 @@ describe('notificationPrefs — shallow merge, not replace', () => {
         .where(eq(schema.users.id, 'local'))
         .run();
 
-      updateUser(db, { notificationPrefs: { quietHoursEnabled: false } }, utcInstantFor('2026-08-02'));
+      updateUser(
+        db,
+        { notificationPrefs: { quietHoursEnabled: false } },
+        utcInstantFor('2026-08-02'),
+      );
 
       const raw = db.select().from(schema.users).where(eq(schema.users.id, 'local')).all()[0];
       const stored = JSON.parse(raw.notificationPrefs) as Record<string, unknown>;

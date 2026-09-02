@@ -160,7 +160,13 @@ describe('long targets (ADR 0013)', () => {
 
   it('a comeback cut still lightens a long session rather than being overridden by it', () => {
     // The two multipliers compose: 0.8 (§9.4) x 2 (ADR 0013) < 2.
-    const yesterday = { localDate: '2026-07-01', focus: 'full', effort: 'normal', status: 'completed', entries: [] };
+    const yesterday = {
+      localDate: '2026-07-01',
+      focus: 'full',
+      effort: 'normal',
+      status: 'completed',
+      entries: [],
+    };
     const withGap = generateSession({
       library: exerciseLibrary,
       families: familyLibrary,

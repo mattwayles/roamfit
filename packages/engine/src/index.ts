@@ -70,6 +70,7 @@ export type { SwapSlotRequest, SwapAlternative } from './selection/swap';
 // plan still has to go through the engine's own accessory-prescription formula rather than have
 // `app/`/`packages/store` invent sets/reps/rest by hand.
 export {
+  estimateEntrySec,
   prescribeAccessory,
   prescribeLaddered,
   prescribeWarmupCooldown,

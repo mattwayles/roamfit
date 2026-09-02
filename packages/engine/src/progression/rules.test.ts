@@ -205,12 +205,18 @@ describe('levelUpForTooEasy (ADR 0012)', () => {
 
   it('preserves the calibrating flag either way', () => {
     expect(
-      levelUpForTooEasy(stateAt('horizontal_push.l1', { calibrating: true }), horizontalPush, library)!
-        .state.calibrating,
+      levelUpForTooEasy(
+        stateAt('horizontal_push.l1', { calibrating: true }),
+        horizontalPush,
+        library,
+      )!.state.calibrating,
     ).toBe(true);
     expect(
-      levelUpForTooEasy(stateAt('horizontal_push.l1', { calibrating: false }), horizontalPush, library)!
-        .state.calibrating,
+      levelUpForTooEasy(
+        stateAt('horizontal_push.l1', { calibrating: false }),
+        horizontalPush,
+        library,
+      )!.state.calibrating,
     ).toBe(false);
   });
 

@@ -62,7 +62,12 @@ describe('warm-up variety for a shoulder_overhead limitation (issue #33, track 6
   });
 
   it('the new shoulder-safe warmups authored for this track survive the shoulder_overhead hard filter', () => {
-    const newIds = ['wu-scap-push-up', 'wu-band-external-rotation', 'wu-thread-the-needle', 'wu-band-row'];
+    const newIds = [
+      'wu-scap-push-up',
+      'wu-band-external-rotation',
+      'wu-thread-the-needle',
+      'wu-band-row',
+    ];
     for (const id of newIds) {
       const ex = exerciseLibrary.exercises.find((e) => e.id === id);
       expect(ex).toBeDefined();
@@ -77,7 +82,12 @@ describe('warm-up variety for a shoulder_overhead limitation (issue #33, track 6
   });
 
   it('at least one new warmup also survives a shoulder_horizontal limitation', () => {
-    const newIds = ['wu-scap-push-up', 'wu-band-external-rotation', 'wu-thread-the-needle', 'wu-band-row'];
+    const newIds = [
+      'wu-scap-push-up',
+      'wu-band-external-rotation',
+      'wu-thread-the-needle',
+      'wu-band-row',
+    ];
     const survivesBoth = newIds.filter((id) => {
       const ex = exerciseLibrary.exercises.find((e) => e.id === id);
       return !!ex && !ex.contraindications.includes('shoulder_horizontal');
