@@ -20,23 +20,29 @@ their micro-state is seeded and advanced against a **bodyweight** one:
 - The dashboard names the rung "Bench Dip" for users who will never be shown one.
 
 ### Done
-- [x] Probe across all families for anchors that are not default-available (see gotchas) — no commit,
-      analysis only.
+- [x] Probe across all families for anchors that are not default-available (see gotchas) — analysis
+      only, no commit.
+- [x] `packages/engine/src/progression/micro.ts` — the band branch now tolerates
+      `micro.band === null` by falling back to the exercise's lightest authored band, in
+      `microAdvance`, `microRegress`, `isAtBottomMicroStep` and `reconcileMicroToObservedBand`.
+      This is the migration guard: without it, an existing user already sitting at
+      `vertical_push.l4` with a bodyweight-shaped `micro` (band `null`) would, the moment the anchor
+      became a band exercise, skip the whole B2→B3 ladder on their next advance and drop a level
+      early on a miss. — 3f2d3b0
+- [x] `packages/data/library/families.json` — `vertical_push.l4.anchor_exercise_id` is now
+      `banded-push-press`; `bw-dip` stays in `exercise_ids` as a sibling. Tripwire added to
+      `packages/engine/src/progression/ladder.test.ts` (verified to fail on the old anchor before
+      being committed green). — 76bd6a9
+- [x] `docs/BACKLOG.md` — the two rungs with the identical defect parked under Desired Fixes.
 
 ### In progress
-- Increment 1: `packages/engine/src/progression/micro.ts` — make the band branch tolerate
-  `micro.band === null` by falling back to the exercise's lightest authored band, in
-  `microAdvance`, `microRegress`, `isAtBottomMicroStep` and `reconcileMicroToObservedBand`.
-  This is the migration guard: without it, an existing user already sitting at `vertical_push.l4`
-  with a bodyweight-shaped `micro` (band `null`) would, the moment the anchor becomes a band
-  exercise, skip the whole B2→B3 ladder on their next advance and drop a level early on a miss.
+- Nothing. The track is complete: `npm run check` and `npm run validate:library` both pass.
 
 ### Next
-- Increment 2: `packages/data/library/families.json` — `vertical_push.l4.anchor_exercise_id`
-  becomes `banded-push-press`. `bw-dip` stays in `exercise_ids` as a sibling for users who do have
-  a bench or step. Re-run `npm run validate:library`.
-- Increment 3: prune the `vertical_push.l4` line from `docs/BACKLOG.md` and park the two rungs with
-  the identical defect (see gotchas) as their own item.
+- Device verification is owed, as for every content change: no one has seen `vertical_push.l4`
+  render as "Banded Push Press" on a real phone.
+- The two remaining rungs in the tripwire's known-broken list, if wanted — deliberately out of
+  scope here.
 
 ### Decisions / gotchas
 - **`bw-dip`'s own `anchor: body-support` / `anchor_class: bodyweight_bearing` tagging is correct
