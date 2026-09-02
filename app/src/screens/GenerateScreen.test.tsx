@@ -51,11 +51,60 @@ function renderScreen() {
 }
 
 describe('§10.2 Generate screen', () => {
-  it('offers 90 and 120 minute chips', async () => {
+  it('offers every length, 90 and 120 included, in one scrolling picker', async () => {
     renderScreen();
-    await waitFor(() => expect(screen.getByTestId('chip-15 min')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.getByTestId('chip-90 min')).toBeTruthy();
-    expect(screen.getByTestId('chip-120 min')).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
+    for (const minutes of [15, 20, 30, 45, 60, 90, 120]) {
+      expect(screen.getByTestId(`time-picker-option-${minutes}`)).toBeTruthy();
+    }
+  });
+
+  it('renders Focus and Effort as pickers too, with human labels', async () => {
+    renderScreen();
+    await waitFor(() => expect(screen.getByTestId('focus-picker')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByTestId('effort-picker')).toBeTruthy();
+    // Labels, not raw enum values.
+    expect(screen.getByTestId('focus-picker-option-full')).toBeTruthy();
+    expect(screen.getByText('Full body')).toBeTruthy();
+    expect(screen.getByText('Core')).toBeTruthy();
+    expect(screen.getByText('Normal')).toBeTruthy();
+    expect(screen.queryByText('abs')).toBeNull();
+  });
+
+  it('scrolling the picker selects whatever settles under the centre', async () => {
+    const { navigation, getDb } = renderScreen();
+    await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
+
+    // Index 3 is 45 min; the snap interval is the item width plus its gap (96 + 8).
+    fireEvent(screen.getByTestId('time-picker'), 'momentumScrollEnd', {
+      nativeEvent: { contentOffset: { x: 3 * 104, y: 0 } },
+    });
+    await waitFor(() => expect(screen.getByTestId('generate-button')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('generate-button'));
+
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalled(), WAIT_OPTS);
+    const { sessionId } = navigation.replace.mock.calls[0][1] as { sessionId: string };
+    expect(sessionsRepo.getSession(getDb(), sessionId)!.targetMinutes).toBe(45);
+  });
+
+  it('the recovery-week option shows an unticked checkbox until it is chosen', async () => {
+    renderScreen();
+    await waitFor(() => expect(screen.getByTestId('recovery-week-toggle')).toBeTruthy(), WAIT_OPTS);
+
+    const toggle = screen.getByTestId('recovery-week-toggle');
+    expect(toggle.props.accessibilityState.checked).toBe(false);
+    // The label no longer has to carry the state on its own — it stays constant either way.
+    expect(screen.getByText('Make this a recovery week')).toBeTruthy();
+    expect(screen.getByTestId('recovery-week-checkbox').props.children).toBe('');
+
+    fireEvent.press(toggle);
+    await waitFor(() => {
+      expect(screen.getByTestId('recovery-week-toggle').props.accessibilityState.checked).toBe(
+        true,
+      );
+      expect(screen.getByTestId('recovery-week-checkbox').props.children).toBe('\u2713');
+    }, WAIT_OPTS);
+    expect(screen.getByText('Make this a recovery week')).toBeTruthy();
   });
 
   it.each([90, 120])(
@@ -63,12 +112,12 @@ describe('§10.2 Generate screen', () => {
     async (minutes) => {
       const { navigation, getDb } = renderScreen();
       await waitFor(
-        () => expect(screen.getByTestId(`chip-${minutes} min`)).toBeTruthy(),
+        () => expect(screen.getByTestId(`time-picker-option-${minutes}`)).toBeTruthy(),
         WAIT_OPTS,
       );
-      fireEvent.press(screen.getByTestId(`chip-${minutes} min`));
+      fireEvent.press(screen.getByTestId(`time-picker-option-${minutes}`));
       // Re-query after the state update: `handleGenerate` closes over `minutes`, so pressing a
-      // button element captured before the chip press would run the stale closure.
+      // button element captured before the option press would run the stale closure.
       await waitFor(() => expect(screen.getByTestId('generate-button')).toBeTruthy(), WAIT_OPTS);
       fireEvent.press(screen.getByTestId('generate-button'));
 

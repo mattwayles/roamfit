@@ -21,20 +21,33 @@ import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { getNetworkStatus } from '../lib/networkStatus';
+import OptionPicker from '../components/OptionPicker';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Generate'>;
 
 const TIME_OPTIONS = [15, 20, 30, 45, 60, 90, 120]; // ADR 0002 floor, ADR 0013 ceiling
 const FOCUS_OPTIONS: Focus[] = ['upper', 'abs', 'legs', 'full'];
+const FOCUS_LABELS: Record<Focus, string> = {
+  upper: 'Upper',
+  abs: 'Core',
+  legs: 'Legs',
+  full: 'Full body',
+};
 const EFFORT_OPTIONS: Effort[] = ['easy', 'normal', 'hard'];
+const EFFORT_LABELS: Record<Effort, string> = {
+  easy: 'Easy',
+  normal: 'Normal',
+  hard: 'Hard',
+};
 /**
  * §5.3 anchors, as a grouped checklist rather than a wrap of ten chips.
  *
  * Three problems with the old presentation, all fixed here:
  *  - the labels were raw enum values (`self-low`, `thigh-loop`, `anchor-mid`), which mean nothing
  *    to a user standing in a car park deciding what they can tie a band to;
- *  - multi-select chips looked identical to the single-select Time/Focus/Effort chips above, so
- *    nothing signalled that these behave differently;
+ *  - multi-select chips looked identical to the single-select Time/Focus/Effort controls above,
+ *    so nothing signalled that these behave differently (those are now scrolling pickers, which
+ *    separates the two kinds of choice further still);
  *  - `low-bar` was missing entirely. It is in `DEFAULT_ANCHORS_AVAILABLE` (ADR 0007), so every
  *    user has it enabled and nobody could turn it off.
  *
@@ -148,11 +161,13 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.sectionLabel}>Time</Text>
-      <View style={styles.chipRow}>
-        {TIME_OPTIONS.map((m) => (
-          <Chip key={m} label={`${m} min`} selected={m === minutes} onPress={() => setMinutes(m)} />
-        ))}
-      </View>
+      <OptionPicker
+        testID="time-picker"
+        accessibilityLabel="Session length"
+        options={TIME_OPTIONS.map((m) => ({ value: m, label: `${m} min` }))}
+        value={minutes}
+        onChange={setMinutes}
+      />
 
       <Text style={styles.sectionLabel}>Anchors</Text>
       <Pressable
@@ -198,28 +213,45 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
         ))}
 
       <Text style={styles.sectionLabel}>Focus</Text>
-      <View style={styles.chipRow}>
-        {FOCUS_OPTIONS.map((f) => (
-          <Chip key={f} label={f} selected={f === focus} onPress={() => setFocus(f)} />
-        ))}
-      </View>
+      <OptionPicker
+        testID="focus-picker"
+        accessibilityLabel="Focus"
+        options={FOCUS_OPTIONS.map((f) => ({ value: f, label: FOCUS_LABELS[f] }))}
+        value={focus}
+        onChange={setFocus}
+      />
 
       <Text style={styles.sectionLabel}>Effort</Text>
-      <View style={styles.chipRow}>
-        {EFFORT_OPTIONS.map((e) => (
-          <Chip key={e} label={e} selected={e === effort} onPress={() => setEffort(e)} />
-        ))}
-      </View>
+      <OptionPicker
+        testID="effort-picker"
+        accessibilityLabel="Effort"
+        options={EFFORT_OPTIONS.map((e) => ({ value: e, label: EFFORT_LABELS[e] }))}
+        value={effort}
+        onChange={setEffort}
+      />
 
+      {/* A checkbox, not a card that changes its own label: with only the wording to go on it was
+          not obvious this was an option you had *not* taken. The box states that directly. */}
       <Pressable
         testID="recovery-week-toggle"
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: recoveryWeek }}
+        accessibilityLabel="Make this a recovery week"
         style={[styles.recoveryToggle, recoveryWeek && styles.recoveryToggleOn]}
         onPress={() => setRecoveryWeek((v) => !v)}
       >
-        <Text style={[styles.recoveryToggleText, recoveryWeek && styles.recoveryToggleTextOn]}>
-          {recoveryWeek ? 'Recovery week — on' : 'Make this a recovery week'}
+        <Text
+          testID="recovery-week-checkbox"
+          style={[styles.checkbox, recoveryWeek && styles.checkboxOn]}
+        >
+          {recoveryWeek ? '\u2713' : ''}
         </Text>
-        <Text style={styles.recoveryToggleSubtitle}>Lighter loads, same consistency.</Text>
+        <View style={styles.recoveryToggleLabels}>
+          <Text style={[styles.recoveryToggleText, recoveryWeek && styles.recoveryToggleTextOn]}>
+            Make this a recovery week
+          </Text>
+          <Text style={styles.recoveryToggleSubtitle}>Lighter loads, same consistency.</Text>
+        </View>
       </Pressable>
 
       <Pressable
@@ -238,30 +270,9 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
   );
 }
 
-function Chip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}): React.JSX.Element {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.chip, selected && styles.chipSelected]}
-      testID={`chip-${label}`}
-    >
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { padding: 20, gap: 12 },
   sectionLabel: { fontSize: 13, fontWeight: '700', color: '#64748b', marginTop: 12 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   disclosure: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -305,24 +316,16 @@ const styles = StyleSheet.create({
   anchorLabels: { flex: 1 },
   anchorLabel: { fontSize: 15, color: '#0f172a' },
   anchorHint: { fontSize: 12, color: '#64748b' },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#e2e8f0',
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  chipSelected: { backgroundColor: '#111' },
-  chipText: { color: '#334155', fontWeight: '600' },
-  chipTextSelected: { color: '#fff' },
   recoveryToggle: {
     marginTop: 16,
     borderRadius: 14,
     padding: 14,
     backgroundColor: '#f1f5f9',
-    gap: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
+  recoveryToggleLabels: { flex: 1, gap: 2 },
   recoveryToggleOn: { backgroundColor: '#e0f2fe' },
   recoveryToggleText: { fontSize: 14, fontWeight: '700', color: '#334155' },
   recoveryToggleTextOn: { color: '#0369a1' },
