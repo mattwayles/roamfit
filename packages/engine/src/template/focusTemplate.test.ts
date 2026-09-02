@@ -1,5 +1,10 @@
 import { exerciseLibrary } from '@roamfit/data';
-import { buildFocusTemplate, buildQuickSessionTemplate } from './focusTemplate';
+import {
+  accessoryRotationOffset,
+  buildFocusTemplate,
+  buildQuickSessionTemplate,
+  expandOptionalSlots,
+} from './focusTemplate';
 import type { SessionHistoryRecord } from '../types';
 
 const lib = exerciseLibrary.exercises;
@@ -127,5 +132,58 @@ describe('§5.5 focus templates', () => {
       history: noHistory,
     });
     expect(slots.length).toBeLessThanOrEqual(3);
+  });
+});
+
+// ADR 0010 — the appended accessory slot used to always be ACCESSORY_PATTERNS_BY_FOCUS[focus][0],
+// so a 30-minute full-body session ended with a curl every single time.
+describe('accessory slot rotation (ADR 0010)', () => {
+  const base = () =>
+    buildFocusTemplate({
+      focus: 'full',
+      targetMinutes: 30,
+      effort: 'normal',
+      library: lib,
+      history: noHistory,
+    });
+
+  function extraPatterns(offset: number): string[] {
+    // 30 minutes allows 6 main exercises; the full template supplies 5, so exactly one is added.
+    return expandOptionalSlots(base(), 'full', 6, offset)
+      .slots.filter((s) => s.id.startsWith('full.extra.'))
+      .flatMap((s) => s.patterns);
+  }
+
+  it('appends exactly one extra slot at a 30-minute target', () => {
+    expect(extraPatterns(0)).toHaveLength(1);
+  });
+
+  it('advances the appended pattern as the offset advances, covering the whole list', () => {
+    const seen = new Set<string>();
+    for (let offset = 0; offset < 9; offset++) seen.add(extraPatterns(offset)[0]);
+    expect(seen.size).toBe(9); // every accessory pattern `full` can draw from
+    expect(seen.has('elbow_flexion')).toBe(true);
+  });
+
+  it('wraps rather than running off the end of the pattern list', () => {
+    expect(extraPatterns(9)).toEqual(extraPatterns(0));
+    expect(extraPatterns(19)).toEqual(extraPatterns(1));
+  });
+
+  it('defaults to the old offset-0 behavior when no offset is given', () => {
+    const withoutArg = expandOptionalSlots(base(), 'full', 6)
+      .slots.filter((s) => s.id.startsWith('full.extra.'))
+      .flatMap((s) => s.patterns);
+    expect(withoutArg).toEqual(extraPatterns(0));
+  });
+
+  it('counts only non-discarded sessions of the same focus', () => {
+    const history = [
+      { focus: 'full', status: 'completed', entries: [] },
+      { focus: 'full', status: 'discarded', entries: [] }, // abandoned: never happened (§5.2)
+      { focus: 'upper', status: 'completed', entries: [] }, // different focus
+      { focus: 'full', status: 'completed', entries: [] },
+    ] as unknown as SessionHistoryRecord[];
+    expect(accessoryRotationOffset(history, 'full')).toBe(2);
   });
 });

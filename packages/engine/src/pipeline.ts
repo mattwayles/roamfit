@@ -19,6 +19,7 @@ import { applyHardFilters } from './filters/hardFilters';
 import {
   buildFocusTemplate,
   buildQuickSessionTemplate,
+  accessoryRotationOffset,
   expandOptionalSlots,
 } from './template/focusTemplate';
 import type { TemplateSlot } from './template/focusTemplate';
@@ -157,7 +158,12 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       });
   const template = isQuick
     ? baseTemplate
-    : expandOptionalSlots(baseTemplate, focus, mainExerciseCountRange(targetMinutes)[1]);
+    : expandOptionalSlots(
+        baseTemplate,
+        focus,
+        mainExerciseCountRange(targetMinutes)[1],
+        accessoryRotationOffset(userState.history, focus),
+      );
 
   const recoveryMuscles = recentHardMuscles(
     userState.history,

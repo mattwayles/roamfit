@@ -174,18 +174,40 @@ export function expandOptionalSlots(
   base: FocusTemplateResult,
   focus: Focus,
   maxSlots: number,
+  /**
+   * Where to start the accessory-pattern cycle (ADR 0010). This used to be hardcoded to 0, which
+   * meant a template with room for exactly one extra slot — a 30-minute full-body session, say —
+   * always appended `ACCESSORY_PATTERNS_BY_FOCUS[focus][0]`, so every such workout ended with a
+   * curl. Advancing the offset per session rotates that slot through the whole accessory list.
+   *
+   * A history-derived rotation rather than an RNG draw, matching how `alternate()` already works
+   * above: it guarantees even coverage where a draw can repeat the same pattern three sessions
+   * running, and it keeps template building free of ambient randomness.
+   */
+  startOffset = 0,
 ): FocusTemplateResult {
   const patterns = ACCESSORY_PATTERNS_BY_FOCUS[focus];
   if (!patterns || patterns.length === 0) return base;
   const slots = [...base.slots];
   const ceiling = Math.min(maxSlots, EXPANSION_HARD_CAP);
+  const offset = ((Math.trunc(startOffset) % patterns.length) + patterns.length) % patterns.length;
   let i = 0;
   while (slots.length < ceiling) {
-    const pattern = patterns[i % patterns.length];
+    const pattern = patterns[(offset + i) % patterns.length];
     slots.push({ id: `${focus}.extra.${i}`, patterns: [pattern], required: false });
     i++;
   }
   return { slots, leadPattern: base.leadPattern };
+}
+
+/** How many non-discarded sessions of this focus the user has behind them — the rotation counter
+ *  for `expandOptionalSlots`. Discarded sessions never happened (§5.2), so abandoning a workout
+ *  does not advance the accessory rotation, exactly as it does not advance `alternate()`. */
+export function accessoryRotationOffset(
+  history: readonly SessionHistoryRecord[],
+  focus: Focus,
+): number {
+  return history.filter((s) => s.focus === focus && s.status !== 'discarded').length;
 }
 
 export interface BuildTemplateInput {
