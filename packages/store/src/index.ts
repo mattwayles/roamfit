@@ -8,6 +8,7 @@ export * from './dates';
 export * from './migrate';
 export * from './generation';
 export * from './completion';
+export * from './levelUp';
 export * from './llmQueueWorker';
 export * from './deviceQueueWorker';
 export * from './sync/lastWriteWins';

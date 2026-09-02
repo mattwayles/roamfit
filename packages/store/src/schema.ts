@@ -350,6 +350,12 @@ export const signalEvents = sqliteTable(
         // workout screen. Payload: {exerciseId, videoId}. `signal_events.type` is plain TEXT (no
         // CHECK constraint), so adding this value needs no migration.
         'user_video_assigned',
+        // ADR 0012 — the user declared a laddered exercise too easy and unlocked the next rung,
+        // from approval or mid-workout. Payload: {entryId, familyId, fromLevelId, toLevelId,
+        // fromExerciseId, toExerciseId}. This is the highest-signal correction the product gets
+        // about a wrong starting level, and the natural feed for tuning the cold start later.
+        // `signal_events.type` is plain TEXT (no CHECK constraint), so this needs no migration.
+        'level_up_too_easy',
       ],
     }).notNull(),
     /** JSON, shape depends on `type` — e.g. swap: {fromExerciseId, toExerciseId, atSetIndex}. */

@@ -42,6 +42,8 @@ export { COMEBACK_VOLUME_MULTIPLIER, COMEBACK_WEEK_GAP_DAYS } from './progressio
 // before any generation has ever run — the engine's own pipeline only ever *reads* an existing
 // ProgressionState, it never fabricates the first one.
 export { calibrationStartLevel } from './progression/ladder';
+export { resolveLadderSlot } from './progression/resolveSlot';
+export type { ResolvedLadderSlot } from './progression/resolveSlot';
 export { defaultMicroForExercise, microStepsToNextLevel } from './progression/micro';
 
 // Wave 5 wiring surface — §14.1.4 progression board / §6.4 Next Unlock. Read-only ladder lookups
@@ -67,7 +69,11 @@ export type { SwapSlotRequest, SwapAlternative } from './selection/swap';
 // logic of its own (invariant 2: "the engine decides"), so adding a user-picked exercise to a
 // plan still has to go through the engine's own accessory-prescription formula rather than have
 // `app/`/`packages/store` invent sets/reps/rest by hand.
-export { prescribeAccessory, prescribeWarmupCooldown } from './prescription/prescribe';
+export {
+  prescribeAccessory,
+  prescribeLaddered,
+  prescribeWarmupCooldown,
+} from './prescription/prescribe';
 export type { PrescribeAccessoryInput } from './prescription/prescribe';
 
 // Wave 6c wiring surface — §7.3 "validate anyway." The LLM proxy (a plain node Cloud Function,
