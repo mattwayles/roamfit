@@ -14,7 +14,7 @@
  * penalty (there are no streaks to break), no guilt. Abandoning is a normal, blameless action.
  */
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function AbandonSessionButton({
   onConfirm,
@@ -34,41 +34,63 @@ export default function AbandonSessionButton({
 }): React.JSX.Element {
   const [confirming, setConfirming] = useState(false);
 
-  if (confirming) {
-    return (
-      <View style={styles.confirmBox} testID="abandon-confirm-row">
-        <Text style={styles.confirmText}>
-          Discard this workout? Logged sets won&apos;t be saved to your history.
-        </Text>
-        <View style={styles.confirmButtons}>
-          <Pressable
-            testID="abandon-confirm-cancel"
-            style={styles.cancelButton}
-            onPress={() => setConfirming(false)}
-          >
-            <Text style={styles.cancelButtonText}>Keep going</Text>
-          </Pressable>
-          <Pressable testID="abandon-confirm-yes" style={styles.discardButton} onPress={onConfirm}>
-            <Text style={styles.discardButtonText}>Discard</Text>
-          </Pressable>
-        </View>
+  const confirmBody = (
+    <View style={styles.confirmBox} testID="abandon-confirm-row">
+      <Text style={styles.confirmText}>
+        Discard this workout? Logged sets won&apos;t be saved to your history.
+      </Text>
+      <View style={styles.confirmButtons}>
+        <Pressable
+          testID="abandon-confirm-cancel"
+          style={styles.cancelButton}
+          onPress={() => setConfirming(false)}
+        >
+          <Text style={styles.cancelButtonText}>Keep going</Text>
+        </Pressable>
+        <Pressable testID="abandon-confirm-yes" style={styles.discardButton} onPress={onConfirm}>
+          <Text style={styles.discardButtonText}>Discard</Text>
+        </Pressable>
       </View>
+    </View>
+  );
+
+  if (variant === 'icon') {
+    // The stop button lives in a fixed `space-between` control row, so the confirm step cannot
+    // render *in its place* — the box's intrinsic width blows the row out and pushes the buttons
+    // off the right edge of the screen. It goes in a centered modal instead: the row underneath
+    // keeps its layout, and the dialog is centred and width-capped no matter how narrow the
+    // slot the button sits in.
+    return (
+      <>
+        <Pressable
+          testID="abandon-button"
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          style={styles.abandonIconButton}
+          onPress={() => setConfirming(true)}
+        >
+          <Text style={styles.abandonIconText}>■</Text>
+        </Pressable>
+        <Modal
+          visible={confirming}
+          transparent
+          animationType="fade"
+          // Backdrop tap and the iOS/Android back gesture both mean "not yet" — the safe way out,
+          // never the destructive one.
+          onRequestClose={() => setConfirming(false)}
+        >
+          <Pressable style={styles.backdrop} onPress={() => setConfirming(false)}>
+            {/* Swallows taps on the dialog itself so they don't reach the dismissing backdrop. */}
+            <Pressable style={styles.dialog} onPress={() => {}}>
+              {confirmBody}
+            </Pressable>
+          </Pressable>
+        </Modal>
+      </>
     );
   }
 
-  if (variant === 'icon') {
-    return (
-      <Pressable
-        testID="abandon-button"
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        style={styles.abandonIconButton}
-        onPress={() => setConfirming(true)}
-      >
-        <Text style={styles.abandonIconText}>■</Text>
-      </Pressable>
-    );
-  }
+  if (confirming) return confirmBody;
 
   return (
     <Pressable
@@ -98,6 +120,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   abandonIconText: { fontSize: 22, fontWeight: '800', color: '#b91c1c', lineHeight: 26 },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  dialog: { width: '100%', maxWidth: 420 },
   confirmBox: {
     backgroundColor: '#f8fafc',
     borderRadius: 12,
