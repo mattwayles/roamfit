@@ -189,30 +189,48 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
   };
 }
 
+/** One set, twelve unloaded-tempo reps, no rest — the dose that distinguishes "warming this
+ *  movement up" from "training it". A main exercise programmed into the warm-up section gets this
+ *  instead of the effort table's 3x8-12 at its working band, which is the whole point of one
+ *  exercise being eligible for both. */
+const WARMUP_COOLDOWN_REPS = 12;
+const WARMUP_COOLDOWN_TEMPO_SEC = 2;
+/** A hold used to warm up is capped here however long the record says it can be held for real —
+ *  a 60s working plank is a set, not a warm-up. Cool-downs are not capped: a stretch's authored
+ *  `default_seconds` *is* its cool-down dose. */
+const WARMUP_HOLD_CAP_SEC = 45;
+const DEFAULT_HOLD_SEC = 45;
+
 export function prescribeWarmupCooldown(
   exercise: Exercise,
   role: Extract<Role, 'warmup' | 'cooldown'>,
 ): SessionEntry {
-  const durationSec = exercise.default_seconds ?? 45;
+  const authoredHold = exercise.default_seconds ?? DEFAULT_HOLD_SEC;
+  const durationSec =
+    role === 'warmup' ? Math.min(authoredHold, WARMUP_HOLD_CAP_SEC) : authoredHold;
+  // The lightest band the exercise is authored for, never the working band and never nothing at
+  // all: a band row warmed up with no band is a different movement, and this used to hard-code
+  // `null` because the only exercises that reached here were purpose-built bodyweight drills.
+  const band = exercise.equipment === 'band' ? parseFirstBand(exercise.band) : null;
   const estimatedSec =
     exercise.metric === 'time'
       ? timedExerciseSec({ sets: 1, durationSec, restSec: 0, unilateral: exercise.unilateral })
       : repExerciseSec({
           sets: 1,
-          reps: 12,
-          tempoSec: 2,
+          reps: WARMUP_COOLDOWN_REPS,
+          tempoSec: WARMUP_COOLDOWN_TEMPO_SEC,
           restSec: 0,
           unilateral: exercise.unilateral,
         });
   return {
     exerciseId: exercise.id,
     role,
-    band: null,
+    band,
     sets: 1,
-    repTarget: exercise.metric === 'time' ? undefined : 12,
+    repTarget: exercise.metric === 'time' ? undefined : WARMUP_COOLDOWN_REPS,
     durationSec: exercise.metric === 'time' ? durationSec : undefined,
     restSec: 0,
-    tempoSec: exercise.metric === 'time' ? 0 : 2,
+    tempoSec: exercise.metric === 'time' ? 0 : WARMUP_COOLDOWN_TEMPO_SEC,
     effort: 'normal',
     progressionFamilyId: null,
     progressionLevelIdAtTime: null,

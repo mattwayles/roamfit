@@ -319,6 +319,18 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   // below so that correction can size itself against the *actual* warmup/cooldown time, not the
   // clamp-formula's estimate of it (Quick Session's real overhead is much smaller than the
   // formula assumes).
+  //
+  // An exercise may be eligible for more than one section (a band row warms the back up and also
+  // trains it), so every section after the first has to be told what the session already holds.
+  // Without this the same movement can legitimately be drawn twice and the plan reads as a
+  // mistake: "Band Row" as the warm-up, "Band Row" as the main set. Main work is chosen first and
+  // is never displaced by a warm-up; the cool-down additionally avoids repeating the warm-up,
+  // since the mobility drills eligible for both sections are exactly the ones most likely to
+  // collide.
+  const mainExerciseIds = new Set<string>(
+    [...entriesBySlotId.values()].map((entry) => entry.exerciseId),
+  );
+
   let warmupEntries: SessionEntry[];
   let cooldownEntries: SessionEntry[];
   if (isQuick) {
@@ -329,6 +341,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       userState,
       today: clock.today,
       rng,
+      excludeIds: mainExerciseIds,
     });
     const cooldownEx = selectWarmupCooldown({
       role: 'cooldown',
@@ -337,6 +350,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       userState,
       today: clock.today,
       rng,
+      excludeIds: warmupEx ? new Set([...mainExerciseIds, warmupEx.id]) : mainExerciseIds,
     });
     warmupEntries = warmupEx ? [prescribeWarmupCooldown(warmupEx, 'warmup')] : [];
     cooldownEntries = cooldownEx ? [prescribeWarmupCooldown(cooldownEx, 'cooldown')] : [];
@@ -351,6 +365,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       today: clock.today,
       rng,
       targetSec: warmupTargetSec,
+      excludeIds: mainExerciseIds,
     });
     const cooldownExs = selectWarmupCooldownGroup({
       role: 'cooldown',
@@ -360,6 +375,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       today: clock.today,
       rng,
       targetSec: cooldownTargetSec,
+      excludeIds: new Set([...mainExerciseIds, ...warmupExs.map((e) => e.id)]),
     });
     warmupEntries = warmupExs.map((e) => prescribeWarmupCooldown(e, 'warmup'));
     cooldownEntries = cooldownExs.map((e) => prescribeWarmupCooldown(e, 'cooldown'));

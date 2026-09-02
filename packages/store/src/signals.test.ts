@@ -170,7 +170,8 @@ describe('§8.3 preference & aversion / comprehension signals', () => {
       const mainCountBefore = before.entries.filter((e) => e.section === 'main').length;
 
       const newExercise = library.exercises.find(
-        (e) => e.roles.includes('main') && !before.entries.some((entry) => entry.exerciseId === e.id),
+        (e) =>
+          e.roles.includes('main') && !before.entries.some((entry) => entry.exerciseId === e.id),
       )!;
       const prescription = prescribeAccessory({
         exercise: newExercise,

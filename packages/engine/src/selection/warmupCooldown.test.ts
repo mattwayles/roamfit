@@ -201,6 +201,78 @@ describe('selectWarmupCooldownGroup — §5.6 fills the budgeted minutes, not a 
     expect(picked.map((e) => e.id)).toEqual(['big']);
   });
 
+  it('never repeats an exercise the session already holds elsewhere', () => {
+    // The whole point of a record being eligible for two sections: "Band Row" as the warm-up AND
+    // as the main set reads as a bug, so the caller passes what it has already committed to.
+    const picked = selectWarmupCooldownGroup({
+      role: 'warmup',
+      pool: [repsEx('a'), repsEx('b'), repsEx('c')],
+      focus: 'abs',
+      userState: userState(),
+      today: TODAY,
+      rng: createRng(7),
+      targetSec: 600, // large enough that it would happily take all three
+      excludeIds: new Set(['a', 'b']),
+    });
+    expect(picked.map((e) => e.id)).toEqual(['c']);
+  });
+
+  it('still avoids repeating itself once the caller has excluded some ids', () => {
+    // Regression: the group loop used to build its own exclusion set from scratch and overwrite
+    // the caller's, so passing excludeIds silently disabled the caller's exclusions after the
+    // first pick.
+    const picked = selectWarmupCooldownGroup({
+      role: 'warmup',
+      pool: [repsEx('a'), repsEx('b'), repsEx('c'), repsEx('d')],
+      focus: 'abs',
+      userState: userState(),
+      today: TODAY,
+      rng: createRng(3),
+      targetSec: 600,
+      excludeIds: new Set(['a']),
+    });
+    expect(picked.map((e) => e.id)).not.toContain('a');
+    expect(new Set(picked.map((e) => e.id)).size).toBe(picked.length);
+  });
+
+  it('returns nothing rather than a duplicate when every candidate is already in the session', () => {
+    const picked = selectWarmupCooldownGroup({
+      role: 'warmup',
+      pool: [repsEx('a')],
+      focus: 'abs',
+      userState: userState(),
+      today: TODAY,
+      rng: createRng(1),
+      targetSec: 180,
+      excludeIds: new Set(['a']),
+    });
+    expect(picked).toEqual([]);
+  });
+
+  it('an exercise eligible for two sections is a candidate in both', () => {
+    const dual = { ...repsEx('band-row'), roles: ['warmup', 'main'] as Exercise['roles'] };
+    const asWarmup = selectWarmupCooldown({
+      role: 'warmup',
+      pool: [dual],
+      focus: 'abs',
+      userState: userState(),
+      today: TODAY,
+      rng: createRng(1),
+    });
+    expect(asWarmup?.id).toBe('band-row');
+
+    // ...and is not offered to a section it does not declare.
+    const asCooldown = selectWarmupCooldown({
+      role: 'cooldown',
+      pool: [dual],
+      focus: 'abs',
+      userState: userState(),
+      today: TODAY,
+      rng: createRng(1),
+    });
+    expect(asCooldown).toBeNull();
+  });
+
   it('returns an empty array when the role pool is genuinely empty', () => {
     const picked = selectWarmupCooldownGroup({
       role: 'cooldown',

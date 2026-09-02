@@ -18,8 +18,13 @@ export interface SelectWarmupCooldownInput {
   userState: UserState;
   today: LocalDate;
   rng: Rng;
-  /** Exclude these ids too (already picked earlier this session), on top of the light-rotation
-   *  exclusion — used by `selectWarmupCooldownGroup` to avoid repeating a pick within one call. */
+  /**
+   * Exclude these ids too, on top of the light-rotation exclusion. Two sources, both required
+   * now that a library record can be eligible for more than one section: the group loop's own
+   * picks so far (no repeats within one warm-up), and everything the session has already
+   * committed to elsewhere — nobody wants "Band Row" as their warm-up *and* their main work, or a
+   * cat-cow at both ends of the session.
+   */
   excludeIds?: ReadonlySet<string>;
 }
 
@@ -72,7 +77,10 @@ export function selectWarmupCooldownGroup(
   input: SelectWarmupCooldownInput & { targetSec: number },
 ): Exercise[] {
   const chosen: Exercise[] = [];
-  const usedIds = new Set<string>();
+  // Seeded with whatever the caller already excluded (the session's other sections) rather than
+  // starting empty and overwriting `input.excludeIds` on each inner call — that would have
+  // silently dropped the caller's exclusions the moment this loop began.
+  const usedIds = new Set<string>(input.excludeIds ?? []);
   let totalSec = 0;
   const floor = input.targetSec * GROUP_FLOOR_RATIO;
   const ceiling = input.targetSec * GROUP_CEILING_RATIO;

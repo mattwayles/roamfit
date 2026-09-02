@@ -81,11 +81,49 @@ describe('§5.4 prescription', () => {
     expect(entry.notes).toBe('AMRAP');
   });
 
-  it('warmup/cooldown entries carry no band and no progression', () => {
+  it('warmup/cooldown entries carry no progression, whatever the exercise is', () => {
     const entry = prescribeWarmupCooldown(warmupEx, 'warmup');
-    expect(entry.band).toBeNull();
     expect(entry.progressionFamilyId).toBeNull();
+    expect(entry.progressionLevelIdAtTime).toBeNull();
     expect(entry.role).toBe('warmup');
+  });
+
+  describe('the same exercise, warmed up rather than trained', () => {
+    it("is one set of light reps with no rest — not the effort table's working dose", () => {
+      const asMain = prescribeAccessory({
+        exercise: bandedPush,
+        requestedEffort: 'normal',
+        recoveryTreatment: false,
+      });
+      const asWarmup = prescribeWarmupCooldown(bandedPush, 'warmup');
+
+      expect(asWarmup.sets).toBe(1);
+      expect(asWarmup.sets).toBeLessThan(asMain.sets);
+      expect(asWarmup.restSec).toBe(0);
+      expect(asWarmup.estimatedSec).toBeLessThan(asMain.estimatedSec);
+    });
+
+    it('gives a band exercise its lightest band, never nothing at all', () => {
+      // A band row warmed up with no band is a different movement. bandedPush is authored "B1-B2".
+      expect(prescribeWarmupCooldown(bandedPush, 'warmup').band).toBe('B1');
+    });
+
+    it('leaves a bodyweight exercise bandless', () => {
+      expect(prescribeWarmupCooldown(bwPush, 'warmup').band).toBeNull();
+    });
+
+    it('caps a hold used as a warm-up, but takes a stretch at its authored length', () => {
+      const longHold = library.find(
+        (e) => e.metric === 'time' && (e.default_seconds ?? 0) > 45 && e.roles.includes('main'),
+      );
+      if (longHold) {
+        expect(prescribeWarmupCooldown(longHold, 'warmup').durationSec).toBe(45);
+      }
+      const stretch = library.find((e) => e.roles.includes('cooldown') && e.metric === 'time')!;
+      expect(prescribeWarmupCooldown(stretch, 'cooldown').durationSec).toBe(
+        stretch.default_seconds,
+      );
+    });
   });
 
   describe('withOneFewerSet — precise §5.6 overrun trim (round 2)', () => {

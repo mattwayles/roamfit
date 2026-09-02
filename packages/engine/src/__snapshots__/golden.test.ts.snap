@@ -16,7 +16,7 @@ exports[`golden: generateSession output is pinned Quick Session, upper, seed 4 1
   "cooldown": [
     {
       "anchorClass": "band_tension",
-      "band": null,
+      "band": "B2",
       "durationSec": 30,
       "effort": "normal",
       "estimatedSec": 90,
@@ -106,7 +106,7 @@ exports[`golden: generateSession output is pinned Quick Session, upper, seed 4 1
   "warmup": [
     {
       "anchorClass": "none",
-      "band": null,
+      "band": "B1",
       "durationSec": undefined,
       "effort": "normal",
       "estimatedSec": 54,
@@ -296,7 +296,7 @@ exports[`golden: generateSession output is pinned abs, 30min, normal — never a
     },
     {
       "anchorClass": "none",
-      "band": null,
+      "band": "B1",
       "durationSec": undefined,
       "effort": "normal",
       "estimatedSec": 54,
@@ -484,7 +484,7 @@ exports[`golden: generateSession output is pinned cold-start legs, 20min, easy, 
     },
     {
       "anchorClass": "none",
-      "band": null,
+      "band": "B1",
       "durationSec": undefined,
       "effort": "normal",
       "estimatedSec": 54,
@@ -709,7 +709,7 @@ exports[`golden: generateSession output is pinned cold-start upper, 30min, norma
     },
     {
       "anchorClass": "none",
-      "band": null,
+      "band": "B1",
       "durationSec": undefined,
       "effort": "normal",
       "estimatedSec": 54,
@@ -726,7 +726,7 @@ exports[`golden: generateSession output is pinned cold-start upper, 30min, norma
     },
     {
       "anchorClass": "none",
-      "band": null,
+      "band": "B1",
       "durationSec": undefined,
       "effort": "normal",
       "estimatedSec": 54,
@@ -1021,7 +1021,7 @@ exports[`golden: generateSession output is pinned mid-progression full, 45min, h
     },
     {
       "anchorClass": "none",
-      "band": null,
+      "band": "B1",
       "durationSec": undefined,
       "effort": "normal",
       "estimatedSec": 54,
