@@ -25,7 +25,7 @@ import {
   prescribeWarmupCooldown,
   seedFromString,
 } from '@roamfit/engine';
-import { generate, sessionsRepo, usersRepo } from '@roamfit/store';
+import { generate, levelUpEntry, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
 import type { Exercise } from '@roamfit/data';
 import type { RootStackParamList } from '../navigation/types';
@@ -66,6 +66,9 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   const [regenerating, setRegenerating] = useState(false);
   // §10.3 "add exercise" — which section's picker is open, if any. Closed by default.
   const [addingSection, setAddingSection] = useState<Section | null>(null);
+  /** ADR 0012 — one-line result of the last "too easy" tap. Informational only: never blocks,
+   *  never nags, and is replaced rather than stacked (invariant 4). */
+  const [levelUpNotice, setLevelUpNotice] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     setSession(sessionsRepo.getSession(db, sessionId));
@@ -96,6 +99,37 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   const handleAdjustSets = (entry: sessionsRepo.SessionEntryRecord, delta: number) => {
     const next = Math.max(1, entry.sets + delta);
     sessionsRepo.adjustSetsAtApproval(db, entry.id, next, nowUtcInstant());
+    reload();
+  };
+
+  /**
+   * ADR 0012 — "this rung is below me". Advances the family's progression state one level and
+   * rewrites this entry to the new rung, right here in the plan, so the user can fix a wrong
+   * starting level before committing to a session. Repeatable: someone several rungs above the
+   * level-1 cold start taps it until the exercise looks right.
+   *
+   * All the work is `levelUpEntry`'s (which is the engine's, via the store) — this only decides
+   * what to say about the outcome.
+   */
+  const handleLevelUp = (entry: sessionsRepo.SessionEntryRecord) => {
+    const result = levelUpEntry(
+      db,
+      {
+        entryId: entry.id,
+        library,
+        families,
+        clock: nowEngineClock(),
+        rng: createRng(seedFromString(nowUtcInstant())),
+      },
+      nowUtcInstant(),
+    );
+    if (result.status === 'at_max') {
+      setLevelUpNotice('That’s the top of this ladder — nice.');
+    } else if (result.status === 'no_eligible_exercise') {
+      setLevelUpNotice('The next level needs an anchor you don’t have set up.');
+    } else if (result.status === 'levelled_up') {
+      setLevelUpNotice(`Moved up to ${result.exerciseName}.`);
+    }
     reload();
   };
 
@@ -293,6 +327,16 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
                 >
                   <Text style={styles.smallButtonText}>+</Text>
                 </Pressable>
+                {/* ADR 0012 — only laddered entries have a level to move. */}
+                {entry.progressionFamilyId != null && (
+                  <Pressable
+                    testID={`level-up-${entry.exerciseId}`}
+                    style={[styles.smallButton, styles.levelUpButton]}
+                    onPress={() => handleLevelUp(entry)}
+                  >
+                    <Text style={styles.smallButtonText}>too easy ▲</Text>
+                  </Pressable>
+                )}
                 <Pressable
                   testID={`remove-${entry.exerciseId}`}
                   style={[styles.smallButton, styles.removeButton]}
@@ -337,6 +381,12 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
           )}
         </View>
       ))}
+
+      {levelUpNotice != null && (
+        <Text testID="level-up-notice" style={styles.levelUpNotice}>
+          {levelUpNotice}
+        </Text>
+      )}
 
       <Pressable
         testID="regenerate-button"
@@ -400,6 +450,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   removeButton: { backgroundColor: '#fecaca' },
+  levelUpButton: { backgroundColor: '#dbeafe' },
+  levelUpNotice: { paddingHorizontal: 16, paddingBottom: 8, color: '#1d4ed8', fontSize: 13 },
   addExerciseButton: {
     borderRadius: 10,
     paddingVertical: 10,

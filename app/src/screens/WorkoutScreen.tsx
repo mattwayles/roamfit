@@ -33,13 +33,14 @@ import { useKeepAwake } from 'expo-keep-awake';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   exerciseStateRepo,
+  levelUpEntry,
   progressionStateRepo,
   remoteConfigRepo,
   sessionsRepo,
   usersRepo,
 } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
-import { alternativesForSlot } from '@roamfit/engine';
+import { alternativesForSlot, createRng, seedFromString } from '@roamfit/engine';
 import type { SwapAlternative } from '@roamfit/engine';
 import type { AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import type { RootStackParamList } from '../navigation/types';
@@ -116,6 +117,8 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   // exercise-phase sub-view. Unaffected by pausing/navigating away either way, satisfying "no
   // interruption of the session timer."
   const [swapOpen, setSwapOpen] = useState(false);
+  /** ADR 0012 — one-line result of the last "too easy" tap. Informational, never blocking. */
+  const [levelUpNotice, setLevelUpNotice] = useState<string | null>(null);
   const [swapExcludeAnchor, setSwapExcludeAnchor] = useState(false);
   // §10.4/§10.8 — "pause an active workout and navigate away" (real device-testing request).
   // Setting this unmounts the entire active-phase subtree (`TimedExercise`/`RepsExercise`/
@@ -242,6 +245,37 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       nowUtcInstant(),
     );
     navigation.navigate('Home');
+  };
+
+  /**
+   * ADR 0012 — "too easy" mid-workout: advance this family a rung and swap the current entry to
+   * the new one, right now. Distinct from Swap, which asks for a *different* exercise at the same
+   * difficulty and counts against the old one; this says the rung is below the user, so the
+   * outgrown exercise is not penalised.
+   *
+   * Repeatable, because the cold start is level 1 — someone well past the bottom taps until the
+   * exercise looks right rather than grinding a session of wall push-ups first.
+   */
+  const handleLevelUp = () => {
+    const result = levelUpEntry(
+      db,
+      {
+        entryId: entry.id,
+        library,
+        families,
+        clock: nowEngineClock(),
+        rng: createRng(seedFromString(nowUtcInstant())),
+      },
+      nowUtcInstant(),
+    );
+    if (result.status === 'at_max') {
+      setLevelUpNotice('That\u2019s the top of this ladder \u2014 nice.');
+    } else if (result.status === 'no_eligible_exercise') {
+      setLevelUpNotice('The next level needs an anchor you don\u2019t have set up.');
+    } else if (result.status === 'levelled_up') {
+      setLevelUpNotice(`Moved up to ${result.exerciseName}.`);
+    }
+    reload();
   };
 
   const handleSwapSelect = (alt: SwapAlternative) => {
@@ -430,6 +464,12 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         <AbandonSessionButton onConfirm={handleAbandon} />
       </View>
 
+      {levelUpNotice != null && (
+        <Text testID="level-up-notice" style={styles.levelUpNotice}>
+          {levelUpNotice}
+        </Text>
+      )}
+
       {paused ? null : phase === 'exercise' ? (
         swapOpen ? (
           <SwapSheet
@@ -453,6 +493,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             }
             onSkip={() => finishSetAndRest('skipped')}
             onSwap={() => setSwapOpen(true)}
+            onLevelUp={entry.progressionFamilyId != null ? handleLevelUp : undefined}
           />
         ) : (
           <RepsExercise
@@ -463,6 +504,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             onComplete={(reps) => finishSetAndRest('completed', reps)}
             onSkip={() => finishSetAndRest('skipped')}
             onSwap={() => setSwapOpen(true)}
+            onLevelUp={entry.progressionFamilyId != null ? handleLevelUp : undefined}
           />
         )
       ) : (
@@ -525,6 +567,7 @@ function RepsExercise({
   onComplete,
   onSkip,
   onSwap,
+  onLevelUp,
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
@@ -532,6 +575,9 @@ function RepsExercise({
   onComplete: (reps: number) => void;
   onSkip: () => void;
   onSwap: () => void;
+  /** ADR 0012 — only laddered entries have a level to move, so this is undefined for accessory
+   *  work and the control is not rendered. */
+  onLevelUp?: () => void;
 }): React.JSX.Element {
   const [reps, setReps] = useState(entry.repTarget ?? 0);
   return (
@@ -578,6 +624,11 @@ function RepsExercise({
         <Pressable testID="swap-set" style={styles.actionButton} onPress={onSwap}>
           <Text style={styles.actionButtonText}>Swap</Text>
         </Pressable>
+        {onLevelUp != null && (
+          <Pressable testID="level-up-set" style={styles.actionButton} onPress={onLevelUp}>
+            <Text style={styles.actionButtonText}>Too easy ▲</Text>
+          </Pressable>
+        )}
         <Pressable testID="skip-set" style={styles.actionButton} onPress={onSkip}>
           <Text style={styles.actionButtonText}>Skip set</Text>
         </Pressable>
@@ -603,6 +654,7 @@ function TimedExercise({
   onComplete,
   onSkip,
   onSwap,
+  onLevelUp,
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
@@ -613,6 +665,9 @@ function TimedExercise({
   onComplete: (actualSeconds: number, pauseInfo: PauseInfo) => void;
   onSkip: () => void;
   onSwap: () => void;
+  /** ADR 0012 — only laddered entries have a level to move, so this is undefined for accessory
+   *  work and the control is not rendered. */
+  onLevelUp?: () => void;
 }): React.JSX.Element {
   const durationMs = (entry.durationSec ?? 0) * 1000;
   // §10.5 — "unilateral timed work runs two sequential timers with a short switch-side interval
@@ -900,6 +955,11 @@ function TimedExercise({
         <Pressable testID="swap-set" style={styles.actionButton} onPress={onSwap}>
           <Text style={styles.actionButtonText}>Swap</Text>
         </Pressable>
+        {onLevelUp != null && (
+          <Pressable testID="level-up-set" style={styles.actionButton} onPress={onLevelUp}>
+            <Text style={styles.actionButtonText}>Too easy ▲</Text>
+          </Pressable>
+        )}
         <Pressable testID="skip-set" style={styles.actionButton} onPress={onSkip}>
           <Text style={styles.actionButtonText}>Skip set</Text>
         </Pressable>
@@ -1071,6 +1131,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sessionActionButtonText: { fontSize: 13, fontWeight: '600', color: '#334155' },
+  levelUpNotice: { textAlign: 'center', color: '#1d4ed8', fontSize: 13, paddingBottom: 8 },
   hero: { alignItems: 'center', gap: 12 },
   exerciseName: { fontSize: 26, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
   target: { fontSize: 20, fontWeight: '600', color: '#334155' },
