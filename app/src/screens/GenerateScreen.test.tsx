@@ -51,40 +51,77 @@ function renderScreen() {
 }
 
 describe('§10.2 Generate screen', () => {
-  it('offers every length, 90 and 120 included, in one scrolling picker', async () => {
+  it('is closed by default, showing only the current value', async () => {
     renderScreen();
     await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
+
+    // The list is not rendered until the field is opened — that is the point of a drop-down.
+    expect(screen.queryByTestId('time-picker-list')).toBeNull();
+    expect(screen.queryByTestId('time-picker-option-90')).toBeNull();
+    // ...but the current choice is legible without opening anything.
+    expect(screen.getByText('30 min')).toBeTruthy();
+    expect(screen.getByTestId('time-picker').props.accessibilityState.expanded).toBe(false);
+  });
+
+  it('opening the field lists every length, 90 and 120 included', async () => {
+    renderScreen();
+    await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('time-picker'));
+
+    await waitFor(() => expect(screen.getByTestId('time-picker-list')).toBeTruthy(), WAIT_OPTS);
     for (const minutes of [15, 20, 30, 45, 60, 90, 120]) {
       expect(screen.getByTestId(`time-picker-option-${minutes}`)).toBeTruthy();
     }
+    expect(screen.getByTestId('time-picker').props.accessibilityState.expanded).toBe(true);
   });
 
-  it('renders Focus and Effort as pickers too, with human labels', async () => {
-    renderScreen();
-    await waitFor(() => expect(screen.getByTestId('focus-picker')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.getByTestId('effort-picker')).toBeTruthy();
-    // Labels, not raw enum values.
-    expect(screen.getByTestId('focus-picker-option-full')).toBeTruthy();
-    expect(screen.getByText('Full body')).toBeTruthy();
-    expect(screen.getByText('Core')).toBeTruthy();
-    expect(screen.getByText('Normal')).toBeTruthy();
-    expect(screen.queryByText('abs')).toBeNull();
-  });
-
-  it('scrolling the picker selects whatever settles under the centre', async () => {
+  it('choosing an option sets it and closes the list', async () => {
     const { navigation, getDb } = renderScreen();
     await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
 
-    // Index 3 is 45 min; the snap interval is the item width plus its gap (96 + 8).
-    fireEvent(screen.getByTestId('time-picker'), 'momentumScrollEnd', {
-      nativeEvent: { contentOffset: { x: 3 * 104, y: 0 } },
-    });
-    await waitFor(() => expect(screen.getByTestId('generate-button')).toBeTruthy(), WAIT_OPTS);
-    fireEvent.press(screen.getByTestId('generate-button'));
+    fireEvent.press(screen.getByTestId('time-picker'));
+    await waitFor(
+      () => expect(screen.getByTestId('time-picker-option-45')).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    fireEvent.press(screen.getByTestId('time-picker-option-45'));
 
+    await waitFor(() => expect(screen.queryByTestId('time-picker-list')).toBeNull(), WAIT_OPTS);
+    expect(screen.getByText('45 min')).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId('generate-button'));
     await waitFor(() => expect(navigation.replace).toHaveBeenCalled(), WAIT_OPTS);
     const { sessionId } = navigation.replace.mock.calls[0][1] as { sessionId: string };
     expect(sessionsRepo.getSession(getDb(), sessionId)!.targetMinutes).toBe(45);
+  });
+
+  it('only one drop-down is open at a time', async () => {
+    renderScreen();
+    await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
+
+    fireEvent.press(screen.getByTestId('time-picker'));
+    await waitFor(() => expect(screen.getByTestId('time-picker-list')).toBeTruthy(), WAIT_OPTS);
+
+    fireEvent.press(screen.getByTestId('focus-picker'));
+    await waitFor(() => expect(screen.getByTestId('focus-picker-list')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.queryByTestId('time-picker-list')).toBeNull();
+  });
+
+  it('Focus and Effort are drop-downs too, with human labels rather than enum values', async () => {
+    renderScreen();
+    await waitFor(() => expect(screen.getByTestId('focus-picker')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByTestId('effort-picker')).toBeTruthy();
+    // Closed, the fields already read as words.
+    expect(screen.getByText('Full body')).toBeTruthy();
+    expect(screen.getByText('Normal')).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId('focus-picker'));
+    await waitFor(
+      () => expect(screen.getByTestId('focus-picker-option-abs')).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    expect(screen.getByText('Core')).toBeTruthy();
+    expect(screen.queryByText('abs')).toBeNull();
   });
 
   it('the recovery-week option shows an unticked checkbox until it is chosen', async () => {
@@ -111,6 +148,8 @@ describe('§10.2 Generate screen', () => {
     'a %d minute request produces a session of about that length, not a 60-minute fallback',
     async (minutes) => {
       const { navigation, getDb } = renderScreen();
+      await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
+      fireEvent.press(screen.getByTestId('time-picker'));
       await waitFor(
         () => expect(screen.getByTestId(`time-picker-option-${minutes}`)).toBeTruthy(),
         WAIT_OPTS,

@@ -1,29 +1,26 @@
 /**
- * §10.2 — a horizontally scrolling, snap-to-centre picker for a single choice.
+ * §10.2 — a drop-down picker for a single choice: a closed field showing the current value, which
+ * opens a list to change it.
  *
  * Replaces the wrapped chip rows the Generate screen used. Chips were fine at four options and
  * poor at seven (Time now runs 15 → 120): they wrapped onto two or three lines, so each section
- * grew and shrank as options changed, and the whole picker stopped being scannable at a glance.
- * A single scrolling row is a fixed height whatever the option count, and reads as one control
- * rather than a field of equal-weight buttons.
+ * grew and shrank as its options changed and the screen stopped being scannable. A drop-down is
+ * one line tall whatever the option count, and it shows the current answer without the reader
+ * having to spot which of seven equal-weight buttons is highlighted.
  *
- * Built on core `ScrollView` rather than `@react-native-picker/picker`, which is a native module
- * and would therefore need an Expo dev-client rebuild before the app would launch at all. That is
- * a heavy price for a control this simple, and the wheel idiom would cost far more vertical space
- * for three of them stacked than this does.
+ * Built on core components rather than `@react-native-picker/picker`, which is a native module
+ * and would therefore need an Expo dev-client rebuild before the app would launch at all — steep
+ * for a control this simple.
  *
- * Selection is by tap **or** by scrolling — `onMomentumScrollEnd` snaps to whichever option
- * settled under the centre. Tapping is what tests drive, and is also the faster interaction when
- * the option you want is already visible.
+ * Open state is owned by the caller, not by this component, so that opening one picker closes any
+ * other. Two lists open at once on a short screen is how you end up choosing from the wrong one.
  */
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-/** Item width and gap are fixed so the snap interval is a constant the scroll handler can divide
- *  by, rather than something measured per item. */
-const ITEM_WIDTH = 96;
-const ITEM_GAP = 8;
-const SNAP = ITEM_WIDTH + ITEM_GAP;
+/** Beyond this the list scrolls rather than pushing the rest of the form off screen. Sized to
+ *  show about five rows, so it always reads as a list that continues. */
+const LIST_MAX_HEIGHT = 224;
 
 export interface OptionPickerOption<T> {
   value: T;
@@ -34,88 +31,112 @@ export default function OptionPicker<T extends string | number>({
   options,
   value,
   onChange,
+  open,
+  onOpenChange,
   testID,
   accessibilityLabel,
 }: {
   options: readonly OptionPickerOption<T>[];
   value: T;
   onChange: (value: T) => void;
-  /** Per-option test ids are derived as `${testID}-option-${value}`. */
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** The trigger carries this id; each option is `${testID}-option-${value}`. */
   testID: string;
   accessibilityLabel: string;
 }): React.JSX.Element {
-  const scrollRef = useRef<ScrollView>(null);
-  const index = Math.max(
-    0,
-    options.findIndex((o) => o.value === value),
-  );
-
-  // Keep the row in sync when the value changes from outside (a default, or a reset). Not a
-  // feedback loop with the scroll handler: that only fires on user-driven momentum, and
-  // scrolling to an offset the view already holds is a no-op.
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ x: index * SNAP, animated: true });
-  }, [index]);
+  const selected = options.find((o) => o.value === value);
 
   return (
-    <View style={styles.wrapper}>
-      <ScrollView
-        ref={scrollRef}
+    <View>
+      <Pressable
         testID={testID}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
         accessibilityLabel={accessibilityLabel}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={SNAP}
-        decelerationRate="fast"
-        contentContainerStyle={styles.content}
-        onMomentumScrollEnd={(e) => {
-          const settled = Math.round(e.nativeEvent.contentOffset.x / SNAP);
-          const clamped = Math.min(Math.max(settled, 0), options.length - 1);
-          const next = options[clamped];
-          if (next && next.value !== value) onChange(next.value);
-        }}
+        accessibilityValue={{ text: selected?.label }}
+        style={[styles.trigger, open && styles.triggerOpen]}
+        onPress={() => onOpenChange(!open)}
       >
-        {options.map((option) => {
-          const selected = option.value === value;
-          return (
-            <Pressable
-              key={String(option.value)}
-              testID={`${testID}-option-${option.value}`}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              accessibilityLabel={option.label}
-              style={[styles.item, selected && styles.itemSelected]}
-              onPress={() => onChange(option.value)}
-            >
-              <Text
-                style={[styles.itemText, selected && styles.itemTextSelected]}
-                numberOfLines={1}
-              >
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+        <Text style={styles.triggerText} numberOfLines={1}>
+          {selected?.label ?? ''}
+        </Text>
+        <Text style={styles.caret}>{open ? '▴' : '▾'}</Text>
+      </Pressable>
+
+      {open && (
+        <View style={styles.list} testID={`${testID}-list`}>
+          <ScrollView
+            style={styles.listScroll}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+          >
+            {options.map((option) => {
+              const isSelected = option.value === value;
+              return (
+                <Pressable
+                  key={String(option.value)}
+                  testID={`${testID}-option-${option.value}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={option.label}
+                  style={[styles.option, isSelected && styles.optionSelected]}
+                  onPress={() => {
+                    onChange(option.value);
+                    onOpenChange(false);
+                  }}
+                >
+                  <Text
+                    style={[styles.optionText, isSelected && styles.optionTextSelected]}
+                    numberOfLines={1}
+                  >
+                    {option.label}
+                  </Text>
+                  {isSelected && <Text style={styles.tick}>{'✓'}</Text>}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: { marginHorizontal: -4 },
-  content: { gap: ITEM_GAP, paddingHorizontal: 4, paddingVertical: 2 },
-  item: {
-    width: ITEM_WIDTH,
-    minHeight: 52,
-    borderRadius: 12,
-    backgroundColor: '#f1f5f9',
-    borderWidth: 2,
-    borderColor: 'transparent',
+  trigger: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
+    justifyContent: 'space-between',
+    minHeight: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    backgroundColor: '#fff',
+    paddingHorizontal: 14,
   },
-  itemSelected: { backgroundColor: '#111', borderColor: '#111' },
-  itemText: { fontSize: 15, fontWeight: '600', color: '#475569' },
-  itemTextSelected: { color: '#fff' },
+  triggerOpen: { borderColor: '#111', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  triggerText: { flex: 1, fontSize: 16, fontWeight: '600', color: '#0f172a' },
+  caret: { fontSize: 14, color: '#64748b', paddingLeft: 8 },
+  list: {
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: '#111',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+  },
+  listScroll: { maxHeight: LIST_MAX_HEIGHT },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 44,
+    paddingHorizontal: 14,
+  },
+  optionSelected: { backgroundColor: '#f1f5f9' },
+  optionText: { flex: 1, fontSize: 15, color: '#334155' },
+  optionTextSelected: { fontWeight: '700', color: '#0f172a' },
+  tick: { fontSize: 14, fontWeight: '700', color: '#111', paddingLeft: 8 },
 });

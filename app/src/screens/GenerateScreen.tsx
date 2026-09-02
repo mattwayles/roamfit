@@ -92,6 +92,10 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
   // Collapsed by default: anchors are sticky user state (§5.3), set once and rarely revisited, so
   // they should not cost eleven rows of the picker on every generation.
   const [anchorsOpen, setAnchorsOpen] = useState(false);
+  /** Which drop-down is open, if any. Held here rather than inside each picker so opening one
+   *  closes the others — two lists open at once on a short screen is how you pick from the wrong
+   *  one. */
+  const [openPicker, setOpenPicker] = useState<'time' | 'focus' | 'effort' | null>(null);
   const [generating, setGenerating] = useState(false);
   // §9.9 — pre-filled by an accepted Recovery Week auto-suggestion (Home), or toggled manually
   // here. Either way it's just a request flag until the user taps Generate — never applied
@@ -167,6 +171,8 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
         options={TIME_OPTIONS.map((m) => ({ value: m, label: `${m} min` }))}
         value={minutes}
         onChange={setMinutes}
+        open={openPicker === 'time'}
+        onOpenChange={(next) => setOpenPicker(next ? 'time' : null)}
       />
 
       <Text style={styles.sectionLabel}>Anchors</Text>
@@ -175,7 +181,10 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
         accessibilityRole="button"
         accessibilityState={{ expanded: anchorsOpen }}
         style={styles.disclosure}
-        onPress={() => setAnchorsOpen((v) => !v)}
+        onPress={() => {
+          setOpenPicker(null);
+          setAnchorsOpen((v) => !v);
+        }}
       >
         <Text style={styles.disclosureText}>What you can anchor to</Text>
         <Text style={styles.disclosureCount} testID="anchors-summary">
@@ -219,6 +228,8 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
         options={FOCUS_OPTIONS.map((f) => ({ value: f, label: FOCUS_LABELS[f] }))}
         value={focus}
         onChange={setFocus}
+        open={openPicker === 'focus'}
+        onOpenChange={(next) => setOpenPicker(next ? 'focus' : null)}
       />
 
       <Text style={styles.sectionLabel}>Effort</Text>
@@ -228,6 +239,8 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
         options={EFFORT_OPTIONS.map((e) => ({ value: e, label: EFFORT_LABELS[e] }))}
         value={effort}
         onChange={setEffort}
+        open={openPicker === 'effort'}
+        onOpenChange={(next) => setOpenPicker(next ? 'effort' : null)}
       />
 
       {/* A checkbox, not a card that changes its own label: with only the wording to go on it was
