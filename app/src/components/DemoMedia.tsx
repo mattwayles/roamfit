@@ -32,7 +32,7 @@
  *     ADR 0003 / issue #13 ("no new persistence logic in app/").
  */
 import React, { useEffect, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { buildSearchUrl, buildWatchUrl, isYouTubeUrl, resolveMediaTier } from '../lib/mediaLadder';
 import { getNetworkStatus } from '../lib/networkStatus';
@@ -142,6 +142,10 @@ export default function DemoMedia({
     }
     setUrlError(null);
     setDraftUrl('');
+    // The paste is accepted and the field is empty — the keyboard is now covering the player it
+    // was just used to fill. Tapping Save is the end of the interaction, so end it. On the error
+    // path above the keyboard deliberately stays up: the fix is another edit in this same field.
+    Keyboard.dismiss();
     // A previous player error was about the *old* video. Clear it so the new assignment is
     // actually given a chance to render rather than being suppressed by a stale flag.
     setPlayerErrored(false);

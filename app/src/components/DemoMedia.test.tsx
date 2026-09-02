@@ -12,7 +12,7 @@
  * covered by `networkStatus.test.ts`.
  */
 import React from 'react';
-import { Linking } from 'react-native';
+import { Keyboard, Linking } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import DemoMedia from './DemoMedia';
 import { getNetworkStatus } from '../lib/networkStatus';
@@ -222,6 +222,18 @@ describe('DemoMedia', () => {
       await submitUrl(renderer, 'https://youtu.be/dQw4w9WgXcQ');
       const input = renderer.root.findByProps({ testID: 'demo-media-url-input' });
       expect(input.props.value).toBe('');
+    });
+
+    it('dismisses the keyboard after a successful submit, but leaves it up on a rejection', async () => {
+      // Tapping Save ends the interaction \u2014 the keyboard is covering the player the paste was
+      // meant to fill. A rejected paste is the opposite: the field is still being edited.
+      mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+      const dismiss = jest.spyOn(Keyboard, 'dismiss').mockImplementation(() => {});
+      const { renderer } = await renderOpen();
+      await submitUrl(renderer, 'https://vimeo.com/123456789');
+      expect(dismiss).not.toHaveBeenCalled();
+      await submitUrl(renderer, 'https://youtu.be/dQw4w9WgXcQ');
+      expect(dismiss).toHaveBeenCalledTimes(1);
     });
 
     it('embeds the user\u2019s video once assigned, in preference to the curated one', async () => {
