@@ -99,7 +99,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   useKeepAwake();
 
   const { sessionId } = route.params;
-  const { db, library, families, figures } = useStore();
+  const { db, library, families } = useStore();
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [phase, setPhase] = useState<Phase>('exercise');
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
@@ -468,14 +468,13 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
           <PinnedNote note={exState?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
 
-          {exercise && figures[exercise.id] && (
+          {exercise && (
             <DemoMedia
-              figureSvg={figures[exercise.id]}
               videoSearchQuery={exercise.video_search}
               // §11.4 — a synchronous local read of whatever `sync/firestoreSyncWorker.ts` last
               // pulled into `remote_video_config` (track 6d). Null (never bundled, invariant 8)
-              // until a delta pull has actually resolved a curated id for this exercise; the
-              // ladder already falls back to the figure in that case.
+              // until a delta pull has actually resolved a curated id for this exercise, in which
+              // case `DemoMedia` renders nothing and the "How to" cue below is the demo.
               curatedVideoId={remoteConfigRepo.getCuratedVideoId(db, exercise.id)}
               videoDemoted={videoFlagState.demoted}
               defaultOpen={isFirstEverPerformance}

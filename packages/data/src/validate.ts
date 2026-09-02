@@ -175,9 +175,12 @@ function main() {
       fail(`${id}: progression_family and progression_level_id must both be null or both be set`);
     }
 
-    // demo_media stub shape
-    if (!ex.demo_media || ex.demo_media.type !== 'figure' || ex.demo_media.id !== id) {
-      fail(`${id}: demo_media must be { type: "figure", id: "${id}" }`);
+    // `setup` is the offline floor. Since ADR 0008 removed the bundled figures, this cue is the
+    // *only* thing a user has to go on with no connectivity, which makes a blank or stub cue a
+    // §11.6 offline-gate failure rather than a content nit. The 20-char floor catches empties,
+    // whitespace, and placeholder junk without pretending to judge coaching quality.
+    if (typeof ex.setup !== 'string' || ex.setup.trim().length < 20) {
+      fail(`${id}: setup cue is missing or too short — it is the only offline demo guidance`);
     }
   }
 
@@ -288,43 +291,10 @@ function main() {
     if (cooldowns.length === 0) fail(`focus "${focus}": zero eligible cooldown exercises`);
   }
 
-  // ---- demo media: bundled figures (§11.4 tier 2, track 6a-figures) ----
-  const FIGURE_BUDGET_BYTES = 3 * 1024 * 1024;
-  const figuresPath = path.join(LIB_DIR, 'figures.json');
-  if (!fs.existsSync(figuresPath)) {
-    fail('packages/data/library/figures.json is missing — run tools/generate-figures.ts');
-  } else {
-    const figuresRaw = fs.readFileSync(figuresPath, 'utf8');
-    let figures: Record<string, string>;
-    try {
-      figures = JSON.parse(figuresRaw) as Record<string, string>;
-    } catch {
-      figures = {};
-      fail('figures.json is not valid JSON');
-    }
-    const exerciseIds = new Set(exercises.map((e) => e.id));
-    const figureIds = new Set(Object.keys(figures));
-    for (const id of exerciseIds) {
-      if (!figureIds.has(id))
-        fail(`${id}: no bundled figure (§11.4 offline coverage must be 100%)`);
-      else if (typeof figures[id] !== 'string' || !figures[id].includes('<svg')) {
-        fail(`${id}: figure entry is not an SVG string`);
-      }
-    }
-    for (const id of figureIds) {
-      if (!exerciseIds.has(id)) fail(`figures.json: "${id}" does not match any exercise id`);
-    }
-    const bytes = Buffer.byteLength(figuresRaw, 'utf8');
-    if (bytes > FIGURE_BUDGET_BYTES) {
-      fail(
-        `figures.json is ${(bytes / 1024 / 1024).toFixed(2)} MB, over the 3 MB bundled media budget (§11.4)`,
-      );
-    } else {
-      console.log(
-        `Figures: ${figureIds.size} bundled, ${(bytes / 1024).toFixed(1)} KB total (budget 3 MB).`,
-      );
-    }
-  }
+  // ---- demo media ----
+  // Nothing to validate: there is no bundled media any more (ADR 0008). Offline demo guidance is
+  // the `setup` cue, which the per-record loop above now checks explicitly. Curated
+  // video ids remain remote-config-only and are still rejected here (invariant 8).
 
   // ---- coverage report ----
   console.log('=== Coverage report ===');

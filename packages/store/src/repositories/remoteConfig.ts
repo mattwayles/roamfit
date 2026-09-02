@@ -21,7 +21,7 @@ export interface RemoteVideoConfigRow {
 }
 
 /** Null curated id (never bundled, invariant 8) is the correct default for anything not yet
- *  synced — the media ladder already treats null as "no curated embed, use the figure." */
+ *  synced — the media ladder already treats null as "no curated embed, cues only." */
 export function getCuratedVideoId(db: Db, exerciseId: string): string | null {
   const row = db
     .select({ videoId: schema.remoteVideoConfig.videoId })

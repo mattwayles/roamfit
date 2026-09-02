@@ -82,11 +82,6 @@ export type ProgressionFamilyId =
   | 'lunge'
   | 'anti_extension';
 
-export interface DemoMedia {
-  type: 'figure' | 'clip';
-  id: string;
-}
-
 export interface Exercise {
   id: string;
   name: string;
@@ -118,9 +113,10 @@ export interface Exercise {
 
   contraindications: Contraindication[];
 
+  /** The authoritative "How to" cue. This is the offline demo guidance in its entirety —
+   *  there is no bundled figure or image any more (ADR 0008). */
   setup: string;
   video_search: string;
-  demo_media: DemoMedia;
 }
 
 export interface ProgressionFamilyLevel {

@@ -1,10 +1,10 @@
 /**
- * §11.4 three-tier media ladder — tier selection and demo-video URL builders.
+ * §11.4 media ladder — tier selection and demo-video URL builders.
  *
- * Per the project's verification standard (see docs/ORCHESTRATION.md's verification log, and
- * 6a-figures rounds 3/4): every case here is written to fail against an intentionally-wrong
- * "always tier 2" stub before the real `resolveMediaTier` is written, so these tests actually
- * prove the selection rule rather than encode whatever the implementation happens to do.
+ * The bundled-figure tier is gone (ADR 0008), so the fallback is now `cues_only`: no media frame
+ * at all, with the exercise's `setup` cue carrying the demo. Every case here is written to fail
+ * against an intentionally-wrong "always fall back" stub, so these tests prove the selection rule
+ * rather than encode whatever the implementation happens to do.
  */
 import {
   buildEmbedUrl,
@@ -27,25 +27,25 @@ describe('resolveMediaTier', () => {
     expect(result.videoId).toBe('abc123XYZ_9');
   });
 
-  it('falls back to the figure when offline, even with a curated id', () => {
+  it('falls back to cues only when offline, even with a curated id', () => {
     const result = resolveMediaTier({ ...BASE, curatedVideoId: 'abc123XYZ_9', online: false });
-    expect(result.tier).toBe('figure');
+    expect(result.tier).toBe('cues_only');
     expect(result.videoId).toBeNull();
   });
 
-  it('falls back to the figure when there is no curated id, even online', () => {
+  it('falls back to cues only when there is no curated id, even online', () => {
     const result = resolveMediaTier({ ...BASE, curatedVideoId: null, online: true });
-    expect(result.tier).toBe('figure');
+    expect(result.tier).toBe('cues_only');
   });
 
-  it('falls back to the figure on a metered connection, even with a curated id', () => {
+  it('falls back to cues only on a metered connection, even with a curated id', () => {
     const result = resolveMediaTier({ ...BASE, curatedVideoId: 'abc123XYZ_9', metered: true });
-    expect(result.tier).toBe('figure');
+    expect(result.tier).toBe('cues_only');
   });
 
-  it('falls back to the figure once demoted, even with a curated id and good connectivity', () => {
+  it('falls back to cues only once demoted, even with a curated id and good connectivity', () => {
     const result = resolveMediaTier({ ...BASE, curatedVideoId: 'abc123XYZ_9', videoDemoted: true });
-    expect(result.tier).toBe('figure');
+    expect(result.tier).toBe('cues_only');
   });
 
   it('never returns curated_embed with a null videoId', () => {
@@ -59,7 +59,7 @@ describe('resolveMediaTier', () => {
 });
 
 describe('buildSearchUrl', () => {
-  it('is null when offline — tier 3 requires connectivity', () => {
+  it('is null when offline — a search link requires connectivity', () => {
     expect(buildSearchUrl('band row anchored to a door', false)).toBeNull();
   });
 

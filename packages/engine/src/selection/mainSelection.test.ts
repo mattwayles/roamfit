@@ -30,7 +30,6 @@ function ex(overrides: Partial<Exercise>): Exercise {
     contraindications: [],
     setup: 'setup',
     video_search: 'https://example.com',
-    demo_media: { type: 'figure', id: overrides.id ?? `ex-${counter}` },
     ...overrides,
   };
 }

@@ -1,6 +1,6 @@
 -- 0004_video_flags.sql — §11.4 link-health local state: two video-quality flags (user reports
 -- and/or automatic player-error flags, sharing one counter — see STATUS-6b-media-ladder.md)
--- demote an exercise's media ladder to tier 2 (the bundled figure) until a human re-curates.
+-- demote an exercise's media ladder off the curated embed until a human re-curates.
 -- Lives on exercise_state (per user x exercise, invariant 7) rather than a new table because it
 -- is exactly that shape and exercise_state already has the ensure-row-on-first-write pattern this
 -- needs.

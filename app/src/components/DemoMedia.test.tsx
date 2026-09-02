@@ -1,7 +1,11 @@
 /**
  * §11.4 media ladder, rendered — proves the wiring (which branch mounts, which callbacks fire),
- * not real SVG rasterization or real embed playback (both native modules are Jest-mocked, see
- * `app/__mocks__/react-native-svg.js` / `react-native-webview.js` and STATUS-6b-media-ladder.md).
+ * not real embed playback (the native module is Jest-mocked, see
+ * `app/__mocks__/react-native-webview.js` and STATUS-6b-media-ladder.md).
+ *
+ * Since ADR 0008 removed the bundled figures, the fallback is *nothing rendered at all* — the
+ * screen's "How to" cue is the offline demo. Several cases below therefore assert absence, which
+ * is the actual product behavior: no dead player, no empty frame, no "unavailable" copy.
  *
  * `networkStatus.ts` is mocked per-test so each case can force online/offline/metered without
  * depending on Jest's real (always-offline) `expo-network` fallback — that fallback is already
@@ -18,8 +22,6 @@ jest.mock('../lib/networkStatus', () => ({
 
 const mockGetNetworkStatus = getNetworkStatus as jest.MockedFunction<typeof getNetworkStatus>;
 
-const FIGURE_SVG = '<svg xmlns="http://www.w3.org/2000/svg"><circle cx="1" cy="1" r="1"/></svg>';
-
 async function renderOpen(props: Partial<React.ComponentProps<typeof DemoMedia>> = {}) {
   const onExpand = jest.fn();
   const onReportIssue = jest.fn();
@@ -28,7 +30,6 @@ async function renderOpen(props: Partial<React.ComponentProps<typeof DemoMedia>>
   await act(async () => {
     renderer = TestRenderer.create(
       <DemoMedia
-        figureSvg={FIGURE_SVG}
         videoSearchQuery="band row anchored to a door"
         curatedVideoId={null}
         videoDemoted={false}
@@ -49,18 +50,19 @@ describe('DemoMedia', () => {
     mockGetNetworkStatus.mockReset();
   });
 
-  it('offline: shows the figure, a calm offline indicator, and no player at all', async () => {
+  it('offline: renders nothing at all — no player, no frame, no toggle (the cue is the demo)', async () => {
     mockGetNetworkStatus.mockResolvedValue({ online: false, metered: false });
     const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
-    expect(renderer.root.findAllByProps({ testID: 'demo-media-figure' }).length).toBeGreaterThan(0);
     expect(renderer.root.findAllByProps({ testID: 'demo-media-webview' })).toHaveLength(0);
-    expect(renderer.root.findByProps({ testID: 'demo-media-offline' })).toBeTruthy();
+    expect(renderer.root.findAllByProps({ testID: 'demo-media-body' })).toHaveLength(0);
+    // The whole disclosure is gone, not just its contents — there is nothing to open onto.
+    expect(renderer.root.findAllByProps({ testID: 'demo-media-toggle' })).toHaveLength(0);
+    expect(renderer.toJSON()).toBeNull();
   });
 
-  it('online, no curated id: shows the figure and the search link, no player', async () => {
+  it('online, no curated id: shows the search link and no player', async () => {
     mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
     const { renderer } = await renderOpen({ curatedVideoId: null });
-    expect(renderer.root.findAllByProps({ testID: 'demo-media-figure' }).length).toBeGreaterThan(0);
     expect(renderer.root.findAllByProps({ testID: 'demo-media-webview' })).toHaveLength(0);
     expect(renderer.root.findByProps({ testID: 'demo-media-search-link' })).toBeTruthy();
   });
@@ -74,20 +76,22 @@ describe('DemoMedia', () => {
     expect(renderer.root.findByProps({ testID: 'demo-media-report' })).toBeTruthy();
   });
 
-  it('online, curated id, but locally demoted: falls back to the figure, no embed', async () => {
+  it('online, curated id, but locally demoted: no embed, but the search link survives', async () => {
     mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
     const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9', videoDemoted: true });
     expect(renderer.root.findAllByProps({ testID: 'demo-media-webview' })).toHaveLength(0);
-    expect(renderer.root.findAllByProps({ testID: 'demo-media-figure' }).length).toBeGreaterThan(0);
+    // Demotion removes the bad video, not the user's ability to go find a good one.
+    expect(renderer.root.findByProps({ testID: 'demo-media-search-link' })).toBeTruthy();
   });
 
-  it('metered connection: falls back to the figure even with a curated id', async () => {
+  it('metered connection: no embed even with a curated id, search link still offered', async () => {
     mockGetNetworkStatus.mockResolvedValue({ online: true, metered: true });
     const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
     expect(renderer.root.findAllByProps({ testID: 'demo-media-webview' })).toHaveLength(0);
+    expect(renderer.root.findByProps({ testID: 'demo-media-search-link' })).toBeTruthy();
   });
 
-  it('a player error falls back to the figure silently and calls onPlayerError exactly once', async () => {
+  it('a player error drops the embed silently and calls onPlayerError exactly once', async () => {
     mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
     const { renderer, onPlayerError } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
     const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
@@ -96,11 +100,10 @@ describe('DemoMedia', () => {
     });
     expect(onPlayerError).toHaveBeenCalledTimes(1);
     expect(renderer.root.findAllByProps({ testID: 'demo-media-webview' })).toHaveLength(0);
-    expect(renderer.root.findAllByProps({ testID: 'demo-media-figure' }).length).toBeGreaterThan(0);
     // No error UI of any kind — the fallback is silent (§11.2 "no error modals").
     expect(() => renderer.root.findByProps({ testID: /error/i })).toThrow();
 
-    // A second error on what is now the figure (no webview mounted) must not double-report.
+    // A second pass with no webview mounted must not double-report.
     await act(async () => {});
     expect(onPlayerError).toHaveBeenCalledTimes(1);
   });
@@ -119,6 +122,15 @@ describe('DemoMedia', () => {
     mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
     const { onExpand } = await renderOpen({ defaultOpen: true });
     expect(onExpand).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not report an expansion when there was nothing to expand (offline)', async () => {
+    // The §15 "media expanded" signal must mean the user actually saw media. Firing it for a
+    // component that rendered nothing would silently corrupt the metric that decides which
+    // exercises get self-filmed loops.
+    mockGetNetworkStatus.mockResolvedValue({ online: false, metered: false });
+    const { onExpand } = await renderOpen({ defaultOpen: true, curatedVideoId: 'abc123XYZ_9' });
+    expect(onExpand).not.toHaveBeenCalled();
   });
 
   it('does not call onExpand when collapsed by default', async () => {

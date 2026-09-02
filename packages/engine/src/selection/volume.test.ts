@@ -32,7 +32,6 @@ function ex(id: string, primary: string[], secondary: string[] = []): Exercise {
     contraindications: [],
     setup: '',
     video_search: '',
-    demo_media: { type: 'figure', id },
   };
 }
 

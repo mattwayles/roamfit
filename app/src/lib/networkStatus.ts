@@ -7,7 +7,7 @@
  * treated as "can't confirm cellular, so don't force an extra skip on top of being offline
  * anyway") when the native module is unavailable — never to "assume online," since invariant 1
  * (never a dead player) means the failure mode must always be safe to fall back toward the
- * figure, not toward attempting an embed.
+ * cue text, not toward attempting an embed.
  *
  * **Known, documented limitation — read before relying on `metered`:** neither `expo-network` nor
  * any other Expo/RN API exposes iOS's system "Data Saver" / Low Data Mode toggle to JavaScript.

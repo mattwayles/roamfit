@@ -7,7 +7,7 @@
  */
 import React, { createContext, useContext, useMemo } from 'react';
 import type { PropsWithChildren } from 'react';
-import { exerciseLibrary, familyLibrary, figureLibrary } from '@roamfit/data';
+import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import type { ExerciseLibrary, FamilyLibrary } from '@roamfit/data';
 import type { Db } from '@roamfit/store';
 import { getDb } from '../db';
@@ -16,8 +16,6 @@ export interface StoreContextValue {
   db: Db;
   library: ExerciseLibrary;
   families: FamilyLibrary;
-  /** §11.4 tier 2 — exercise_id -> bundled SVG markup. See `DemoMedia.tsx`. */
-  figures: Record<string, string>;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -28,7 +26,6 @@ export function StoreProvider({ children }: PropsWithChildren): React.JSX.Elemen
       db: getDb(),
       library: exerciseLibrary,
       families: familyLibrary,
-      figures: figureLibrary,
     }),
     [],
   );

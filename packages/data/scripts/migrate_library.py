@@ -757,7 +757,6 @@ def main():
             "contraindications": contra_for(ex_id, pattern),
             "setup": e["setup"],
             "video_search": e["video_search"],
-            "demo_media": {"type": "figure", "id": ex_id},
         }
         out_exercises.append(new)
 
@@ -795,7 +794,6 @@ def main():
             "contraindications": sorted(e["contraindications"]),
             "setup": e["setup"],
             "video_search": video_search,
-            "demo_media": {"type": "figure", "id": ex_id},
         }
         out_exercises.append(new)
 
@@ -833,7 +831,6 @@ def main():
             "contraindications": sorted(e["contraindications"]),
             "setup": e["setup"],
             "video_search": video_search,
-            "demo_media": {"type": "figure", "id": ex_id},
         }
         out_exercises.append(new)
 

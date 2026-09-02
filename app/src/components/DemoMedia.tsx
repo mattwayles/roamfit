@@ -1,16 +1,22 @@
 /**
- * §10.4/§11.4 the three-tier media ladder, rendered. Tier 2 (the bundled figure) is always the
- * floor and always what's mounted; the tier-1 embed is layered in front of it only when eligible,
- * never replacing the figure's availability. "Offline shows the figure with no dead player and no
- * error" (§11.2) falls out of this structure automatically: an offline/ineligible state simply
- * never mounts the `WebView` branch at all — there is no player object to error.
+ * §10.4/§11.4 the media ladder, rendered.
+ *
+ * **There is no bundled-figure tier any more (ADR 0008).** With connectivity this shows the
+ * curated embed and/or the YouTube search link; with none it renders `null` and the screen's
+ * "How to" cue block carries the demonstration on its own. That is why this component returns
+ * nothing rather than an empty frame or a placeholder: an offline user gets no dead player, no
+ * broken-image box, and no "unavailable" copy to feel punished by (invariant 4) — just the cue,
+ * which is the thing that actually teaches the movement.
+ *
+ * §11.6's airplane-mode gate is unaffected: the cue text is bundled on the exercise record, so
+ * the offline path still has real content and never depends on a network read.
  *
  * Network status (online/metered) is read here, not passed in, so every call site gets the same
  * "safe until proven online" behavior from `networkStatus.ts` for free.
  *
  * Business logic this component does NOT own (kept in the screen, per this codebase's
  * `SwapSheet`-style convention of "components render, screens decide"):
- *   - Whether a curated video id exists at all (remote config — not built yet, track 6d).
+ *   - Whether a curated video id exists at all (remote config).
  *   - Whether this exercise is locally demoted (`exerciseStateRepo.getVideoFlagState`).
  *   - Persisting a report or a player-error flag (`exerciseStateRepo.reportVideoIssue`) and the
  *     first-expansion signal (`sessionsRepo.recordDemoMediaExpanded`) — both are `@roamfit/store`
@@ -19,13 +25,11 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SvgXml } from 'react-native-svg';
 import { WebView } from 'react-native-webview';
 import { buildEmbedUrl, buildSearchUrl, resolveMediaTier } from '../lib/mediaLadder';
 import { getNetworkStatus } from '../lib/networkStatus';
 
 export interface DemoMediaProps {
-  figureSvg: string;
   videoSearchQuery: string;
   /** Remote-config value, or null — see file header. */
   curatedVideoId: string | null;
@@ -35,14 +39,13 @@ export interface DemoMediaProps {
   onExpand: () => void;
   /** User tapped "this video is wrong or broken." */
   onReportIssue: () => void;
-  /** The embedded player errored — falls back to the figure silently; this still records the
+  /** The embedded player errored — the embed is dropped silently; this still records the
    *  automatic flag (§11.4 "the failure is reported back as an automatic flag"). */
   onPlayerError: () => void;
   defaultOpen: boolean;
 }
 
 export default function DemoMedia({
-  figureSvg,
   videoSearchQuery,
   curatedVideoId,
   videoDemoted,
@@ -50,11 +53,11 @@ export default function DemoMedia({
   onReportIssue,
   onPlayerError,
   defaultOpen,
-}: DemoMediaProps): React.JSX.Element {
+}: DemoMediaProps): React.JSX.Element | null {
   const [open, setOpen] = useState(defaultOpen);
-  // §11.4 "Player errors fall back to the figure silently" — once one fires for this mount, stay
-  // on the figure even if the network status re-check would otherwise still favor the embed,
-  // rather than flapping back to a player that just errored.
+  // §11.4 "Player errors fall back silently" — once one fires for this mount, stay off the embed
+  // even if the network status re-check would otherwise still favor it, rather than flapping back
+  // to a player that just errored.
   const [playerErrored, setPlayerErrored] = useState(false);
   const [network, setNetwork] = useState<{ online: boolean; metered: boolean }>({
     online: false,
@@ -71,14 +74,6 @@ export default function DemoMedia({
     };
   }, []);
 
-  const hasExpandedOnce = React.useRef(false);
-  useEffect(() => {
-    if (open && !hasExpandedOnce.current) {
-      hasExpandedOnce.current = true;
-      onExpand();
-    }
-  }, [open, onExpand]);
-
   const ladder = resolveMediaTier({
     curatedVideoId,
     online: network.online,
@@ -87,15 +82,27 @@ export default function DemoMedia({
   });
   const showEmbed = ladder.tier === 'curated_embed' && ladder.videoId !== null && !playerErrored;
   const searchUrl = buildSearchUrl(videoSearchQuery, network.online);
+  const hasAnything = showEmbed || searchUrl !== null;
+
+  // Declared before the early return so the hook order is stable across the offline/online
+  // transition — `network` starts pessimistic and flips once `getNetworkStatus()` resolves, so
+  // this component genuinely does re-render from "nothing to show" to "embed".
+  const hasExpandedOnce = React.useRef(false);
+  useEffect(() => {
+    if (open && hasAnything && !hasExpandedOnce.current) {
+      hasExpandedOnce.current = true;
+      onExpand();
+    }
+  }, [open, hasAnything, onExpand]);
+
+  // Nothing to offer: no embed, no search link. Render nothing at all rather than an empty
+  // disclosure the user can open onto a blank frame — the "How to" cue below it is the demo.
+  if (!hasAnything) return null;
 
   const handlePlayerError = () => {
     if (playerErrored) return; // §11.4: falls back silently — flag once per mount, not per retry.
     setPlayerErrored(true);
     onPlayerError();
-  };
-
-  const handleReport = () => {
-    onReportIssue();
   };
 
   return (
@@ -106,14 +113,8 @@ export default function DemoMedia({
 
       {open && (
         <View style={styles.body} testID="demo-media-body">
-          {!network.online && (
-            <Text testID="demo-media-offline" style={styles.offlineIndicator}>
-              Offline · showing figure
-            </Text>
-          )}
-
-          <View style={styles.mediaFrame}>
-            {showEmbed ? (
+          {showEmbed && (
+            <View style={styles.mediaFrame}>
               <WebView
                 testID="demo-media-webview"
                 source={{ uri: buildEmbedUrl(ladder.videoId as string) }}
@@ -123,13 +124,11 @@ export default function DemoMedia({
                 onError={handlePlayerError}
                 onHttpError={handlePlayerError}
               />
-            ) : (
-              <SvgXml testID="demo-media-figure" xml={figureSvg} width="100%" height="100%" />
-            )}
-          </View>
+            </View>
+          )}
 
           {showEmbed && (
-            <Pressable testID="demo-media-report" onPress={handleReport}>
+            <Pressable testID="demo-media-report" onPress={onReportIssue}>
               <Text style={styles.reportLink}>This video is wrong or broken</Text>
             </Pressable>
           )}
@@ -148,7 +147,6 @@ export default function DemoMedia({
 const styles = StyleSheet.create({
   title: { fontSize: 14, fontWeight: '700', color: '#334155' },
   body: { gap: 8, marginTop: 8 },
-  offlineIndicator: { fontSize: 12, color: '#94a3b8' },
   mediaFrame: {
     aspectRatio: 16 / 9,
     borderRadius: 12,

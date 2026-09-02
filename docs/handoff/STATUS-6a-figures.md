@@ -1,4 +1,11 @@
 ## Track: 6a-figures — In-house line-art demo figures
+
+> **SUPERSEDED 2026-09-01 — this track's output has been deleted. See ADR 0008.**
+> The bundled figures, `tools/generate-figures.ts`, and the `demo_media` schema field are gone.
+> Offline demo guidance is now the `setup` cue alone. **Do not regenerate figures from this
+> document.** Everything below is retained as a historical record of what was built and why it
+> was reworked four times, which is part of the evidence behind ADR 0008.
+
 Last updated: 2026-08-31 (fourth rework round closed — see "Round 4" below)
 
 ### Status

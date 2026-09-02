@@ -28,7 +28,6 @@ function ex(id: string, focus: Exercise['focus'] = ['abs']): Exercise {
     contraindications: [],
     setup: '',
     video_search: '',
-    demo_media: { type: 'figure', id },
   };
 }
 
@@ -165,7 +164,6 @@ describe('selectWarmupCooldownGroup — §5.6 fills the budgeted minutes, not a 
       contraindications: [],
       setup: '',
       video_search: '',
-      demo_media: { type: 'figure', id },
     };
   }
 
