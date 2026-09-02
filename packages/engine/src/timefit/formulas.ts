@@ -53,11 +53,39 @@ export function timedExerciseSec(params: {
   return base + (params.anchorRebuild ? 45 : 30);
 }
 
-/** §5.6 exercise-count sanity check: [min, max] main exercises for a target length. */
+/**
+ * §5.6 exercise-count sanity check: [min, max] main exercises for a target length.
+ *
+ * ADR 0013 added the two tiers above 60 minutes. §5.6's table stopped at "> 45 → [8, 10]", which
+ * meant a 90- or 120-minute request produced exactly the same session as 60 and reported
+ * `template_exhausted`. The tiers stay deliberately conservative — see
+ * `longSessionSetsMultiplier`, which is where most of the extra time in a long session comes
+ * from. Filling 120 minutes with exercise count alone would need ~25 movements, which is what
+ * this sanity check exists to prevent.
+ */
 export function mainExerciseCountRange(targetMinutes: number): [number, number] {
   if (targetMinutes <= 15) return [3, 4];
   if (targetMinutes <= 20) return [4, 5];
   if (targetMinutes <= 30) return [5, 6];
   if (targetMinutes <= 45) return [7, 8];
-  return [8, 10];
+  if (targetMinutes <= 60) return [8, 10];
+  if (targetMinutes <= 90) return [10, 14];
+  return [12, 16];
+}
+
+/**
+ * ADR 0013 — extra volume per exercise for a long session, multiplied into every entry's set
+ * count (the same `setsMultiplier` lever §9.4's comeback cut uses, in the opposite direction).
+ *
+ * A two-hour session is not a 30-minute session with four times the exercises; it is the same
+ * movements carried further. Adding time by set count rather than by exercise count keeps the
+ * session coherent, keeps it inside the §5.6 count sanity range, and means the extra time lands
+ * on work the user's progression state actually knows about.
+ *
+ * Returns 1 below 60 minutes, so nothing about existing session lengths changes.
+ */
+export function longSessionSetsMultiplier(targetMinutes: number): number {
+  if (targetMinutes <= 60) return 1;
+  if (targetMinutes <= 90) return 1.5;
+  return 2;
 }

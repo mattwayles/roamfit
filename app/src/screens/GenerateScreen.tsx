@@ -24,21 +24,49 @@ import { getNetworkStatus } from '../lib/networkStatus';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Generate'>;
 
-const TIME_OPTIONS = [15, 20, 30, 45, 60]; // ADR 0002 floor
+const TIME_OPTIONS = [15, 20, 30, 45, 60, 90, 120]; // ADR 0002 floor, ADR 0013 ceiling
 const FOCUS_OPTIONS: Focus[] = ['upper', 'abs', 'legs', 'full'];
 const EFFORT_OPTIONS: Effort[] = ['easy', 'normal', 'hard'];
-const ALL_ANCHORS: Anchor[] = [
-  'none',
-  'stance',
-  'feet',
-  'self-low',
-  'thigh-loop',
-  'body-support',
-  'anchor-low',
-  'anchor-mid',
-  'anchor-high',
-  'pullup-bar',
-];
+/**
+ * §5.3 anchors, as a grouped checklist rather than a wrap of ten chips.
+ *
+ * Three problems with the old presentation, all fixed here:
+ *  - the labels were raw enum values (`self-low`, `thigh-loop`, `anchor-mid`), which mean nothing
+ *    to a user standing in a car park deciding what they can tie a band to;
+ *  - multi-select chips looked identical to the single-select Time/Focus/Effort chips above, so
+ *    nothing signalled that these behave differently;
+ *  - `low-bar` was missing entirely. It is in `DEFAULT_ANCHORS_AVAILABLE` (ADR 0007), so every
+ *    user has it enabled and nobody could turn it off.
+ *
+ * Grouped by whether a fixed point is needed, which is the only distinction that matters when
+ * you are deciding what to tick.
+ */
+const ANCHOR_GROUPS: { title: string; anchors: { value: Anchor; label: string; hint?: string }[] }[] =
+  [
+    {
+      title: 'No fixed point needed',
+      anchors: [
+        { value: 'none', label: 'Bodyweight only', hint: 'no band at all' },
+        { value: 'stance', label: 'Stand on the band' },
+        { value: 'feet', label: 'Band under your feet' },
+        { value: 'self-low', label: 'Band around your own body' },
+        { value: 'thigh-loop', label: 'Band looped around a thigh' },
+      ],
+    },
+    {
+      title: 'Needs something to anchor to',
+      anchors: [
+        { value: 'anchor-low', label: 'Low point', hint: 'door base, post, heavy furniture' },
+        { value: 'anchor-mid', label: 'Mid point', hint: 'rail, handle, waist-height fixing' },
+        { value: 'anchor-high', label: 'High point', hint: 'bar, beam, top of a door' },
+        { value: 'low-bar', label: 'Waist-height bar', hint: 'picnic table, RV ladder, low branch' },
+        { value: 'pullup-bar', label: 'Pull-up bar', hint: 'takes your full hanging weight' },
+        { value: 'body-support', label: 'Bench or step', hint: 'something to dip or press off' },
+      ],
+    },
+  ];
+
+const ANCHOR_COUNT = ANCHOR_GROUPS.reduce((n, g) => n + g.anchors.length, 0);
 
 export default function GenerateScreen({ navigation, route }: Props): React.JSX.Element {
   const { db, library, families } = useStore();
@@ -46,6 +74,9 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
   const [focus, setFocus] = useState<Focus>('full');
   const [effort, setEffort] = useState<Effort>('normal');
   const [anchors, setAnchors] = useState<Anchor[]>([]);
+  // Collapsed by default: anchors are sticky user state (§5.3), set once and rarely revisited, so
+  // they should not cost eleven rows of the picker on every generation.
+  const [anchorsOpen, setAnchorsOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   // §9.9 — pre-filled by an accepted Recovery Week auto-suggestion (Home), or toggled manually
   // here. Either way it's just a request flag until the user taps Generate — never applied
@@ -122,11 +153,47 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
       </View>
 
       <Text style={styles.sectionLabel}>Anchors</Text>
-      <View style={styles.chipRow}>
-        {ALL_ANCHORS.map((a) => (
-          <Chip key={a} label={a} selected={anchors.includes(a)} onPress={() => toggleAnchor(a)} />
+      <Pressable
+        testID="anchors-disclosure"
+        accessibilityRole="button"
+        accessibilityState={{ expanded: anchorsOpen }}
+        style={styles.disclosure}
+        onPress={() => setAnchorsOpen((v) => !v)}
+      >
+        <Text style={styles.disclosureText}>What you can anchor to</Text>
+        <Text style={styles.disclosureCount} testID="anchors-summary">
+          {anchors.length} of {ANCHOR_COUNT} selected {anchorsOpen ? '\u25b4' : '\u25be'}
+        </Text>
+      </Pressable>
+
+      {anchorsOpen &&
+        ANCHOR_GROUPS.map((group) => (
+          <View key={group.title} style={styles.anchorGroup}>
+            <Text style={styles.anchorGroupTitle}>{group.title}</Text>
+            {group.anchors.map((a) => {
+              const selected = anchors.includes(a.value);
+              return (
+                <Pressable
+                  key={a.value}
+                  testID={`anchor-${a.value}`}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: selected }}
+                  accessibilityLabel={a.label}
+                  style={styles.anchorRow}
+                  onPress={() => toggleAnchor(a.value)}
+                >
+                  <Text style={[styles.checkbox, selected && styles.checkboxOn]}>
+                    {selected ? '\u2713' : ''}
+                  </Text>
+                  <View style={styles.anchorLabels}>
+                    <Text style={styles.anchorLabel}>{a.label}</Text>
+                    {a.hint != null && <Text style={styles.anchorHint}>{a.hint}</Text>}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
         ))}
-      </View>
 
       <Text style={styles.sectionLabel}>Focus</Text>
       <View style={styles.chipRow}>
@@ -193,6 +260,49 @@ const styles = StyleSheet.create({
   container: { padding: 20, gap: 12 },
   sectionLabel: { fontSize: 13, fontWeight: '700', color: '#64748b', marginTop: 12 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  disclosure: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    minHeight: 48,
+  },
+  disclosureText: { fontSize: 15, fontWeight: '600', color: '#334155' },
+  disclosureCount: { fontSize: 13, color: '#64748b' },
+  anchorGroup: { gap: 2, marginTop: 4 },
+  anchorGroupTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  anchorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 44,
+    paddingHorizontal: 4,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    lineHeight: 23,
+    textAlign: 'center',
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
+    color: 'transparent',
+    fontWeight: '700',
+    overflow: 'hidden',
+  },
+  checkboxOn: { backgroundColor: '#111', borderColor: '#111', color: '#fff' },
+  anchorLabels: { flex: 1 },
+  anchorLabel: { fontSize: 15, color: '#0f172a' },
+  anchorHint: { fontSize: 12, color: '#64748b' },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 10,

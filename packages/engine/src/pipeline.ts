@@ -43,6 +43,7 @@ import type { SlotEntry } from './timefit/fitSession';
 import {
   cooldownMinutes,
   MINIMUM_SUPPORTED_TARGET_MINUTES,
+  longSessionSetsMultiplier,
   mainExerciseCountRange,
   warmupMinutes,
 } from './timefit/formulas';
@@ -119,7 +120,10 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
           comeback.tier,
         );
   const userState: UserState = { ...input.userState, progressionStates };
-  const setsMultiplier = comeback.volumeMultiplier;
+  // §9.4's comeback cut and ADR 0013's long-session volume are the same lever pulled in opposite
+  // directions, so they compose rather than override: a comeback session at a 90-minute target is
+  // still lighter than a normal one at that length.
+  const setsMultiplier = comeback.volumeMultiplier * longSessionSetsMultiplier(targetMinutes);
 
   // §5.1 step 1 — hard filters, before anything else sees the pool.
   const pool = applyHardFilters({

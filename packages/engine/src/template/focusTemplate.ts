@@ -180,7 +180,7 @@ const ACCESSORY_PATTERNS_BY_FOCUS: Record<Focus, Pattern[]> = {
  * (`selectMain`) still applies every §5.2 rule to these slots exactly as it does to the base
  * ones — this only supplies more candidate slots, it does not pick exercises or bypass variety.
  */
-const EXPANSION_HARD_CAP = 14;
+const EXPANSION_HARD_CAP = 18;
 
 export function expandOptionalSlots(
   base: FocusTemplateResult,
