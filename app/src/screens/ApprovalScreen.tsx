@@ -453,7 +453,9 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
 
 /** Fixed so a drag can compute a target index from travel distance without measuring every row.
  *  The card's own content is laid out to fit exactly this height. */
-const CARD_HEIGHT = 158;
+// Sized for a two-line exercise name: the title block is narrower now that the action icons
+// share its row, so more names wrap. Feeds CARD_PITCH, which the drag gesture divides by.
+const CARD_HEIGHT = 132;
 const CARD_GAP = 8;
 /** Exported so a test can express a drag in rows rather than hardcoding a pixel count. */
 export const CARD_PITCH = CARD_HEIGHT + CARD_GAP;
@@ -545,6 +547,29 @@ function EntryCard({
             </View>
           )}
         </View>
+
+        {/* Both actions are icons on the title's own row, so they cost no vertical space at all.
+            The accessible names carry the meaning the glyphs cannot. */}
+        <View style={styles.cardActions}>
+          <Pressable
+            testID={`swap-${entry.exerciseId}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Swap ${exerciseName} for another exercise`}
+            style={[styles.iconButton, styles.swapButton]}
+            onPress={onSwap}
+          >
+            <Text style={styles.swapButtonText}>⇄</Text>
+          </Pressable>
+          <Pressable
+            testID={`remove-${entry.exerciseId}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Remove ${exerciseName}`}
+            style={[styles.iconButton, styles.removeButton]}
+            onPress={onRemove}
+          >
+            <Text style={styles.removeButtonText}>✕</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.stepperRow}>
@@ -585,30 +610,6 @@ function EntryCard({
           onMinus={() => onAdjustRest(-5)}
           onPlus={() => onAdjustRest(5)}
         />
-      </View>
-
-      {/* Both actions are icons, right-aligned, so the row reads as a pair of controls rather
-          than one wide button with an afterthought beside it. The accessible names carry the
-          meaning the glyphs cannot. */}
-      <View style={styles.cardActions}>
-        <Pressable
-          testID={`swap-${entry.exerciseId}`}
-          accessibilityRole="button"
-          accessibilityLabel={`Swap ${exerciseName} for another exercise`}
-          style={[styles.iconButton, styles.swapButton]}
-          onPress={onSwap}
-        >
-          <Text style={styles.swapButtonText}>⇄</Text>
-        </Pressable>
-        <Pressable
-          testID={`remove-${entry.exerciseId}`}
-          accessibilityRole="button"
-          accessibilityLabel={`Remove ${exerciseName}`}
-          style={[styles.iconButton, styles.removeButton]}
-          onPress={onRemove}
-        >
-          <Text style={styles.removeButtonText}>✕</Text>
-        </Pressable>
       </View>
     </View>
   );
@@ -719,9 +720,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0f172a',
   },
-  // `marginTop` rather than relying on the card's `space-between`: the steppers sit directly
-  // above and their +/- targets were touching these.
-  cardActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 12 },
+  // In the header row, not on a line of their own: an icon pair is far narrower than the row it
+  // used to occupy, and giving it a whole line cost ~26pt of every card for no information.
+  // Pinned to the top so they stay level with the first line of a name that wraps.
+  cardActions: { flexDirection: 'row', gap: 8, marginLeft: 8, alignSelf: 'flex-start' },
   iconButton: {
     width: 44,
     minHeight: 36,
