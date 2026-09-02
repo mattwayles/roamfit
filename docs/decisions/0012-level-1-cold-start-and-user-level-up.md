@@ -146,3 +146,17 @@ start later.
 
 Nothing is offered on a mastered family — §6.7 Mastery is the top of the ladder, and there is no
 rung above it to move to.
+
+### Confirmation step
+
+Tapping "Too easy — level up" opens an inline two-step confirm before anything is written, the
+same shape `AbandonSessionButton` uses. This is not ceremony: `levelUpForTooEasy` resets the
+level's micro-progression to the new rung's floor, and there is **no "level down" control** — the
+only route back is §6.3's drop-a-level, which costs two failed sessions. An accidental tap would
+therefore be expensive and awkward to undo, which is exactly the class of action CLAUDE.md's
+"confirm before destroying" rule covers.
+
+The copy says what is actually at stake ("the next rung is harder, and your progress toward this
+unlock starts over") without naming the exercise being unlocked (ADR 0014) and without any
+discouraging framing (invariant 4). The confirm is row-scoped — only the family you tapped enters
+that state — and is cleared on refocus, so returning to Home never greets you with a stale prompt.

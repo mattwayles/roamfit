@@ -43,6 +43,17 @@ async function mountHome() {
   await waitFor(() => expect(screen.getByTestId(`board-row-${FAMILY}`)).toBeTruthy(), WAIT_OPTS);
 }
 
+/** Tap the level-up control and confirm it — a level-up is a two-step action, because it resets
+ *  this level's micro-progression and there is no "level down" to undo it with. */
+async function levelUpWithConfirm(familyId: string) {
+  fireEvent.press(screen.getByTestId(`board-level-up-${familyId}`));
+  await waitFor(
+    () => expect(screen.getByTestId(`board-level-up-confirm-yes-${familyId}`)).toBeTruthy(),
+    WAIT_OPTS,
+  );
+  fireEvent.press(screen.getByTestId(`board-level-up-confirm-yes-${familyId}`));
+}
+
 /** The exercise name the board is currently showing for a family. */
 function boardExerciseName(familyId: string): string {
   const row = screen.getByTestId(`board-row-${familyId}`);
@@ -65,11 +76,11 @@ describe('ADR 0012 — level up from the progression board', () => {
     expect(screen.getByTestId(`board-row-${FAMILY}`)).toBeTruthy();
     expect(boardExerciseName(FAMILY)).toContain('Level 1 of');
 
-    fireEvent.press(screen.getByTestId(`board-level-up-${FAMILY}`));
+    await levelUpWithConfirm(FAMILY);
     await waitFor(() => expect(boardExerciseName(FAMILY)).toContain('Level 2 of'), WAIT_OPTS);
 
     // Repeatable — that is what gets an already-trained user off the bottom rung.
-    fireEvent.press(screen.getByTestId(`board-level-up-${FAMILY}`));
+    await levelUpWithConfirm(FAMILY);
     await waitFor(() => expect(boardExerciseName(FAMILY)).toContain('Level 3 of'), WAIT_OPTS);
 
     // ...and it says what it moved you to.
@@ -84,7 +95,7 @@ describe('ADR 0012 — level up from the progression board', () => {
     const currentN = Number(/Level (\d+) of/.exec(before)?.[1]);
     expect(Number.isFinite(currentN)).toBe(true);
 
-    fireEvent.press(screen.getByTestId(`board-level-up-${FAMILY}`));
+    await levelUpWithConfirm(FAMILY);
 
     await waitFor(() => {
       const rendered = boardExerciseName(FAMILY);
@@ -129,6 +140,41 @@ describe('ADR 0012 — level up from the progression board', () => {
     expect(row).toContain('to your next unlock');
     expect(screen.getByTestId(`board-sessions-left-${FAMILY}`)).toBeTruthy();
     expect(screen.getByTestId(`board-progress-${FAMILY}`)).toBeTruthy();
+  });
+
+  it('asks before moving a level, and does nothing if you back out', async () => {
+    await mountHome();
+    const before = boardExerciseName(FAMILY);
+
+    // First tap only opens the confirm — the ladder must not have moved yet.
+    fireEvent.press(screen.getByTestId(`board-level-up-${FAMILY}`));
+    await waitFor(
+      () => expect(screen.getByTestId(`board-level-up-confirm-${FAMILY}`)).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    expect(/Level (\d+) of/.exec(boardExerciseName(FAMILY))?.[1]).toBe(
+      /Level (\d+) of/.exec(before)?.[1],
+    );
+
+    // Backing out leaves it exactly where it was.
+    fireEvent.press(screen.getByTestId(`board-level-up-cancel-${FAMILY}`));
+    await waitFor(
+      () => expect(screen.queryByTestId(`board-level-up-confirm-${FAMILY}`)).toBeNull(),
+      WAIT_OPTS,
+    );
+    expect(/Level (\d+) of/.exec(boardExerciseName(FAMILY))?.[1]).toBe(
+      /Level (\d+) of/.exec(before)?.[1],
+    );
+
+    // The confirm is row-scoped: opening one never opens another family's.
+    fireEvent.press(screen.getByTestId(`board-level-up-${FAMILY}`));
+    await waitFor(
+      () => expect(screen.getByTestId(`board-level-up-confirm-${FAMILY}`)).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    const other = familyLibrary.families.find((f) => f.id !== FAMILY)!;
+    expect(screen.queryByTestId(`board-level-up-confirm-${other.id}`)).toBeNull();
+    expect(screen.getByTestId(`board-level-up-${other.id}`)).toBeTruthy();
   });
 
   it('offers no control on a mastered family, and none anywhere else in the app', async () => {
