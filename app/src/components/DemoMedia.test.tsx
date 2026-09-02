@@ -165,6 +165,19 @@ describe('DemoMedia', () => {
       expect(renderer.root.findAllByProps({ testID: 'demo-media-url-error' })).toHaveLength(0);
     });
 
+    it('tells the screen when the field takes focus, so it can scroll clear of the keyboard', async () => {
+      // The field is the last thing on the Workout screen, so the keyboard opens over it and its
+      // Save button. The screen owns the scroll position; this component only reports the focus.
+      mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+      const onInputFocus = jest.fn();
+      const { renderer } = await renderOpen({ onInputFocus });
+      const input = renderer.root.findByProps({ testID: 'demo-media-url-input' });
+      await act(async () => {
+        input.props.onFocus();
+      });
+      expect(onInputFocus).toHaveBeenCalledTimes(1);
+    });
+
     it('empties the field after a successful submit', async () => {
       mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
       const { renderer } = await renderOpen();

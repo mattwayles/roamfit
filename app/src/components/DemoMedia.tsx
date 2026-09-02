@@ -53,6 +53,11 @@ export interface DemoMediaProps {
    *  automatic flag (§11.4 "the failure is reported back as an automatic flag"). */
   onPlayerError: () => void;
   defaultOpen: boolean;
+  /** The URL field is the last thing on a long scrolling screen, so the software keyboard opens
+   *  straight over it and the Save button beside it. The screen owns the scroll position (this
+   *  component has no idea where it sits in the scroll view), so it gets told the field took
+   *  focus and scrolls the block clear — "components render, screens decide", as above. */
+  onInputFocus?: () => void;
 }
 
 export default function DemoMedia({
@@ -66,6 +71,7 @@ export default function DemoMedia({
   onReportIssue,
   onPlayerError,
   defaultOpen,
+  onInputFocus,
 }: DemoMediaProps): React.JSX.Element | null {
   const [open, setOpen] = useState(defaultOpen);
   // §11.4 "Player errors fall back silently" — once one fires for this mount, stay off the embed
@@ -204,6 +210,7 @@ export default function DemoMedia({
                 keyboardType="url"
                 returnKeyType="done"
                 onSubmitEditing={handleSubmitUrl}
+                onFocus={onInputFocus}
               />
               <Pressable
                 testID="demo-media-url-save"

@@ -144,6 +144,16 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    *  be a genuine question: whichever way it is answered, the reps the user already entered are
    *  logged, never re-asked for. */
   const [pausedCompletion, setPausedCompletion] = useState<PendingCompletion | null>(null);
+  /** ADR 0009's paste-a-link field is the last thing on this screen, so the keyboard opens
+   *  straight over it and over its Save button. `automaticallyAdjustKeyboardInsets` on the
+   *  ScrollView makes room to scroll past the keyboard; `handleDemoInputFocus` below then puts the
+   *  demo block at the top of what is left visible, so the field, the Save button and any
+   *  validation error are all in view while typing. The block's offset is captured on layout
+   *  because it moves with the content above it (badges, the "How to" cue, an embed that may or
+   *  may not be there). Declared up here with the other hooks, above this screen's loading early
+   *  returns, so the hook order is stable across the null-session render. */
+  const scrollRef = useRef<ScrollView>(null);
+  const demoBlockY = useRef(0);
 
   const reload = useCallback(
     () => setSession(sessionsRepo.getSession(db, sessionId)),
@@ -472,6 +482,10 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     reload();
   };
 
+  const handleDemoInputFocus = () => {
+    scrollRef.current?.scrollTo({ y: Math.max(demoBlockY.current - 8, 0), animated: true });
+  };
+
   const handleDemoPlayerError = () => {
     const localToday = localDateFromDate(new Date());
     exerciseStateRepo.reportVideoIssue(
@@ -514,7 +528,15 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const elapsedSec = sessionsRepo.activeElapsedSec(session, nowUtcInstant());
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      ref={scrollRef}
+      testID="workout-scroll"
+      contentContainerStyle={styles.container}
+      // Without this a tap on Save while the keyboard is up is spent dismissing the keyboard, so
+      // the paste has to be confirmed twice.
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
+    >
       <Text style={styles.stage}>{entry.section}</Text>
       <Text style={styles.elapsed} testID="workout-elapsed">
         Elapsed {Math.floor(elapsedSec / 60)}m {Math.floor(elapsedSec % 60)}s
@@ -639,22 +661,30 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           <Disclosure title="How to" defaultOpen body={exercise?.setup ?? ''} />
 
           {exercise && (
-            <DemoMedia
-              videoSearchQuery={exercise.video_search}
-              // §11.4 — a synchronous local read of whatever `sync/firestoreSyncWorker.ts` last
-              // pulled into `remote_video_config` (track 6d). Null (never bundled, invariant 8)
-              // until a delta pull has actually resolved a curated id for this exercise, in which
-              // case `DemoMedia` renders nothing and the "How to" cue below is the demo.
-              curatedVideoId={remoteConfigRepo.getCuratedVideoId(db, exercise.id)}
-              videoDemoted={videoFlagState.demoted}
-              defaultOpen={isFirstEverPerformance}
-              userVideoId={exerciseStateRepo.getUserVideoId(db, exercise.id)}
-              onAssignVideo={handleAssignVideo}
-              onClearVideo={handleClearVideo}
-              onExpand={handleDemoExpand}
-              onReportIssue={handleReportVideoIssue}
-              onPlayerError={handleDemoPlayerError}
-            />
+            <View
+              testID="demo-media-block"
+              onLayout={(e) => {
+                demoBlockY.current = e.nativeEvent.layout.y;
+              }}
+            >
+              <DemoMedia
+                videoSearchQuery={exercise.video_search}
+                // §11.4 — a synchronous local read of whatever `sync/firestoreSyncWorker.ts` last
+                // pulled into `remote_video_config` (track 6d). Null (never bundled, invariant 8)
+                // until a delta pull has actually resolved a curated id for this exercise, in
+                // which case `DemoMedia` renders nothing and the "How to" cue below is the demo.
+                curatedVideoId={remoteConfigRepo.getCuratedVideoId(db, exercise.id)}
+                videoDemoted={videoFlagState.demoted}
+                defaultOpen={isFirstEverPerformance}
+                userVideoId={exerciseStateRepo.getUserVideoId(db, exercise.id)}
+                onAssignVideo={handleAssignVideo}
+                onClearVideo={handleClearVideo}
+                onExpand={handleDemoExpand}
+                onReportIssue={handleReportVideoIssue}
+                onPlayerError={handleDemoPlayerError}
+                onInputFocus={handleDemoInputFocus}
+              />
+            </View>
           )}
         </>
       )}
