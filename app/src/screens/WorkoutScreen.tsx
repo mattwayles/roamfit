@@ -47,7 +47,7 @@ import type { SessionRecord } from '@roamfit/store';
 import { alternativesForSlot } from '@roamfit/engine';
 import type { BandId } from '@roamfit/engine';
 import type { SwapAlternative } from '@roamfit/engine';
-import type { AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
+import type { Anchor, AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { localDateFromDate, nowEngineClock, nowUtcInstant } from '../lib/localClock';
@@ -62,6 +62,7 @@ import {
 import type { Section, SessionPosition } from '../lib/sessionProgress';
 import { useCountdown } from '../lib/useCountdown';
 import type { CountdownController } from '../lib/wallClockTimer';
+import AnchorBadge from '../components/AnchorBadge';
 import PinnedNote from '../components/PinnedNote';
 import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
@@ -842,6 +843,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             key={`${entry.id}-${setIndex}`}
             entry={entry}
             exerciseName={exercise?.name ?? entry.exerciseId}
+            anchor={exercise?.anchor ?? null}
             band={bandForSet}
             bandTensions={bandTensions}
             onBandChange={(b) => (bandUsedRef.current = b)}
@@ -860,6 +862,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             key={`${entry.id}-${setIndex}`}
             entry={entry}
             exerciseName={exercise?.name ?? entry.exerciseId}
+            anchor={exercise?.anchor ?? null}
             band={bandForSet}
             bandTensions={bandTensions}
             onBandChange={(b) => (bandUsedRef.current = b)}
@@ -877,6 +880,10 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           key={`rest-${entry.id}-${setIndex}`}
           restSec={entry.restSec}
           nextLabel={`${exercise?.name ?? entry.exerciseId} · set ${setIndex + 1} of ${entry.sets}`}
+          // Rest is exactly when a user would go and rig the next anchor, so the requirement is
+          // worth naming before the set rather than at the top of it. `exercise` is already the
+          // *upcoming* entry here — same post-reload reasoning `nextLabel` relies on.
+          nextAnchor={exercise?.anchor ?? null}
           paused={paused}
           // §8.1 — warm-up and cool-down are asked about once per stage, on their own page, so
           // their rest pages carry no controls. `main` keeps its per-exercise question: those
@@ -939,6 +946,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 function RepsExercise({
   entry,
   exerciseName,
+  anchor,
   band,
   bandTensions,
   onBandChange,
@@ -952,6 +960,10 @@ function RepsExercise({
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
+  /** What this exercise attaches to, for `AnchorBadge` — null for anything self-anchored, which
+   *  renders nothing. Read off the library record, not the entry: the plan stores `anchorClass`
+   *  (the §13.1 safety bucket), not the specific fixed point the user has to go and find. */
+  anchor: Anchor | null;
   /** The band this set starts on — the prescription, or whatever the last set actually used. */
   band: BandId | null;
   /** The user's own band colours/labels (spec §1140), for `BandPicker`. */
@@ -981,6 +993,9 @@ function RepsExercise({
       <Text testID="exercise-name" style={styles.exerciseName}>
         {exerciseName}
       </Text>
+      {/* What the band goes on, right under what the exercise is — the two setup facts a user
+          reads before they pick anything up, together. */}
+      <AnchorBadge anchor={anchor} />
       {/* Which band to actually pick up, mid-set, without leaving this screen — and, if that is
           not the one in your hand, which one you really used. */}
       {bandUsed != null && (
@@ -1117,6 +1132,7 @@ interface PauseInfo {
 function TimedExercise({
   entry,
   exerciseName,
+  anchor,
   setIndex,
   onComplete,
   onSkip,
@@ -1130,6 +1146,10 @@ function TimedExercise({
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
+  /** What this exercise attaches to, for `AnchorBadge` — null for anything self-anchored, which
+   *  renders nothing. Read off the library record, not the entry: the plan stores `anchorClass`
+   *  (the §13.1 safety bucket), not the specific fixed point the user has to go and find. */
+  anchor: Anchor | null;
   setIndex: number;
   /** §10.5 — "actual seconds held are recorded," summed across both sides for unilateral work.
    *  `pauseInfo` is the §8.3 pause signal (`set_logs.pause_count`/`paused_duration_sec`), also
@@ -1492,6 +1512,9 @@ function TimedExercise({
       <Text testID="exercise-name" style={styles.exerciseName}>
         {exerciseName}
       </Text>
+      {/* What the band goes on, right under what the exercise is — the two setup facts a user
+          reads before they pick anything up, together. */}
+      <AnchorBadge anchor={anchor} />
       {/* Which band to actually pick up, mid-set, without leaving this screen — and, if that is
           not the one in your hand, which one you really used. */}
       {bandUsed != null && (
@@ -1562,6 +1585,7 @@ function TimedExercise({
 function RestPhase({
   restSec,
   nextLabel,
+  nextAnchor,
   paused,
   showFeedback,
   difficulty,
@@ -1573,6 +1597,8 @@ function RestPhase({
 }: {
   restSec: number;
   nextLabel: string;
+  /** The fixed point the *next* exercise needs, or null when it needs none. */
+  nextAnchor: Anchor | null;
   /** Session-level pause. Stops the rest countdown, and — since the background "rest complete"
    *  notification is scheduled against wall-clock time the OS owns, not against this countdown —
    *  cancels that too, rescheduling for whatever is left when the session resumes. */
@@ -1701,6 +1727,7 @@ function RestPhase({
       </View>
 
       <Text style={styles.nextUp}>Next up: {nextLabel}</Text>
+      <AnchorBadge anchor={nextAnchor} testID="rest-next-anchor" />
 
       {showFeedback && (
         <FeedbackControls
