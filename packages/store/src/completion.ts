@@ -7,8 +7,8 @@
  * (§11.1) — nothing here does I/O beyond the local db.
  */
 import type { Exercise, ExerciseLibrary, FamilyLibrary } from '@roamfit/data';
-import { applySessionResult } from '@roamfit/engine';
-import type { ProgressionEvent, SessionPerformance } from '@roamfit/engine';
+import { applySessionResult, BAND_ORDER } from '@roamfit/engine';
+import type { BandId, ProgressionEvent, SessionPerformance } from '@roamfit/engine';
 import type { Db } from './db';
 import { schema } from './db';
 import { eq } from 'drizzle-orm';
@@ -44,6 +44,32 @@ interface WorkingSetSummary {
   anyBelowTarget: boolean;
   bestActual: number | null; // reps or seconds, whichever applies
   maxExceedRatio: number;
+  /** The band on the set that produced `bestActual` — a best set is a load *and* a number, so
+   *  storing the prescribed band beside an actual rep count would record a set nobody performed. */
+  bestBand: BandId | null;
+  /** What the user actually trained this entry with, across its completed sets: the band used on
+   *  the most of them, heaviest winning a tie (the harder claim is the safer one to carry
+   *  forward). Null when no set reported a band. */
+  observedBand: BandId | null;
+}
+
+/** Per-band tally over an entry's completed sets, resolved as documented on `observedBand`. */
+function dominantBand(bands: (BandId | null)[]): BandId | null {
+  const counts = new Map<BandId, number>();
+  for (const b of bands) {
+    if (b) counts.set(b, (counts.get(b) ?? 0) + 1);
+  }
+  let best: BandId | null = null;
+  for (const [band, count] of counts) {
+    const bestCount = best ? (counts.get(best) ?? 0) : -1;
+    if (
+      count > bestCount ||
+      (count === bestCount && BAND_ORDER.indexOf(band) > BAND_ORDER.indexOf(best!))
+    ) {
+      best = band;
+    }
+  }
+  return best;
 }
 
 function summarizeEntry(entry: SessionEntryRecord): WorkingSetSummary {
@@ -56,12 +82,16 @@ function summarizeEntry(entry: SessionEntryRecord): WorkingSetSummary {
   let allAtOrAboveTarget = completed.length > 0;
   let anyBelowTarget = false;
   let bestActual: number | null = null;
+  let bestBand: BandId | null = null;
   let maxExceedRatio = 0;
 
   for (const s of completed) {
     const actual = s.repsActual ?? s.secondsActual ?? null;
     if (actual === null || prescribed === null) continue;
-    if (bestActual === null || actual > bestActual) bestActual = actual;
+    if (bestActual === null || actual > bestActual) {
+      bestActual = actual;
+      bestBand = s.bandActual ?? entry.band;
+    }
     if (actual < prescribed) {
       anyBelowTarget = true;
       allAtOrAboveTarget = false;
@@ -78,6 +108,8 @@ function summarizeEntry(entry: SessionEntryRecord): WorkingSetSummary {
     anyBelowTarget,
     bestActual,
     maxExceedRatio,
+    bestBand,
+    observedBand: dominantBand(completed.map((s) => s.bandActual)),
   };
 }
 
@@ -147,7 +179,7 @@ export function completeSession(
                   reps: exercise.metric === 'time' ? undefined : (summary.bestActual ?? undefined),
                   seconds:
                     exercise.metric === 'time' ? (summary.bestActual ?? undefined) : undefined,
-                  band: entry.band,
+                  band: summary.bestBand,
                 }
               : undefined,
           },
@@ -193,6 +225,11 @@ export function completeSession(
         missedBottom: summaries.some((s) => s.anyBelowTarget),
         difficultyFeedback: entries[0].difficultyFeedback ?? 'just_right',
         exceededTargetByRatio: Math.max(...summaries.map((s) => s.maxExceedRatio), 0),
+        // What the user actually trained with, so the next prescription starts from the band in
+        // their hand rather than the one they overrode (see `reconcileMicroToObservedBand`).
+        // Undefined — not null — when nothing was reported: null is a meaningful "bodyweight" in
+        // the engine's own band vocabulary, and this is "no correction", which is different.
+        observedBand: dominantBand(summaries.map((s) => s.observedBand)) ?? undefined,
       };
 
       const result = applySessionResult(state, family, input.library.exercises, perf);

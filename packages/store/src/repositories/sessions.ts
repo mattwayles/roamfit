@@ -54,6 +54,9 @@ export interface SetLogRecord {
   secondsPrescribed: number | null;
   repsActual: number | null;
   secondsActual: number | null;
+  /** The band actually used for this set, when the user said so on the workout screen. Null means
+   *  no correction: bodyweight work, or the prescription followed as written. */
+  bandActual: BandId | null;
   startedAt: string | null;
   completedAt: string | null;
   restPrescribedSec: number;
@@ -137,6 +140,7 @@ function rowToSetLog(row: typeof schema.setLogs.$inferSelect): SetLogRecord {
     secondsPrescribed: row.secondsPrescribed,
     repsActual: row.repsActual,
     secondsActual: row.secondsActual,
+    bandActual: row.bandActual as BandId | null,
     startedAt: row.startedAt,
     completedAt: row.completedAt,
     restPrescribedSec: row.restPrescribedSec,
@@ -593,6 +597,38 @@ export function adjustRestAtApproval(
   });
 }
 
+/**
+ * §10.3 — change the prescribed band while reviewing the plan.
+ *
+ * The engine picks the band from progression state and the exercise's suggested range; the user is
+ * the only one who knows which bands are actually in the bag today, or that the green one is
+ * packed. That is a load correction, not an exercise-selection decision, so it does not touch
+ * invariant 2 — the engine still chose the movement, the sets and the reps.
+ *
+ * Only meaningful for an entry that already carries a band: a bodyweight exercise has no band to
+ * change, and giving it one here would invent a prescription the engine never made. `estimatedSec`
+ * is deliberately not recomputed — §5.6's formulas have no band term.
+ */
+export function adjustBandAtApproval(db: Db, entryId: string, newBand: BandId, now: string): void {
+  const entry = db
+    .select()
+    .from(schema.sessionEntries)
+    .where(eq(schema.sessionEntries.id, entryId))
+    .all()[0];
+  if (!entry || entry.band == null || newBand === entry.band) return;
+  db.update(schema.sessionEntries)
+    .set({ band: newBand })
+    .where(eq(schema.sessionEntries.id, entryId))
+    .run();
+  logSignalEvent(db, {
+    sessionId: entry.sessionId,
+    type: 'band_adjusted_at_approval',
+    payload: { entryId, exerciseId: entry.exerciseId, fromBand: entry.band, toBand: newBand },
+    utcInstant: now,
+    localDate: getSession(db, entry.sessionId)?.localDate ?? now.slice(0, 10),
+  });
+}
+
 /** §10.3 — swap an exercise while reviewing the plan, before anything has run.
  *
  *  Mechanically identical to `recordSwap` (§10.6) and deliberately shares its swap-away penalty:
@@ -976,6 +1012,9 @@ export interface LogSetInput {
   secondsPrescribed?: number;
   repsActual?: number;
   secondsActual?: number;
+  /** §10.5 — the band actually used for this set. Omit (or null) for bodyweight work and for a set
+   *  that followed the prescription. */
+  bandActual?: BandId | null;
   startedAt?: string;
   completedAt?: string;
   restPrescribedSec: number;
@@ -1004,6 +1043,7 @@ export function logSet(db: Db, input: LogSetInput, now: string): void {
     secondsPrescribed: input.secondsPrescribed ?? null,
     repsActual: input.repsActual ?? null,
     secondsActual: input.secondsActual ?? null,
+    bandActual: input.bandActual ?? null,
     startedAt: input.startedAt ?? null,
     completedAt: input.completedAt ?? null,
     restPrescribedSec: input.restPrescribedSec,

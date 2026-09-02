@@ -287,6 +287,10 @@ export const setLogs = sqliteTable(
     secondsPrescribed: integer('seconds_prescribed'),
     repsActual: integer('reps_actual'),
     secondsActual: integer('seconds_actual'),
+    /** Migration 0010 — the band the user says they actually used for this set, which need not be
+     *  the one `session_entries.band` prescribed. NULL means no correction was reported (every
+     *  bodyweight set, and every set that simply followed the plan). */
+    bandActual: text('band_actual'),
     startedAt: text('started_at'),
     completedAt: text('completed_at'),
     restPrescribedSec: integer('rest_prescribed_sec').notNull(),
@@ -363,6 +367,10 @@ export const signalEvents = sqliteTable(
         // §10.3 — rest length edited while reviewing the plan. Payload: {entryId, exerciseId,
         // fromRestSec, toRestSec}.
         'rest_adjusted_at_approval',
+        // §10.3 — the prescribed band changed while reviewing the plan ("I'll use the red one").
+        // Payload: {entryId, exerciseId, fromBand, toBand}. Distinct from the per-set
+        // `set_logs.band_actual` written mid-workout: this one edits the plan before it runs.
+        'band_adjusted_at_approval',
         // §10.3 — an exercise swapped BEFORE the session started. Distinct from 'swap' (§10.6,
         // mid-workout) because "rejected on sight" and "rejected after trying it" are different
         // §8.3 evidence. Payload: {entryId, fromExerciseId, toExerciseId}.
