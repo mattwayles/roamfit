@@ -1,8 +1,12 @@
 # RoamFit
 
 Offline-first iOS training app for band + bodyweight training, for people who travel and can't
-rely on a gym. Full product spec lives in [`spec.md`](./spec.md) — section numbers (`§N`)
-referenced in code comments and handoff docs point there.
+rely on a gym.
+
+Originally built from a written spec, now driven directly by user feedback. That spec, its wave
+plan and its ADRs have been deleted; [`docs/BACKLOG.md`](./docs/BACKLOG.md) is the single tracker
+for everything still to do. `§N` and `ADR 00NN` references in code comments point at those deleted
+documents — the prose around them still carries the reasoning.
 
 ## Layout
 
@@ -12,9 +16,8 @@ packages/
   engine/       pure TS generation + progression engine — no RN imports, no I/O
   data/         exercise library, progression families, schemas, validators
 docs/
-  ORCHESTRATION.md      wave plan + status board
-  handoff/               per-wave briefs and per-track status logs
-  decisions/             ADRs for anything that deviates from spec.md
+  BACKLOG.md             the single tracker: features, bugs, debt, verification owed
+  handoff/               per-track status logs (historical for finished tracks)
 tools/          operator CLIs and repo-hygiene scripts (e.g. engine-purity check)
 ```
 

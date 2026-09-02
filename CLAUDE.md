@@ -1,19 +1,24 @@
 # RoamFit — Project Conventions
 
-Offline-first iOS training app for band + bodyweight training. Full product spec: `spec.md`
-(authoritative; section numbers `§N` in code comments and briefs refer to it).
+Offline-first iOS training app for band + bodyweight training.
+
+The app was originally built from a written spec, which has since been deleted along with its
+wave plan and ADRs. **It is now driven directly by user feedback.** A requested change has already
+been determined to be the right thing to do — it does not need justifying against a prior document,
+and there is nothing left to check it against.
+
+Code comments still carry `§N` and `ADR 00NN` references pointing at those deleted documents. The
+prose around them still explains the reasoning, which is the part that matters; treat the pointers
+as dead links, not as instructions to go looking.
 
 ## Ramp-up protocol (read this first, every time)
 
 You may be a fresh agent picking up interrupted work. Before writing any code:
 
-1. Read `docs/ORCHESTRATION.md` — the wave plan and current status board.
-2. Read your wave brief in `docs/handoff/wave-NN-*.md` — scope, milestone, done-criteria.
-3. Read `docs/handoff/STATUS-<your-track-id>.md` if it exists — the running log left by the
-   previous run of your own track. It tells you exactly what is done and what is next.
-4. Read only the spec sections your brief names. Do **not** read `spec.md` end to end; it is
-   ~28k tokens and will burn your budget before you write a line.
-5. `git log --oneline -15` to see what actually landed.
+1. Read `docs/BACKLOG.md` — everything not yet done, and the known-broken list.
+2. Read `docs/handoff/STATUS-<track-id>.md` if you are continuing a named track — the running log
+   left by the previous run. Historical for finished tracks; still the handoff for live ones.
+3. `git log --oneline -15` to see what actually landed. Commit messages are the design record now.
 
 ## Interruption protocol (this project will hit session limits mid-task)
 
@@ -47,7 +52,8 @@ You may be a fresh agent picking up interrupted work. Before writing any code:
 
 ## Non-negotiable invariants
 
-These are release gates, not preferences. Do not trade them away for convenience.
+These are release gates, not preferences. Do not trade them away for convenience. They are the one
+part of the original spec worth keeping in full, restated here so nothing has to be looked up.
 
 1. **Offline is not a degradation mode.** Generate, approve, run, complete, log, and view the
    dashboard must all work with zero connectivity (§11.1, §11.6).
@@ -69,9 +75,8 @@ packages/
   engine/       pure TS generation + progression engine — no RN imports, no I/O
   data/         exercise library, progression families, schemas, validators
 docs/
-  ORCHESTRATION.md      wave plan + status board
-  handoff/              per-wave briefs and per-track status logs
-  decisions/            ADRs for anything that deviates from spec.md
+  BACKLOG.md            everything not yet done — features, bugs, debt, verification owed
+  handoff/              per-track status logs (historical for finished tracks)
 tools/          operator CLIs (video_db.py, library build/validate scripts)
 ```
 
@@ -79,8 +84,9 @@ tools/          operator CLIs (video_db.py, library build/validate scripts)
 
 - `packages/engine` must never import from `app/` or from React Native. It is pure and testable
   in node. This is what makes the engine verifiable.
-- Anything that contradicts `spec.md` needs an ADR in `docs/decisions/` explaining why. Do not
-  silently deviate; do not silently re-scope.
+- Park anything not built immediately in `docs/BACKLOG.md`, and delete items from it when they
+  land. It is the only tracker — do not start a second one.
+- Do not silently re-scope a request. Build what was asked; say plainly what you left out and why.
 - Write tests with the code, in the same commit. The engine target is meaningful coverage of the
   §5.2 selection rules and §6.3 progression rules — those are the product.
 - Match surrounding code style. No new dependencies without noting them in the status file.
