@@ -57,20 +57,29 @@ describe('§10.5 timed exercise (bilateral), driven through WorkoutScreen', () =
     );
 
     await waitFor(() => expect(screen.getByTestId('timed-circle')).toBeTruthy(), WAIT_OPTS);
-    // Never auto-starts.
-    expect(screen.getByTestId('timed-remaining')).toHaveTextContent('Tap to start');
+    // Never auto-starts. The ring shows the prescription and says what a tap will do; there is no
+    // separate START button any more — the ring itself is the control.
+    expect(screen.getByTestId('timed-caption')).toHaveTextContent('Tap to start');
+    expect(screen.getByTestId('timed-remaining')).toHaveTextContent('8');
+    expect(screen.queryByTestId('start-timer')).toBeNull();
+    expect(screen.queryByTestId('pause-resume-timer')).toBeNull();
+    expect(screen.queryByTestId('end-early')).toBeNull();
 
-    await fireEvent.press(screen.getByTestId('start-timer'));
+    await fireEvent.press(screen.getByTestId('timed-circle'));
 
     // 3-second get-ready counts down before the hold itself starts (never auto-starts into the
-    // hold either) — "Pause" appears once the hold itself is running.
-    await waitFor(() => expect(screen.getByTestId('pause-resume-timer')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.getByTestId('pause-resume-timer')).toHaveTextContent('Pause');
+    // hold either) — the ring offers a pause once the hold itself is running.
+    await waitFor(
+      () => expect(screen.getByTestId('timed-caption')).toHaveTextContent('Tap to pause'),
+      WAIT_OPTS,
+    );
 
-    // Pause -> a "Paused" label appears and the remaining time stops changing.
-    await fireEvent.press(screen.getByTestId('pause-resume-timer'));
-    await waitFor(() => expect(screen.getByTestId('timer-paused-label')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.getByTestId('pause-resume-timer')).toHaveTextContent('Resume');
+    // Tap -> paused: the caption flips to the other half of the toggle and the time stops moving.
+    await fireEvent.press(screen.getByTestId('timed-circle'));
+    await waitFor(
+      () => expect(screen.getByTestId('timed-caption')).toHaveTextContent('Tap to resume'),
+      WAIT_OPTS,
+    );
     // Read the primitive rendered value (not the wrapping React element — comparing two
     // separately-queried React elements with `toEqual` is unreliable: they can carry different
     // internal fiber/`_owner` metadata across renders even when the visible text is identical).
@@ -81,11 +90,16 @@ describe('§10.5 timed exercise (bilateral), driven through WorkoutScreen', () =
     expect(screen.getByTestId('timed-remaining').props.children).toBe(pausedValue); // frozen
 
     // Resume.
-    await fireEvent.press(screen.getByTestId('pause-resume-timer'));
-    await waitFor(() => expect(screen.queryByTestId('timer-paused-label')).toBeNull(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId('timed-circle'));
+    await waitFor(
+      () => expect(screen.getByTestId('timed-caption')).toHaveTextContent('Tap to pause'),
+      WAIT_OPTS,
+    );
 
-    // End early — first-class button, records ACTUAL seconds held (not the full prescribed 8s).
-    await fireEvent.press(screen.getByTestId('end-early'));
+    // End early — a long press on the ring, advertised by the hint under it — records ACTUAL
+    // seconds held, not the full prescribed 8s.
+    expect(screen.getByTestId('end-early-hint')).toBeTruthy();
+    await fireEvent(screen.getByTestId('timed-circle'), 'longPress');
 
     await waitFor(() => {
       const after = sessionsRepo.getSession(db, sessionId)!;

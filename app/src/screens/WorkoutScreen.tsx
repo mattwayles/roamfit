@@ -1306,9 +1306,68 @@ function TimedExercise({
     });
   };
 
-  // The per-set pause control is meaningless while the whole session is paused — the countdown is
-  // already stopped, and offering "Resume" here would resume it against a stopped session clock.
-  const canPause = started && !inGetReady && !switching && !paused;
+  /**
+   * The timer *is* the control. It used to be a 200pt ring that did nothing, with a stack of
+   * START / Pause / END EARLY buttons underneath doing the actual work — and the ring's own label
+   * read "Tap to start", which was a lie about a button that wasn't there. The word wrapped to two
+   * lines in the 44pt countdown face and spilled straight through the stroke on both sides.
+   *
+   * So the ring does what it always said it did: tap to start, tap to pause, tap to resume. It is
+   * the biggest target on the screen, which is what a control found mid-hold at arm's length
+   * wants to be, and the three buttons are gone.
+   *
+   * The hold itself is on screen (as opposed to the get-ready count-in or the switch-sides gap).
+   */
+  const inHold = started && !inGetReady && !switching;
+  // The per-set pause is meaningless while the whole session is paused — the countdown is already
+  // stopped, and "Resume" here would resume it against a stopped session clock. So the ring goes
+  // inert rather than offering a resume that would desync the two clocks.
+  const canPause = inHold && !paused;
+  const selfPaused = canPause && activeCountdown.controller.isPaused();
+
+  /** What a tap means right now — `null` during the two transitions and while the session is
+   *  paused, where there is nothing for it to start or stop. */
+  const tapAction: 'start' | 'toggle' | null = !started ? 'start' : canPause ? 'toggle' : null;
+
+  const handleCirclePress = () => {
+    if (tapAction === 'start') handleStart();
+    else if (tapAction === 'toggle') handleTogglePause();
+  };
+
+  /** The number in the middle. Before the start it is the prescription — how long this hold is —
+   *  which is worth knowing before committing to it, and it counts down from exactly there. */
+  const circleValue = !started
+    ? (entry.durationSec ?? 0)
+    : inGetReady
+      ? Math.ceil(getReadyMs / 1000)
+      : switching
+        ? switchRemainingSeconds
+        : remainingSeconds;
+
+  // Short enough to sit inside a 216pt ring on one line, at every phase.
+  const circleCaption = !started
+    ? 'Tap to start'
+    : inGetReady
+      ? 'Get ready'
+      : switching
+        ? 'Switch sides'
+        : paused
+          ? 'Workout paused'
+          : selfPaused
+            ? 'Tap to resume'
+            : 'Tap to pause';
+
+  const circleLabel = !started
+    ? `Start this ${entry.durationSec ?? 0} second hold`
+    : inGetReady
+      ? 'Getting ready'
+      : switching
+        ? 'Switch sides'
+        : paused
+          ? 'Workout paused'
+          : selfPaused
+            ? 'Resume the hold'
+            : 'Pause the hold';
 
   return (
     <View style={[styles.hero, paused && styles.heroPaused]}>
@@ -1335,46 +1394,41 @@ function TimedExercise({
         {totalSides === 2 ? ` · Side ${sideIndex + 1} of 2` : ''}
       </Text>
 
-      <View style={styles.circleTimer} testID="timed-circle">
-        <Text style={styles.circleTimerText} testID="timed-remaining">
-          {!started
-            ? 'Tap to start'
-            : inGetReady
-              ? Math.ceil(getReadyMs / 1000)
-              : switching
-                ? switchRemainingSeconds
-                : remainingSeconds}
+      <Pressable
+        testID="timed-circle"
+        accessibilityRole="button"
+        accessibilityLabel={circleLabel}
+        accessibilityHint={started ? 'Press and hold to end this hold early' : undefined}
+        onPress={handleCirclePress}
+        // Ending early is a real, recorded outcome — it logs the seconds actually held — so it
+        // stays reachable at every phase the END EARLY button covered, including while the session
+        // is paused. A long press keeps it off the screen without taking it away.
+        onLongPress={started ? handleEndEarly : undefined}
+        style={({ pressed }) => [
+          styles.circleTimer,
+          (selfPaused || paused) && styles.circleTimerStopped,
+          pressed && tapAction !== null && styles.circleTimerPressed,
+        ]}
+      >
+        <Text
+          testID="timed-remaining"
+          style={[styles.circleTimerText, (selfPaused || paused) && styles.circleTimerTextStopped]}
+        >
+          {circleValue}
         </Text>
-      </View>
-
-      {switching && <Text testID="switch-side-label" style={styles.setOf}>{`Switch sides`}</Text>}
-      {canPause && activeCountdown.controller.isPaused() && (
-        <Text testID="timer-paused-label" style={styles.setOf}>
-          Paused
+        <Text
+          testID="timed-caption"
+          style={[styles.circleCaption, (selfPaused || paused) && styles.circleCaptionStopped]}
+        >
+          {circleCaption}
         </Text>
-      )}
+      </Pressable>
 
-      {!started ? (
-        <Pressable testID="start-timer" style={styles.completeButton} onPress={handleStart}>
-          <Text style={styles.completeButtonText}>START</Text>
-        </Pressable>
-      ) : (
-        <>
-          {canPause && (
-            <Pressable
-              testID="pause-resume-timer"
-              style={styles.actionButton}
-              onPress={handleTogglePause}
-            >
-              <Text style={styles.actionButtonText}>
-                {activeCountdown.controller.isPaused() ? 'Resume' : 'Pause'}
-              </Text>
-            </Pressable>
-          )}
-          <Pressable testID="end-early" style={styles.completeButton} onPress={handleEndEarly}>
-            <Text style={styles.completeButtonText}>END EARLY</Text>
-          </Pressable>
-        </>
+      {/* The one thing a tap cannot say. Quiet, and only once there is a hold to end. */}
+      {inHold && (
+        <Text testID="end-early-hint" style={styles.circleHint}>
+          Press and hold to end early
+        </Text>
       )}
 
       <SetNavRow
@@ -1496,7 +1550,9 @@ function RestPhase({
   return (
     <View style={styles.hero}>
       <Text style={styles.stage}>Rest</Text>
-      <View style={styles.circleTimer} testID="rest-circle">
+      {/* Same ring, deliberately without the lift: rest counts itself down and nothing here is
+          pressable, so it should not look like the set timer, which is. */}
+      <View style={[styles.circleTimer, styles.circleTimerFlat]} testID="rest-circle">
         <Text style={styles.circleTimerText} testID="rest-remaining">
           {Math.ceil(countdown.remainingMs / 1000)}
         </Text>
@@ -1669,16 +1725,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionButtonText: { fontWeight: '600', color: '#334155' },
+  // The set's primary control, so it is filled and lifted rather than an outline drawn on the page
+  // — it should read as something to press from across a room. 216 leaves the caption a full line
+  // inside the stroke at every phase.
   circleTimer: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: 216,
+    height: 216,
+    borderRadius: 108,
     borderWidth: 6,
     borderColor: '#111',
+    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 18,
+    gap: 2,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
   },
-  circleTimerText: { fontSize: 44, fontWeight: '800', color: '#0f172a' },
+  // Stopped — the user's own pause or the session's. The same cool blue `heroPaused` uses, so a
+  // frozen clock reads the same everywhere, and still plainly on rather than switched off.
+  circleTimerStopped: { borderColor: '#0369a1', backgroundColor: '#f0f9ff' },
+  circleTimerFlat: { backgroundColor: 'transparent', shadowOpacity: 0 },
+  // Sinks slightly under the thumb. The only feedback a 216pt target needs.
+  circleTimerPressed: { transform: [{ scale: 0.97 }], shadowOpacity: 0.04 },
+  circleTimerText: {
+    fontSize: 60,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: -1.5,
+    // Otherwise the whole number shifts sideways every time a digit changes width, once a second,
+    // for the entire hold.
+    fontVariant: ['tabular-nums'],
+  },
+  circleTimerTextStopped: { color: '#075985' },
+  circleCaption: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#94a3b8',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  circleCaptionStopped: { color: '#0369a1' },
+  circleHint: { fontSize: 13, color: '#94a3b8' },
   levelBadge: { fontSize: 12, fontWeight: '700', color: '#64748b' },
   calibrating: { fontSize: 12, color: '#b45309', fontWeight: '600' },
   nextUp: { fontSize: 13, color: '#64748b' },

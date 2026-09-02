@@ -58,21 +58,22 @@ describe('§10.5 timed exercise (unilateral), driven through WorkoutScreen', () 
     await waitFor(() => expect(screen.getByTestId('timed-circle')).toBeTruthy(), WAIT_OPTS);
     expect(screen.getByText(/Side 1 of 2/)).toBeTruthy();
 
-    await fireEvent.press(screen.getByTestId('start-timer'));
+    await fireEvent.press(screen.getByTestId('timed-circle'));
 
-    // Side 1 runs (get-ready + 2s hold), then the switch-side interval appears...
+    // Side 1 runs (get-ready + 2s hold), then the switch-side interval appears — the ring says
+    // which phase it is in, rather than a separate label under it.
     await waitFor(
-      () => expect(screen.getByTestId('switch-side-label')).toBeTruthy(),
+      () => expect(screen.getByTestId('timed-caption')).toHaveTextContent('Switch sides'),
       LONG_WAIT_OPTS,
     );
 
     // ...then side 2 begins automatically once the switch interval elapses.
     await waitFor(() => {
-      expect(screen.queryByTestId('switch-side-label')).toBeNull();
+      expect(screen.getByTestId('timed-caption')).not.toHaveTextContent('Switch sides');
       expect(screen.getByText(/Side 2 of 2/)).toBeTruthy();
     }, LONG_WAIT_OPTS);
 
-    // Side 2 completes on its own (no End early tap needed) and the screen auto-advances to
+    // Side 2 completes on its own (no long press needed) and the screen auto-advances to
     // rest, per §10.5 "on completion, auto-advance to the rest timer."
     await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), LONG_WAIT_OPTS);
 

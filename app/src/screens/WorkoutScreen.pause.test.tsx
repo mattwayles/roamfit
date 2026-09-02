@@ -1,5 +1,5 @@
 /**
- * §10.4/§10.8 — pause an active workout. Distinct from the per-set `pause-resume-timer` (§10.5)
+ * §10.4/§10.8 — pause an active workout. Distinct from the per-set pause on the ring (§10.5)
  * control tested in `WorkoutScreen.timedBilateral.test.tsx`: this is the workout-level Pause.
  *
  * It used to navigate to Home as well as pausing, which conflated two different intentions —
@@ -67,14 +67,17 @@ describe('§10.4/§10.8 pause an active workout', () => {
     );
 
     await waitFor(() => expect(screen.getByTestId('timed-circle')).toBeTruthy(), WAIT_OPTS);
-    await fireEvent.press(screen.getByTestId('start-timer'));
+    await fireEvent.press(screen.getByTestId('timed-circle'));
 
     // Wait for the hold itself to actually be running (past the 3s get-ready) — pausing during
     // the real countdown, not before it started, is the scenario that risks a premature
     // completion if the phase-engine interval kept ticking past this point.
-    await waitFor(() => expect(screen.getByTestId('pause-resume-timer')).toBeTruthy(), WAIT_OPTS);
+    await waitFor(
+      () => expect(screen.getByTestId('timed-caption')).toHaveTextContent('Tap to pause'),
+      WAIT_OPTS,
+    );
 
-    // Workout-level Pause (not the per-set pause-resume-timer button).
+    // Workout-level Pause (the session clock), not the ring's own per-set pause.
     expect(screen.getByTestId('pause-workout')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('pause-workout'));
 
@@ -113,7 +116,8 @@ describe('§10.4/§10.8 pause an active workout', () => {
       () => expect(screen.queryByTestId('workout-paused-banner')).toBeNull(),
       WAIT_OPTS,
     );
-    expect(screen.getByTestId('timed-remaining')).not.toHaveTextContent('Tap to start');
+    // Back on a live hold, not reset to the un-started state.
+    expect(screen.getByTestId('timed-caption')).not.toHaveTextContent('Tap to start');
   }, 20000);
 
   it('a pause survives leaving the screen, because it lives on the session and not in component state', async () => {
@@ -223,17 +227,21 @@ describe('§10.4/§10.8 pause an active workout', () => {
         />
       </StoreProvider>,
     );
-    await waitFor(() => expect(screen.getByTestId('start-timer')).toBeTruthy(), WAIT_OPTS);
-    await fireEvent.press(screen.getByTestId('start-timer'));
-    await waitFor(() => expect(screen.getByTestId('pause-resume-timer')).toBeTruthy(), WAIT_OPTS);
+    await waitFor(() => expect(screen.getByTestId('timed-circle')).toBeTruthy(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId('timed-circle'));
+    await waitFor(
+      () => expect(screen.getByTestId('timed-caption')).toHaveTextContent('Tap to pause'),
+      WAIT_OPTS,
+    );
     await fireEvent.press(screen.getByTestId('pause-workout'));
     await waitFor(
       () => expect(screen.getByTestId('workout-paused-banner')).toBeTruthy(),
       WAIT_OPTS,
     );
 
-    // Ending the set against a stopped clock raises the nudge instead of logging silently.
-    await fireEvent.press(screen.getByTestId('end-early'));
+    // Ending the set against a stopped clock raises the nudge instead of logging silently. Ending
+    // early is a long press on the ring now, and is still reachable while the clock is stopped.
+    await fireEvent(screen.getByTestId('timed-circle'), 'longPress');
     await waitFor(
       () => expect(screen.getByTestId('paused-completion-nudge')).toBeTruthy(),
       WAIT_OPTS,
@@ -275,15 +283,20 @@ describe('§10.4/§10.8 pause an active workout', () => {
         />
       </StoreProvider>,
     );
-    await waitFor(() => expect(screen.getByTestId('start-timer')).toBeTruthy(), WAIT_OPTS);
-    await fireEvent.press(screen.getByTestId('start-timer'));
-    await waitFor(() => expect(screen.getByTestId('pause-resume-timer')).toBeTruthy(), WAIT_OPTS);
+    await waitFor(() => expect(screen.getByTestId('timed-circle')).toBeTruthy(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId('timed-circle'));
+    await waitFor(
+      () => expect(screen.getByTestId('timed-caption')).toHaveTextContent('Tap to pause'),
+      WAIT_OPTS,
+    );
     await fireEvent.press(screen.getByTestId('pause-workout'));
     await waitFor(
       () => expect(screen.getByTestId('workout-paused-banner')).toBeTruthy(),
       WAIT_OPTS,
     );
-    await fireEvent.press(screen.getByTestId('end-early'));
+    // Ending early is a long press on the ring now — still reachable while the session clock is
+    // stopped, which is the whole point of this test.
+    await fireEvent(screen.getByTestId('timed-circle'), 'longPress');
     await waitFor(
       () => expect(screen.getByTestId('paused-completion-nudge')).toBeTruthy(),
       WAIT_OPTS,

@@ -16,7 +16,6 @@ the record of what was completed and why.
 
 
 
-- 'Tap to Start' a timed exercise is an ugly button and non-functional!
 - Hide rest timer on rest/feedback page if rest is 0 seconds
 - Show required anchor points in active workout
 - **Ladder rungs with no sibling exercises**, so they repeat every session at that level: `horizontal_push` l7–l9, `horizontal_pull` l4–l8, `anti_extension` l4 and l6. All are high rungs nobody currently occupies — fill them when someone gets there.
