@@ -376,3 +376,82 @@ export function reportVideoIssue(
 
   return { flagCount: nextCount, demoted: nextDemotedAt !== null, demotedAt: nextDemotedAt };
 }
+
+// ------------------------------------------------------------------------------------------
+// §11.4 / ADR 0009 — user-assigned demo video.
+// ------------------------------------------------------------------------------------------
+
+/** Read-only, never inserts. NULL/absent row both mean "the user has not assigned one," which is
+ *  the correct default for an exercise never opened. */
+export function getUserVideoId(db: Db, exerciseId: string): string | null {
+  const rows = db
+    .select({ userVideoId: schema.exerciseState.userVideoId })
+    .from(schema.exerciseState)
+    .where(
+      and(
+        eq(schema.exerciseState.userId, USER_ID),
+        eq(schema.exerciseState.exerciseId, exerciseId),
+      ),
+    )
+    .all();
+  return rows.length > 0 ? (rows[0].userVideoId ?? null) : null;
+}
+
+/**
+ * Assign (or replace) the user's own demo video for this exercise.
+ *
+ * Takes an already-parsed **video id**, never a URL — parsing and validation are the caller's job
+ * (`parseYouTubeVideoId` in the app layer), so a malformed paste can never reach storage or the
+ * embed builder. This does not violate invariant 8: the id is supplied by the user from a real
+ * video they are looking at, never recalled or constructed by the app.
+ *
+ * Assigning also clears any existing demotion for this exercise. A demotion means "the video that
+ * was here was wrong or broken" — that judgment does not carry over to a different video the user
+ * deliberately picked, and leaving it set would make the new assignment silently invisible.
+ */
+export function assignUserVideo(
+  db: Db,
+  exerciseId: string,
+  videoId: string,
+  now: string,
+  localDate: string,
+): void {
+  ensureRow(db, exerciseId, now);
+  db.update(schema.exerciseState)
+    .set({
+      userVideoId: videoId,
+      userVideoAssignedAt: now,
+      videoFlagCount: 0,
+      videoDemotedAt: null,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(schema.exerciseState.userId, USER_ID),
+        eq(schema.exerciseState.exerciseId, exerciseId),
+      ),
+    )
+    .run();
+
+  logSignalEvent(db, {
+    sessionId: null,
+    type: 'user_video_assigned',
+    payload: { exerciseId, videoId },
+    utcInstant: now,
+    localDate,
+  });
+}
+
+/** Remove the user's assignment, falling back to whatever the curated remote config offers (which
+ *  may be nothing). Does not restore a cleared flag count — see `assignUserVideo`. */
+export function clearUserVideo(db: Db, exerciseId: string, now: string): void {
+  db.update(schema.exerciseState)
+    .set({ userVideoId: null, userVideoAssignedAt: null, updatedAt: now })
+    .where(
+      and(
+        eq(schema.exerciseState.userId, USER_ID),
+        eq(schema.exerciseState.exerciseId, exerciseId),
+      ),
+    )
+    .run();
+}

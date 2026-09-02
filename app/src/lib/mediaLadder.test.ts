@@ -48,6 +48,67 @@ describe('resolveMediaTier', () => {
     expect(result.tier).toBe('cues_only');
   });
 
+  describe('a user-assigned video (ADR 0009)', () => {
+    it('wins over the curated id — the user picked it deliberately', () => {
+      const result = resolveMediaTier({
+        ...BASE,
+        userVideoId: 'USERvid1234',
+        curatedVideoId: 'abc123XYZ_9',
+      });
+      expect(result.tier).toBe('user_embed');
+      expect(result.videoId).toBe('USERvid1234');
+    });
+
+    it('is used when there is no curated id at all', () => {
+      const result = resolveMediaTier({ ...BASE, userVideoId: 'USERvid1234' });
+      expect(result.tier).toBe('user_embed');
+      expect(result.videoId).toBe('USERvid1234');
+    });
+
+    it('survives demotion, which only ever retires a curated pick', () => {
+      // The two-flag demotion exists to pull a bad *curated* video. Letting it suppress the
+      // user's own assignment would make their explicit choice vanish with no way to see why.
+      const result = resolveMediaTier({
+        ...BASE,
+        userVideoId: 'USERvid1234',
+        curatedVideoId: 'abc123XYZ_9',
+        videoDemoted: true,
+      });
+      expect(result.tier).toBe('user_embed');
+      expect(result.videoId).toBe('USERvid1234');
+    });
+
+    it('still obeys offline — a user id is a YouTube id, not a local asset', () => {
+      const result = resolveMediaTier({ ...BASE, userVideoId: 'USERvid1234', online: false });
+      expect(result.tier).toBe('cues_only');
+      expect(result.videoId).toBeNull();
+    });
+
+    it('still obeys the metered-connection rule', () => {
+      const result = resolveMediaTier({ ...BASE, userVideoId: 'USERvid1234', metered: true });
+      expect(result.tier).toBe('cues_only');
+    });
+
+    it('falls through to the curated id when the assignment is cleared', () => {
+      const result = resolveMediaTier({
+        ...BASE,
+        userVideoId: null,
+        curatedVideoId: 'abc123XYZ_9',
+      });
+      expect(result.tier).toBe('curated_embed');
+      expect(result.videoId).toBe('abc123XYZ_9');
+    });
+
+    it('treats an empty string as no assignment, not as a video', () => {
+      const result = resolveMediaTier({
+        ...BASE,
+        userVideoId: '',
+        curatedVideoId: 'abc123XYZ_9',
+      });
+      expect(result.tier).toBe('curated_embed');
+    });
+  });
+
   it('never returns curated_embed with a null videoId', () => {
     // Regression guard for a real bug class: if the selection rule and the id-presence check
     // ever drift apart, a consumer would try to embed `null` and crash the WebView.

@@ -44,7 +44,7 @@ import type { SwapAlternative } from '@roamfit/engine';
 import type { AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
-import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
+import { localDateFromDate, nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { findCurrentEntry } from '../lib/sessionProgress';
 import { useCountdown } from '../lib/useCountdown';
 import PinnedNote from '../components/PinnedNote';
@@ -356,6 +356,26 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     );
     reload();
   };
+  /** ADR 0009 — persist the user's own video for this exercise, then reload so `DemoMedia` gets
+   *  the new id back as a prop and the embed appears immediately, without leaving the set. The
+   *  id arrives already parsed and validated by `parseYouTubeVideoId`; the store never sees a
+   *  raw URL, so a malformed paste cannot reach the player (invariant 8). */
+  const handleAssignVideo = (videoId: string) => {
+    exerciseStateRepo.assignUserVideo(
+      db,
+      entry.exerciseId,
+      videoId,
+      nowUtcInstant(),
+      localDateFromDate(new Date()),
+    );
+    reload();
+  };
+
+  const handleClearVideo = () => {
+    exerciseStateRepo.clearUserVideo(db, entry.exerciseId, nowUtcInstant());
+    reload();
+  };
+
   const handleDemoPlayerError = () => {
     const clockToday = nowUtcInstant().slice(0, 10);
     exerciseStateRepo.reportVideoIssue(
@@ -478,6 +498,9 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               curatedVideoId={remoteConfigRepo.getCuratedVideoId(db, exercise.id)}
               videoDemoted={videoFlagState.demoted}
               defaultOpen={isFirstEverPerformance}
+              userVideoId={exerciseStateRepo.getUserVideoId(db, exercise.id)}
+              onAssignVideo={handleAssignVideo}
+              onClearVideo={handleClearVideo}
               onExpand={handleDemoExpand}
               onReportIssue={handleReportVideoIssue}
               onPlayerError={handleDemoPlayerError}
@@ -1036,8 +1059,17 @@ const styles = StyleSheet.create({
   container: { padding: 20, gap: 16 },
   stage: { fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' },
   elapsed: { fontSize: 12, color: '#94a3b8' },
-  sessionActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sessionActionButton: { paddingVertical: 10, paddingHorizontal: 4, minHeight: 44, justifyContent: 'center' },
+  sessionActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sessionActionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
   sessionActionButtonText: { fontSize: 13, fontWeight: '600', color: '#334155' },
   hero: { alignItems: 'center', gap: 12 },
   exerciseName: { fontSize: 26, fontWeight: '800', color: '#0f172a', textAlign: 'center' },

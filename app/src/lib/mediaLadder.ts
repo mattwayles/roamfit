@@ -6,11 +6,19 @@
  * anything a screen has to mock.
  *
  * **The bundled-figure tier is gone (ADR 0008).** What remains:
- *   1. Curated YouTube embed — only when online, unmetered, a curated id exists, and the
- *      exercise hasn't been locally demoted by two-or-more video flags.
- *   2. YouTube search link — a *secondary* affordance shown alongside tier 1, or on its own when
- *      online without a curated id. Constructed, so it cannot 404. `resolveMediaTier` returns
- *      only the primary tier; `buildSearchUrl` is called independently whenever `online`.
+ *   1. The user's own assigned video (ADR 0009) — an id they pasted from the workout screen.
+ *      Wins over the curated id: they picked it deliberately, for this exercise, and a curated
+ *      id arriving later by sync must not silently replace their choice. Not subject to the
+ *      two-flag demotion either — demotion exists to retire a *curated* pick that turned out
+ *      wrong, and the user can simply reassign or clear their own.
+ *   2. Curated YouTube embed — online, unmetered, a curated id exists, and the exercise hasn't
+ *      been locally demoted by two-or-more video flags.
+ *   3. YouTube search link — a *secondary* affordance shown alongside an embed, or on its own
+ *      when online with no video at all. Constructed, so it cannot 404. `resolveMediaTier`
+ *      returns only the primary tier; `buildSearchUrl` is called independently whenever `online`.
+ *
+ * Both video tiers still require connectivity: a user-assigned id is a YouTube id like any other,
+ * so it embeds only online and unmetered, exactly as the curated one does.
  *
  * With neither available — offline, metered, or demoted with no id — the resolved tier is
  * `cues_only`: the consumer renders no media frame at all, and the exercise's `setup` cue (the
@@ -18,9 +26,12 @@
  * which is what keeps §11.6's airplane-mode gate satisfied without any bundled media.
  */
 
-export type MediaTier = 'curated_embed' | 'cues_only';
+export type MediaTier = 'user_embed' | 'curated_embed' | 'cues_only';
 
 export interface MediaLadderInput {
+  /** The user's own assigned id for this exercise (ADR 0009), or null. Read from
+   *  `exerciseStateRepo.getUserVideoId` — local, per-user, never synced from remote config. */
+  userVideoId?: string | null;
   /** Remote-config value for this exercise, or null if none has been curated yet (§11.4 — never
    *  bundled; this must come from a synced remote-config read, track 6d's job). */
   curatedVideoId: string | null;
@@ -35,20 +46,29 @@ export interface MediaLadderInput {
 
 export interface MediaLadderResult {
   tier: MediaTier;
-  /** Non-null only when `tier === 'curated_embed'`. */
+  /** Non-null exactly when `tier` is `'user_embed'` or `'curated_embed'`. */
   videoId: string | null;
 }
 
 export function resolveMediaTier(input: MediaLadderInput): MediaLadderResult {
+  // Connectivity gates every embed, whoever chose it. Checked once, before the tier order, so a
+  // user-assigned id can't accidentally bypass the metered/offline rules the curated one obeys.
+  const canEmbed = input.online && !input.metered;
+
+  const userVideoId = input.userVideoId ?? null;
+  if (canEmbed && userVideoId !== null && userVideoId.length > 0) {
+    return { tier: 'user_embed', videoId: userVideoId };
+  }
+
   if (
-    input.online &&
-    !input.metered &&
+    canEmbed &&
     !input.videoDemoted &&
     input.curatedVideoId !== null &&
     input.curatedVideoId.length > 0
   ) {
     return { tier: 'curated_embed', videoId: input.curatedVideoId };
   }
+
   return { tier: 'cues_only', videoId: null };
 }
 

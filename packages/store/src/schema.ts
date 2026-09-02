@@ -109,6 +109,13 @@ export const exerciseState = sqliteTable(
      *  the demotion rule works fully offline before 6d exists. */
     videoFlagCount: integer('video_flag_count').notNull().default(0),
     videoDemotedAt: text('video_demoted_at'),
+    /** §11.4 / ADR 0009 — a YouTube video id the user assigned themselves from the workout
+     *  screen. Deliberately separate from `remote_video_config.video_id`: that table is pull-only
+     *  from Firestore and a local write there would be lost on the next delta sync. Storing the
+     *  id (never the pasted URL) keeps this the same shape the embed builder already consumes,
+     *  and keeps a malformed URL from ever reaching the player. NULL = none assigned. */
+    userVideoId: text('user_video_id'),
+    userVideoAssignedAt: text('user_video_assigned_at'),
     updatedAt: text('updated_at').notNull(),
   },
   (t) => [uniqueIndex('ux_exercise_state_user_exercise').on(t.userId, t.exerciseId)],
@@ -339,6 +346,10 @@ export const signalEvents = sqliteTable(
         // constraint backs this enum (see migration 0001 — signal_events.type is plain TEXT), so
         // adding a value here needs no migration.
         'session_generated',
+        // §11.4 / ADR 0009 — the user assigned their own YouTube video to an exercise from the
+        // workout screen. Payload: {exerciseId, videoId}. `signal_events.type` is plain TEXT (no
+        // CHECK constraint), so adding this value needs no migration.
+        'user_video_assigned',
       ],
     }).notNull(),
     /** JSON, shape depends on `type` — e.g. swap: {fromExerciseId, toExerciseId, atSetIndex}. */

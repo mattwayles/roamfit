@@ -26,23 +26,40 @@ async function renderOpen(props: Partial<React.ComponentProps<typeof DemoMedia>>
   const onExpand = jest.fn();
   const onReportIssue = jest.fn();
   const onPlayerError = jest.fn();
+  const onAssignVideo = jest.fn();
+  const onClearVideo = jest.fn();
   let renderer!: TestRenderer.ReactTestRenderer;
   await act(async () => {
     renderer = TestRenderer.create(
       <DemoMedia
         videoSearchQuery="band row anchored to a door"
         curatedVideoId={null}
+        userVideoId={null}
         videoDemoted={false}
         defaultOpen
         onExpand={onExpand}
         onReportIssue={onReportIssue}
         onPlayerError={onPlayerError}
+        onAssignVideo={onAssignVideo}
+        onClearVideo={onClearVideo}
         {...props}
       />,
     );
     await Promise.resolve();
   });
-  return { renderer, onExpand, onReportIssue, onPlayerError };
+  return { renderer, onExpand, onReportIssue, onPlayerError, onAssignVideo, onClearVideo };
+}
+
+/** Type the URL field, then tap Save. */
+async function submitUrl(renderer: TestRenderer.ReactTestRenderer, text: string) {
+  const input = renderer.root.findByProps({ testID: 'demo-media-url-input' });
+  await act(async () => {
+    input.props.onChangeText(text);
+  });
+  const save = renderer.root.findByProps({ testID: 'demo-media-url-save' });
+  await act(async () => {
+    save.props.onPress();
+  });
 }
 
 describe('DemoMedia', () => {
@@ -106,6 +123,113 @@ describe('DemoMedia', () => {
     // A second pass with no webview mounted must not double-report.
     await act(async () => {});
     expect(onPlayerError).toHaveBeenCalledTimes(1);
+  });
+
+  describe('assigning your own video (ADR 0009)', () => {
+    it('submitting a YouTube URL reports the parsed id, not the raw URL', async () => {
+      // The store must never see a URL — that is what keeps a malformed paste away from the
+      // player and keeps invariant 8's "no invented ids" checkable at one boundary.
+      mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+      const { renderer, onAssignVideo } = await renderOpen();
+      await submitUrl(renderer, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+      expect(onAssignVideo).toHaveBeenCalledWith('dQw4w9WgXcQ');
+    });
+
+    it('rejects a non-YouTube link inline and does not call onAssignVideo', async () => {
+      mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+      const { renderer, onAssignVideo } = await renderOpen();
+      await submitUrl(renderer, 'https://vimeo.com/123456789');
+      expect(onAssignVideo).not.toHaveBeenCalled();
+      expect(renderer.root.findByProps({ testID: 'demo-media-url-error' })).toBeTruthy();
+    });
+
+    it('keeps a rejected draft in the field so a near-miss can be fixed, not retyped', async () => {
+      mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+      const { renderer } = await renderOpen();
+      await submitUrl(renderer, 'https://vimeo.com/123456789');
+      const input = renderer.root.findByProps({ testID: 'demo-media-url-input' });
+      expect(input.props.value).toBe('https://vimeo.com/123456789');
+    });
+
+    it('clears the error as soon as the user edits the field again', async () => {
+      mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+      const { renderer } = await renderOpen();
+      await submitUrl(renderer, 'nonsense');
+      expect(
+        renderer.root.findAllByProps({ testID: 'demo-media-url-error' }).length,
+      ).toBeGreaterThan(0);
+      const input = renderer.root.findByProps({ testID: 'demo-media-url-input' });
+      await act(async () => {
+        input.props.onChangeText('https://youtu.be/dQw4w9WgXcQ');
+      });
+      expect(renderer.root.findAllByProps({ testID: 'demo-media-url-error' })).toHaveLength(0);
+    });
+
+    it('empties the field after a successful submit', async () => {
+      mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+      const { renderer } = await renderOpen();
+      await submitUrl(renderer, 'https://youtu.be/dQw4w9WgXcQ');
+      const input = renderer.root.findByProps({ testID: 'demo-media-url-input' });
+      expect(input.props.value).toBe('');
+    });
+
+    it('embeds the user\u2019s video once assigned, in preference to the curated one', async () => {
+      // This is the "immediately embedded" requirement, from the component's side: given the new
+      // id as a prop, it renders that video rather than the curated id it also has.
+      mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+      const { renderer } = await renderOpen({
+        userVideoId: 'USERvid1234',
+        curatedVideoId: 'abc123XYZ_9',
+      });
+      const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
+      expect(webview.props.source.uri).toContain('/embed/USERvid1234');
+      expect(webview.props.source.uri).not.toContain('abc123XYZ_9');
+    });
+
+    it('hides the "wrong or broken" report for the user\u2019s own pick', async () => {
+      // Flagging your own choice would feed a demotion counter that ADR 0009 exempts user videos
+      // from — a control that silently does nothing. Replacing it is the real action.
+      mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+      const { renderer } = await renderOpen({ userVideoId: 'USERvid1234' });
+      expect(renderer.root.findAllByProps({ testID: 'demo-media-report' })).toHaveLength(0);
+      expect(renderer.root.findByProps({ testID: 'demo-media-url-clear' })).toBeTruthy();
+    });
+
+    it('still shows the report control for a curated video', async () => {
+      mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+      const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
+      expect(renderer.root.findByProps({ testID: 'demo-media-report' })).toBeTruthy();
+    });
+
+    it('offers no clear control when nothing is assigned', async () => {
+      mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+      const { renderer } = await renderOpen({ userVideoId: null });
+      expect(renderer.root.findAllByProps({ testID: 'demo-media-url-clear' })).toHaveLength(0);
+    });
+
+    it('tapping clear calls onClearVideo', async () => {
+      mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+      const { renderer, onClearVideo } = await renderOpen({ userVideoId: 'USERvid1234' });
+      const clear = renderer.root.findByProps({ testID: 'demo-media-url-clear' });
+      await act(async () => {
+        clear.props.onPress();
+      });
+      expect(onClearVideo).toHaveBeenCalledTimes(1);
+    });
+
+    it('disables Save while the field is empty', async () => {
+      mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+      const { renderer } = await renderOpen();
+      expect(renderer.root.findByProps({ testID: 'demo-media-url-save' }).props.disabled).toBe(
+        true,
+      );
+    });
+
+    it('is absent offline, along with the rest of the block', async () => {
+      mockGetNetworkStatus.mockResolvedValue({ online: false, metered: false });
+      const { renderer } = await renderOpen({ userVideoId: 'USERvid1234' });
+      expect(renderer.root.findAllByProps({ testID: 'demo-media-assign' })).toHaveLength(0);
+    });
   });
 
   it('tapping the report control calls onReportIssue', async () => {
