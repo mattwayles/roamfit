@@ -131,7 +131,7 @@ describe('§10.2 Generate screen', () => {
     const toggle = screen.getByTestId('recovery-week-toggle');
     expect(toggle.props.accessibilityState.checked).toBe(false);
     // The label no longer has to carry the state on its own — it stays constant either way.
-    expect(screen.getByText('Make this a recovery week')).toBeTruthy();
+    expect(screen.getByText('Recovery Workout')).toBeTruthy();
     expect(screen.getByTestId('recovery-week-checkbox').props.children).toBe('');
 
     fireEvent.press(toggle);
@@ -141,7 +141,7 @@ describe('§10.2 Generate screen', () => {
       );
       expect(screen.getByTestId('recovery-week-checkbox').props.children).toBe('\u2713');
     }, WAIT_OPTS);
-    expect(screen.getByText('Make this a recovery week')).toBeTruthy();
+    expect(screen.getByText('Recovery Workout')).toBeTruthy();
   });
 
   it.each([90, 120])(

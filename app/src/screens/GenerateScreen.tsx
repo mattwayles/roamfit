@@ -186,7 +186,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
           setAnchorsOpen((v) => !v);
         }}
       >
-        <Text style={styles.disclosureText}>What you can anchor to</Text>
+        <Text style={styles.disclosureText}>Available equipment and anchor points</Text>
         <Text style={styles.disclosureCount} testID="anchors-summary">
           {anchors.length} of {ANCHOR_COUNT} selected {anchorsOpen ? '\u25b4' : '\u25be'}
         </Text>
@@ -249,7 +249,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
         testID="recovery-week-toggle"
         accessibilityRole="checkbox"
         accessibilityState={{ checked: recoveryWeek }}
-        accessibilityLabel="Make this a recovery week"
+        accessibilityLabel="Recovery Workout"
         style={[styles.recoveryToggle, recoveryWeek && styles.recoveryToggleOn]}
         onPress={() => setRecoveryWeek((v) => !v)}
       >
@@ -261,7 +261,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
         </Text>
         <View style={styles.recoveryToggleLabels}>
           <Text style={[styles.recoveryToggleText, recoveryWeek && styles.recoveryToggleTextOn]}>
-            Make this a recovery week
+            Recovery Workout
           </Text>
           <Text style={styles.recoveryToggleSubtitle}>Lighter loads, same consistency.</Text>
         </View>
