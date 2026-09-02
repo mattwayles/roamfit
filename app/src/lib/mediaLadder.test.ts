@@ -7,6 +7,8 @@
  * rather than encode whatever the implementation happens to do.
  */
 import {
+  EMBED_BASE_URL,
+  buildEmbedHtml,
   buildEmbedUrl,
   buildSearchUrl,
   resolveMediaTier,
@@ -152,5 +154,31 @@ describe('buildEmbedUrl', () => {
   it('embeds the exact given video id', () => {
     const url = buildEmbedUrl('abc123XYZ_9');
     expect(url).toContain('/embed/abc123XYZ_9?');
+  });
+});
+
+describe('buildEmbedHtml', () => {
+  it('wraps the player in a host document, which is what gives it a referring page', () => {
+    // Without one the player answers "Video player configuration error" (error 153) — it is
+    // being asked to embed itself into nothing.
+    const html = buildEmbedHtml('abc123XYZ_9');
+    expect(html).toContain('<iframe');
+    expect(html).toContain(`src="${buildEmbedUrl('abc123XYZ_9')}"`);
+    expect(EMBED_BASE_URL).toBe('https://www.youtube.com');
+  });
+
+  it('keeps the player on the no-cookie host even though the page around it is youtube.com', () => {
+    expect(buildEmbedHtml('abc123XYZ_9')).toContain('https://www.youtube-nocookie.com/embed/');
+  });
+
+  it('does not grant fullscreen, matching fs=0 on the URL', () => {
+    const html = buildEmbedHtml('abc123XYZ_9');
+    expect(html).toContain('allowfullscreen="false"');
+    expect(html).toContain('allow="encrypted-media"');
+  });
+
+  it('cannot be broken out of by a hostile id (attributes stay quoted and encoded)', () => {
+    const html = buildEmbedHtml('" onload="x');
+    expect(html).not.toContain('onload=');
   });
 });

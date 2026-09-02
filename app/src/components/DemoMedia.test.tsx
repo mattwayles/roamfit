@@ -93,6 +93,19 @@ describe('DemoMedia', () => {
     expect(renderer.root.findByProps({ testID: 'demo-media-report' })).toBeTruthy();
   });
 
+  it('serves the player from a host document with a referring origin, never the bare embed URL', async () => {
+    // Pointed straight at the /embed/ URL the WebView *is* the page, so the player has no
+    // referring page and fails with "Video player configuration error" (153) on a real device.
+    mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+    const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
+    const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
+    expect(webview.props.source.uri).toBeUndefined();
+    expect(webview.props.source.html).toContain('<iframe');
+    expect(webview.props.source.baseUrl).toBe('https://www.youtube.com');
+    // The player itself is still the no-cookie host (§11.4).
+    expect(webview.props.source.html).toContain('https://www.youtube-nocookie.com/embed/');
+  });
+
   it('online, curated id, but locally demoted: no embed, but the search link survives', async () => {
     mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
     const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9', videoDemoted: true });
@@ -195,8 +208,8 @@ describe('DemoMedia', () => {
         curatedVideoId: 'abc123XYZ_9',
       });
       const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
-      expect(webview.props.source.uri).toContain('/embed/USERvid1234');
-      expect(webview.props.source.uri).not.toContain('abc123XYZ_9');
+      expect(webview.props.source.html).toContain('/embed/USERvid1234');
+      expect(webview.props.source.html).not.toContain('abc123XYZ_9');
     });
 
     it('hides the "wrong or broken" report for the user\u2019s own pick', async () => {

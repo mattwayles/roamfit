@@ -99,5 +99,39 @@ export function buildEmbedUrl(videoId: string): string {
     modestbranding: '1',
     rel: '0',
   });
-  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
+  return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?${params.toString()}`;
+}
+
+/**
+ * The origin the embed is served *from*. YouTube's embedded player refuses to play when the
+ * request carries no referring page — "Video player configuration error", error 153 — which is
+ * exactly what a WebView pointed straight at an `/embed/` URL sends: it *is* the page, so there
+ * is no embedding page behind it. (The player's own "Watch this video on YouTube" link works in
+ * the same WebView, which is the tell: that path is a normal watch page, not an embed.)
+ *
+ * Loading a one-line host document with `baseUrl` set gives the iframe a real referrer and the
+ * player configures itself normally. It has to be a plausible embedding origin, so it is
+ * youtube.com rather than something invented; the *player* is still the no-cookie host, which is
+ * what §11.4 actually requires.
+ */
+export const EMBED_BASE_URL = 'https://www.youtube.com';
+
+/**
+ * The host document for `buildEmbedUrl`'s player: a full-bleed iframe and nothing else. Rendered
+ * with `EMBED_BASE_URL` as its `baseUrl` — see that constant for why the iframe cannot simply be
+ * the WebView's own URL.
+ *
+ * `allow="encrypted-media"` is what lets a DRM-served video play at all inside an iframe;
+ * fullscreen is deliberately not granted, matching the `fs=0` on the URL.
+ */
+export function buildEmbedHtml(videoId: string): string {
+  return [
+    '<!DOCTYPE html><html><head>',
+    '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">',
+    '<style>html,body{margin:0;padding:0;background:#f1f5f9;height:100%;overflow:hidden}',
+    'iframe{border:0;width:100%;height:100%;display:block}</style>',
+    '</head><body>',
+    `<iframe src="${buildEmbedUrl(videoId)}" allow="encrypted-media" allowfullscreen="false"></iframe>`,
+    '</body></html>',
+  ].join('');
 }

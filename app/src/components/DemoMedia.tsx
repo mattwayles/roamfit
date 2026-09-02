@@ -27,7 +27,12 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { buildEmbedUrl, buildSearchUrl, resolveMediaTier } from '../lib/mediaLadder';
+import {
+  EMBED_BASE_URL,
+  buildEmbedHtml,
+  buildSearchUrl,
+  resolveMediaTier,
+} from '../lib/mediaLadder';
 import { getNetworkStatus } from '../lib/networkStatus';
 import { parseYouTubeVideoId } from '../lib/youtubeUrl';
 
@@ -157,10 +162,18 @@ export default function DemoMedia({
         <View style={styles.body} testID="demo-media-body">
           {showEmbed && (
             <View style={styles.mediaFrame}>
+              {/* A host document, not the `/embed/` URL itself: pointed straight at the embed the
+                  WebView *is* the page, so the player gets no referring page and refuses with
+                  "Video player configuration error" (153). See `EMBED_BASE_URL`. */}
               <WebView
                 testID="demo-media-webview"
-                source={{ uri: buildEmbedUrl(ladder.videoId as string) }}
+                source={{
+                  html: buildEmbedHtml(ladder.videoId as string),
+                  baseUrl: EMBED_BASE_URL,
+                }}
+                originWhitelist={['https://*']}
                 style={styles.media}
+                allowsInlineMediaPlayback
                 allowsFullscreenVideo={false}
                 mediaPlaybackRequiresUserAction
                 onError={handlePlayerError}
