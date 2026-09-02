@@ -32,6 +32,20 @@ function statusIcon(status: string): string {
   return '·';
 }
 
+/**
+ * What a set line says it was. A skipped set used to render as its icon plus "— sec", which reads
+ * like a set that happened and recorded nothing; it says "Skipped" now, because that is a
+ * different fact about the day and the summary is where the user checks what they actually did.
+ * Plain and unloaded, not a reprimand (invariant 4) — a skipped set is a choice, not a failure.
+ */
+function setResultText(log: sessionsRepo.SetLogRecord): string {
+  if (log.status === 'skipped') return 'Skipped';
+  if (log.status === 'not_reached') return 'Not reached';
+  const actual = log.repsActual ?? log.secondsActual ?? null;
+  if (actual === null) return '—';
+  return `${actual} ${log.repsActual != null ? 'reps' : 'sec'}`;
+}
+
 function celebrationHeadline(c: FullScreenCelebration): string {
   return c.kind === 'level_up'
     ? `${c.familyName}: ${c.newExerciseName}`
@@ -161,9 +175,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
             </Text>
             {entry.setLogs.map((log) => (
               <Text key={log.id} style={styles.setLine}>
-                {statusIcon(log.status)} Set {log.setIndex + 1}:{' '}
-                {log.repsActual ?? log.secondsActual ?? '—'}{' '}
-                {log.repsActual != null ? 'reps' : 'sec'}
+                {statusIcon(log.status)} Set {log.setIndex + 1}: {setResultText(log)}
                 {entry.difficultyFeedback ? ` · ${entry.difficultyFeedback}` : ''}
                 {entry.enjoymentFeedback ? ` · ${entry.enjoymentFeedback}/5` : ''}
               </Text>

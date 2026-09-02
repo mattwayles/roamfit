@@ -80,6 +80,61 @@ async function createAndRunSessionForLevelUp(
   return sessionId;
 }
 
+/** A real started session whose first entry has set 1 skipped and set 2 trained — the shape the
+ *  ▸▸ skip produces, so the summary has both kinds of line to render. */
+async function createSessionWithASkippedFirstSet(
+  db: ReturnType<typeof useStore>['db'],
+): Promise<string> {
+  const clock = nowEngineClock();
+  const utcInstant = nowUtcInstant();
+  const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+    library: exerciseLibrary,
+    families: familyLibrary,
+    request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+    clock,
+    rng: createRng(seedFromString('summary-skipped-seed')),
+    utcInstant,
+  });
+  const sessionId = sessionsRepo.createPendingSession(db, {
+    plan,
+    utcInstant,
+    localDate: clock.today,
+    tzId: clock.tzId,
+    comebackTier,
+    recoveryWeekManual,
+  });
+  sessionsRepo.startSession(db, sessionId, utcInstant);
+  const session = sessionsRepo.getSession(db, sessionId)!;
+  const entry = session.entries.find((e) => e.entryStatus !== 'removed_at_approval')!;
+  sessionsRepo.logSet(
+    db,
+    {
+      entryId: entry.id,
+      setIndex: 0,
+      status: 'skipped',
+      repsPrescribed: entry.repTarget ?? undefined,
+      secondsPrescribed: entry.durationSec ?? undefined,
+      restPrescribedSec: entry.restSec,
+    },
+    utcInstant,
+  );
+  sessionsRepo.logSet(
+    db,
+    {
+      entryId: entry.id,
+      setIndex: 1,
+      status: 'completed',
+      repsPrescribed: entry.repTarget ?? undefined,
+      secondsPrescribed: entry.durationSec ?? undefined,
+      repsActual: entry.repTarget ?? undefined,
+      secondsActual: entry.durationSec ?? undefined,
+      restPrescribedSec: entry.restSec,
+    },
+    utcInstant,
+  );
+  return sessionId;
+}
+
 describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => {
   it('FINISH completes the session; a real calibration-mode level-up shows the full-screen celebration before the plain summary, share works, and Continue reaches Done', async () => {
     let db!: ReturnType<typeof useStore>['db'];
@@ -137,5 +192,35 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
 
     await fireEvent.press(screen.getByTestId('return-home'));
     expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'Home' }] });
+  });
+
+  it('lists a skipped set as skipped, not as a set that happened and recorded nothing', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const sessionId = await createSessionWithASkippedFirstSet(db);
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={mockNavigation() as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
+    // The skipped set says so. It used to render as "⚠ Set 1: — sec", which reads like a set that
+    // was performed and measured nothing.
+    expect(screen.getByText(/Set 1: Skipped/)).toBeTruthy();
+    expect(screen.queryByText(/Set 1: — /)).toBeNull();
+    // The set that was actually trained still reports what was done.
+    expect(screen.getByText(/Set 2: \d+ (reps|sec)/)).toBeTruthy();
   });
 });

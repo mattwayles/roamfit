@@ -151,6 +151,32 @@ describe('stepping back and forward through an active workout', () => {
     expect(logs.map((l) => l.status)).toEqual(['skipped']);
   }, 20000);
 
+  it('▸▸ goes straight to the next set — a skipped set earns no rest and is asked for no feedback', async () => {
+    const { db, sessionId } = await startedSession('set-nav-skip-no-rest-seed');
+    const session = sessionsRepo.getSession(db, sessionId)!;
+    const firstEntry = session.entries.find((e) => e.entryStatus !== 'removed_at_approval')!;
+
+    renderWorkout(sessionId);
+    await waitFor(() => expect(screen.getByTestId('skip-set')).toBeTruthy(), WAIT_OPTS);
+
+    fireEvent.press(screen.getByTestId('skip-set'));
+    await waitFor(() => expect(loggedSetCount(db, sessionId)).toBe(1), WAIT_OPTS);
+
+    // Still on an exercise page, never a rest timer — there is nothing to recover from.
+    expect(screen.queryByTestId('rest-circle')).toBeNull();
+    expect(screen.getByTestId('exercise-name')).toBeTruthy();
+
+    // And the set it skipped is recorded as skipped, not as one more set that got done.
+    const after = sessionsRepo.getSession(db, sessionId)!;
+    const log = after.entries.flatMap((e) => e.setLogs)[0]!;
+    expect(log.status).toBe('skipped');
+    expect(log.repsActual).toBeNull();
+    // No feedback was solicited or written for the exercise that was skipped past.
+    const afterEntry = after.entries.find((e) => e.id === firstEntry.id)!;
+    expect(afterEntry.difficultyFeedback).toBeNull();
+    expect(afterEntry.enjoymentFeedback).toBeNull();
+  }, 20000);
+
   it('names its two jobs: skip at the front edge, step forward once stepped back', async () => {
     const { db, sessionId } = await startedSession('set-nav-label-seed');
     completeFirstEntry(db, sessionId);

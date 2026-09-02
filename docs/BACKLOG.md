@@ -14,6 +14,11 @@ the record of what was completed and why.
 
 ## Desired Fixes
 
+
+
+- 'Tap to Start' a timed exercise is an ugly button and non-functional!
+- Hide rest timer on rest/feedback page if rest is 0 seconds
+- Show required anchor points in active workout
 - **Ladder rungs with no sibling exercises**, so they repeat every session at that level: `horizontal_push` l7–l9, `horizontal_pull` l4–l8, `anti_extension` l4 and l6. All are high rungs nobody currently occupies — fill them when someone gets there.
 - Mark an untracked workout
 - Passport enabled by default
@@ -21,6 +26,27 @@ the record of what was completed and why.
 - Using AI in workout generation based on previous retrospective input
 
 ---
+
+## Problems with Individual Exercises
+
+- Standing Glute Kickback: How-To and video are on all fours, not standing. However, there is a difference between Standing Banded Glute Kickbacks and Kneeling Banded Glute Kickbacks, so I want both included in the library.
+- Standing Overhead Press -> Banded Overhead Press
+- Low-Bar Hang is included in a workout where bar anchor is not selected
+- Band Plank Drag: Rename to Banded Plank Pull-Through
+  - How-To uses no achor, revise to include low anchor
+  - Update exercise to require low anchor point
+- Tricep Pushdown -> Banded Tricep Pushdown
+  - Requires high anchor point, make sure properly documented
+- Turn Donkey Kicks into a banded exercise matching the video
+- Banded Hamstring Curl -> How To needs to be modified for a long resistance band
+  - Requires low anchor
+- Anti-Rotation hold is a banded exercise requiring a medium-level anchor
+
+## Requested Exercises
+
+-  Banded overhead tricep extension
+- Banded bicep curl
+- Banded overhead press
 
 ## Future Features
 

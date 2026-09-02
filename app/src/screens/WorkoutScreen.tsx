@@ -358,7 +358,8 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    *
    * ▸▸ therefore means two things, and says which in its accessible name:
    *   - at the front edge (the normal case) it is the §10.5 skip it has always been: the set is
-   *     logged as `skipped` and the workout moves on.
+   *     logged as `skipped` and the workout moves straight on to the next one — no rest in
+   *     between, see `skipSetAndAdvance`.
    *   - while stepped back it is the mirror of ◂◂, walking forward over sets that are already
    *     logged, and it stops at the front edge rather than skipping past it. Stepping forward
    *     must never *create* skips the user did not ask for.
@@ -390,11 +391,35 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
   const handleForward = () => {
     if (atFrontier) {
-      finishSetAndRest('skipped');
+      skipSetAndAdvance();
       return;
     }
     const next = stepPosition(session, currentPosition, 1);
     if (next) moveTo(next);
+  };
+
+  /**
+   * §10.5 skip — the set is logged as `skipped` and the screen goes straight to the next set.
+   *
+   * It deliberately does *not* pass through rest. Rest buys recovery from work that was done, and
+   * the rest screen's difficulty/enjoyment controls ask how the set felt; a skipped set was never
+   * performed, so there is nothing to recover from and nothing to rate. Sitting a user in front of
+   * a countdown for work they explicitly declined is a delay, not a rest.
+   *
+   * The `skipped` status is what carries this into the record: `summarizeEntry` counts only
+   * `completed` sets toward progression, and the summary screen lists the set as skipped rather
+   * than as one more finished set. Skipping never stands in for having done it.
+   */
+  const skipSetAndAdvance = () => {
+    logCurrentSet('skipped');
+    // Same fresh-set reset `moveTo` does — the next set starts its own clock and picks its own
+    // band. `reload()` recomputes the frontier off `set_logs`, which the just-written row has
+    // already moved on, so dropping the rewind override lands on the set after this one.
+    setStartedAtRef.current = nowUtcInstant();
+    setRewoundTo(null);
+    setPhase('exercise');
+    setSwapNotice(null);
+    reload();
   };
 
   /**
@@ -420,9 +445,10 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     commitSetAndRest(status, repsActual, secondsActual, pauseInfo);
   };
 
-  /** The other half of `finishSetAndRest`: everything that actually happens once the set is going
-   *  to be logged, whether it was questioned first or not. */
-  const commitSetAndRest = (
+  /** Writes the row for the set on screen. Shared by the two ways a set ends — trained, or
+   *  skipped — because what gets recorded about *this* set is the same question either way; what
+   *  differs is only what the screen does next. */
+  const logCurrentSet = (
     status: 'completed' | 'skipped',
     repsActual?: number,
     secondsActual?: number,
@@ -451,6 +477,17 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       nowUtcInstant(),
     );
     bandUsedRef.current = null;
+  };
+
+  /** The other half of `finishSetAndRest`: everything that happens once a *trained* set is going
+   *  to be logged, whether it was questioned first or not. */
+  const commitSetAndRest = (
+    status: 'completed' | 'skipped',
+    repsActual?: number,
+    secondsActual?: number,
+    pauseInfo?: { pauseCount: number; pausedDurationSec: number },
+  ) => {
+    logCurrentSet(status, repsActual, secondsActual, pauseInfo);
     // §8.1 — feedback is about the exercise just performed, not whatever `reload()` (called
     // right below) causes `current`/`entry` to recompute to next render (the *upcoming* entry,
     // which is what `nextLabel`'s "Next up" preview correctly wants instead). Captured here,
