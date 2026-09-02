@@ -26,6 +26,13 @@ this ships, so levels re-seed at 1. Every store test starts from a fresh databas
 upgrade path has never run. Verify on device that progression re-seeds, and that `exercise_state`
 (enjoyment EMAs, best sets, skip counts, assigned videos) survives untouched.
 
+### The band picker has never been used on a phone
+Approval and the active workout both open a row of coloured bands from the chip. Tap targets, the
+inline expansion mid-set (does it push the COMPLETE button off screen on a small phone?), and
+whether the carry-forward default across sets feels right are all unverified outside tests.
+Migration 0010 adds one nullable column, so the upgrade path is additive — but it has still only
+ever run against fresh test databases.
+
 ### Backgrounding and force-quit are unproven on a real device
 `wallClockTimer.test.ts` proves the timer maths is suspension-proof against an injected fake clock.
 That is not the same as backgrounding a real phone with a rest timer running, waiting, and
@@ -60,6 +67,13 @@ foregrounding it. Same for force-quit mid-set and `findCurrent()` resume.
   new store or engine work.
 - **Feed `level_up_too_easy` signals back into the cold start.** The signal carries both rungs
   specifically so a future pass can tune the starting level from real data instead of a guess.
+- **A per-set band correction is not offered on a skipped set.** `set_logs.band_actual` is written
+  for skipped sets too (whatever the picker was showing), but a set you didn't do says little about
+  load. If dominant-band detection ever looks wrong, restricting it to completed sets is the first
+  thing to try — `summarizeEntry` already filters to completed for everything else.
+- **Nothing surfaces the band history back to the user.** The app now knows which band was used per
+  set, but the only place that shows is the next session's prescription. A "you've been on B3 for
+  three sessions" line on the progression board would use data that already exists.
 - **The swap sheet's "different anchor point" filter is gone**, removed with the sheet when swap
   became one-tap. If it's wanted back it needs a home — a long-press, or a setting.
 - **A native iOS wheel picker** (`@react-native-picker/picker`) instead of the hand-rolled drop-down.

@@ -170,4 +170,69 @@ describe('band chip on the active workout screen', () => {
     // ...and the label is still there, so the chip never depends on colour alone.
     expect(screen.getByLabelText(`Band ${stored[banded!.band!].label}`)).toBeTruthy();
   });
+
+  it('the chip is a picker: the band actually used is recorded on that set, and carries into the next one', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('band-picker-seed')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    sessionsRepo.startSession(db, sessionId, nowUtcInstant());
+
+    const session = sessionsRepo.getSession(db, sessionId)!;
+    const active = session.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
+    const banded = active.find((e) => e.band != null && e.durationSec == null && e.sets > 1)!;
+    expect(banded).toBeTruthy();
+    const chosen = banded.band === 'B5' ? 'B4' : 'B5';
+
+    fastForwardTo(db, session, banded.id);
+
+    render(
+      <StoreProvider>
+        <WorkoutScreen
+          navigation={mockNavigation() as never}
+          route={{ key: 'Workout', name: 'Workout', params: { sessionId } } as never}
+        />
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('band-picker')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('band-picker'));
+    await waitFor(
+      () => expect(screen.getByTestId(`band-picker-option-${chosen}`)).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    fireEvent.press(screen.getByTestId(`band-picker-option-${chosen}`));
+    fireEvent.press(screen.getByTestId('complete-set'));
+
+    await waitFor(() => {
+      const entry = sessionsRepo
+        .getSession(db, sessionId)!
+        .entries.find((e) => e.id === banded.id)!;
+      expect(entry.setLogs.find((s) => s.setIndex === 0)?.bandActual).toBe(chosen);
+      // The plan itself is untouched — planned-vs-actual, not overwritten.
+      expect(entry.band).toBe(banded.band);
+    }, WAIT_OPTS);
+  });
 });

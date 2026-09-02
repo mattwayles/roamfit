@@ -34,7 +34,7 @@ import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import AbandonSessionButton from '../components/AbandonSessionButton';
-import BandChip from '../components/BandChip';
+import BandPicker from '../components/BandPicker';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Approval'>;
 type Section = 'warmup' | 'main' | 'cooldown';
@@ -153,6 +153,13 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     if (entry.durationSec == null) return;
     const next = Math.max(5, entry.durationSec + delta);
     sessionsRepo.adjustDurationAtApproval(db, entry.id, next, nowUtcInstant());
+    reload();
+  };
+
+  /** §10.3 — which band this exercise is meant to be done with. The engine prescribes one from
+   *  progression state; only the user knows which bands are actually in the bag today. */
+  const handleChangeBand = (entry: sessionsRepo.SessionEntryRecord, band: BandId) => {
+    sessionsRepo.adjustBandAtApproval(db, entry.id, band, nowUtcInstant());
     reload();
   };
 
@@ -419,6 +426,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
               onAdjustRepTarget={(d) => handleAdjustRepTarget(entry, d)}
               onAdjustDuration={(d) => handleAdjustDuration(entry, d)}
               onAdjustRest={(d) => handleAdjustRest(entry, d)}
+              onChangeBand={(band) => handleChangeBand(entry, band)}
               onSwap={() => handleSwap(entry)}
               onRemove={() => handleRemove(entry)}
             />
@@ -514,6 +522,7 @@ function EntryCard({
   onAdjustRepTarget,
   onAdjustDuration,
   onAdjustRest,
+  onChangeBand,
   onSwap,
   onRemove,
 }: {
@@ -532,13 +541,15 @@ function EntryCard({
   onAdjustRepTarget: (delta: number) => void;
   onAdjustDuration: (delta: number) => void;
   onAdjustRest: (delta: number) => void;
+  onChangeBand: (band: BandId) => void;
   onSwap: () => void;
   onRemove: () => void;
 }): React.JSX.Element {
   const isTimed = entry.durationSec != null;
   // Rest 0 is a real prescription (warm-ups carry it), but "rest 0s" reads like a bug. Omit it,
   // and drop the whole line when there is nothing else on it either. The band is no longer part
-  // of this string — it renders as a colour chip beside it (see `BandChip`).
+  // of this string — it renders as a colour chip beside it, which is also the control for
+  // changing which band this exercise is meant to be done with (see `BandPicker`).
   const restLabel = entry.restSec > 0 ? `rest ${entry.restSec}s` : null;
   const hasDetail = entry.band != null || restLabel != null;
 
@@ -577,7 +588,13 @@ function EntryCard({
           {hasDetail && (
             <View style={styles.entryDetailRow}>
               {entry.band != null && (
-                <BandChip band={entry.band as BandId} tensions={bandTensions} />
+                <BandPicker
+                  band={entry.band as BandId}
+                  tensions={bandTensions}
+                  onChange={onChangeBand}
+                  testID={`band-${entry.exerciseId}`}
+                  accessibilityLabel={`Band for ${exerciseName}`}
+                />
               )}
               {restLabel != null && <Text style={styles.entryDetail}>{restLabel}</Text>}
             </View>

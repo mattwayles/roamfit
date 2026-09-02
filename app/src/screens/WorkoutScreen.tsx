@@ -51,7 +51,7 @@ import { useCountdown } from '../lib/useCountdown';
 import PinnedNote from '../components/PinnedNote';
 import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
-import BandChip from '../components/BandChip';
+import BandPicker from '../components/BandPicker';
 import DemoMedia from '../components/DemoMedia';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import {
@@ -112,6 +112,11 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   // completed, not whatever `current`'s post-reload setIndex points at during the rest phase.
   const [restingSetIndex, setRestingSetIndex] = useState<number | null>(null);
   const setStartedAtRef = useRef<string>(nowUtcInstant());
+  /** The band the user picked for the set currently on screen, if they changed it. A ref, not
+   *  state: the picker lives inside the (remounting-per-set) hero component, which owns the value
+   *  the user sees; this is only here so `finishSetAndRest` can read it at the moment it logs.
+   *  Cleared as soon as that set is logged — the next set starts from its own default. */
+  const bandUsedRef = useRef<BandId | null>(null);
   const [, forceElapsedTick] = useState(0);
   // §10.6 mid-workout swap — closed by default; opened from the Swap action on either
   // exercise-phase sub-view. Unaffected by pausing/navigating away either way, satisfying "no
@@ -213,6 +218,15 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   }
 
   const { setIndex } = current;
+  /**
+   * Which band this set starts on: whatever the last logged set of this entry actually used, and
+   * failing that the prescription. A user who switches to a heavier band on set 1 is not asked
+   * again on set 2 — but the switch is still recorded per set, and `entry.band` (the plan) is
+   * never rewritten, so planned-vs-actual survives.
+   */
+  const bandForSet: BandId | null =
+    entry.setLogs.filter((s) => s.bandActual != null).sort((a, b) => b.setIndex - a.setIndex)[0]
+      ?.bandActual ?? entry.band;
   const exState = exerciseStateRepo.getExerciseState(db, entry.exerciseId);
   const isFirstEverPerformance = !exState || exState.sessionsPerformed === 0;
   const progression = entry.progressionFamilyId
@@ -286,6 +300,10 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         secondsPrescribed: entry.durationSec ?? undefined,
         repsActual,
         secondsActual,
+        // What was actually picked up for this set, not what was prescribed: whatever the picker
+        // was showing when the set ended. Null only for bodyweight work, which has no band to
+        // record.
+        bandActual: bandForSet != null ? (bandUsedRef.current ?? bandForSet) : null,
         startedAt: setStartedAtRef.current,
         completedAt: nowUtcInstant(),
         restPrescribedSec: entry.restSec,
@@ -294,6 +312,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       },
       nowUtcInstant(),
     );
+    bandUsedRef.current = null;
     // §8.1 — feedback is about the exercise just performed, not whatever `reload()` (called
     // right below) causes `current`/`entry` to recompute to next render (the *upcoming* entry,
     // which is what `nextLabel`'s "Next up" preview correctly wants instead). Captured here,
@@ -327,6 +346,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         secondsPrescribed: setLog.secondsPrescribed ?? undefined,
         repsActual: setLog.repsActual ?? undefined,
         secondsActual: setLog.secondsActual ?? undefined,
+        bandActual: setLog.bandActual,
         startedAt: setLog.startedAt ?? undefined,
         completedAt: setLog.completedAt ?? undefined,
         restPrescribedSec: setLog.restPrescribedSec,
@@ -481,7 +501,9 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             key={`${entry.id}-${setIndex}`}
             entry={entry}
             exerciseName={exercise?.name ?? entry.exerciseId}
+            band={bandForSet}
             bandTensions={bandTensions}
+            onBandChange={(b) => (bandUsedRef.current = b)}
             setIndex={setIndex}
             onComplete={(actualSeconds, pauseInfo) =>
               finishSetAndRest('completed', undefined, actualSeconds, pauseInfo)
@@ -494,7 +516,9 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             key={`${entry.id}-${setIndex}`}
             entry={entry}
             exerciseName={exercise?.name ?? entry.exerciseId}
+            band={bandForSet}
             bandTensions={bandTensions}
+            onBandChange={(b) => (bandUsedRef.current = b)}
             setIndex={setIndex}
             onComplete={(reps) => finishSetAndRest('completed', reps)}
             onSkip={() => finishSetAndRest('skipped')}
@@ -555,7 +579,9 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 function RepsExercise({
   entry,
   exerciseName,
+  band,
   bandTensions,
+  onBandChange,
   setIndex,
   onComplete,
   onSkip,
@@ -563,21 +589,36 @@ function RepsExercise({
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
-  /** The user's own band colours/labels (spec §1140), for `BandChip`. */
+  /** The band this set starts on — the prescription, or whatever the last set actually used. */
+  band: BandId | null;
+  /** The user's own band colours/labels (spec §1140), for `BandPicker`. */
   bandTensions: Record<BandId, usersRepo.BandTension>;
+  onBandChange: (band: BandId) => void;
   setIndex: number;
   onComplete: (reps: number) => void;
   onSkip: () => void;
   onSwap: () => void;
 }): React.JSX.Element {
   const [reps, setReps] = useState(entry.repTarget ?? 0);
+  // Remounted per set (the caller keys on entry+setIndex), so this resets to the incoming default
+  // each set without any explicit clearing.
+  const [bandUsed, setBandUsed] = useState(band);
   return (
     <View style={styles.hero}>
       <Text style={styles.exerciseName}>{exerciseName}</Text>
-      {/* Which band to actually pick up, mid-set, without leaving this screen. */}
-      {entry.band != null && (
+      {/* Which band to actually pick up, mid-set, without leaving this screen — and, if that is
+          not the one in your hand, which one you really used. */}
+      {bandUsed != null && (
         <View style={styles.bandRow}>
-          <BandChip band={entry.band as BandId} tensions={bandTensions} />
+          <BandPicker
+            band={bandUsed}
+            tensions={bandTensions}
+            accessibilityLabel="Band used for this set"
+            onChange={(b) => {
+              setBandUsed(b);
+              onBandChange(b);
+            }}
+          />
         </View>
       )}
       <Text style={styles.target}>{entry.repTarget} reps</Text>
@@ -660,7 +701,9 @@ function TimedExercise({
   setIndex,
   onComplete,
   onSkip,
+  band,
   bandTensions,
+  onBandChange,
   onSwap,
 }: {
   entry: sessionsRepo.SessionEntryRecord;
@@ -669,8 +712,11 @@ function TimedExercise({
   /** §10.5 — "actual seconds held are recorded," summed across both sides for unilateral work.
    *  `pauseInfo` is the §8.3 pause signal (`set_logs.pause_count`/`paused_duration_sec`), also
    *  summed across sides. */
-  /** The user's own band colours/labels (spec §1140), for `BandChip`. */
+  /** The band this set starts on — the prescription, or whatever the last set actually used. */
+  band: BandId | null;
+  /** The user's own band colours/labels (spec §1140), for `BandPicker`. */
   bandTensions: Record<BandId, usersRepo.BandTension>;
+  onBandChange: (band: BandId) => void;
   onComplete: (actualSeconds: number, pauseInfo: PauseInfo) => void;
   onSkip: () => void;
   onSwap: () => void;
@@ -681,6 +727,9 @@ function TimedExercise({
   // (unilateral), 1 for a unilateral exercise's second side.
   const totalSides = entry.unilateral ? 2 : 1;
   const [started, setStarted] = useState(false);
+  // Remounted per set (the caller keys on entry+setIndex), so this resets to the incoming default
+  // each set without any explicit clearing.
+  const [bandUsed, setBandUsed] = useState(band);
   // Mirrors of the phase, kept in React state purely so the component re-renders when the phase
   // engine below (a single setInterval, not React effect-dependency-diffing) advances it — see
   // that effect's own comment for why phase transitions are driven imperatively rather than via
@@ -910,10 +959,19 @@ function TimedExercise({
   return (
     <View style={styles.hero}>
       <Text style={styles.exerciseName}>{exerciseName}</Text>
-      {/* Which band to actually pick up, mid-set, without leaving this screen. */}
-      {entry.band != null && (
+      {/* Which band to actually pick up, mid-set, without leaving this screen — and, if that is
+          not the one in your hand, which one you really used. */}
+      {bandUsed != null && (
         <View style={styles.bandRow}>
-          <BandChip band={entry.band as BandId} tensions={bandTensions} />
+          <BandPicker
+            band={bandUsed}
+            tensions={bandTensions}
+            accessibilityLabel="Band used for this set"
+            onChange={(b) => {
+              setBandUsed(b);
+              onBandChange(b);
+            }}
+          />
         </View>
       )}
       <Text style={styles.setOf}>

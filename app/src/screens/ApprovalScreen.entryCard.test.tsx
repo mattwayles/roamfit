@@ -218,6 +218,38 @@ describe('§10.3 approval entry card', () => {
     expect(after[0].id).toBe(mains[0].id); // unmoved: 140pt is not past the tall card's midpoint
   });
 
+  it('the band chip is a picker: choosing a band rewrites the plan for that entry', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+    const sessionId = await seed(db);
+    const entry = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.band != null)!;
+    const chosen = entry.band === 'B5' ? 'B4' : 'B5';
+
+    renderApproval(sessionId);
+    await waitFor(
+      () => expect(screen.getByTestId(`band-${entry.exerciseId}`)).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    fireEvent.press(screen.getByTestId(`band-${entry.exerciseId}`));
+    await waitFor(
+      () => expect(screen.getByTestId(`band-${entry.exerciseId}-option-${chosen}`)).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    fireEvent.press(screen.getByTestId(`band-${entry.exerciseId}-option-${chosen}`));
+
+    await waitFor(() => {
+      const after = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === entry.id)!;
+      expect(after.band).toBe(chosen);
+    }, WAIT_OPTS);
+    // ...and the card now shows that band, so the plan and the screen agree.
+    await waitFor(() => expect(screen.getByTestId(`band-chip-${chosen}`)).toBeTruthy(), WAIT_OPTS);
+  });
+
   it('no longer renders the up/down reorder buttons', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
