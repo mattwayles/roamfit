@@ -99,6 +99,38 @@ describe('ADR 0012 — level up from the progression board', () => {
     }, WAIT_OPTS);
   });
 
+  it('never names the exercise being unlocked (ADR 0014)', async () => {
+    await mountHome();
+    const row = boardExerciseName(FAMILY);
+
+    // The rung above whatever the board is currently on must not appear anywhere on the row —
+    // not in the copy, not in the level-up button label.
+    const currentN = Number(/Level (\d+) of/.exec(row)?.[1]);
+    const nextRung = family.levels[currentN];
+    if (nextRung) {
+      for (const id of nextRung.exercise_ids) {
+        const name = exerciseLibrary.exercises.find((e) => e.id === id)?.name;
+        if (name) expect(row).not.toContain(name);
+      }
+    }
+
+    // ...and the Next Unlock hero above it must not leak it either, or hiding it on the board
+    // would be pointless.
+    const hero = screen.getByTestId('next-unlock-hero');
+    const heroText = JSON.stringify(hero);
+    if (nextRung) {
+      for (const id of nextRung.exercise_ids) {
+        const name = exerciseLibrary.exercises.find((e) => e.id === id)?.name;
+        if (name) expect(heroText).not.toContain(name);
+      }
+    }
+
+    // What it does say is how close you are.
+    expect(row).toContain('to your next unlock');
+    expect(screen.getByTestId(`board-sessions-left-${FAMILY}`)).toBeTruthy();
+    expect(screen.getByTestId(`board-progress-${FAMILY}`)).toBeTruthy();
+  });
+
   it('offers no control on a mastered family, and none anywhere else in the app', async () => {
     await mountHome();
     // Every family starts at level 1, so nothing is mastered and every row offers the control.

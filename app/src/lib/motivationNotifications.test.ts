@@ -60,11 +60,13 @@ describe('§9.8 copy — loss-aversion, never guilt', () => {
     const { body } = buildDailyNudgeText({
       familyName: 'horizontal_push',
       exerciseName: 'Push-ups',
-      nextExerciseName: 'archer push-ups',
       sessionsRemaining: 2,
     });
-    expect(body).toContain('2 sessions from archer push-ups');
+    expect(body).toContain('2 sessions to your next unlock');
     expect(body.toLowerCase()).not.toMatch(/missed|fail|broke|streak/);
+    // ADR 0014 — a lock-screen preview must not spoil the unlock. This is the one surface seen
+    // by people who never opened the app to look at the board.
+    expect(body.toLowerCase()).not.toContain('archer');
   });
 
   it('falls back to a still-positive line with no board data', () => {

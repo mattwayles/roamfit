@@ -6,6 +6,7 @@
  * of `HomeScreen.tsx` so that file stays about rendering, not composing.
  */
 import {
+  defaultMicroForExercise,
   exerciseForLevel,
   isMaxLevel,
   levelOrdinal,
@@ -26,8 +27,17 @@ export interface FamilyBoardEntry {
   isMastery: boolean;
   /** null once at Mastery — there is no "next" level, only the micro-ladder (§6.7). */
   sessionsToNextLevel: number | null;
-  nextExerciseName: string | null;
+  /** Qualifying sessions this level takes end to end, from its own floor. With
+   *  `sessionsToNextLevel` this gives "N of M done", i.e. a progress bar. null at Mastery. */
+  sessionsInLevel: number | null;
 }
+
+/**
+ * ADR 0014 — the board deliberately does NOT carry the next exercise's name. Unlocking one is
+ * meant to be a reveal; naming it in advance spends the payoff for nothing. Everything here is
+ * about *this* rung and how far through it you are. `celebration.ts` still names the new exercise
+ * at the moment it is earned, which is where that information belongs.
+ */
 
 /** §14.1.4 progression board — every family, in the families JSON's own order (stable, not
  *  re-sorted by "how close" — a board that reorders itself session to session would be harder to
@@ -48,11 +58,12 @@ export function buildProgressionBoard(
     if (!exercise) continue;
     const mastery = isMaxLevel(family, state.levelId);
     const stepsRemaining = mastery ? null : microStepsToNextLevel(state.micro, exercise);
-    const idx = family.levels.findIndex((l) => l.level_id === state.levelId);
-    const nextLevel = !mastery && idx >= 0 ? family.levels[idx + 1] : undefined;
-    const nextExercise = nextLevel
-      ? exerciseForLevel(family, nextLevel.level_id, library.exercises)
-      : undefined;
+    // The same count measured from this level's floor — the denominator for "N of M done". Both
+    // numbers come from the engine's own micro-progression simulation, so the bar can never
+    // disagree with the "sessions left" figure beside it.
+    const stepsTotal = mastery
+      ? null
+      : microStepsToNextLevel(defaultMicroForExercise(exercise), exercise);
     out.push({
       familyId: family.id,
       familyName: family.name,
@@ -60,7 +71,7 @@ export function buildProgressionBoard(
       exerciseName: exercise.name,
       isMastery: mastery,
       sessionsToNextLevel: stepsRemaining,
-      nextExerciseName: nextExercise?.name ?? null,
+      sessionsInLevel: stepsTotal,
     });
   }
   return out;
@@ -68,8 +79,9 @@ export function buildProgressionBoard(
 
 export interface NextUnlockHero {
   familyName: string;
+  /** The exercise being worked *now*. The one being unlocked is deliberately not carried —
+   *  see ADR 0014. */
   exerciseName: string;
-  nextExerciseName: string;
   sessionsRemaining: number;
 }
 
@@ -78,9 +90,7 @@ export interface NextUnlockHero {
  *  concrete, close reward, not a list. Returns null only when every family is at Mastery (the
  *  caller shows the Mastery-appropriate framing instead — never an empty Next Unlock). */
 export function nextUnlockHero(board: FamilyBoardEntry[]): NextUnlockHero | null {
-  const candidates = board.filter(
-    (e) => !e.isMastery && e.sessionsToNextLevel !== null && e.nextExerciseName !== null,
-  );
+  const candidates = board.filter((e) => !e.isMastery && e.sessionsToNextLevel !== null);
   if (candidates.length === 0) return null;
   const closest = candidates.reduce((best, e) =>
     (e.sessionsToNextLevel as number) < (best.sessionsToNextLevel as number) ? e : best,
@@ -88,7 +98,6 @@ export function nextUnlockHero(board: FamilyBoardEntry[]): NextUnlockHero | null
   return {
     familyName: closest.familyName,
     exerciseName: closest.exerciseName,
-    nextExerciseName: closest.nextExerciseName as string,
     sessionsRemaining: closest.sessionsToNextLevel as number,
   };
 }

@@ -468,9 +468,11 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       {hero ? (
         <View testID="next-unlock-hero" style={styles.heroCard}>
           <Text style={styles.heroEyebrow}>Next Unlock</Text>
+          {/* ADR 0014 — names what you are working on and how close it is, never what is
+              coming. Naming it here would leak the board's surprise from two rows above it. */}
           <Text style={styles.heroTitle}>
-            {hero.exerciseName} — {hero.sessionsRemaining}{' '}
-            {hero.sessionsRemaining === 1 ? 'session' : 'sessions'} from {hero.nextExerciseName}
+            {hero.sessionsRemaining} {hero.sessionsRemaining === 1 ? 'session' : 'sessions'} to your
+            next unlock — {hero.exerciseName}
           </Text>
         </View>
       ) : (
@@ -499,28 +501,82 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
         )}
         {board.map((entry) => (
           <View key={entry.familyId} style={styles.boardRow} testID={`board-row-${entry.familyId}`}>
-            <View style={styles.boardRowHeader}>
-              <Text style={styles.boardFamilyName}>{entry.familyName}</Text>
-              {entry.isMastery ? (
-                <View style={styles.masteryBadge}>
-                  <Text style={styles.masteryBadgeText}>Mastery</Text>
-                </View>
-              ) : (
-                <View style={styles.levelBadge}>
-                  <Text style={styles.levelBadgeText}>
-                    Level {entry.ordinal.n} of {entry.ordinal.of}
-                  </Text>
-                </View>
-              )}
+            {/* Two columns: identity on the left, status on the right. The unlock count sits
+                directly beneath the level chip it belongs to, so the whole right edge reads as
+                one answer to "where am I and how close am I". */}
+            <View style={styles.boardTopRow}>
+              <View style={styles.boardIdentity}>
+                <Text style={styles.boardFamilyName}>{entry.familyName}</Text>
+                <Text style={styles.boardExerciseName}>{entry.exerciseName}</Text>
+              </View>
+
+              <View style={styles.boardStatus}>
+                {entry.isMastery ? (
+                  <View style={styles.masteryBadge}>
+                    <Text style={styles.masteryBadgeText}>Mastery</Text>
+                  </View>
+                ) : (
+                  <View style={styles.levelBadge}>
+                    <Text style={styles.levelBadgeText}>
+                      Level {entry.ordinal.n} of {entry.ordinal.of}
+                    </Text>
+                  </View>
+                )}
+
+                {/* ADR 0014 — how close you are, made the loudest thing on the row. The next
+                    exercise is deliberately not named: the unlock is the reward, and printing it
+                    here spends that for nothing. */}
+                {!entry.isMastery && entry.sessionsToNextLevel !== null && (
+                  <View style={styles.unlockBlock}>
+                    <Text
+                      style={styles.unlockCount}
+                      testID={`board-sessions-left-${entry.familyId}`}
+                    >
+                      {entry.sessionsToNextLevel}
+                    </Text>
+                    <Text style={styles.unlockCaption}>
+                      {entry.sessionsToNextLevel === 1 ? 'session' : 'sessions'}
+                      {'\n'}to your next unlock
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
-            <Text style={styles.boardExerciseName}>{entry.exerciseName}</Text>
-            <Text style={styles.boardUnlockLine}>
-              {entry.isMastery
-                ? 'At the top of this ladder — micro-progression keeps running.'
-                : entry.sessionsToNextLevel !== null && entry.nextExerciseName
-                  ? `${entry.sessionsToNextLevel} ${entry.sessionsToNextLevel === 1 ? 'session' : 'sessions'} from ${entry.nextExerciseName}`
-                  : ''}
-            </Text>
+
+            {entry.isMastery ? (
+              <Text style={styles.boardUnlockLine}>
+                At the top of this ladder — micro-progression keeps running.
+              </Text>
+            ) : (
+              entry.sessionsToNextLevel !== null &&
+              entry.sessionsInLevel !== null &&
+              entry.sessionsInLevel > 0 && (
+                <View
+                  style={styles.progressTrack}
+                  testID={`board-progress-${entry.familyId}`}
+                  accessibilityRole="progressbar"
+                  accessibilityValue={{
+                    min: 0,
+                    max: entry.sessionsInLevel,
+                    now: entry.sessionsInLevel - entry.sessionsToNextLevel,
+                  }}
+                >
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${Math.round(
+                          ((entry.sessionsInLevel - entry.sessionsToNextLevel) /
+                            entry.sessionsInLevel) *
+                            100,
+                        )}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              )
+            )}
+
             {/* ADR 0012 — raise the rung from the board, before generating anything. The board is
                 where a ladder position is actually shown, and a level is a property of the user
                 rather than of any one session, so this is the place to correct it. Nothing to
@@ -535,7 +591,6 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
               >
                 <Text style={styles.boardLevelUpText} numberOfLines={1}>
                   Too easy — level up
-                  {entry.nextExerciseName ? ` to ${entry.nextExerciseName}` : ''}
                 </Text>
               </Pressable>
             )}
@@ -748,11 +803,6 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 4,
   },
-  boardRowHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   boardFamilyName: { fontSize: 13, fontWeight: '700', color: '#334155' },
   levelBadge: {
     backgroundColor: '#e2e8f0',
@@ -780,6 +830,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   boardLevelUpText: { fontSize: 13, fontWeight: '600', color: '#1d4ed8' },
+  boardTopRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  boardIdentity: { flex: 1 },
+  boardStatus: { alignItems: 'flex-end' },
+  unlockBlock: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  unlockCount: { fontSize: 34, fontWeight: '800', color: '#0f172a', lineHeight: 38 },
+  unlockCaption: { fontSize: 12, color: '#475569', lineHeight: 16, textAlign: 'right' },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#e2e8f0',
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  progressFill: { height: 8, borderRadius: 4, backgroundColor: '#1d4ed8' },
   boardLevelUpNotice: { fontSize: 13, color: '#1d4ed8', paddingBottom: 4 },
   passportCard: {
     backgroundColor: '#f0fdf4',
