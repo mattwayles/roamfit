@@ -447,7 +447,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
 
 /** Fixed so a drag can compute a target index from travel distance without measuring every row.
  *  The card's own content is laid out to fit exactly this height. */
-const CARD_HEIGHT = 150;
+const CARD_HEIGHT = 158;
 const CARD_GAP = 8;
 /** Exported so a test can express a drag in rows rather than hardcoding a pixel count. */
 export const CARD_PITCH = CARD_HEIGHT + CARD_GAP;
@@ -571,21 +571,24 @@ function EntryCard({
         />
       </View>
 
+      {/* Both actions are icons, right-aligned, so the row reads as a pair of controls rather
+          than one wide button with an afterthought beside it. The accessible names carry the
+          meaning the glyphs cannot. */}
       <View style={styles.cardActions}>
         <Pressable
           testID={`swap-${entry.exerciseId}`}
-          style={[styles.wideButton, styles.swapButton]}
+          accessibilityRole="button"
+          accessibilityLabel={`Swap ${exerciseName} for another exercise`}
+          style={[styles.iconButton, styles.swapButton]}
           onPress={onSwap}
         >
-          <Text style={styles.swapButtonText} numberOfLines={1}>
-            Swap exercise
-          </Text>
+          <Text style={styles.swapButtonText}>⇄</Text>
         </Pressable>
         <Pressable
           testID={`remove-${entry.exerciseId}`}
           accessibilityRole="button"
           accessibilityLabel={`Remove ${exerciseName}`}
-          style={styles.removeButton}
+          style={[styles.iconButton, styles.removeButton]}
           onPress={onRemove}
         >
           <Text style={styles.removeButtonText}>✕</Text>
@@ -673,7 +676,7 @@ const styles = StyleSheet.create({
   cardTitleBlock: { flex: 1, paddingTop: 2 },
   entryName: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
   entryDetail: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  stepperRow: { flexDirection: 'row', gap: 6 },
+  stepperRow: { flexDirection: 'row', gap: 16 },
   stepper: { flex: 1 },
   stepperLabel: {
     fontSize: 11,
@@ -684,7 +687,7 @@ const styles = StyleSheet.create({
   },
   stepperControls: { flexDirection: 'row', alignItems: 'center' },
   stepperButton: {
-    width: 34,
+    width: 32,
     height: 36,
     borderRadius: 8,
     backgroundColor: '#e2e8f0',
@@ -699,25 +702,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0f172a',
   },
-  cardActions: { flexDirection: 'row', gap: 8 },
-  wideButton: {
-    flex: 1,
+  // `marginTop` rather than relying on the card's `space-between`: the steppers sit directly
+  // above and their +/- targets were touching these.
+  cardActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 12 },
+  iconButton: {
+    width: 44,
     minHeight: 36,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  swapButton: { backgroundColor: '#e2e8f0' },
-  swapButtonText: { fontSize: 13, fontWeight: '600', color: '#334155' },
-  removeButton: {
-    width: 40,
-    minHeight: 36,
-    borderRadius: 8,
-    backgroundColor: '#fee2e2',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  swapButton: { backgroundColor: '#e2e8f0' },
+  swapButtonText: { fontSize: 17, fontWeight: '700', color: '#334155', lineHeight: 21 },
+  removeButton: { backgroundColor: '#fee2e2' },
   removeButtonText: { fontSize: 16, fontWeight: '700', color: '#b91c1c', lineHeight: 20 },
 
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },

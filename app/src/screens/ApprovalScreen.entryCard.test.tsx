@@ -88,8 +88,9 @@ describe('§10.3 approval entry card', () => {
     expect(screen.getAllByLabelText('Decrease reps').length).toBeGreaterThan(0);
     // Rest is a dial too, not a fixed consequence of the effort table.
     expect(screen.getAllByText('Rest').length).toBeGreaterThan(0);
-    // The full wording fits now; Remove is a compact X with an accessible name instead.
-    expect(screen.getAllByText('Swap exercise').length).toBeGreaterThan(0);
+    // Swap and Remove are both icon buttons; the meaning lives in the accessible name, since a
+    // glyph cannot carry it and a clipped word is what this redesign existed to fix.
+    expect(screen.getAllByLabelText(/^Swap .* for another exercise$/).length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText(/^Remove /).length).toBeGreaterThan(0);
   });
 
