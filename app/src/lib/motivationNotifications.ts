@@ -89,7 +89,7 @@ export function buildDailyNudgeText(hero: NextUnlockHero | null): { title: strin
       title: 'RoamFit',
       // ADR 0014 — a lock-screen notification is the last place to spoil an unlock: it is seen
       // by people who never opened the app to look.
-      body: `${hero.sessionsRemaining} ${hero.sessionsRemaining === 1 ? 'session' : 'sessions'} to your next unlock.`,
+      body: `${hero.sessionsRemaining} ${hero.sessionsRemaining === 1 ? 'session' : 'sessions'} to next level.`,
     };
   }
   return { title: 'RoamFit', body: 'Your next session is ready whenever you are.' };

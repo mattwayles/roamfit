@@ -78,10 +78,14 @@ export function buildProgressionBoard(
 }
 
 export interface NextUnlockHero {
+  /** The movement function — "Horizontal Push". Deliberately the only name carried.
+   *
+   *  Not the exercise being unlocked (ADR 0014: that is the reveal), and not the exercise being
+   *  worked now either: the current exercise is precisely the thing the unlock replaces, so
+   *  headlining it dates the copy the moment the unlock lands. The pattern is true either side of
+   *  the rung change, and matches how the board row below is titled, so the hero and the row
+   *  visibly refer to the same thing. */
   familyName: string;
-  /** The exercise being worked *now*. The one being unlocked is deliberately not carried —
-   *  see ADR 0014. */
-  exerciseName: string;
   sessionsRemaining: number;
 }
 
@@ -97,7 +101,6 @@ export function nextUnlockHero(board: FamilyBoardEntry[]): NextUnlockHero | null
   );
   return {
     familyName: closest.familyName,
-    exerciseName: closest.exerciseName,
     sessionsRemaining: closest.sessionsToNextLevel as number,
   };
 }

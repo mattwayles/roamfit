@@ -136,8 +136,13 @@ describe('ADR 0012 — level up from the progression board', () => {
       }
     }
 
-    // What it does say is how close you are.
-    expect(row).toContain('to your next unlock');
+    // The hero headlines the movement function, which is the part that stays true either side
+    // of the unlock — never the exercise being unlocked, and never the current one.
+    expect(JSON.stringify(hero)).toContain(family.name);
+    expect(JSON.stringify(hero)).toContain('to next level');
+
+    // What the board row says is how close you are.
+    expect(row).toContain('to next level');
     expect(screen.getByTestId(`board-sessions-left-${FAMILY}`)).toBeTruthy();
     expect(screen.getByTestId(`board-progress-${FAMILY}`)).toBeTruthy();
   });

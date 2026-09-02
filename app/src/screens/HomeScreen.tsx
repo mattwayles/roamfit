@@ -472,11 +472,14 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       {hero ? (
         <View testID="next-unlock-hero" style={styles.heroCard}>
           <Text style={styles.heroEyebrow}>Next Unlock</Text>
-          {/* ADR 0014 — names what you are working on and how close it is, never what is
-              coming. Naming it here would leak the board's surprise from two rows above it. */}
+          {/* Names the movement function ("Horizontal Push"), not an exercise. Not the one being
+              unlocked (ADR 0014 — that is the reveal), and not the current one either: the
+              current exercise is precisely what the unlock replaces, so headlining it dates the
+              copy the moment the unlock lands. The pattern is true either side of the rung
+              change, and titles the board row below, so hero and row read as one subject. */}
           <Text style={styles.heroTitle}>
-            {hero.sessionsRemaining} {hero.sessionsRemaining === 1 ? 'session' : 'sessions'} to your
-            next unlock — {hero.exerciseName}
+            {hero.familyName} — {hero.sessionsRemaining}{' '}
+            {hero.sessionsRemaining === 1 ? 'session' : 'sessions'} to next level
           </Text>
         </View>
       ) : (
@@ -540,7 +543,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
                     </Text>
                     <Text style={styles.unlockCaption}>
                       {entry.sessionsToNextLevel === 1 ? 'session' : 'sessions'}
-                      {'\n'}to your next unlock
+                      {'\n'}to next level
                     </Text>
                   </View>
                 )}

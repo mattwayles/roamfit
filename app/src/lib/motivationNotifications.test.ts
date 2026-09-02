@@ -58,11 +58,10 @@ describe('§9.8 quiet hours — never dropped, moved to a gentle default instead
 describe('§9.8 copy — loss-aversion, never guilt', () => {
   it('prefers a concrete Next Unlock line when one exists', () => {
     const { body } = buildDailyNudgeText({
-      familyName: 'horizontal_push',
-      exerciseName: 'Push-ups',
+      familyName: 'Horizontal Push',
       sessionsRemaining: 2,
     });
-    expect(body).toContain('2 sessions to your next unlock');
+    expect(body).toContain('2 sessions to next level');
     expect(body.toLowerCase()).not.toMatch(/missed|fail|broke|streak/);
     // ADR 0014 — a lock-screen preview must not spoil the unlock. This is the one surface seen
     // by people who never opened the app to look at the board.
