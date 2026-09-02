@@ -26,6 +26,13 @@ this ships, so levels re-seed at 1. Every store test starts from a fresh databas
 upgrade path has never run. Verify on device that progression re-seeds, and that `exercise_state`
 (enjoyment EMAs, best sets, skip counts, assigned videos) survives untouched.
 
+### Pausing needs a device pass
+The rest timer's background notification is cancelled on pause and rescheduled from the remaining
+time on resume, and cues are suppressed while frozen. Jest cannot prove either — it needs a phone
+with the screen locked over a pause. Also unverified: whether the tinted-but-live paused workout
+reads as paused at a glance, and whether the "your timer is still paused" nudge lands as gentle
+rather than as a blocker.
+
 ### The band picker has never been used on a phone
 Approval and the active workout both open a row of coloured bands from the chip. Tap targets, the
 inline expansion mid-set (does it push the COMPLETE button off screen on a small phone?), and

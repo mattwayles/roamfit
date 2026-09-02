@@ -16,8 +16,13 @@
  * §10.6 mid-workout swap: `alternativesForSlot` (from `@roamfit/engine`) selects and ranks the
  * candidates and this screen takes the top one — a picker sheet used to sit in between, asking
  * the user to choose between options the engine had already ordered. Swapping calls
- * `sessionsRepo.recordSwap` and reloads — no re-approval, no regeneration, and the session
- * stopwatch (a ref, untouched by this) never pauses.
+ * `sessionsRepo.recordSwap` and reloads — no re-approval, no regeneration, and the session clock
+ * is untouched.
+ *
+ * §10.4 pause: the only thing that stops the session clock, and it stops it for real — the elapsed
+ * display and the phase countdowns both freeze, and the pause is persisted on the session row
+ * (`pausedAt`/`pausedTotalSec`) so it survives leaving the screen. The workout stays fully on
+ * screen and fully editable while paused; only the clocks stop.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -48,6 +53,7 @@ import { useStore } from '../state/StoreContext';
 import { localDateFromDate, nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { findCurrentEntry } from '../lib/sessionProgress';
 import { useCountdown } from '../lib/useCountdown';
+import type { CountdownController } from '../lib/wallClockTimer';
 import PinnedNote from '../components/PinnedNote';
 import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
@@ -71,6 +77,14 @@ import {
 type Props = NativeStackScreenProps<RootStackParamList, 'Workout'>;
 
 type Phase = 'exercise' | 'resting';
+
+/** Exactly the arguments `finishSetAndRest` was called with, parked while the paused-timer nudge
+ *  is on screen so that answering it either way logs the same set. */
+interface PendingCompletion {
+  repsActual?: number;
+  secondsActual?: number;
+  pauseInfo?: { pauseCount: number; pausedDurationSec: number };
+}
 
 /** §10.8 crash-safety resume — see `sessionProgress.ts` for the shared implementation (also used
  *  by HomeScreen's abandon action to record §8.3's "abandoned, and at exactly which exercise"). */
@@ -125,14 +139,11 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const [swapNotice, setSwapNotice] = useState<string | null>(null);
   /** §1140 — band colours are user data, not a palette this screen invents. */
   const bandTensions = usersRepo.ensureUser(db, nowUtcInstant()).bandTensions;
-  // §10.4/§10.8 — "pause an active workout and navigate away" (real device-testing request).
-  // Setting this unmounts the entire active-phase subtree (`TimedExercise`/`RepsExercise`/
-  // `RestPhase`) below, on the render *before* the nav transition to Home even starts — see
-  // `handlePause`'s own comment for why that ordering matters (react-navigation doesn't unmount
-  // the outgoing screen until its transition animation finishes, so without this a stray
-  // `setInterval` tick from the phase engine could still fire a cue or, worse, a premature
-  // `onComplete`/`logSet` during that window).
-  const [paused, setPaused] = useState(false);
+  /** §10.4 — the pending set completion held back by the "your timer is still paused" nudge, or
+   *  null when nothing is waiting. Holding the arguments (not just a flag) is what lets the nudge
+   *  be a genuine question: whichever way it is answered, the reps the user already entered are
+   *  logged, never re-asked for. */
+  const [pausedCompletion, setPausedCompletion] = useState<PendingCompletion | null>(null);
 
   const reload = useCallback(
     () => setSession(sessionsRepo.getSession(db, sessionId)),
@@ -233,18 +244,29 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     ? progressionStateRepo.getProgressionState(db, entry.progressionFamilyId)
     : null;
 
-  /** §10.4/§10.8 — "Pause" (workout-level, distinct from the existing per-set
-   *  `pause-resume-timer` §10.5 control). Setting `paused` first — in the same handler, before
-   *  `navigation.navigate` — unmounts the active phase subtree on this render, well before the
-   *  screen-transition animation completes; that's what actually stops cues, the background rest
-   *  notification, and any further phase-engine ticks (their existing `useEffect` cleanups
-   *  already do this on unmount — confirmed by reading `TimedExercise`/`RestPhase`, not assumed).
-   *  Nothing is discarded: the session stays `active`, §10.10's pending slot is untouched, and
-   *  Home's resume card (`pending.status === 'active' -> navigate('Workout')`) already covers
-   *  getting back here at exactly the same (entry, setIndex) — reusing that mechanism rather
-   *  than inventing a second one. */
+  /**
+   * §10.4/§10.8 — "Pause" (workout-level, distinct from the per-set `pause-resume-timer` §10.5
+   * control). Both clocks stop: the session's own elapsed timer, via `pauseSession` on the row
+   * (see `activeElapsedSec`), and whatever countdown the current phase is running, via the
+   * `paused` prop threaded into the hero and rest components.
+   *
+   * The screen deliberately stays exactly where it was. An earlier pass unmounted the whole
+   * active subtree — which did stop the timers, but took the workout off screen with them, so a
+   * paused user could not read the next exercise, fix a band, swap or reorder anything. Pausing
+   * is for catching your breath in the middle of a workout you are still looking at.
+   *
+   * Nothing is discarded either way: the session stays `active`, §10.10's pending slot is
+   * untouched, and Home's resume card still returns here at the same (entry, setIndex) if the
+   * user does navigate away — now with the pause intact, because it lives on the row.
+   */
+  const paused = session.pausedAt != null;
   const handlePause = () => {
-    setPaused(true);
+    sessionsRepo.pauseSession(db, sessionId, nowUtcInstant());
+    reload();
+  };
+  const handleResume = () => {
+    sessionsRepo.resumeSession(db, sessionId, nowUtcInstant());
+    reload();
   };
 
   /** §10.10 abandon — discards the session entirely via the existing `discardSession` (never a
@@ -284,7 +306,32 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     reload();
   };
 
+  /**
+   * §10.4 — completing a set against a stopped clock is almost always an oversight: the user
+   * paused, came back, and started training again without unpausing, so the session's own timer
+   * is quietly under-counting the work they are doing.
+   *
+   * A nudge, not a gate. The set is logged either way and the answer is never assumed — "keep it
+   * paused" is a legitimate choice (they really are stopping in a moment), and there is no scold
+   * in the copy (invariant 4). Only completions are questioned; skipping a set while paused says
+   * nothing about the clock.
+   */
   const finishSetAndRest = (
+    status: 'completed' | 'skipped',
+    repsActual?: number,
+    secondsActual?: number,
+    pauseInfo?: { pauseCount: number; pausedDurationSec: number },
+  ) => {
+    if (status === 'completed' && paused) {
+      setPausedCompletion({ repsActual, secondsActual, pauseInfo });
+      return;
+    }
+    commitSetAndRest(status, repsActual, secondsActual, pauseInfo);
+  };
+
+  /** The other half of `finishSetAndRest`: everything that actually happens once the set is going
+   *  to be logged, whether it was questioned first or not. */
+  const commitSetAndRest = (
     status: 'completed' | 'skipped',
     repsActual?: number,
     secondsActual?: number,
@@ -322,7 +369,17 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     setDifficulty(null);
     setEnjoyment(null);
     setPhase('resting');
+    setPausedCompletion(null);
     reload();
+  };
+
+  /** Answering the paused-timer nudge. Either way the set that was already earned gets logged;
+   *  the only question is what happens to the clock. */
+  const handlePausedCompletion = (resume: boolean) => {
+    const pending = pausedCompletion;
+    if (!pending) return;
+    if (resume) sessionsRepo.resumeSession(db, sessionId, nowUtcInstant());
+    commitSetAndRest('completed', pending.repsActual, pending.secondsActual, pending.pauseInfo);
   };
 
   /** §10.7 — "+15s taps are recorded as a fatigue signal." `logSet` is a full-row upsert (no
@@ -446,20 +503,21 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     );
   };
 
-  // §10.4 "Elapsed workout timer" — derived from the already-persisted `session.startedAt`
-  // (§10.10 sets it once, in `startSession`) rather than a component-local stopwatch ref. A
-  // local ref silently reset to ~0 on every remount, which is exactly what pausing (navigating
-  // away and back — see `handlePause`) does to this component; deriving from wall-clock-since-
-  // `startedAt` instead is correct across that unmount/remount for free, no new persistence
-  // needed, and it's the same "re-derive from an absolute instant, never a per-tick counter"
-  // principle `wallClockTimer.ts` documents for the other timers on this screen.
-  const elapsedMs = session.startedAt ? Date.now() - Date.parse(session.startedAt) : 0;
+  // §10.4 "Elapsed workout timer" — the store's `activeElapsedSec` over the already-persisted
+  // `startedAt`/`pausedAt`/`pausedTotalSec`, not a component-local stopwatch ref. A local ref
+  // silently reset to ~0 on every remount, and a bare `now - startedAt` (what this used to be)
+  // kept counting straight through a pause. Deriving from persisted absolute instants is correct
+  // across unmount/remount and across suspension for free — the same principle
+  // `wallClockTimer.ts` documents for the other timers on this screen — and it is the *same*
+  // function completion uses for `actualMinutes`, so the number the user watched is the number
+  // that gets recorded.
+  const elapsedSec = sessionsRepo.activeElapsedSec(session, nowUtcInstant());
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.stage}>{entry.section}</Text>
       <Text style={styles.elapsed} testID="workout-elapsed">
-        Elapsed {Math.floor(elapsedMs / 60000)}m {Math.floor((elapsedMs % 60000) / 1000)}s
+        Elapsed {Math.floor(elapsedSec / 60)}m {Math.floor(elapsedSec % 60)}s
       </Text>
 
       {/* Large icon controls: these are found mid-set, often at arm's length and out of breath,
@@ -470,7 +528,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           accessibilityRole="button"
           accessibilityLabel={paused ? 'Resume workout' : 'Pause workout'}
           style={styles.sessionIconButton}
-          onPress={paused ? () => setPaused(false) : handlePause}
+          onPress={paused ? handleResume : handlePause}
         >
           <Text style={styles.sessionIconText}>{paused ? '▶' : '❚❚'}</Text>
         </Pressable>
@@ -489,13 +547,38 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         </Text>
       )}
 
-      {/* The user's own note about this exercise, above the exercise itself: it is the thing
-          they wrote down *because* they wanted to see it before doing the movement again. */}
-      {!paused && (
-        <PinnedNote note={exState?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
+      {/* §10.4 — the gentle nudge, in the two-step-confirm shape this app uses everywhere else
+          rather than a system alert. Neither answer is the "wrong" one, and the set is logged
+          whichever is chosen, so nothing here reads as a warning. */}
+      {pausedCompletion != null && (
+        <View style={styles.pausedNudge} testID="paused-completion-nudge">
+          <Text style={styles.pausedNudgeText}>Your timer is still paused. Want to resume it?</Text>
+          <View style={styles.pausedNudgeButtons}>
+            <Pressable
+              testID="paused-completion-stay-paused"
+              accessibilityRole="button"
+              style={styles.pausedNudgeSecondary}
+              onPress={() => handlePausedCompletion(false)}
+            >
+              <Text style={styles.pausedNudgeSecondaryText}>Stay paused</Text>
+            </Pressable>
+            <Pressable
+              testID="paused-completion-resume"
+              accessibilityRole="button"
+              style={styles.pausedNudgePrimary}
+              onPress={() => handlePausedCompletion(true)}
+            >
+              <Text style={styles.pausedNudgePrimaryText}>Resume timer</Text>
+            </Pressable>
+          </View>
+        </View>
       )}
 
-      {paused ? null : phase === 'exercise' ? (
+      {/* The user's own note about this exercise, above the exercise itself: it is the thing
+          they wrote down *because* they wanted to see it before doing the movement again. */}
+      <PinnedNote note={exState?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
+
+      {phase === 'exercise' ? (
         entry.durationSec != null ? (
           <TimedExercise
             key={`${entry.id}-${setIndex}`}
@@ -504,6 +587,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             band={bandForSet}
             bandTensions={bandTensions}
             onBandChange={(b) => (bandUsedRef.current = b)}
+            paused={paused}
             setIndex={setIndex}
             onComplete={(actualSeconds, pauseInfo) =>
               finishSetAndRest('completed', undefined, actualSeconds, pauseInfo)
@@ -519,6 +603,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             band={bandForSet}
             bandTensions={bandTensions}
             onBandChange={(b) => (bandUsedRef.current = b)}
+            paused={paused}
             setIndex={setIndex}
             onComplete={(reps) => finishSetAndRest('completed', reps)}
             onSkip={() => finishSetAndRest('skipped')}
@@ -530,6 +615,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           key={`rest-${entry.id}-${setIndex}`}
           restSec={entry.restSec}
           nextLabel={`${exercise?.name ?? entry.exerciseId} · set ${setIndex + 1} of ${entry.sets}`}
+          paused={paused}
           difficulty={difficulty}
           enjoyment={enjoyment}
           onDifficultyChange={handleDifficultyChange}
@@ -539,7 +625,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         />
       )}
 
-      {!paused && phase === 'exercise' && (
+      {phase === 'exercise' && (
         <>
           {levelBadge(entry, families) && (
             <Text style={styles.levelBadge}>{levelBadge(entry, families)}</Text>
@@ -582,6 +668,7 @@ function RepsExercise({
   band,
   bandTensions,
   onBandChange,
+  paused,
   setIndex,
   onComplete,
   onSkip,
@@ -594,6 +681,9 @@ function RepsExercise({
   /** The user's own band colours/labels (spec §1140), for `BandPicker`. */
   bandTensions: Record<BandId, usersRepo.BandTension>;
   onBandChange: (band: BandId) => void;
+  /** Session-level pause. Nothing here runs on a clock, so this only shows the state — the set
+   *  stays fully usable, which is the point of not hiding the workout while paused. */
+  paused: boolean;
   setIndex: number;
   onComplete: (reps: number) => void;
   onSkip: () => void;
@@ -604,7 +694,9 @@ function RepsExercise({
   // each set without any explicit clearing.
   const [bandUsed, setBandUsed] = useState(band);
   return (
-    <View style={styles.hero}>
+    // Tinted, not hidden or disabled, while the session clock is stopped: the state is legible at
+    // a glance and every control still works.
+    <View style={[styles.hero, paused && styles.heroPaused]}>
       <Text style={styles.exerciseName}>{exerciseName}</Text>
       {/* Which band to actually pick up, mid-set, without leaving this screen — and, if that is
           not the one in your hand, which one you really used. */}
@@ -704,6 +796,7 @@ function TimedExercise({
   band,
   bandTensions,
   onBandChange,
+  paused,
   onSwap,
 }: {
   entry: sessionsRepo.SessionEntryRecord;
@@ -717,6 +810,10 @@ function TimedExercise({
   /** The user's own band colours/labels (spec §1140), for `BandPicker`. */
   bandTensions: Record<BandId, usersRepo.BandTension>;
   onBandChange: (band: BandId) => void;
+  /** Session-level pause. Unlike the reps view this one really is on a clock, so pausing the
+   *  session has to stop the hold countdown too — otherwise "paused" would still run the set out
+   *  underneath the user. */
+  paused: boolean;
   onComplete: (actualSeconds: number, pauseInfo: PauseInfo) => void;
   onSkip: () => void;
   onSwap: () => void;
@@ -773,6 +870,11 @@ function TimedExercise({
   // have, caught by `WorkoutScreen.timedBilateral.test.tsx`'s pause/resume assertion going red).
   const side1StartedRef = useRef(false);
   const side2StartedRef = useRef(false);
+  // Read by the phase engine's own interval callback, which is created once and would otherwise
+  // close over the very first `paused` value forever — the same stale-closure trap the
+  // sideIndex/switching refs above exist for.
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
 
   // §10.5 audio+haptic cue bookkeeping — one ref per cue moment so each fires exactly once (or
   // once per second, for the 3-2-1 counts) no matter how many times the phase engine below runs.
@@ -812,6 +914,10 @@ function TimedExercise({
   useEffect(() => {
     if (!started) return;
     const id = setInterval(() => {
+      // While the session is paused every countdown below is frozen, so no phase transition can
+      // legitimately be due — and starting the next one here would silently un-freeze it (the
+      // controllers' `start()` resets to full duration). Nothing advances until resume.
+      if (pausedRef.current) return;
       const readyMs = getReadyCountdown.controller.remainingMs();
       setGetReadyMs(readyMs);
       if (readyMs > 0) {
@@ -871,6 +977,34 @@ function TimedExercise({
     // a transition boundary, which is exactly the class of bug this rewrite exists to remove.
   }, [started]);
 
+  /**
+   * §10.4 — the session pause, applied to whichever countdown this set is actually running.
+   *
+   * Every controller is pause/resume-idempotent (`pause()` no-ops unless running-and-not-paused,
+   * `resume()` unless paused), so blanket-calling all four is correct and avoids having to
+   * reason here about which phase is live.
+   *
+   * One deliberate asymmetry on resume: a countdown the user paused *themselves* with the per-set
+   * `pause-resume-timer` control must stay paused. `pausedBySessionRef` records only the ones this
+   * effect paused, so resuming the session never overrides that choice.
+   */
+  const pausedBySessionRef = useRef<CountdownController[]>([]);
+  useEffect(() => {
+    const all = [
+      getReadyCountdown.controller,
+      side1Countdown.controller,
+      side2Countdown.controller,
+      switchCountdown.controller,
+    ];
+    if (paused) {
+      pausedBySessionRef.current = all.filter((c) => c.isRunning());
+      for (const c of pausedBySessionRef.current) c.pause();
+    } else {
+      for (const c of pausedBySessionRef.current) c.resume();
+      pausedBySessionRef.current = [];
+    }
+  }, [paused]);
+
   const inGetReady = started && getReadyMs > 0;
   const remainingSeconds = Math.ceil(activeCountdown.remainingMs / 1000);
   const switchRemainingSeconds = Math.ceil(switchCountdown.remainingMs / 1000);
@@ -881,6 +1015,8 @@ function TimedExercise({
   // running), guarded entirely by the refs above so nothing double-fires.
   useEffect(() => {
     if (!started) return;
+    // A frozen clock makes no sound: no count-in, no halfway chime, no count-out while paused.
+    if (paused) return;
     if (inGetReady) {
       const getReadySecond = Math.ceil(getReadyMs / 1000);
       if (
@@ -954,10 +1090,12 @@ function TimedExercise({
     });
   };
 
-  const canPause = started && !inGetReady && !switching;
+  // The per-set pause control is meaningless while the whole session is paused — the countdown is
+  // already stopped, and offering "Resume" here would resume it against a stopped session clock.
+  const canPause = started && !inGetReady && !switching && !paused;
 
   return (
-    <View style={styles.hero}>
+    <View style={[styles.hero, paused && styles.heroPaused]}>
       <Text style={styles.exerciseName}>{exerciseName}</Text>
       {/* Which band to actually pick up, mid-set, without leaving this screen — and, if that is
           not the one in your hand, which one you really used. */}
@@ -1051,6 +1189,7 @@ function TimedExercise({
 function RestPhase({
   restSec,
   nextLabel,
+  paused,
   difficulty,
   enjoyment,
   onDifficultyChange,
@@ -1060,6 +1199,10 @@ function RestPhase({
 }: {
   restSec: number;
   nextLabel: string;
+  /** Session-level pause. Stops the rest countdown, and — since the background "rest complete"
+   *  notification is scheduled against wall-clock time the OS owns, not against this countdown —
+   *  cancels that too, rescheduling for whatever is left when the session resumes. */
+  paused: boolean;
   difficulty: Difficulty | null;
   enjoyment: number | null;
   onDifficultyChange: (d: Difficulty | undefined) => void;
@@ -1089,10 +1232,32 @@ function RestPhase({
     };
   }, []);
 
+  // §10.4 — the session pause, applied to the rest clock. The scheduled notification has to go
+  // with it: it is an absolute-time alarm held by the OS, so leaving it in place would announce
+  // "rest complete" while the rest is still frozen. Skipped on the first run (nothing is paused
+  // yet, and the mount effect above owns the initial schedule).
+  const wasPausedRef = useRef(false);
+  useEffect(() => {
+    if (paused === wasPausedRef.current) return;
+    wasPausedRef.current = paused;
+    if (paused) {
+      countdown.controller.pause();
+      void cancelRestNotification(notificationIdRef.current);
+      notificationIdRef.current = null;
+    } else {
+      countdown.controller.resume();
+      const remainingSeconds = Math.max(0, Math.ceil(countdown.controller.remainingMs() / 1000));
+      void scheduleRestZeroNotification(remainingSeconds, nextLabel).then((id) => {
+        notificationIdRef.current = id;
+      });
+    }
+  }, [paused]);
+
   // §10.7 — "Audio 3-2-1 and a haptic at zero." No deps array: re-checks every render (the same
   // interval tick that drives the visible countdown), guarded by the ref so each second/zero
   // fires exactly once.
   useEffect(() => {
+    if (paused) return; // a frozen clock counts nobody down
     const remainingSeconds = Math.ceil(countdown.remainingMs / 1000);
     if (
       remainingSeconds >= 1 &&
@@ -1216,6 +1381,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   hero: { alignItems: 'center', gap: 12 },
+  // Paused, not disabled: a cool tint behind the still-live set, so the state reads at a glance
+  // without anything looking switched off.
+  heroPaused: { backgroundColor: '#f0f9ff', borderRadius: 16, paddingVertical: 12 },
+  pausedNudge: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+  },
+  pausedNudgeText: { fontSize: 15, color: '#0f172a' },
+  pausedNudgeButtons: { flexDirection: 'row', gap: 10 },
+  pausedNudgeSecondary: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pausedNudgeSecondaryText: { fontSize: 15, fontWeight: '600', color: '#334155' },
+  pausedNudgePrimary: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: '#0369a1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pausedNudgePrimaryText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   bandRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 6 },
   exerciseName: { fontSize: 26, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
   target: { fontSize: 20, fontWeight: '600', color: '#334155' },
