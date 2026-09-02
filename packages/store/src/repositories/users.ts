@@ -5,7 +5,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { DEFAULT_ANCHORS_AVAILABLE } from '@roamfit/engine';
-import type { Limitation as EngineLimitation, UserProfile } from '@roamfit/engine';
+import type { BandId, Limitation as EngineLimitation, UserProfile } from '@roamfit/engine';
 import type { Anchor } from '@roamfit/data';
 import type { Db } from '../db';
 import { schema } from '../db';
@@ -22,6 +22,34 @@ export interface NotificationPrefs {
   quietHoursEnabled?: boolean;
 }
 
+/**
+ * §4.3 / spec §1140 — one band's user-editable identity. Colour is the point: on a card, a band
+ * is far easier to recognise by the colour of the thing in your bag than by an abstract "B2".
+ */
+export interface BandTension {
+  /** What the user calls it. Defaults to the Bn id so a prescription always reads. */
+  label: string;
+  /** Any RN-acceptable colour string. User-editable, so nothing may assume a fixed palette —
+   *  callers deriving contrast must compute it from the value, not look it up. */
+  color: string;
+  approxLoad?: string;
+  note?: string;
+}
+
+/**
+ * Defaults for B1-B5. Deliberately defaults, not constants: spec §1140 is explicit that "band
+ * brands differ", which is exactly why this is user-editable. These follow the common loop-band
+ * progression (yellow → red → black → purple → green, lightest to heaviest); a user whose set is
+ * different edits them and nothing here has to change.
+ */
+export const DEFAULT_BAND_TENSIONS: Record<BandId, BandTension> = {
+  B1: { label: 'B1', color: '#facc15' },
+  B2: { label: 'B2', color: '#dc2626' },
+  B3: { label: 'B3', color: '#1f2937' },
+  B4: { label: 'B4', color: '#7c3aed' },
+  B5: { label: 'B5', color: '#16a34a' },
+};
+
 export const DEFAULT_NOTIFICATION_PREFS: Required<NotificationPrefs> = {
   quietHoursEnabled: true,
 };
@@ -31,7 +59,10 @@ export interface UserRecord {
   units: 'kg' | 'lb';
   weeklyTarget: number;
   anchorsAvailable: Anchor[];
-  bandTensions: Record<string, unknown>;
+  /** Always complete: `DEFAULT_BAND_TENSIONS` is merged under whatever the row holds, so an
+   *  existing `'{}'` row (every row, until Settings gains an editor) still yields five usable
+   *  bands and no migration is needed. */
+  bandTensions: Record<BandId, BandTension>;
   passportEnabled: boolean;
   healthWriteEnabled: boolean;
   notificationPrefs: NotificationPrefs;
@@ -40,13 +71,27 @@ export interface UserRecord {
   hasAcknowledgedDisclaimer: boolean;
 }
 
+/** Per band, the user's stored fields over the defaults — so a row that customises only a colour
+ *  keeps the default label, and a row that stores nothing at all is still complete. */
+function mergeBandTensions(
+  stored: Partial<Record<BandId, Partial<BandTension>>>,
+): Record<BandId, BandTension> {
+  const out = {} as Record<BandId, BandTension>;
+  for (const id of Object.keys(DEFAULT_BAND_TENSIONS) as BandId[]) {
+    out[id] = { ...DEFAULT_BAND_TENSIONS[id], ...(stored?.[id] ?? {}) };
+  }
+  return out;
+}
+
 function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
   return {
     id: row.id,
     units: row.units,
     weeklyTarget: row.weeklyTarget,
     anchorsAvailable: JSON.parse(row.anchorsAvailable) as Anchor[],
-    bandTensions: JSON.parse(row.bandTensions),
+    bandTensions: mergeBandTensions(
+      JSON.parse(row.bandTensions) as Partial<Record<BandId, Partial<BandTension>>>,
+    ),
     passportEnabled: row.passportEnabled,
     healthWriteEnabled: row.healthWriteEnabled,
     notificationPrefs: JSON.parse(row.notificationPrefs) as NotificationPrefs,

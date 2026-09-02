@@ -40,6 +40,7 @@ import {
 } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
 import { alternativesForSlot } from '@roamfit/engine';
+import type { BandId } from '@roamfit/engine';
 import type { SwapAlternative } from '@roamfit/engine';
 import type { AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import type { RootStackParamList } from '../navigation/types';
@@ -51,6 +52,7 @@ import PinnedNote from '../components/PinnedNote';
 import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
 import SwapSheet from '../components/SwapSheet';
+import BandChip from '../components/BandChip';
 import DemoMedia from '../components/DemoMedia';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import {
@@ -116,6 +118,8 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   // exercise-phase sub-view. Unaffected by pausing/navigating away either way, satisfying "no
   // interruption of the session timer."
   const [swapOpen, setSwapOpen] = useState(false);
+  /** §1140 — band colours are user data, not a palette this screen invents. */
+  const bandTensions = usersRepo.ensureUser(db, nowUtcInstant()).bandTensions;
   const [swapExcludeAnchor, setSwapExcludeAnchor] = useState(false);
   // §10.4/§10.8 — "pause an active workout and navigate away" (real device-testing request).
   // Setting this unmounts the entire active-phase subtree (`TimedExercise`/`RepsExercise`/
@@ -447,6 +451,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             key={`${entry.id}-${setIndex}`}
             entry={entry}
             exerciseName={exercise?.name ?? entry.exerciseId}
+            bandTensions={bandTensions}
             setIndex={setIndex}
             onComplete={(actualSeconds, pauseInfo) =>
               finishSetAndRest('completed', undefined, actualSeconds, pauseInfo)
@@ -459,6 +464,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             key={`${entry.id}-${setIndex}`}
             entry={entry}
             exerciseName={exercise?.name ?? entry.exerciseId}
+            bandTensions={bandTensions}
             setIndex={setIndex}
             onComplete={(reps) => finishSetAndRest('completed', reps)}
             onSkip={() => finishSetAndRest('skipped')}
@@ -521,6 +527,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 function RepsExercise({
   entry,
   exerciseName,
+  bandTensions,
   setIndex,
   onComplete,
   onSkip,
@@ -528,6 +535,8 @@ function RepsExercise({
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
+  /** The user's own band colours/labels (spec §1140), for `BandChip`. */
+  bandTensions: Record<BandId, usersRepo.BandTension>;
   setIndex: number;
   onComplete: (reps: number) => void;
   onSkip: () => void;
@@ -537,6 +546,12 @@ function RepsExercise({
   return (
     <View style={styles.hero}>
       <Text style={styles.exerciseName}>{exerciseName}</Text>
+      {/* Which band to actually pick up, mid-set, without leaving this screen. */}
+      {entry.band != null && (
+        <View style={styles.bandRow}>
+          <BandChip band={entry.band as BandId} tensions={bandTensions} />
+        </View>
+      )}
       <Text style={styles.target}>{entry.repTarget} reps</Text>
       <Text style={styles.setOf}>
         Set {setIndex + 1} of {entry.sets}
@@ -602,6 +617,7 @@ function TimedExercise({
   setIndex,
   onComplete,
   onSkip,
+  bandTensions,
   onSwap,
 }: {
   entry: sessionsRepo.SessionEntryRecord;
@@ -610,6 +626,8 @@ function TimedExercise({
   /** §10.5 — "actual seconds held are recorded," summed across both sides for unilateral work.
    *  `pauseInfo` is the §8.3 pause signal (`set_logs.pause_count`/`paused_duration_sec`), also
    *  summed across sides. */
+  /** The user's own band colours/labels (spec §1140), for `BandChip`. */
+  bandTensions: Record<BandId, usersRepo.BandTension>;
   onComplete: (actualSeconds: number, pauseInfo: PauseInfo) => void;
   onSkip: () => void;
   onSwap: () => void;
@@ -849,6 +867,12 @@ function TimedExercise({
   return (
     <View style={styles.hero}>
       <Text style={styles.exerciseName}>{exerciseName}</Text>
+      {/* Which band to actually pick up, mid-set, without leaving this screen. */}
+      {entry.band != null && (
+        <View style={styles.bandRow}>
+          <BandChip band={entry.band as BandId} tensions={bandTensions} />
+        </View>
+      )}
       <Text style={styles.setOf}>
         Set {setIndex + 1} of {entry.sets}
         {totalSides === 2 ? ` · Side ${sideIndex + 1} of 2` : ''}
@@ -1072,6 +1096,7 @@ const styles = StyleSheet.create({
   },
   sessionActionButtonText: { fontSize: 13, fontWeight: '600', color: '#334155' },
   hero: { alignItems: 'center', gap: 12 },
+  bandRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 6 },
   exerciseName: { fontSize: 26, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
   target: { fontSize: 20, fontWeight: '600', color: '#334155' },
   setOf: { fontSize: 15, color: '#64748b' },

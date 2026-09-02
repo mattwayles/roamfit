@@ -30,10 +30,12 @@ import type { SwapAlternative } from '@roamfit/engine';
 import { exerciseStateRepo, generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
 import type { AnchorClass, Exercise, Pattern, ProgressionFamilyId } from '@roamfit/data';
+import type { BandId } from '@roamfit/engine';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import AbandonSessionButton from '../components/AbandonSessionButton';
+import BandChip from '../components/BandChip';
 import SwapSheet from '../components/SwapSheet';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Approval'>;
@@ -85,6 +87,9 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   /** §10.3 swap — which entry's picker is open, if any. */
   const [swapEntryId, setSwapEntryId] = useState<string | null>(null);
   const [swapExcludeAnchor, setSwapExcludeAnchor] = useState(false);
+  /** §1140 — band colours are user data, so they are read from the user row rather than being a
+   *  palette this screen invents. `ensureUser` always returns a complete set. */
+  const bandTensions = usersRepo.ensureUser(db, nowUtcInstant()).bandTensions;
   /** The in-flight drag, or null. `dy` is raw finger travel (what the dragged card follows);
    *  `toIndex` is that travel snapped to a row position (what every other card reacts to). */
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -379,6 +384,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
               exerciseName={
                 library.exercises.find((e) => e.id === entry.exerciseId)?.name ?? entry.exerciseId
               }
+              bandTensions={bandTensions}
               dragging={drag?.section === section && drag.entryId === entry.id}
               displacement={dragDisplacement(section, index, entry.id)}
               onDragStart={(y) => beginDrag(section, entry.id, index, y)}
@@ -463,6 +469,7 @@ export const CARD_PITCH = CARD_HEIGHT + CARD_GAP;
 function EntryCard({
   entry,
   exerciseName,
+  bandTensions,
   dragging,
   displacement,
   onDragStart,
@@ -477,6 +484,8 @@ function EntryCard({
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
+  /** The user's own band colours/labels (spec §1140), for `BandChip`. */
+  bandTensions: Record<BandId, usersRepo.BandTension>;
   dragging: boolean;
   displacement: number;
   onDragStart: (pageY: number) => void;
@@ -491,10 +500,10 @@ function EntryCard({
 }): React.JSX.Element {
   const isTimed = entry.durationSec != null;
   // Rest 0 is a real prescription (warm-ups carry it), but "rest 0s" reads like a bug. Omit it,
-  // and drop the whole line when there is nothing else on it either.
-  const detail = [entry.band, entry.restSec > 0 ? `rest ${entry.restSec}s` : null]
-    .filter(Boolean)
-    .join(' · ');
+  // and drop the whole line when there is nothing else on it either. The band is no longer part
+  // of this string — it renders as a colour chip beside it (see `BandChip`).
+  const restLabel = entry.restSec > 0 ? `rest ${entry.restSec}s` : null;
+  const hasDetail = entry.band != null || restLabel != null;
 
   return (
     <View
@@ -527,7 +536,14 @@ function EntryCard({
           <Text style={styles.entryName} numberOfLines={2}>
             {exerciseName}
           </Text>
-          {detail !== '' && <Text style={styles.entryDetail}>{detail}</Text>}
+          {hasDetail && (
+            <View style={styles.entryDetailRow}>
+              {entry.band != null && (
+                <BandChip band={entry.band as BandId} tensions={bandTensions} />
+              )}
+              {restLabel != null && <Text style={styles.entryDetail}>{restLabel}</Text>}
+            </View>
+          )}
         </View>
       </View>
 
@@ -675,7 +691,8 @@ const styles = StyleSheet.create({
   dragHandleText: { fontSize: 20, color: '#94a3b8' },
   cardTitleBlock: { flex: 1, paddingTop: 2 },
   entryName: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
-  entryDetail: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  entryDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  entryDetail: { fontSize: 12, color: '#64748b' },
   stepperRow: { flexDirection: 'row', gap: 16 },
   stepper: { flex: 1 },
   stepperLabel: {
