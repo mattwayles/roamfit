@@ -51,7 +51,13 @@ import type { AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { localDateFromDate, nowEngineClock, nowUtcInstant } from '../lib/localClock';
-import { findCurrentEntry } from '../lib/sessionProgress';
+import {
+  activeEntries,
+  findCurrentEntry,
+  samePosition,
+  stepPosition,
+} from '../lib/sessionProgress';
+import type { SessionPosition } from '../lib/sessionProgress';
 import { useCountdown } from '../lib/useCountdown';
 import type { CountdownController } from '../lib/wallClockTimer';
 import PinnedNote from '../components/PinnedNote';
@@ -154,6 +160,16 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    *  returns, so the hook order is stable across the null-session render. */
   const scrollRef = useRef<ScrollView>(null);
   const demoBlockY = useRef(0);
+  /**
+   * Where the user has stepped *back* to, or null when they are at the workout's own front edge
+   * (§10.8's derived position — the first not-yet-logged set).
+   *
+   * Moving around the workout must not rewrite it, so this is a view offset held on the screen,
+   * never a cursor in the database: the §10.8 resume rule stays "reconstructed purely from
+   * set_logs on every read", nothing is deleted to go backwards, and closing the app mid-rewind
+   * resumes at the real front edge rather than somewhere the user only looked at.
+   */
+  const [rewoundTo, setRewoundTo] = useState<SessionPosition | null>(null);
 
   const reload = useCallback(
     () => setSession(sessionsRepo.getSession(db, sessionId)),
@@ -174,15 +190,30 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     return () => clearInterval(id);
   }, [reload]);
 
-  const current = session ? findCurrent(session) : null;
+  /** The workout's own front edge: §10.8's derived "first not-yet-logged set". This is what says
+   *  whether the workout is finished, regardless of which set the user is currently looking at. */
+  const frontier = session ? findCurrent(session) : null;
+  /**
+   * The set on screen. Normally the front edge; while the user has stepped back with ◂◂ it is the
+   * earlier set they moved to. A rewind target that no longer exists (its entry was swapped out
+   * from under it, say) silently resolves back to the front edge rather than stranding the screen.
+   */
+  const rewoundEntry =
+    session && rewoundTo ? activeEntries(session).find((e) => e.id === rewoundTo.entryId) : null;
+  const current =
+    rewoundEntry && rewoundTo && rewoundTo.setIndex < rewoundEntry.sets
+      ? { entry: rewoundEntry, setIndex: rewoundTo.setIndex }
+      : frontier;
   const entry = current?.entry;
   const exercise = entry ? library.exercises.find((e) => e.id === entry.exerciseId) : undefined;
 
   useEffect(() => {
-    if (session && !current) {
+    // Keyed on the front edge, not on what is being viewed: the workout is over when every set is
+    // logged, and a user who has stepped back to look at an earlier set has not undone that.
+    if (session && !frontier) {
       navigation.replace('Summary', { sessionId });
     }
-  }, [session, current, navigation, sessionId]);
+  }, [session, frontier, navigation, sessionId]);
 
   // Hooks must run unconditionally every render — this screen has early `return`s below (loading
   // states) that would otherwise change the hook count between renders (a real bug this track
@@ -317,6 +348,56 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   };
 
   /**
+   * Moving around the workout without training a set: ◂◂ steps back a set, ▸▸ steps forward.
+   *
+   * Stepping back is pure navigation — nothing is logged and nothing already logged is deleted,
+   * so a user who wants another look at the previous exercise (did I really do three sets? what
+   * band was that? what did the cue say?) can go and look and come straight back. The set they
+   * step back onto keeps whatever log it already has until they train it again, at which point
+   * `logSet`'s upsert overwrites that one row — a deliberate redo, never a silent one.
+   *
+   * ▸▸ therefore means two things, and says which in its accessible name:
+   *   - at the front edge (the normal case) it is the §10.5 skip it has always been: the set is
+   *     logged as `skipped` and the workout moves on.
+   *   - while stepped back it is the mirror of ◂◂, walking forward over sets that are already
+   *     logged, and it stops at the front edge rather than skipping past it. Stepping forward
+   *     must never *create* skips the user did not ask for.
+   */
+  const currentPosition: SessionPosition = { entryId: entry.id, setIndex };
+  const frontierPosition: SessionPosition | null = frontier
+    ? { entryId: frontier.entry.id, setIndex: frontier.setIndex }
+    : null;
+  const atFrontier = samePosition(currentPosition, frontierPosition);
+  const previousPosition = stepPosition(session, currentPosition, -1);
+
+  /** Puts a different set on screen. Landing back on the front edge drops the override entirely,
+   *  so the screen returns to deriving its position from `set_logs` (§10.8) instead of holding a
+   *  stale copy of it. */
+  const moveTo = (position: SessionPosition) => {
+    setRewoundTo(samePosition(position, frontierPosition) ? null : position);
+    // This set is being started fresh: neither the elapsed-since-started stamp nor a band picked
+    // for the set being left behind belongs to it.
+    setStartedAtRef.current = nowUtcInstant();
+    bandUsedRef.current = null;
+    setPhase('exercise');
+    setSwapNotice(null);
+  };
+
+  const handleRewind = () => {
+    if (!previousPosition) return;
+    moveTo(previousPosition);
+  };
+
+  const handleForward = () => {
+    if (atFrontier) {
+      finishSetAndRest('skipped');
+      return;
+    }
+    const next = stepPosition(session, currentPosition, 1);
+    if (next) moveTo(next);
+  };
+
+  /**
    * §10.4 — completing a set against a stopped clock is almost always an oversight: the user
    * paused, came back, and started training again without unpausing, so the session's own timer
    * is quietly under-counting the work they are doing.
@@ -380,6 +461,10 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     setEnjoyment(null);
     setPhase('resting');
     setPausedCompletion(null);
+    // A set that has just been trained is done with, whether it was the front edge or one the
+    // user had stepped back to redo: drop the view offset so the workout resumes from its own
+    // front edge rather than replaying the sets after the one just logged.
+    setRewoundTo(null);
     reload();
   };
 
@@ -614,8 +699,10 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             onComplete={(actualSeconds, pauseInfo) =>
               finishSetAndRest('completed', undefined, actualSeconds, pauseInfo)
             }
-            onSkip={() => finishSetAndRest('skipped')}
+            onSkip={handleForward}
             onSwap={handleSwap}
+            onRewind={previousPosition ? handleRewind : null}
+            forwardIsSkip={atFrontier}
           />
         ) : (
           <RepsExercise
@@ -628,8 +715,10 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             paused={paused}
             setIndex={setIndex}
             onComplete={(reps) => finishSetAndRest('completed', reps)}
-            onSkip={() => finishSetAndRest('skipped')}
+            onSkip={handleForward}
             onSwap={handleSwap}
+            onRewind={previousPosition ? handleRewind : null}
+            forwardIsSkip={atFrontier}
           />
         )
       ) : (
@@ -703,6 +792,8 @@ function RepsExercise({
   onComplete,
   onSkip,
   onSwap,
+  onRewind,
+  forwardIsSkip,
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
@@ -716,8 +807,13 @@ function RepsExercise({
   paused: boolean;
   setIndex: number;
   onComplete: (reps: number) => void;
+  /** The forward control: skips this set at the front edge, steps forward over an already-logged
+   *  one while the user has stepped back. See `SetNavRow`. */
   onSkip: () => void;
   onSwap: () => void;
+  /** Step back a set, or null on the workout's first set. */
+  onRewind: (() => void) | null;
+  forwardIsSkip: boolean;
 }): React.JSX.Element {
   const [reps, setReps] = useState(entry.repTarget ?? 0);
   // Remounted per set (the caller keys on entry+setIndex), so this resets to the incoming default
@@ -727,7 +823,9 @@ function RepsExercise({
     // Tinted, not hidden or disabled, while the session clock is stopped: the state is legible at
     // a glance and every control still works.
     <View style={[styles.hero, paused && styles.heroPaused]}>
-      <Text style={styles.exerciseName}>{exerciseName}</Text>
+      <Text testID="exercise-name" style={styles.exerciseName}>
+        {exerciseName}
+      </Text>
       {/* Which band to actually pick up, mid-set, without leaving this screen — and, if that is
           not the one in your hand, which one you really used. */}
       {bandUsed != null && (
@@ -780,29 +878,73 @@ function RepsExercise({
         <Text style={styles.completeButtonText}>COMPLETE</Text>
       </Pressable>
 
-      {/* Same treatment as the session-level Pause/Abandon controls: found mid-set, at arm's
-          length, so targets rather than sentences. The accessible names carry the meaning, and
-          ⇄ is the same glyph the approval card uses for swap. */}
-      <View style={styles.actionRow}>
-        <Pressable
-          testID="swap-set"
-          accessibilityRole="button"
-          accessibilityLabel="Swap this exercise for another"
-          style={[styles.heroIconButton, styles.heroSwapButton]}
-          onPress={onSwap}
-        >
-          <Text style={[styles.heroIconText, styles.heroSwapText]}>⇄</Text>
-        </Pressable>
-        <Pressable
-          testID="skip-set"
-          accessibilityRole="button"
-          accessibilityLabel="Skip this set"
-          style={styles.heroIconButton}
-          onPress={onSkip}
-        >
-          <Text style={styles.heroIconText}>▸▸</Text>
-        </Pressable>
-      </View>
+      <SetNavRow
+        onRewind={onRewind}
+        onSwap={onSwap}
+        onSkip={onSkip}
+        forwardIsSkip={forwardIsSkip}
+      />
+    </View>
+  );
+}
+
+/**
+ * The set's own controls: step back, swap, step forward. Shared by both hero views (reps and
+ * timed) because they had drifted into two identical copies of this row.
+ *
+ * Same treatment as the session-level Pause/Abandon controls: found mid-set, at arm's length, so
+ * targets rather than sentences. The accessible names carry the meaning — including which of its
+ * two jobs ▸▸ is doing right now — and ⇄ is the same glyph the approval card uses for swap.
+ */
+function SetNavRow({
+  onRewind,
+  onSwap,
+  onSkip,
+  forwardIsSkip,
+}: {
+  /** Null on the workout's very first set, where there is nothing behind to step back to. The
+   *  button stays in place, greyed: the row does not reshuffle under a thumb already reaching
+   *  for swap. */
+  onRewind: (() => void) | null;
+  onSwap: () => void;
+  onSkip: () => void;
+  /** True at the workout's front edge, where ▸▸ skips the set; false while stepped back, where it
+   *  just walks forward over sets that are already logged. */
+  forwardIsSkip: boolean;
+}): React.JSX.Element {
+  return (
+    <View style={styles.actionRow}>
+      <Pressable
+        testID="rewind-set"
+        accessibilityRole="button"
+        accessibilityLabel="Go back to the previous set"
+        accessibilityState={{ disabled: onRewind === null }}
+        style={[styles.heroIconButton, onRewind === null && styles.heroIconButtonDisabled]}
+        disabled={onRewind === null}
+        onPress={() => onRewind?.()}
+      >
+        <Text style={[styles.heroIconText, onRewind === null && styles.heroIconTextDisabled]}>
+          ◂◂
+        </Text>
+      </Pressable>
+      <Pressable
+        testID="swap-set"
+        accessibilityRole="button"
+        accessibilityLabel="Swap this exercise for another"
+        style={[styles.heroIconButton, styles.heroSwapButton]}
+        onPress={onSwap}
+      >
+        <Text style={[styles.heroIconText, styles.heroSwapText]}>⇄</Text>
+      </Pressable>
+      <Pressable
+        testID="skip-set"
+        accessibilityRole="button"
+        accessibilityLabel={forwardIsSkip ? 'Skip this set' : 'Go forward to the next set'}
+        style={styles.heroIconButton}
+        onPress={onSkip}
+      >
+        <Text style={styles.heroIconText}>▸▸</Text>
+      </Pressable>
     </View>
   );
 }
@@ -828,6 +970,8 @@ function TimedExercise({
   onBandChange,
   paused,
   onSwap,
+  onRewind,
+  forwardIsSkip,
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
@@ -845,8 +989,13 @@ function TimedExercise({
    *  underneath the user. */
   paused: boolean;
   onComplete: (actualSeconds: number, pauseInfo: PauseInfo) => void;
+  /** The forward control: skips this set at the front edge, steps forward over an already-logged
+   *  one while the user has stepped back. See `SetNavRow`. */
   onSkip: () => void;
   onSwap: () => void;
+  /** Step back a set, or null on the workout's first set. */
+  onRewind: (() => void) | null;
+  forwardIsSkip: boolean;
 }): React.JSX.Element {
   const durationMs = (entry.durationSec ?? 0) * 1000;
   // §10.5 — "unilateral timed work runs two sequential timers with a short switch-side interval
@@ -1126,7 +1275,9 @@ function TimedExercise({
 
   return (
     <View style={[styles.hero, paused && styles.heroPaused]}>
-      <Text style={styles.exerciseName}>{exerciseName}</Text>
+      <Text testID="exercise-name" style={styles.exerciseName}>
+        {exerciseName}
+      </Text>
       {/* Which band to actually pick up, mid-set, without leaving this screen — and, if that is
           not the one in your hand, which one you really used. */}
       {bandUsed != null && (
@@ -1189,29 +1340,12 @@ function TimedExercise({
         </>
       )}
 
-      {/* Same treatment as the session-level Pause/Abandon controls: found mid-set, at arm's
-          length, so targets rather than sentences. The accessible names carry the meaning, and
-          ⇄ is the same glyph the approval card uses for swap. */}
-      <View style={styles.actionRow}>
-        <Pressable
-          testID="swap-set"
-          accessibilityRole="button"
-          accessibilityLabel="Swap this exercise for another"
-          style={[styles.heroIconButton, styles.heroSwapButton]}
-          onPress={onSwap}
-        >
-          <Text style={[styles.heroIconText, styles.heroSwapText]}>⇄</Text>
-        </Pressable>
-        <Pressable
-          testID="skip-set"
-          accessibilityRole="button"
-          accessibilityLabel="Skip this set"
-          style={styles.heroIconButton}
-          onPress={onSkip}
-        >
-          <Text style={styles.heroIconText}>▸▸</Text>
-        </Pressable>
-      </View>
+      <SetNavRow
+        onRewind={onRewind}
+        onSwap={onSwap}
+        onSkip={onSkip}
+        forwardIsSkip={forwardIsSkip}
+      />
     </View>
   );
 }
@@ -1485,6 +1619,10 @@ const styles = StyleSheet.create({
   // goes, so it carries the same blue the approval card gives it.
   heroSwapButton: { backgroundColor: '#dbeafe' },
   heroSwapText: { color: '#1d4ed8' },
+  // Rewind on the workout's first set: still there, still the same size, just visibly not
+  // offering anything — nothing moves under a thumb that was already reaching for swap.
+  heroIconButtonDisabled: { backgroundColor: '#f1f5f9' },
+  heroIconTextDisabled: { color: '#cbd5e1' },
   actionButton: {
     paddingHorizontal: 16,
     paddingVertical: 12,
