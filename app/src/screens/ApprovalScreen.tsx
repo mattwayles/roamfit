@@ -712,8 +712,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  swapButton: { backgroundColor: '#e2e8f0' },
-  swapButtonText: { fontSize: 17, fontWeight: '700', color: '#334155', lineHeight: 21 },
+  // Blue, not the steppers' slate — it was previously the exact same '#e2e8f0' as the +/-
+  // buttons, so the one control that replaces the exercise looked like one that nudges a number.
+  // Reuses the accent the progression board's level-up already uses rather than inventing a
+  // fourth hue: on this card it is unique, and app-wide it stays consistent.
+  swapButton: { backgroundColor: '#dbeafe' },
+  swapButtonText: { fontSize: 17, fontWeight: '700', color: '#1d4ed8', lineHeight: 21 },
   removeButton: { backgroundColor: '#fee2e2' },
   removeButtonText: { fontSize: 16, fontWeight: '700', color: '#b91c1c', lineHeight: 20 },
 

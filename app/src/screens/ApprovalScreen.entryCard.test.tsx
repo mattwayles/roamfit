@@ -5,6 +5,7 @@
  * "too easy ▲" rendered as "too e". Timed exercises had no way to change their duration at all.
  */
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createRng, seedFromString } from '@roamfit/engine';
@@ -92,6 +93,15 @@ describe('§10.3 approval entry card', () => {
     // glyph cannot carry it and a clipped word is what this redesign existed to fix.
     expect(screen.getAllByLabelText(/^Swap .* for another exercise$/).length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText(/^Remove /).length).toBeGreaterThan(0);
+
+    // Swap must not look like the +/- buttons or like Remove: it is the only control on the card
+    // that replaces the exercise, so it should not read as one that nudges a number.
+    const bg = (testID: string): unknown =>
+      StyleSheet.flatten(screen.getByTestId(testID).props.style)?.backgroundColor;
+    const swapBg = bg(`swap-${entry.exerciseId}`);
+    expect(swapBg).toBeDefined();
+    expect(swapBg).not.toBe(bg(`sets-plus-${entry.exerciseId}`));
+    expect(swapBg).not.toBe(bg(`remove-${entry.exerciseId}`));
   });
 
   it('a timed exercise gets a Time stepper that actually changes the duration', async () => {
