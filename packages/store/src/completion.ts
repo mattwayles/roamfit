@@ -12,7 +12,7 @@ import type { BandId, ProgressionEvent, SessionPerformance } from '@roamfit/engi
 import type { Db } from './db';
 import { schema } from './db';
 import { eq } from 'drizzle-orm';
-import { getSession } from './repositories/sessions';
+import { activeElapsedSec, getSession } from './repositories/sessions';
 import type { SessionEntryRecord, SessionRecord } from './repositories/sessions';
 import { getAllProgressionStates, upsertProgressionState } from './repositories/progressionState';
 import { getUser, ensureUser, markHasEverCompletedSession } from './repositories/users';
@@ -149,8 +149,10 @@ export function completeSession(
       throw new Error(`completeSession: session ${input.sessionId} is already ${session.status}`);
     }
 
+    // §10.4 — time spent paused is not time spent training, so it is subtracted here exactly as it
+    // is in the elapsed timer the user watched (one shared definition, `activeElapsedSec`).
     const actualMinutes = session.startedAt
-      ? Math.max(0, (new Date(now).getTime() - new Date(session.startedAt).getTime()) / 60_000)
+      ? activeElapsedSec(session, now) / 60
       : session.estimatedMinutes;
 
     const progressionEvents: { familyId: string; event: ProgressionEvent }[] = [];
@@ -317,6 +319,13 @@ export function completeSession(
         pendingSlot: null,
         completedAt: now,
         actualMinutes,
+        // A session finished while paused banks that last pause rather than leaving an open one
+        // on a row nothing will ever resume.
+        pausedAt: null,
+        pausedTotalSec: session.pausedAt
+          ? session.pausedTotalSec +
+            Math.max(0, Math.round((Date.parse(now) - Date.parse(session.pausedAt)) / 1000))
+          : session.pausedTotalSec,
         retrospective: input.retrospective ?? null,
         updatedAt: now,
       })

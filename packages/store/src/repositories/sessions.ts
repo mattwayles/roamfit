@@ -125,6 +125,10 @@ export interface SessionRecord {
   abandonedSetIndex: number | null;
   regenerateTapCount: number;
   startedAt: string | null;
+  /** §10.4 — the instant the currently-open workout-level pause began, or null while running. */
+  pausedAt: string | null;
+  /** Seconds banked from pauses already closed. See `activeElapsedSec`. */
+  pausedTotalSec: number;
   completedAt: string | null;
   discardedAt: string | null;
   entries: SessionEntryRecord[];
@@ -240,6 +244,8 @@ function rowToSession(
     abandonedSetIndex: row.abandonedSetIndex,
     regenerateTapCount: row.regenerateTapCount,
     startedAt: row.startedAt,
+    pausedAt: row.pausedAt,
+    pausedTotalSec: row.pausedTotalSec,
     completedAt: row.completedAt,
     discardedAt: row.discardedAt,
     entries,
@@ -439,6 +445,60 @@ export function startSession(db: Db, sessionId: string, now: string): void {
     .set({ status: 'active', startedAt: now, updatedAt: now })
     .where(eq(schema.sessions.id, sessionId))
     .run();
+}
+
+/**
+ * §10.4 — pause the workout-level clock. Persisted rather than held on the screen, because a pause
+ * has to survive exactly the things a user does while paused: navigating away, locking the phone,
+ * force-quitting. Idempotent: pausing an already-paused session leaves the open pause where it is,
+ * so a double tap cannot lose the elapsed time banked so far.
+ */
+export function pauseSession(db: Db, sessionId: string, now: string): void {
+  const row = db.select().from(schema.sessions).where(eq(schema.sessions.id, sessionId)).all()[0];
+  if (!row || row.pausedAt != null) return;
+  db.update(schema.sessions)
+    .set({ pausedAt: now, updatedAt: now })
+    .where(eq(schema.sessions.id, sessionId))
+    .run();
+}
+
+/** The counterpart: close the open pause and bank its seconds. Also idempotent — resuming a
+ *  running session does nothing. */
+export function resumeSession(db: Db, sessionId: string, now: string): void {
+  const row = db.select().from(schema.sessions).where(eq(schema.sessions.id, sessionId)).all()[0];
+  if (!row || row.pausedAt == null) return;
+  db.update(schema.sessions)
+    .set({
+      pausedAt: null,
+      pausedTotalSec: row.pausedTotalSec + pauseLengthSec(row.pausedAt, now),
+      updatedAt: now,
+    })
+    .where(eq(schema.sessions.id, sessionId))
+    .run();
+}
+
+function pauseLengthSec(pausedAt: string, now: string): number {
+  return Math.max(0, Math.round((Date.parse(now) - Date.parse(pausedAt)) / 1000));
+}
+
+/**
+ * §10.4 — how long this session has actually been *running*: wall-clock since `startedAt`, minus
+ * every second spent paused, including a pause still open right now.
+ *
+ * Re-derived from absolute instants on every read rather than counted per tick, for the same
+ * reason `wallClockTimer.ts` is: however long the JS thread was suspended between two reads, the
+ * arithmetic is right the instant it runs again. This is the one definition of session elapsed
+ * time — the screen's timer and the `actualMinutes` written at completion both use it, so they
+ * cannot disagree.
+ */
+export function activeElapsedSec(
+  session: Pick<SessionRecord, 'startedAt' | 'pausedAt' | 'pausedTotalSec'>,
+  now: string,
+): number {
+  if (!session.startedAt) return 0;
+  const gross = Math.max(0, (Date.parse(now) - Date.parse(session.startedAt)) / 1000);
+  const openPause = session.pausedAt ? pauseLengthSec(session.pausedAt, now) : 0;
+  return Math.max(0, gross - session.pausedTotalSec - openPause);
 }
 
 export function discardSession(

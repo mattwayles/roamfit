@@ -196,6 +196,12 @@ export const sessions = sqliteTable(
     abandonedSetIndex: integer('abandoned_set_index'),
     regenerateTapCount: integer('regenerate_tap_count').notNull().default(0),
     startedAt: text('started_at'),
+    /** §10.4 workout-level pause (migration 0011). The instant the currently-open pause began, or
+     *  NULL while the session is running. Persisted, not component state: pausing survives
+     *  navigating away, force-quitting, and re-entering the screen. */
+    pausedAt: text('paused_at'),
+    /** Seconds banked from pauses already closed. See `activeElapsedSec`. */
+    pausedTotalSec: integer('paused_total_sec').notNull().default(0),
     completedAt: text('completed_at'),
     discardedAt: text('discarded_at'),
     createdAt: text('created_at').notNull(),

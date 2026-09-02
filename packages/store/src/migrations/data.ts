@@ -356,6 +356,23 @@ const MIGRATION_0010_SET_LOG_BAND_ACTUAL = `-- 0010_set_log_band_actual.sql — 
 ALTER TABLE set_logs ADD COLUMN band_actual TEXT;
 `;
 
+const MIGRATION_0011_SESSION_PAUSE = `-- 0011_session_pause.sql — the workout-level pause, made real.
+--
+-- Pausing used to be a component-local \`useState\` on the workout screen, which meant two things:
+-- the elapsed timer kept counting while "paused" (it was derived from \`started_at\` alone, with
+-- nothing to subtract), and the pause was lost the moment the screen unmounted — which is exactly
+-- what pausing did, since it navigated away.
+--
+-- \`paused_at\` is the instant the currently-open pause began (NULL = running), and
+-- \`paused_total_sec\` banks every pause already closed. Elapsed is then
+-- \`now - started_at - paused_total_sec - (now - paused_at)\`, which is suspension-proof for the
+-- same reason the countdown controllers are: it re-derives from absolute instants rather than
+-- counting ticks. Defaults mean every existing session reads as "never paused", which is true.
+
+ALTER TABLE sessions ADD COLUMN paused_at TEXT;
+ALTER TABLE sessions ADD COLUMN paused_total_sec INTEGER NOT NULL DEFAULT 0;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -373,4 +390,5 @@ export const MIGRATIONS: MigrationFile[] = [
     sql: MIGRATION_0009_RESET_PROGRESSION_TO_LEVEL_1,
   },
   { id: '0010_set_log_band_actual.sql', sql: MIGRATION_0010_SET_LOG_BAND_ACTUAL },
+  { id: '0011_session_pause.sql', sql: MIGRATION_0011_SESSION_PAUSE },
 ];
