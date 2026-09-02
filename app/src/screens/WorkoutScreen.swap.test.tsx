@@ -112,29 +112,18 @@ describe('§10.6 mid-workout swap, driven through WorkoutScreen', () => {
     );
 
     await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
+
+    // One tap swaps. The picker sheet this replaced asked the user to choose between candidates
+    // the engine had already ranked, mid-set, with a rest timer about to start.
     await fireEvent.press(screen.getByTestId('swap-set'));
+    await waitFor(() => expect(screen.getByTestId('swap-notice')).toBeTruthy(), WAIT_OPTS);
 
-    await waitFor(() => expect(screen.getByTestId('swap-sheet')).toBeTruthy(), WAIT_OPTS);
-
-    // The session/rest-of-workout UI must be gone while the sheet is open, and the elapsed
-    // workout timer (rendered above the phase view, unconditionally) must still be present and
-    // ticking — proving the session stopwatch was never paused or reset by opening the sheet.
-    expect(screen.queryByTestId('complete-set')).toBeNull();
+    // The elapsed workout timer (rendered above the phase view, unconditionally) is still there
+    // and ticking — the session stopwatch was never paused or reset by swapping.
     expect(screen.getByText(/^Elapsed/)).toBeTruthy();
 
-    // Find whichever alternative option testID rendered (candidates are real engine output, not
-    // fixed) and confirm it's a *different* exercise than the one being replaced.
-    const optionEls = screen.getAllByTestId(/^swap-option-/);
-    expect(optionEls.length).toBeGreaterThan(0);
-    expect(optionEls.length).toBeLessThanOrEqual(5);
-    const firstOptionTestId = optionEls[0].props.testID as string;
-    const pickedExerciseId = firstOptionTestId.replace('swap-option-', '');
-    expect(pickedExerciseId).not.toBe(originalExerciseId);
-
-    await fireEvent.press(screen.getByTestId(firstOptionTestId));
-
-    // Sheet closed, no re-approval/regeneration navigation happened, and we're straight back on
-    // an exercise view (reps or timed — the new exercise may have a different metric).
+    // No re-approval/regeneration navigation happened, and we are straight back on an exercise
+    // view (reps or timed — the new exercise may have a different metric).
     expect(navigation.navigate).not.toHaveBeenCalled();
     expect(navigation.replace).not.toHaveBeenCalled();
     await waitFor(
@@ -149,7 +138,8 @@ describe('§10.6 mid-workout swap, driven through WorkoutScreen', () => {
     // exercise's swapAwayCount incremented (§5.2 REPEATEDLY-SKIPPED input, §8.3 signal).
     const after = sessionsRepo.getSession(db, sessionId)!;
     const afterEntry = after.entries.find((e) => e.id === firstRepsEntry!.id)!;
-    expect(afterEntry.exerciseId).toBe(pickedExerciseId);
+    // Whatever the engine ranked first — the point is that it changed, and to something else.
+    expect(afterEntry.exerciseId).not.toBe(originalExerciseId);
     expect(afterEntry.plannedExerciseId).toBe(originalExerciseId); // planned-vs-actual preserved
     const replacedState = exerciseStateRepo.getExerciseState(db, originalExerciseId);
     expect(replacedState?.swapAwayCount).toBe(1);

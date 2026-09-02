@@ -97,20 +97,17 @@ describe('§10.3 swap at approval', () => {
       () => expect(screen.getByTestId(`swap-${entry.exerciseId}`)).toBeTruthy(),
       WAIT_OPTS,
     );
+    // One tap. The picker sheet this replaced asked the user to choose between candidates the
+    // engine had already ranked; taking the top one is the same answer without the detour.
     fireEvent.press(screen.getByTestId(`swap-${entry.exerciseId}`));
-
-    // The sheet is the same component §10.6 uses mid-workout, fed by the same engine selection.
-    await waitFor(() => expect(screen.getByTestId('swap-sheet')).toBeTruthy(), WAIT_OPTS);
-    const option = screen.getAllByTestId(/^swap-option-/)[0];
-    const chosenId = (option.props.testID as string).replace('swap-option-', '');
-    fireEvent.press(option);
 
     await waitFor(() => {
       const after = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === entry.id)!;
-      expect(after.exerciseId).toBe(chosenId);
+      expect(after.exerciseId).not.toBe(entry.exerciseId);
       // §10.10 — the plan still records what the engine originally chose.
       expect(after.plannedExerciseId).toBe(entry.exerciseId);
     }, WAIT_OPTS);
+    expect(screen.getByTestId('swap-notice')).toBeTruthy();
 
     // The session itself was not regenerated.
     expect(sessionsRepo.getSession(db, sessionId)!.id).toBe(sessionId);

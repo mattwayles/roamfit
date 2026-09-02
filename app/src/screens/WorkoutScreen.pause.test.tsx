@@ -1,8 +1,10 @@
 /**
- * §10.4/§10.8 — "pause an active workout and navigate away" (real device-testing request).
- * Distinct from the existing per-set `pause-resume-timer` (§10.5) control tested in
- * `WorkoutScreen.timedBilateral.test.tsx` — this is the workout-level "Pause" action that leaves
- * the screen entirely.
+ * §10.4/§10.8 — pause an active workout. Distinct from the per-set `pause-resume-timer` (§10.5)
+ * control tested in `WorkoutScreen.timedBilateral.test.tsx`: this is the workout-level Pause.
+ *
+ * It used to navigate to Home as well as pausing, which conflated two different intentions —
+ * "stop the clock for a minute" and "I am done looking at this screen". It now only pauses, and
+ * the same button resumes.
  *
  * What Jest can and can't prove here (per the request to be honest about it): this proves the
  * in-progress set is never logged/lost when the user pauses mid-timer, that the session stays
@@ -34,8 +36,8 @@ function Setup({ onReady }: { onReady: (db: ReturnType<typeof useStore>['db']) =
   return null;
 }
 
-describe('§10.4/§10.8 pause an active workout and navigate away', () => {
-  it('pausing mid-timer navigates to Home, unmounts the active phase, and never logs the in-progress set', async () => {
+describe('§10.4/§10.8 pause an active workout', () => {
+  it('pausing mid-timer stops the phase engine in place, never logs the in-progress set, and resumes on the same button', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -72,7 +74,13 @@ describe('§10.4/§10.8 pause an active workout and navigate away', () => {
     expect(screen.getByTestId('pause-workout')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('pause-workout'));
 
-    expect(navigation.navigate).toHaveBeenCalledWith('Home');
+    // Pausing keeps you on the workout — it stops the clock, it does not leave the screen.
+    expect(navigation.navigate).not.toHaveBeenCalled();
+    expect(navigation.replace).not.toHaveBeenCalled();
+    await waitFor(
+      () => expect(screen.getByTestId('workout-paused-banner')).toBeTruthy(),
+      WAIT_OPTS,
+    );
     // The active phase subtree is gone — this is what actually stops the phase engine, not a
     // "paused" label sitting on top of a still-ticking timer.
     expect(screen.queryByTestId('timed-circle')).toBeNull();
@@ -86,10 +94,17 @@ describe('§10.4/§10.8 pause an active workout and navigate away', () => {
     const entry = afterPause.entries.find((e) => e.id === entryId)!;
     expect(entry.setLogs).toHaveLength(0);
 
-    // §10.10 — the session is still active/pending, not discarded. Resuming (a fresh mount, the
-    // same mechanism `WorkoutScreen.resume.test.tsx` proves for a force-quit) lands on the exact
-    // same set.
+    // §10.10 — the session is still active/pending, not discarded.
     expect(sessionsRepo.getPendingSession(db)?.id).toBe(sessionId);
+
+    // The same control resumes, back onto the same set, still not auto-started.
+    await fireEvent.press(screen.getByTestId('pause-workout'));
+    await waitFor(
+      () => expect(screen.getAllByTestId('timed-circle').length).toBeGreaterThan(0),
+      WAIT_OPTS,
+    );
+    expect(screen.queryByTestId('workout-paused-banner')).toBeNull();
+    expect(screen.getAllByTestId('timed-remaining')[0]).toHaveTextContent('Tap to start');
 
     const resumeNav = mockNavigation();
     render(

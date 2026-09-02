@@ -16,7 +16,7 @@
  * "safe until proven online" behavior from `networkStatus.ts` for free.
  *
  * Business logic this component does NOT own (kept in the screen, per this codebase's
- * `SwapSheet`-style convention of "components render, screens decide"):
+ * the "components render, screens decide" convention):
  *   - Whether a curated video id exists at all (remote config).
  *   - Whether this exercise is locally demoted (`exerciseStateRepo.getVideoFlagState`).
  *   - Persisting a report or a player-error flag (`exerciseStateRepo.reportVideoIssue`) and the

@@ -14,10 +14,10 @@
  * "Set N of M" (group/round math not modeled here for lack of a spec'd source of "M rounds").
  *
  * §10.6 mid-workout swap: `alternativesForSlot` (from `@roamfit/engine`) selects and ranks the
- * 3-5 candidates; this screen only calls it with the current entry + user state and hands the
- * result to `SwapSheet` to render. Confirming a pick calls `sessionsRepo.recordSwap` and reloads
- * — no re-approval, no regeneration, and the session stopwatch (a ref, untouched by this) never
- * pauses.
+ * candidates and this screen takes the top one — a picker sheet used to sit in between, asking
+ * the user to choose between options the engine had already ordered. Swapping calls
+ * `sessionsRepo.recordSwap` and reloads — no re-approval, no regeneration, and the session
+ * stopwatch (a ref, untouched by this) never pauses.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -51,7 +51,6 @@ import { useCountdown } from '../lib/useCountdown';
 import PinnedNote from '../components/PinnedNote';
 import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
-import SwapSheet from '../components/SwapSheet';
 import BandChip from '../components/BandChip';
 import DemoMedia from '../components/DemoMedia';
 import AbandonSessionButton from '../components/AbandonSessionButton';
@@ -117,10 +116,10 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   // §10.6 mid-workout swap — closed by default; opened from the Swap action on either
   // exercise-phase sub-view. Unaffected by pausing/navigating away either way, satisfying "no
   // interruption of the session timer."
-  const [swapOpen, setSwapOpen] = useState(false);
+  /** One-line result of the last swap. Informational, never blocking. */
+  const [swapNotice, setSwapNotice] = useState<string | null>(null);
   /** §1140 — band colours are user data, not a palette this screen invents. */
   const bandTensions = usersRepo.ensureUser(db, nowUtcInstant()).bandTensions;
-  const [swapExcludeAnchor, setSwapExcludeAnchor] = useState(false);
   // §10.4/§10.8 — "pause an active workout and navigate away" (real device-testing request).
   // Setting this unmounts the entire active-phase subtree (`TimedExercise`/`RepsExercise`/
   // `RestPhase`) below, on the render *before* the nav transition to Home even starts — see
@@ -164,7 +163,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   // hit while wiring swap: "Rendered more hooks than during the previous render"). Everything
   // that reads `entry`/`exercise` guards internally on them being present instead.
   const swapAlternatives: SwapAlternative[] = useMemo(() => {
-    if (!swapOpen || !entry) return [];
+    if (!entry) return [];
     const clock = nowEngineClock();
     const profile = usersRepo.buildUserProfile(db, clock.today);
     return alternativesForSlot({
@@ -192,9 +191,11 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       today: clock.today,
       history: sessionsRepo.getHistoryForGeneration(db),
       exerciseStates: exerciseStateRepo.getAllExerciseStates(db),
-      excludeAnchor: swapExcludeAnchor ? exercise?.anchor : undefined,
+      // The sheet's "different anchor point" filter went with it. Auto-swap already avoids the
+      // current exercise, and narrowing the pool further without a control to un-narrow it would
+      // just make "no alternative fits" more likely.
     });
-  }, [swapOpen, swapExcludeAnchor, entry, exercise, db, library]);
+  }, [entry, exercise, db, library]);
 
   if (!session) {
     return (
@@ -230,7 +231,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    *  than inventing a second one. */
   const handlePause = () => {
     setPaused(true);
-    navigation.navigate('Home');
   };
 
   /** §10.10 abandon — discards the session entirely via the existing `discardSession` (never a
@@ -248,10 +248,25 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     navigation.navigate('Home');
   };
 
-  const handleSwapSelect = (alt: SwapAlternative) => {
-    sessionsRepo.recordSwap(db, entry.id, alt.replacement, setIndex, nowUtcInstant());
-    setSwapOpen(false);
-    setSwapExcludeAnchor(false);
+  /**
+   * §10.6 swap, in one tap. The picker sheet this replaced asked the user to choose between
+   * alternatives the engine had *already ranked* — so it was asking them to second-guess a
+   * decision they had no more information about than the engine did, mid-set, with a rest timer
+   * about to start. Taking the top-ranked candidate is the same answer without the interruption.
+   *
+   * `alternativesForSlot` is the same call the sheet was fed by (invariant 2: the engine still
+   * decides), and its results are already sorted best-first — nearest difficulty, then tier, then
+   * the user's own enjoyment. Tapping again simply swaps again, which is the cheap way to reject
+   * a suggestion.
+   */
+  const handleSwap = () => {
+    const best = swapAlternatives[0];
+    if (!best) {
+      setSwapNotice('No alternative fits this slot right now.');
+      return;
+    }
+    sessionsRepo.recordSwap(db, entry.id, best.replacement, setIndex, nowUtcInstant());
+    setSwapNotice(`Swapped to ${best.exercise.name}.`);
     reload();
   };
 
@@ -427,26 +442,41 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         Elapsed {Math.floor(elapsedMs / 60000)}m {Math.floor((elapsedMs % 60000) / 1000)}s
       </Text>
 
+      {/* Large icon controls: these are found mid-set, often at arm's length and out of breath,
+          so they are targets rather than sentences. The accessible names carry the meaning. */}
       <View style={styles.sessionActionsRow}>
-        <Pressable testID="pause-workout" style={styles.sessionActionButton} onPress={handlePause}>
-          <Text style={styles.sessionActionButtonText}>Pause</Text>
+        <Pressable
+          testID="pause-workout"
+          accessibilityRole="button"
+          accessibilityLabel={paused ? 'Resume workout' : 'Pause workout'}
+          style={styles.sessionIconButton}
+          onPress={paused ? () => setPaused(false) : handlePause}
+        >
+          <Text style={styles.sessionIconText}>{paused ? '▶' : '❚❚'}</Text>
         </Pressable>
-        <AbandonSessionButton onConfirm={handleAbandon} />
+        <AbandonSessionButton onConfirm={handleAbandon} variant="icon" />
       </View>
 
+      {swapNotice != null && (
+        <Text testID="swap-notice" style={styles.swapNotice}>
+          {swapNotice}
+        </Text>
+      )}
+
+      {paused && (
+        <Text testID="workout-paused-banner" style={styles.pausedBanner}>
+          Paused — the clock is stopped. Take as long as you need.
+        </Text>
+      )}
+
+      {/* The user's own note about this exercise, above the exercise itself: it is the thing
+          they wrote down *because* they wanted to see it before doing the movement again. */}
+      {!paused && (
+        <PinnedNote note={exState?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
+      )}
+
       {paused ? null : phase === 'exercise' ? (
-        swapOpen ? (
-          <SwapSheet
-            alternatives={swapAlternatives}
-            excludeAnchor={swapExcludeAnchor}
-            onToggleExcludeAnchor={setSwapExcludeAnchor}
-            onSelect={handleSwapSelect}
-            onCancel={() => {
-              setSwapOpen(false);
-              setSwapExcludeAnchor(false);
-            }}
-          />
-        ) : entry.durationSec != null ? (
+        entry.durationSec != null ? (
           <TimedExercise
             key={`${entry.id}-${setIndex}`}
             entry={entry}
@@ -457,7 +487,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               finishSetAndRest('completed', undefined, actualSeconds, pauseInfo)
             }
             onSkip={() => finishSetAndRest('skipped')}
-            onSwap={() => setSwapOpen(true)}
+            onSwap={handleSwap}
           />
         ) : (
           <RepsExercise
@@ -468,7 +498,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             setIndex={setIndex}
             onComplete={(reps) => finishSetAndRest('completed', reps)}
             onSkip={() => finishSetAndRest('skipped')}
-            onSwap={() => setSwapOpen(true)}
+            onSwap={handleSwap}
           />
         )
       ) : (
@@ -492,7 +522,11 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           )}
           {progression?.calibrating && <Text style={styles.calibrating}>Calibrating</Text>}
 
-          <PinnedNote note={exState?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
+          {/* Above the demo, and open by default every time — not only on a first-ever
+              performance. Since ADR 0008 removed the bundled figures this cue IS the offline
+              demo, so it is the one thing that must never need a tap to reach; and a user who
+              has done a movement fifty times still checks their setup. */}
+          <Disclosure title="How to" defaultOpen body={exercise?.setup ?? ''} />
 
           {exercise && (
             <DemoMedia
@@ -512,12 +546,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               onPlayerError={handleDemoPlayerError}
             />
           )}
-
-          <Disclosure
-            title="How to"
-            defaultOpen={isFirstEverPerformance}
-            body={exercise?.setup ?? ''}
-          />
         </>
       )}
     </ScrollView>
@@ -1083,18 +1111,22 @@ const styles = StyleSheet.create({
   container: { padding: 20, gap: 16 },
   stage: { fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' },
   elapsed: { fontSize: 12, color: '#94a3b8' },
+  sessionIconButton: {
+    width: 76,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sessionIconText: { fontSize: 22, fontWeight: '800', color: '#334155', lineHeight: 26 },
+  pausedBanner: { textAlign: 'center', fontSize: 14, color: '#0369a1', paddingVertical: 4 },
+  swapNotice: { textAlign: 'center', fontSize: 13, color: '#1d4ed8', paddingVertical: 2 },
   sessionActionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  sessionActionButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  sessionActionButtonText: { fontSize: 13, fontWeight: '600', color: '#334155' },
   hero: { alignItems: 'center', gap: 12 },
   bandRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 6 },
   exerciseName: { fontSize: 26, fontWeight: '800', color: '#0f172a', textAlign: 'center' },

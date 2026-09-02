@@ -26,7 +26,6 @@ import {
   prescribeWarmupCooldown,
   seedFromString,
 } from '@roamfit/engine';
-import type { SwapAlternative } from '@roamfit/engine';
 import { exerciseStateRepo, generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
 import type { AnchorClass, Exercise, Pattern, ProgressionFamilyId } from '@roamfit/data';
@@ -36,7 +35,6 @@ import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import BandChip from '../components/BandChip';
-import SwapSheet from '../components/SwapSheet';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Approval'>;
 type Section = 'warmup' | 'main' | 'cooldown';
@@ -84,9 +82,8 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   const [addingSection, setAddingSection] = useState<Section | null>(null);
   /** ADR 0012 — one-line result of the last "too easy" tap. Informational only: never blocks,
    *  never nags, and is replaced rather than stacked (invariant 4). */
-  /** §10.3 swap — which entry's picker is open, if any. */
-  const [swapEntryId, setSwapEntryId] = useState<string | null>(null);
-  const [swapExcludeAnchor, setSwapExcludeAnchor] = useState(false);
+  /** One-line result of the last swap. Informational, never blocking. */
+  const [swapNotice, setSwapNotice] = useState<string | null>(null);
   /** §1140 — band colours are user data, so they are read from the user row rather than being a
    *  palette this screen invents. `ensureUser` always returns a complete set. */
   const bandTensions = usersRepo.ensureUser(db, nowUtcInstant()).bandTensions;
@@ -220,53 +217,52 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   };
 
   /**
-   * §10.3 swap, before the session starts. The 3-5 candidates come from `@roamfit/engine`'s
-   * `alternativesForSlot` — the same selection and ranking §10.6's mid-workout swap uses, so the
-   * two surfaces cannot drift. This screen only supplies the current entry plus user state and
-   * renders what comes back; it picks nothing itself (invariant 2).
+   * §10.3 swap, in one tap, before the session starts.
+   *
+   * The picker sheet this replaced asked the user to choose between alternatives the engine had
+   * *already ranked* — second-guessing a decision they had no more information about than it did.
+   * Taking the top-ranked candidate is the same answer without the detour, and tapping again
+   * simply swaps again, which is the cheap way to reject a suggestion.
+   *
+   * The candidates come from `@roamfit/engine`'s `alternativesForSlot` — the same selection and
+   * ranking §10.6's mid-workout swap uses, so the two surfaces cannot drift (invariant 2).
    */
-  const swapEntry = session.entries.find((e) => e.id === swapEntryId) ?? null;
-  const swapAlternatives: SwapAlternative[] = swapEntry
-    ? (() => {
-        const clock = nowEngineClock();
-        const profile = usersRepo.buildUserProfile(db, clock.today);
-        return alternativesForSlot({
-          library: library.exercises,
-          entry: {
-            exerciseId: swapEntry.exerciseId,
-            role: 'main',
-            band: swapEntry.band,
-            sets: swapEntry.sets,
-            repTarget: swapEntry.repTarget ?? undefined,
-            durationSec: swapEntry.durationSec ?? undefined,
-            restSec: swapEntry.restSec,
-            tempoSec: swapEntry.tempoSec,
-            notes: swapEntry.notes ?? undefined,
-            effort: swapEntry.effort,
-            progressionFamilyId: swapEntry.progressionFamilyId as ProgressionFamilyId | null,
-            progressionLevelIdAtTime: swapEntry.progressionLevelIdAtTime,
-            pattern: swapEntry.pattern as Pattern,
-            anchorClass: swapEntry.anchorClass as AnchorClass,
-            unilateral: swapEntry.unilateral,
-            estimatedSec: swapEntry.estimatedSec,
-          },
-          anchorsAvailable: profile.anchorsAvailable,
-          limitations: profile.limitations,
-          today: clock.today,
-          history: sessionsRepo.getHistoryForGeneration(db),
-          exerciseStates: exerciseStateRepo.getAllExerciseStates(db),
-          excludeAnchor: swapExcludeAnchor
-            ? (library.exercises.find((e) => e.id === swapEntry.exerciseId)?.anchor ?? undefined)
-            : undefined,
-        });
-      })()
-    : [];
-
-  const handleSwapSelect = (alt: SwapAlternative) => {
-    if (!swapEntryId) return;
-    sessionsRepo.recordSwapAtApproval(db, swapEntryId, alt.replacement, nowUtcInstant());
-    setSwapEntryId(null);
-    setSwapExcludeAnchor(false);
+  const handleSwap = (entry: sessionsRepo.SessionEntryRecord) => {
+    const clock = nowEngineClock();
+    const profile = usersRepo.buildUserProfile(db, clock.today);
+    const [best] = alternativesForSlot({
+      library: library.exercises,
+      entry: {
+        exerciseId: entry.exerciseId,
+        role: 'main',
+        band: entry.band,
+        sets: entry.sets,
+        repTarget: entry.repTarget ?? undefined,
+        durationSec: entry.durationSec ?? undefined,
+        restSec: entry.restSec,
+        tempoSec: entry.tempoSec,
+        notes: entry.notes ?? undefined,
+        effort: entry.effort,
+        progressionFamilyId: entry.progressionFamilyId as ProgressionFamilyId | null,
+        progressionLevelIdAtTime: entry.progressionLevelIdAtTime,
+        pattern: entry.pattern as Pattern,
+        anchorClass: entry.anchorClass as AnchorClass,
+        unilateral: entry.unilateral,
+        estimatedSec: entry.estimatedSec,
+      },
+      anchorsAvailable: profile.anchorsAvailable,
+      limitations: profile.limitations,
+      today: clock.today,
+      history: sessionsRepo.getHistoryForGeneration(db),
+      exerciseStates: exerciseStateRepo.getAllExerciseStates(db),
+      maxResults: 1,
+    });
+    if (!best) {
+      setSwapNotice('No alternative fits that slot right now.');
+      return;
+    }
+    sessionsRepo.recordSwapAtApproval(db, entry.id, best.replacement, nowUtcInstant());
+    setSwapNotice(`Swapped to ${best.exercise.name}.`);
     reload();
   };
 
@@ -360,19 +356,11 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     <ScrollView contentContainerStyle={styles.container} scrollEnabled={drag === null}>
       <Text style={styles.explanation}>{session.explanation}</Text>
       <Text style={styles.estimate}>~{estimateMinutes(session)} min estimated</Text>
-
-      {swapEntry != null ? (
-        <SwapSheet
-          alternatives={swapAlternatives}
-          excludeAnchor={swapExcludeAnchor}
-          onToggleExcludeAnchor={setSwapExcludeAnchor}
-          onSelect={handleSwapSelect}
-          onCancel={() => {
-            setSwapEntryId(null);
-            setSwapExcludeAnchor(false);
-          }}
-        />
-      ) : null}
+      {swapNotice != null && (
+        <Text testID="swap-notice" style={styles.swapNotice}>
+          {swapNotice}
+        </Text>
+      )}
 
       {(['warmup', 'main', 'cooldown'] as const).map((section) => (
         <View key={section} style={styles.sectionBlock}>
@@ -394,7 +382,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
               onAdjustRepTarget={(d) => handleAdjustRepTarget(entry, d)}
               onAdjustDuration={(d) => handleAdjustDuration(entry, d)}
               onAdjustRest={(d) => handleAdjustRest(entry, d)}
-              onSwap={() => setSwapEntryId(entry.id)}
+              onSwap={() => handleSwap(entry)}
               onRemove={() => handleRemove(entry)}
             />
           ))}
@@ -692,6 +680,7 @@ const styles = StyleSheet.create({
   dragHandleText: { fontSize: 20, color: '#94a3b8' },
   cardTitleBlock: { flex: 1, paddingTop: 2 },
   entryName: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
+  swapNotice: { fontSize: 13, color: '#1d4ed8' },
   entryDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   entryDetail: { fontSize: 12, color: '#64748b' },
   stepperRow: { flexDirection: 'row', gap: 16 },

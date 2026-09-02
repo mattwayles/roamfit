@@ -19,6 +19,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 export default function AbandonSessionButton({
   onConfirm,
   label = 'Abandon workout',
+  variant = 'text',
 }: {
   /** Called only after the user has confirmed. Expected to call `discardSession` and navigate
    *  away — this component never touches the store directly (ADR 0003 / issue #13: no
@@ -26,6 +27,10 @@ export default function AbandonSessionButton({
    *  stays the caller's decision since only the caller knows the session/entry context). */
   onConfirm: () => void;
   label?: string;
+  /** `'icon'` renders a large stop button instead of a text link — for the active workout screen,
+   *  where controls are found at arm's length and out of breath, so they need to be targets
+   *  rather than sentences. The confirm step is identical either way. */
+  variant?: 'text' | 'icon';
 }): React.JSX.Element {
   const [confirming, setConfirming] = useState(false);
 
@@ -51,6 +56,20 @@ export default function AbandonSessionButton({
     );
   }
 
+  if (variant === 'icon') {
+    return (
+      <Pressable
+        testID="abandon-button"
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        style={styles.abandonIconButton}
+        onPress={() => setConfirming(true)}
+      >
+        <Text style={styles.abandonIconText}>■</Text>
+      </Pressable>
+    );
+  }
+
   return (
     <Pressable
       testID="abandon-button"
@@ -70,6 +89,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   abandonButtonText: { fontSize: 13, fontWeight: '600', color: '#94a3b8' },
+  abandonIconButton: {
+    width: 76,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: '#fee2e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  abandonIconText: { fontSize: 22, fontWeight: '800', color: '#b91c1c', lineHeight: 26 },
   confirmBox: {
     backgroundColor: '#f8fafc',
     borderRadius: 12,
