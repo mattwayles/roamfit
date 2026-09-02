@@ -21,7 +21,7 @@ function ex(overrides: Partial<Exercise>): Exercise {
     metric: overrides.metric ?? 'reps',
     default_seconds: overrides.metric === 'time' ? (overrides.default_seconds ?? 30) : null,
     tier: overrides.tier ?? 'core',
-    role: overrides.role ?? 'main',
+    roles: overrides.roles ?? ['main'],
     difficulty: overrides.difficulty ?? 'medium',
     progression_family: overrides.progression_family ?? null,
     progression_level_id: overrides.progression_level_id ?? null,

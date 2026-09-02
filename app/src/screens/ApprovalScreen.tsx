@@ -28,7 +28,7 @@ import {
 } from '@roamfit/engine';
 import { exerciseStateRepo, generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
-import type { AnchorClass, Exercise, Pattern, ProgressionFamilyId } from '@roamfit/data';
+import type { AnchorClass, Exercise, Pattern, ProgressionFamilyId, Role } from '@roamfit/data';
 import type { BandId } from '@roamfit/engine';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
@@ -67,7 +67,7 @@ export function estimateMinutes(session: SessionRecord): number {
   return Math.round(totalSec / 60);
 }
 
-const SECTION_ROLE: Record<Section, Exercise['role']> = {
+const SECTION_ROLE: Record<Section, Role> = {
   warmup: 'warmup',
   main: 'main',
   cooldown: 'cooldown',
@@ -328,7 +328,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
       today: clock.today,
     });
     return hardFiltered.filter(
-      (e) => e.role === SECTION_ROLE[section] && !alreadyInSession.has(e.id),
+      (e) => e.roles.includes(SECTION_ROLE[section]) && !alreadyInSession.has(e.id),
     );
   };
 

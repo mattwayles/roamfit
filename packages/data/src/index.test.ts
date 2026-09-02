@@ -42,7 +42,7 @@ describe('warm-up variety for a shoulder_overhead limitation (issue #33, track 6
 
   function genuinelyShoulderSpecificUpperSurvivors(): string[] {
     return exerciseLibrary.exercises
-      .filter((e) => e.role === 'warmup')
+      .filter((e) => e.roles.includes('warmup'))
       .filter((e) => e.focus.includes('upper'))
       .filter((e) => survivesShoulderOverhead(e.id))
       .filter((e) => e.primary.some((m) => SHOULDER_MUSCLES.includes(m)))

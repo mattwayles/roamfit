@@ -66,7 +66,7 @@ export function buildCandidates(
   role: Role,
   ctx: CandidateContext,
 ): Candidate[] {
-  return pool.filter((e) => e.role === role).map((e) => buildCandidate(e, role, ctx));
+  return pool.filter((e) => e.roles.includes(role)).map((e) => buildCandidate(e, role, ctx));
 }
 
 /** §5.2 REPEATEDLY-SKIPPED — an exercise skipped or swapped away twice+ is suppressed for 30

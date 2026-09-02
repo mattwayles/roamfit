@@ -10,7 +10,7 @@ const library = exerciseLibrary.exercises;
 const bandedPush = library.find((e) => e.id === 'banded-push-up')!; // band, "B1-B2"
 const bwPush = library.find((e) => e.id === 'bw-push-up')!; // bodyweight
 const bwBearing = library.find((e) => e.anchor_class === 'bodyweight_bearing')!;
-const warmupEx = library.find((e) => e.role === 'warmup')!;
+const warmupEx = library.find((e) => e.roles.includes('warmup'))!;
 
 describe('§5.4 prescription', () => {
   it('a laddered exercise is prescribed directly from ProgressionState.micro, not the effort table', () => {
@@ -117,7 +117,7 @@ describe('§5.4 prescription', () => {
     });
 
     it('recomputes a timed entry using the timed formula', () => {
-      const timedEx = library.find((e) => e.metric === 'time' && e.role === 'main')!;
+      const timedEx = library.find((e) => e.metric === 'time' && e.roles.includes('main'))!;
       const entry = prescribeAccessory({
         exercise: timedEx,
         requestedEffort: 'normal',

@@ -185,7 +185,7 @@ export function filterExercises(
         matchesAny(state.laterality, [exercise.unilateral ? 'unilateral' : 'bilateral']) &&
         matchesAny(state.difficulty, [exercise.difficulty]) &&
         matchesAny(state.tier, [exercise.tier]) &&
-        matchesAny(state.role, [exercise.role]) &&
+        matchesAny(state.role, exercise.roles) &&
         matchesAny(state.family, [familyOf(exercise)]) &&
         // A contraindication chip asks "which exercises carry this flag?", which is how you find
         // everything a given limitation would rule out. It never *applies* the safety filter —
@@ -220,7 +220,7 @@ export function buildFilterOptions(exercises: Exercise[]): FilterOptions {
     ),
     difficulty: inOrder(['easy', 'medium', 'hard'], new Set(exercises.map((e) => e.difficulty))),
     tier: inOrder(['core', 'fill', 'stretch'], new Set(exercises.map((e) => e.tier))),
-    role: inOrder(['warmup', 'main', 'cooldown'], new Set(exercises.map((e) => e.role))),
+    role: inOrder(['warmup', 'main', 'cooldown'], new Set(exercises.flatMap((e) => e.roles))),
     family: collect((e) => [familyOf(e)]),
     contraindication: collect((e) => e.contraindications),
   };

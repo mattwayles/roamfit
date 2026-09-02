@@ -57,6 +57,9 @@ export type Metric = 'reps' | 'time' | 'amrap';
 
 export type Tier = 'core' | 'fill' | 'stretch';
 
+/** A section of a session. On a library record this is a *set* (`Exercise.roles`) — the same
+ *  movement can be a warm-up and main work, prescribed differently in each. On a `SessionEntry` it
+ *  stays singular: an entry ran in exactly one section. */
 export type Role = 'warmup' | 'main' | 'cooldown';
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
@@ -107,7 +110,16 @@ export interface Exercise {
   /** Required when metric === 'time', null otherwise. */
   default_seconds: number | null;
   tier: Tier;
-  role: Role;
+  /**
+   * Every section this exercise may be programmed into, in no particular order. Non-empty.
+   *
+   * This is a property of the movement, not of its name: a band row is a band row whether it is
+   * being used to warm the back up or to train it, and the *prescription* is what differs
+   * (`prescribeWarmupCooldown` vs the effort table / micro-progression). Exercises that are drills
+   * rather than training — cat-cow, arm circles, scapular push-ups — carry only `'warmup'`, because
+   * nothing about them is a working set.
+   */
+  roles: Role[];
 
   difficulty: Difficulty;
   /** Family id, or null for accessory patterns (warmups, stretches, finishers). */

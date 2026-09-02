@@ -26,8 +26,8 @@ export interface SelectWarmupCooldownInput {
 export function selectWarmupCooldown(input: SelectWarmupCooldownInput): Exercise | null {
   const { role, pool, focus, userState, today, rng, excludeIds } = input;
   const ctx = { history: userState.history, exerciseStates: userState.exerciseStates, today };
-  const focusPool = pool.filter((e) => e.role === role && e.focus.includes(focus));
-  const basePoolAll = focusPool.length > 0 ? focusPool : pool.filter((e) => e.role === role);
+  const focusPool = pool.filter((e) => e.roles.includes(role) && e.focus.includes(focus));
+  const basePoolAll = focusPool.length > 0 ? focusPool : pool.filter((e) => e.roles.includes(role));
   const basePool = excludeIds ? basePoolAll.filter((e) => !excludeIds.has(e.id)) : basePoolAll;
   if (basePool.length === 0) return null;
 

@@ -63,7 +63,7 @@ describe('§5.5 focus templates', () => {
       history: noHistory,
     });
     const leadExercise = lib.find(
-      (e) => e.role === 'main' && e.pattern === first.leadPattern && e.focus.includes('abs'),
+      (e) => e.roles.includes('main') && e.pattern === first.leadPattern && e.focus.includes('abs'),
     )!;
     const historyAfter: SessionHistoryRecord[] = [
       {

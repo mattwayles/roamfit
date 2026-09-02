@@ -169,7 +169,7 @@ export function alternativesForSlot(req: SwapSlotRequest): SwapAlternative[] {
   const pool = hardFiltered.filter(
     (e) =>
       e.pattern === pattern &&
-      e.role === 'main' &&
+      e.roles.includes('main') &&
       e.id !== req.entry.exerciseId &&
       (!excludeAnchor || e.anchor !== excludeAnchor),
   );

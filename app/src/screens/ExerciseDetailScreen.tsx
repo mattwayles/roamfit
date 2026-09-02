@@ -248,7 +248,7 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
         )}
         <Detail label="Difficulty" value={formatToken(exercise.difficulty)} />
         <Detail label="Tier" value={formatToken(exercise.tier)} />
-        <Detail label="Role" value={formatToken(exercise.role)} />
+        <Detail label="Sections" value={exercise.roles.map(formatToken).join(', ')} />
         <Detail label="Progression" value={progressionLabel(exercise, families)} />
         <Detail
           label="Contraindications"

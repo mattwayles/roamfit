@@ -23,7 +23,7 @@ function ex(overrides: Partial<Exercise>): Exercise {
     metric: 'reps',
     default_seconds: null,
     tier: overrides.tier ?? 'core',
-    role: 'main',
+    roles: ['main'],
     difficulty: 'medium',
     progression_family: null,
     progression_level_id: null,

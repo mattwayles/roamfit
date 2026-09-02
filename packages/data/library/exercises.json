@@ -28,7 +28,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l5",
@@ -64,7 +66,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l6",
@@ -100,7 +104,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l1",
@@ -137,7 +143,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l4",
@@ -171,7 +179,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l3",
@@ -205,7 +215,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l5",
@@ -239,7 +251,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l5",
@@ -273,7 +287,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l2",
@@ -311,7 +327,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_push",
       "progression_level_id": "vertical_push.l1",
@@ -347,7 +365,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_push",
       "progression_level_id": "vertical_push.l3",
@@ -384,7 +404,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_push",
       "progression_level_id": "vertical_push.l2",
@@ -420,7 +442,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "vertical_push",
       "progression_level_id": "vertical_push.l6",
@@ -455,7 +479,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -487,7 +513,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -522,7 +550,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l5",
@@ -558,7 +588,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "horizontal_pull",
       "progression_level_id": "horizontal_pull.l1",
@@ -591,7 +623,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "horizontal_pull",
       "progression_level_id": "horizontal_pull.l1",
@@ -626,7 +660,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "horizontal_pull",
       "progression_level_id": "horizontal_pull.l3",
@@ -658,7 +694,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "horizontal_pull",
       "progression_level_id": "horizontal_pull.l3",
@@ -693,7 +731,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "horizontal_pull",
       "progression_level_id": "horizontal_pull.l4",
@@ -730,7 +770,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "horizontal_pull",
       "progression_level_id": "horizontal_pull.l7",
@@ -766,7 +808,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "horizontal_pull",
       "progression_level_id": "horizontal_pull.l2",
@@ -799,7 +843,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l4",
@@ -834,7 +880,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l2",
@@ -869,7 +917,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l6",
@@ -902,7 +952,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "horizontal_pull",
       "progression_level_id": "horizontal_pull.l6",
@@ -934,7 +986,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -964,7 +1018,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -999,7 +1055,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -1033,7 +1091,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -1067,7 +1127,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -1101,7 +1163,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -1135,7 +1199,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -1165,7 +1231,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -1197,7 +1265,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -1228,7 +1298,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -1260,7 +1332,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -1297,7 +1371,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "squat",
       "progression_level_id": "squat.l4",
@@ -1333,7 +1409,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "squat",
       "progression_level_id": "squat.l5",
@@ -1369,7 +1447,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "squat",
       "progression_level_id": "squat.l3",
@@ -1403,7 +1483,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "lunge",
       "progression_level_id": "lunge.l2",
@@ -1436,7 +1518,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "lunge",
       "progression_level_id": "lunge.l6",
@@ -1473,7 +1557,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "lunge",
       "progression_level_id": "lunge.l2",
@@ -1508,7 +1594,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "lunge",
       "progression_level_id": "lunge.l4",
@@ -1544,7 +1632,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "lunge",
       "progression_level_id": "lunge.l5",
@@ -1582,7 +1672,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l3",
@@ -1619,7 +1711,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l6",
@@ -1659,7 +1753,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l4",
@@ -1696,7 +1792,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l5",
@@ -1733,7 +1831,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l3",
@@ -1771,7 +1871,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l4",
@@ -1806,7 +1908,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l2",
@@ -1841,7 +1945,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l6",
@@ -1875,7 +1981,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l3",
@@ -1909,7 +2017,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l2",
@@ -1942,7 +2052,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -1976,7 +2088,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l1",
@@ -2010,7 +2124,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -2043,7 +2159,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -2073,7 +2191,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -2105,7 +2225,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -2137,7 +2259,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -2169,7 +2293,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -2204,7 +2330,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -2241,7 +2369,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "squat",
       "progression_level_id": "squat.l6",
@@ -2275,7 +2405,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -2307,7 +2439,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -2340,7 +2474,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -2372,7 +2508,9 @@
       "metric": "time",
       "default_seconds": 20,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -2404,7 +2542,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -2440,7 +2580,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -2476,7 +2618,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -2510,7 +2654,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -2544,7 +2690,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l1",
@@ -2578,7 +2726,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -2612,7 +2762,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -2647,7 +2799,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l2",
@@ -2682,7 +2836,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -2717,7 +2873,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l4",
@@ -2754,7 +2912,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -2792,7 +2952,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -2829,7 +2991,9 @@
       "metric": "time",
       "default_seconds": 20,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l6",
@@ -2865,7 +3029,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l2",
@@ -2898,7 +3064,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -2933,7 +3101,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -2967,7 +3137,9 @@
       "metric": "time",
       "default_seconds": 20,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l7",
@@ -3005,7 +3177,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -3043,7 +3217,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -3081,7 +3257,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -3120,7 +3298,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -3158,7 +3338,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -3196,7 +3378,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -3233,7 +3417,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -3272,7 +3458,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -3310,7 +3498,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -3347,7 +3537,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "warmup",
+      "roles": [
+        "warmup"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3382,7 +3574,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "warmup",
+      "roles": [
+        "warmup"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3415,7 +3609,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "warmup",
+      "roles": [
+        "warmup"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3450,7 +3646,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "warmup",
+      "roles": [
+        "warmup"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3484,7 +3682,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "warmup",
+      "roles": [
+        "warmup"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3521,7 +3721,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "warmup",
+      "roles": [
+        "warmup"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3558,7 +3760,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "warmup",
+      "roles": [
+        "warmup"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3593,7 +3797,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "warmup",
+      "roles": [
+        "warmup"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3626,7 +3832,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "warmup",
+      "roles": [
+        "warmup"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3660,7 +3868,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "stretch",
-      "role": "cooldown",
+      "roles": [
+        "cooldown"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3696,7 +3906,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "stretch",
-      "role": "cooldown",
+      "roles": [
+        "cooldown"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3731,7 +3943,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "stretch",
-      "role": "cooldown",
+      "roles": [
+        "cooldown"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3767,7 +3981,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "stretch",
-      "role": "cooldown",
+      "roles": [
+        "cooldown"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3803,7 +4019,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "stretch",
-      "role": "cooldown",
+      "roles": [
+        "cooldown"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3839,7 +4057,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "stretch",
-      "role": "cooldown",
+      "roles": [
+        "cooldown"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3877,7 +4097,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "stretch",
-      "role": "cooldown",
+      "roles": [
+        "cooldown"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3912,7 +4134,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "stretch",
-      "role": "cooldown",
+      "roles": [
+        "cooldown"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3949,7 +4173,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "stretch",
-      "role": "cooldown",
+      "roles": [
+        "cooldown"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -3980,7 +4206,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "stretch",
-      "role": "cooldown",
+      "roles": [
+        "cooldown"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -4016,7 +4244,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -4049,7 +4279,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -4083,7 +4315,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -4117,7 +4351,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -4153,7 +4389,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l2",
@@ -4187,7 +4425,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -4221,7 +4461,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -4256,7 +4498,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l3",
@@ -4291,7 +4535,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -4328,7 +4574,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -4365,7 +4613,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -4400,7 +4650,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "stretch",
-      "role": "cooldown",
+      "roles": [
+        "cooldown"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -4435,7 +4687,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "stretch",
-      "role": "cooldown",
+      "roles": [
+        "cooldown"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -4465,7 +4719,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -4499,7 +4755,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -4532,7 +4790,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l3",
@@ -4565,7 +4825,9 @@
       "metric": "time",
       "default_seconds": 20,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l5",
@@ -4598,7 +4860,9 @@
       "metric": "time",
       "default_seconds": 20,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l5",
@@ -4632,7 +4896,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -4664,7 +4930,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -4698,7 +4966,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -4731,7 +5001,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l1",
@@ -4763,7 +5035,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -4795,7 +5069,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -4825,7 +5101,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l1",
@@ -4858,7 +5136,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l2",
@@ -4892,7 +5172,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -4929,7 +5211,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -4964,7 +5248,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -4997,7 +5283,9 @@
       "metric": "time",
       "default_seconds": 20,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l7",
@@ -5030,7 +5318,9 @@
       "metric": "time",
       "default_seconds": 20,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l5",
@@ -5063,7 +5353,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -5097,7 +5389,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l1",
@@ -5132,7 +5426,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l1",
@@ -5167,7 +5463,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l2",
@@ -5203,7 +5501,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l3",
@@ -5242,7 +5542,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l4",
@@ -5277,7 +5579,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l4",
@@ -5312,7 +5616,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l6",
@@ -5349,7 +5655,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l7",
@@ -5385,7 +5693,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l8",
@@ -5421,7 +5731,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "vertical_push",
       "progression_level_id": "vertical_push.l5",
@@ -5456,7 +5768,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -5492,7 +5806,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -5527,7 +5843,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_push",
       "progression_level_id": "vertical_push.l4",
@@ -5564,7 +5882,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "horizontal_pull",
       "progression_level_id": "horizontal_pull.l5",
@@ -5601,7 +5921,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l8",
@@ -5636,7 +5958,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l7",
@@ -5670,7 +5994,9 @@
       "metric": "time",
       "default_seconds": 20,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l1",
@@ -5706,7 +6032,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "squat",
       "progression_level_id": "squat.l1",
@@ -5738,7 +6066,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "squat",
       "progression_level_id": "squat.l2",
@@ -5772,7 +6102,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "squat",
       "progression_level_id": "squat.l6",
@@ -5808,7 +6140,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "squat",
       "progression_level_id": "squat.l6",
@@ -5843,7 +6177,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "lunge",
       "progression_level_id": "lunge.l1",
@@ -5877,7 +6213,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "lunge",
       "progression_level_id": "lunge.l3",
@@ -5910,7 +6248,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "lunge",
       "progression_level_id": "lunge.l4",
@@ -5944,7 +6284,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "lunge",
       "progression_level_id": "lunge.l3",
@@ -5978,7 +6320,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "lunge",
       "progression_level_id": "lunge.l6",
@@ -6013,7 +6357,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "lunge",
       "progression_level_id": "lunge.l5",
@@ -6047,7 +6393,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "squat",
       "progression_level_id": "squat.l7",
@@ -6082,7 +6430,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "lunge",
       "progression_level_id": "lunge.l7",
@@ -6116,7 +6466,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l2",
@@ -6151,7 +6503,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l5",
@@ -6186,7 +6540,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l1",
@@ -6221,7 +6577,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l5",
@@ -6256,7 +6614,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "hinge",
       "progression_level_id": "hinge.l7",
@@ -6289,7 +6649,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -6319,7 +6681,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -6351,7 +6715,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -6383,7 +6749,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -6415,7 +6783,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -6448,7 +6818,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -6483,7 +6855,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -6519,7 +6893,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -6553,7 +6929,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -6589,7 +6967,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -6624,7 +7004,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -6661,7 +7043,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -6696,7 +7080,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -6730,7 +7116,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -6766,7 +7154,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": null,
       "progression_level_id": null,
@@ -6805,7 +7195,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": null,
       "progression_level_id": null,
@@ -6843,7 +7235,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l9",
@@ -6882,7 +7276,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "horizontal_pull",
       "progression_level_id": "horizontal_pull.l8",
@@ -6920,7 +7316,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "vertical_push",
       "progression_level_id": "vertical_push.l7",
@@ -6958,7 +7356,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l9",
@@ -6997,7 +7397,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "warmup",
+      "roles": [
+        "warmup"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -7034,7 +7436,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "warmup",
+      "roles": [
+        "warmup"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -7068,7 +7472,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "warmup",
+      "roles": [
+        "warmup"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -7106,7 +7512,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
-      "role": "warmup",
+      "roles": [
+        "warmup"
+      ],
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
@@ -7137,7 +7545,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_push",
       "progression_level_id": "vertical_push.l1",
@@ -7171,7 +7581,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_push",
       "progression_level_id": "vertical_push.l2",
@@ -7204,7 +7616,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_push",
       "progression_level_id": "vertical_push.l3",
@@ -7238,7 +7652,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_push",
       "progression_level_id": "vertical_push.l4",
@@ -7271,7 +7687,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "hard",
       "progression_family": "vertical_push",
       "progression_level_id": "vertical_push.l5",
@@ -7305,7 +7723,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l1",
@@ -7338,7 +7758,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l2",
@@ -7371,7 +7793,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l3",
@@ -7404,7 +7828,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "medium",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l4",
@@ -7437,7 +7863,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "squat",
       "progression_level_id": "squat.l2",
@@ -7470,7 +7898,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "squat",
       "progression_level_id": "squat.l3",
@@ -7503,7 +7933,9 @@
       "metric": "reps",
       "default_seconds": null,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "squat",
       "progression_level_id": "squat.l3",
@@ -7536,7 +7968,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l3",
@@ -7570,7 +8004,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l3",
@@ -7604,7 +8040,9 @@
       "metric": "time",
       "default_seconds": 30,
       "tier": "core",
-      "role": "main",
+      "roles": [
+        "main"
+      ],
       "difficulty": "easy",
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l1",

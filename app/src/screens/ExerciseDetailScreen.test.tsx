@@ -154,7 +154,7 @@ describe('the exercise detail page', () => {
       'Metric',
       'Difficulty',
       'Tier',
-      'Role',
+      'Sections',
       'Progression',
       'Contraindications',
       'Library id',

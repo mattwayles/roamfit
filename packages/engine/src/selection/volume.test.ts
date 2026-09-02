@@ -25,7 +25,7 @@ function ex(id: string, primary: string[], secondary: string[] = []): Exercise {
     metric: 'reps',
     default_seconds: null,
     tier: 'core',
-    role: 'main',
+    roles: ['main'],
     difficulty: 'medium',
     progression_family: null,
     progression_level_id: null,

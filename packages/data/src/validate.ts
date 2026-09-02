@@ -139,7 +139,12 @@ function main() {
     oneOf(ex.anchor_class, ANCHOR_CLASS_VALUES, 'anchor_class', id);
     oneOf(ex.metric, METRIC_VALUES, 'metric', id);
     oneOf(ex.tier, TIER_VALUES, 'tier', id);
-    oneOf(ex.role, ROLE_VALUES, 'role', id);
+    if (!Array.isArray(ex.roles) || ex.roles.length === 0) {
+      fail(`${id}: roles must be a non-empty array (allowed: ${ROLE_VALUES.join(', ')})`);
+    } else {
+      for (const r of ex.roles) oneOf(r, ROLE_VALUES, 'roles[]', id);
+      if (new Set(ex.roles).size !== ex.roles.length) fail(`${id}: duplicate value in roles[]`);
+    }
     oneOf(ex.difficulty, DIFFICULTY_VALUES, 'difficulty', id);
     for (const c of ex.contraindications) oneOf(c, CONTRA_VALUES, 'contraindications[]', id);
 
@@ -246,9 +251,11 @@ function main() {
             `family ${fam.id} level ${lvl.level_id}: exercise ${ex.id} has pattern "${ex.pattern}" but family pattern is "${fam.pattern}"`,
           );
         }
-        if (ex.role !== 'main') {
+        // A rung may also be warm-up eligible (a light band row warms the back up and trains it);
+        // what it may not be is *ineligible for main*, since the ladder programs main work.
+        if (!ex.roles.includes('main')) {
           fail(
-            `family ${fam.id} level ${lvl.level_id}: exercise ${ex.id} has role "${ex.role}", ladder members must be "main"`,
+            `family ${fam.id} level ${lvl.level_id}: exercise ${ex.id} has roles [${ex.roles.join(', ')}], ladder members must include "main"`,
           );
         }
         if (ex.tier === 'fill') {
@@ -328,15 +335,17 @@ function main() {
     const patterns = TEMPLATE_PATTERNS[focus];
     for (const pattern of patterns) {
       const eligible = exercises.filter(
-        (e) => e.role === 'main' && e.pattern === pattern && e.focus.includes(focus),
+        (e) => e.roles.includes('main') && e.pattern === pattern && e.focus.includes(focus),
       );
       if (eligible.length === 0) {
         fail(`focus "${focus}" pattern "${pattern}": zero eligible main exercises`);
       }
     }
-    const warmups = exercises.filter((e) => e.role === 'warmup' && e.focus.includes(focus));
+    const warmups = exercises.filter((e) => e.roles.includes('warmup') && e.focus.includes(focus));
     if (warmups.length === 0) fail(`focus "${focus}": zero eligible warmup exercises`);
-    const cooldowns = exercises.filter((e) => e.role === 'cooldown' && e.focus.includes(focus));
+    const cooldowns = exercises.filter(
+      (e) => e.roles.includes('cooldown') && e.focus.includes(focus),
+    );
     if (cooldowns.length === 0) fail(`focus "${focus}": zero eligible cooldown exercises`);
   }
 
@@ -365,8 +374,8 @@ function main() {
     countBy((e) => e.focus),
   );
   console.log(
-    'By role:',
-    countBy((e) => e.role),
+    'By role (an exercise eligible for two sections counts in both):',
+    countBy((e) => e.roles),
   );
   console.log(
     'By anchor_class:',
