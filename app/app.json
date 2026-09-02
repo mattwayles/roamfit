@@ -8,7 +8,8 @@
     "userInterfaceStyle": "automatic",
     "platforms": ["ios"],
     "ios": {
-      "bundleIdentifier": "com.roamfit.app",
+      "bundleIdentifier": "com.mattwayles.roamfit",
+      "appleTeamId": "XRUA6GUDR8",
       "supportsTablet": false,
       "infoPlist": {
         "UIBackgroundModes": ["audio"],
