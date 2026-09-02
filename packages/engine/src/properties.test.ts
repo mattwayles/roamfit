@@ -25,7 +25,7 @@ function coldStart(overrides: Partial<UserState> = {}): UserState {
   const progressionStates = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of families) {
     const level = calibrationStartLevel(family);
-    const exercise = library.find((e) => e.id === level.exercise_id)!;
+    const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     progressionStates[family.id] = {
       familyId: family.id,
       levelId: level.level_id,
@@ -58,7 +58,7 @@ function establishedUser(): UserState {
   for (const family of families) {
     const idx = Math.min(3, family.levels.length - 1);
     const level = family.levels[idx];
-    const exercise = library.find((e) => e.id === level.exercise_id)!;
+    const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     state.progressionStates[family.id] = {
       familyId: family.id,
       levelId: level.level_id,

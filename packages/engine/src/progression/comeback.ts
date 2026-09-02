@@ -83,7 +83,7 @@ export function applyComebackToProgressionStates(
     }
     // tier === 'week': one micro regress step per family.
     const level = family.levels.find((l) => l.level_id === state.levelId);
-    const exercise = level && library.find((e) => e.id === level.exercise_id);
+    const exercise = level && library.find((e) => e.id === level.anchor_exercise_id);
     if (!exercise) {
       out[familyId] = state;
       continue;

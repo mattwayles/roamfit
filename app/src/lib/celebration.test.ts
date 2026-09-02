@@ -5,7 +5,7 @@ import { buildCelebrationViewModel } from './celebration';
 
 const horizontalPush = familyLibrary.families.find((f) => f.id === 'horizontal_push')!;
 const maxLevel = horizontalPush.levels[horizontalPush.levels.length - 1];
-const maxExercise = exerciseLibrary.exercises.find((e) => e.id === maxLevel.exercise_id)!;
+const maxExercise = exerciseLibrary.exercises.find((e) => e.id === maxLevel.anchor_exercise_id)!;
 
 function milestone(
   type: milestonesRepo.MilestoneType,

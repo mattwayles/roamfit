@@ -9,7 +9,7 @@ const library = exerciseLibrary.exercises;
 const family = findFamily(familyLibrary.families, 'horizontal_push')!;
 
 function stateAt(levelId: string, overrides: Partial<ProgressionState> = {}): ProgressionState {
-  const exId = family.levels.find((l) => l.level_id === levelId)!.exercise_id;
+  const exId = family.levels.find((l) => l.level_id === levelId)!.anchor_exercise_id;
   const exercise = library.find((e) => e.id === exId)!;
   return {
     familyId: 'horizontal_push',

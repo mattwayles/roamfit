@@ -24,7 +24,7 @@ function freshUserState(): UserState {
   const progressionStates = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of families) {
     const level = calibrationStartLevel(family);
-    const exercise = library.find((e) => e.id === level.exercise_id)!;
+    const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     progressionStates[family.id] = {
       familyId: family.id,
       levelId: level.level_id,

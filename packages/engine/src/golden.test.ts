@@ -22,7 +22,7 @@ function coldStartUserState(overrides: Partial<UserState> = {}): UserState {
   const progressionStates = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of families) {
     const level = calibrationStartLevel(family);
-    const exercise = library.find((e) => e.id === level.exercise_id)!;
+    const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     progressionStates[family.id] = {
       familyId: family.id,
       levelId: level.level_id,
@@ -79,7 +79,7 @@ describe('golden: generateSession output is pinned', () => {
     // shape to the cold-start ones above.
     const squatFamily = findFamily(families, 'squat')!;
     const squatLevel = squatFamily.levels[3];
-    const squatExercise = library.find((e) => e.id === squatLevel.exercise_id)!;
+    const squatExercise = library.find((e) => e.id === squatLevel.anchor_exercise_id)!;
     userState.progressionStates.squat = {
       familyId: 'squat',
       levelId: squatLevel.level_id,

@@ -39,7 +39,7 @@ function currentExercise(
   library: readonly Exercise[],
 ): Exercise | undefined {
   const level = family.levels.find((l) => l.level_id === levelId);
-  return level && library.find((e) => e.id === level.exercise_id);
+  return level && library.find((e) => e.id === level.anchor_exercise_id);
 }
 
 export function applySessionResult(
@@ -97,7 +97,7 @@ export function applySessionResult(
     }
     const next = nextLevel(family, state.levelId);
     if (!next) return { state, event: { kind: 'hold' } };
-    const nextExercise = library.find((e) => e.id === next.exercise_id);
+    const nextExercise = library.find((e) => e.id === next.anchor_exercise_id);
     return {
       state: {
         ...state,
@@ -123,7 +123,7 @@ export function applySessionResult(
             event: { kind: 'hold' },
           };
         }
-        const prevExercise = library.find((e) => e.id === prev.exercise_id);
+        const prevExercise = library.find((e) => e.id === prev.anchor_exercise_id);
         return {
           state: {
             ...state,

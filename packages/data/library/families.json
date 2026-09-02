@@ -7,39 +7,66 @@
       "levels": [
         {
           "level_id": "horizontal_push.l1",
-          "exercise_id": "bw-wall-push-up"
+          "anchor_exercise_id": "bw-wall-push-up",
+          "exercise_ids": [
+            "bw-wall-push-up"
+          ]
         },
         {
           "level_id": "horizontal_push.l2",
-          "exercise_id": "bw-incline-push-up"
+          "anchor_exercise_id": "bw-incline-push-up",
+          "exercise_ids": [
+            "bw-incline-push-up"
+          ]
         },
         {
           "level_id": "horizontal_push.l3",
-          "exercise_id": "bw-knee-push-up"
+          "anchor_exercise_id": "bw-knee-push-up",
+          "exercise_ids": [
+            "bw-knee-push-up"
+          ]
         },
         {
           "level_id": "horizontal_push.l4",
-          "exercise_id": "bw-push-up"
+          "anchor_exercise_id": "bw-push-up",
+          "exercise_ids": [
+            "bw-push-up"
+          ]
         },
         {
           "level_id": "horizontal_push.l5",
-          "exercise_id": "banded-push-up"
+          "anchor_exercise_id": "banded-push-up",
+          "exercise_ids": [
+            "banded-push-up"
+          ]
         },
         {
           "level_id": "horizontal_push.l6",
-          "exercise_id": "bw-diamond-push-up"
+          "anchor_exercise_id": "bw-diamond-push-up",
+          "exercise_ids": [
+            "bw-diamond-push-up"
+          ]
         },
         {
           "level_id": "horizontal_push.l7",
-          "exercise_id": "bw-decline-push-up"
+          "anchor_exercise_id": "bw-decline-push-up",
+          "exercise_ids": [
+            "bw-decline-push-up"
+          ]
         },
         {
           "level_id": "horizontal_push.l8",
-          "exercise_id": "bw-archer-push-up"
+          "anchor_exercise_id": "bw-archer-push-up",
+          "exercise_ids": [
+            "bw-archer-push-up"
+          ]
         },
         {
           "level_id": "horizontal_push.l9",
-          "exercise_id": "bw-one-arm-push-up"
+          "anchor_exercise_id": "bw-one-arm-push-up",
+          "exercise_ids": [
+            "bw-one-arm-push-up"
+          ]
         }
       ]
     },
@@ -50,35 +77,59 @@
       "levels": [
         {
           "level_id": "horizontal_pull.l1",
-          "exercise_id": "pull-apart"
+          "anchor_exercise_id": "pull-apart",
+          "exercise_ids": [
+            "pull-apart"
+          ]
         },
         {
           "level_id": "horizontal_pull.l2",
-          "exercise_id": "door-row"
+          "anchor_exercise_id": "door-row",
+          "exercise_ids": [
+            "door-row"
+          ]
         },
         {
           "level_id": "horizontal_pull.l3",
-          "exercise_id": "seated-row"
+          "anchor_exercise_id": "seated-row",
+          "exercise_ids": [
+            "seated-row"
+          ]
         },
         {
           "level_id": "horizontal_pull.l4",
-          "exercise_id": "bent-over-row"
+          "anchor_exercise_id": "bent-over-row",
+          "exercise_ids": [
+            "bent-over-row"
+          ]
         },
         {
           "level_id": "horizontal_pull.l5",
-          "exercise_id": "bw-inverted-row"
+          "anchor_exercise_id": "bw-inverted-row",
+          "exercise_ids": [
+            "bw-inverted-row"
+          ]
         },
         {
           "level_id": "horizontal_pull.l6",
-          "exercise_id": "wide-high-row"
+          "anchor_exercise_id": "wide-high-row",
+          "exercise_ids": [
+            "wide-high-row"
+          ]
         },
         {
           "level_id": "horizontal_pull.l7",
-          "exercise_id": "single-arm-row"
+          "anchor_exercise_id": "single-arm-row",
+          "exercise_ids": [
+            "single-arm-row"
+          ]
         },
         {
           "level_id": "horizontal_pull.l8",
-          "exercise_id": "banded-archer-row"
+          "anchor_exercise_id": "banded-archer-row",
+          "exercise_ids": [
+            "banded-archer-row"
+          ]
         }
       ]
     },
@@ -89,31 +140,52 @@
       "levels": [
         {
           "level_id": "vertical_push.l1",
-          "exercise_id": "overhead-press"
+          "anchor_exercise_id": "overhead-press",
+          "exercise_ids": [
+            "overhead-press"
+          ]
         },
         {
           "level_id": "vertical_push.l2",
-          "exercise_id": "half-kneeling-ohp"
+          "anchor_exercise_id": "half-kneeling-ohp",
+          "exercise_ids": [
+            "half-kneeling-ohp"
+          ]
         },
         {
           "level_id": "vertical_push.l3",
-          "exercise_id": "single-arm-ohp"
+          "anchor_exercise_id": "single-arm-ohp",
+          "exercise_ids": [
+            "single-arm-ohp"
+          ]
         },
         {
           "level_id": "vertical_push.l4",
-          "exercise_id": "bw-dip"
+          "anchor_exercise_id": "bw-dip",
+          "exercise_ids": [
+            "bw-dip"
+          ]
         },
         {
           "level_id": "vertical_push.l5",
-          "exercise_id": "bw-pike-push-up"
+          "anchor_exercise_id": "bw-pike-push-up",
+          "exercise_ids": [
+            "bw-pike-push-up"
+          ]
         },
         {
           "level_id": "vertical_push.l6",
-          "exercise_id": "pike-push-up"
+          "anchor_exercise_id": "pike-push-up",
+          "exercise_ids": [
+            "pike-push-up"
+          ]
         },
         {
           "level_id": "vertical_push.l7",
-          "exercise_id": "bw-wall-hspu"
+          "anchor_exercise_id": "bw-wall-hspu",
+          "exercise_ids": [
+            "bw-wall-hspu"
+          ]
         }
       ]
     },
@@ -124,39 +196,66 @@
       "levels": [
         {
           "level_id": "vertical_pull.l1",
-          "exercise_id": "bw-dead-hang"
+          "anchor_exercise_id": "bw-dead-hang",
+          "exercise_ids": [
+            "bw-dead-hang"
+          ]
         },
         {
           "level_id": "vertical_pull.l2",
-          "exercise_id": "straight-arm-pulldown"
+          "anchor_exercise_id": "straight-arm-pulldown",
+          "exercise_ids": [
+            "straight-arm-pulldown"
+          ]
         },
         {
           "level_id": "vertical_pull.l3",
-          "exercise_id": "floor-pullover"
+          "anchor_exercise_id": "floor-pullover",
+          "exercise_ids": [
+            "floor-pullover"
+          ]
         },
         {
           "level_id": "vertical_pull.l4",
-          "exercise_id": "lat-pulldown"
+          "anchor_exercise_id": "lat-pulldown",
+          "exercise_ids": [
+            "lat-pulldown"
+          ]
         },
         {
           "level_id": "vertical_pull.l5",
-          "exercise_id": "upright-row"
+          "anchor_exercise_id": "upright-row",
+          "exercise_ids": [
+            "upright-row"
+          ]
         },
         {
           "level_id": "vertical_pull.l6",
-          "exercise_id": "assisted-pull-up"
+          "anchor_exercise_id": "assisted-pull-up",
+          "exercise_ids": [
+            "assisted-pull-up"
+          ]
         },
         {
           "level_id": "vertical_pull.l7",
-          "exercise_id": "bw-chin-up"
+          "anchor_exercise_id": "bw-chin-up",
+          "exercise_ids": [
+            "bw-chin-up"
+          ]
         },
         {
           "level_id": "vertical_pull.l8",
-          "exercise_id": "bw-pull-up"
+          "anchor_exercise_id": "bw-pull-up",
+          "exercise_ids": [
+            "bw-pull-up"
+          ]
         },
         {
           "level_id": "vertical_pull.l9",
-          "exercise_id": "bw-archer-pull-up"
+          "anchor_exercise_id": "bw-archer-pull-up",
+          "exercise_ids": [
+            "bw-archer-pull-up"
+          ]
         }
       ]
     },
@@ -167,31 +266,52 @@
       "levels": [
         {
           "level_id": "squat.l1",
-          "exercise_id": "bw-squat"
+          "anchor_exercise_id": "bw-squat",
+          "exercise_ids": [
+            "bw-squat"
+          ]
         },
         {
           "level_id": "squat.l2",
-          "exercise_id": "bw-squat-pulse"
+          "anchor_exercise_id": "bw-squat-pulse",
+          "exercise_ids": [
+            "bw-squat-pulse"
+          ]
         },
         {
           "level_id": "squat.l3",
-          "exercise_id": "goblet-squat"
+          "anchor_exercise_id": "goblet-squat",
+          "exercise_ids": [
+            "goblet-squat"
+          ]
         },
         {
           "level_id": "squat.l4",
-          "exercise_id": "banded-squat"
+          "anchor_exercise_id": "banded-squat",
+          "exercise_ids": [
+            "banded-squat"
+          ]
         },
         {
           "level_id": "squat.l5",
-          "exercise_id": "front-squat"
+          "anchor_exercise_id": "front-squat",
+          "exercise_ids": [
+            "front-squat"
+          ]
         },
         {
           "level_id": "squat.l6",
-          "exercise_id": "bw-jump-squat"
+          "anchor_exercise_id": "bw-jump-squat",
+          "exercise_ids": [
+            "bw-jump-squat"
+          ]
         },
         {
           "level_id": "squat.l7",
-          "exercise_id": "bw-pistol-squat"
+          "anchor_exercise_id": "bw-pistol-squat",
+          "exercise_ids": [
+            "bw-pistol-squat"
+          ]
         }
       ]
     },
@@ -202,31 +322,52 @@
       "levels": [
         {
           "level_id": "hinge.l1",
-          "exercise_id": "bw-good-morning"
+          "anchor_exercise_id": "bw-good-morning",
+          "exercise_ids": [
+            "bw-good-morning"
+          ]
         },
         {
           "level_id": "hinge.l2",
-          "exercise_id": "bw-glute-bridge"
+          "anchor_exercise_id": "bw-glute-bridge",
+          "exercise_ids": [
+            "bw-glute-bridge"
+          ]
         },
         {
           "level_id": "hinge.l3",
-          "exercise_id": "rdl"
+          "anchor_exercise_id": "rdl",
+          "exercise_ids": [
+            "rdl"
+          ]
         },
         {
           "level_id": "hinge.l4",
-          "exercise_id": "deadlift"
+          "anchor_exercise_id": "deadlift",
+          "exercise_ids": [
+            "deadlift"
+          ]
         },
         {
           "level_id": "hinge.l5",
-          "exercise_id": "sumo-deadlift"
+          "anchor_exercise_id": "sumo-deadlift",
+          "exercise_ids": [
+            "sumo-deadlift"
+          ]
         },
         {
           "level_id": "hinge.l6",
-          "exercise_id": "single-leg-rdl"
+          "anchor_exercise_id": "single-leg-rdl",
+          "exercise_ids": [
+            "single-leg-rdl"
+          ]
         },
         {
           "level_id": "hinge.l7",
-          "exercise_id": "bw-nordic-curl"
+          "anchor_exercise_id": "bw-nordic-curl",
+          "exercise_ids": [
+            "bw-nordic-curl"
+          ]
         }
       ]
     },
@@ -237,31 +378,52 @@
       "levels": [
         {
           "level_id": "lunge.l1",
-          "exercise_id": "bw-reverse-lunge"
+          "anchor_exercise_id": "bw-reverse-lunge",
+          "exercise_ids": [
+            "bw-reverse-lunge"
+          ]
         },
         {
           "level_id": "lunge.l2",
-          "exercise_id": "split-squat"
+          "anchor_exercise_id": "split-squat",
+          "exercise_ids": [
+            "split-squat"
+          ]
         },
         {
           "level_id": "lunge.l3",
-          "exercise_id": "bw-walking-lunge"
+          "anchor_exercise_id": "bw-walking-lunge",
+          "exercise_ids": [
+            "bw-walking-lunge"
+          ]
         },
         {
           "level_id": "lunge.l4",
-          "exercise_id": "lateral-lunge"
+          "anchor_exercise_id": "lateral-lunge",
+          "exercise_ids": [
+            "lateral-lunge"
+          ]
         },
         {
           "level_id": "lunge.l5",
-          "exercise_id": "step-up"
+          "anchor_exercise_id": "step-up",
+          "exercise_ids": [
+            "step-up"
+          ]
         },
         {
           "level_id": "lunge.l6",
-          "exercise_id": "bulgarian-split-squat"
+          "anchor_exercise_id": "bulgarian-split-squat",
+          "exercise_ids": [
+            "bulgarian-split-squat"
+          ]
         },
         {
           "level_id": "lunge.l7",
-          "exercise_id": "bw-cossack-squat"
+          "anchor_exercise_id": "bw-cossack-squat",
+          "exercise_ids": [
+            "bw-cossack-squat"
+          ]
         }
       ]
     },
@@ -272,31 +434,52 @@
       "levels": [
         {
           "level_id": "anti_extension.l1",
-          "exercise_id": "bw-dead-bug"
+          "anchor_exercise_id": "bw-dead-bug",
+          "exercise_ids": [
+            "bw-dead-bug"
+          ]
         },
         {
           "level_id": "anti_extension.l2",
-          "exercise_id": "bw-bird-dog"
+          "anchor_exercise_id": "bw-bird-dog",
+          "exercise_ids": [
+            "bw-bird-dog"
+          ]
         },
         {
           "level_id": "anti_extension.l3",
-          "exercise_id": "bw-plank"
+          "anchor_exercise_id": "bw-plank",
+          "exercise_ids": [
+            "bw-plank"
+          ]
         },
         {
           "level_id": "anti_extension.l4",
-          "exercise_id": "banded-plank"
+          "anchor_exercise_id": "banded-plank",
+          "exercise_ids": [
+            "banded-plank"
+          ]
         },
         {
           "level_id": "anti_extension.l5",
-          "exercise_id": "bw-side-plank"
+          "anchor_exercise_id": "bw-side-plank",
+          "exercise_ids": [
+            "bw-side-plank"
+          ]
         },
         {
           "level_id": "anti_extension.l6",
-          "exercise_id": "side-plank-abduction"
+          "anchor_exercise_id": "side-plank-abduction",
+          "exercise_ids": [
+            "side-plank-abduction"
+          ]
         },
         {
           "level_id": "anti_extension.l7",
-          "exercise_id": "bw-hollow-hold"
+          "anchor_exercise_id": "bw-hollow-hold",
+          "exercise_ids": [
+            "bw-hollow-hold"
+          ]
         }
       ]
     }

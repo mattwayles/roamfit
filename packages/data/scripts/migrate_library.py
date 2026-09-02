@@ -845,7 +845,13 @@ def main():
                 "name": family_id.replace("_", " ").title(),
                 "pattern": family_id,
                 "levels": [
-                    {"level_id": f"{family_id}.l{i}", "exercise_id": ex_id}
+                    # ADR 0010 — a level holds a set of exercises. This one-time port emits the
+                    # single-exercise shape; siblings were authored into families.json afterwards.
+                    {
+                        "level_id": f"{family_id}.l{i}",
+                        "anchor_exercise_id": ex_id,
+                        "exercise_ids": [ex_id],
+                    }
                     for i, ex_id in enumerate(exercise_ids, start=1)
                 ],
             }

@@ -56,7 +56,7 @@ export function resolveLadderSlot(input: ResolveSlotInput): ResolvedLadderSlot |
   while (candidate) {
     const prev = prevLevel(family, cursor);
     if (!prev) break;
-    const prevExercise = library.find((e) => e.id === prev.exercise_id);
+    const prevExercise = library.find((e) => e.id === prev.anchor_exercise_id);
     if (prevExercise && filteredIds.has(prevExercise.id)) {
       return {
         exercise: prevExercise,

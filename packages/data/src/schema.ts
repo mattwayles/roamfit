@@ -122,7 +122,19 @@ export interface Exercise {
 export interface ProgressionFamilyLevel {
   /** Assigned once, never reordered or reused (§4.2, §6.6). */
   level_id: string;
-  exercise_id: string;
+  /**
+   * The exercise whose properties drive ALL micro-progression math for this level (ADR 0010).
+   * Always a member of `exercise_ids`. Never "the exercise that was programmed" — see the ADR:
+   * if the micro math read the sibling the RNG picked, whether a user can advance would depend
+   * on the draw.
+   */
+  anchor_exercise_id: string;
+  /**
+   * Every exercise programmable at this level, anchor included (ADR 0010). Order is not
+   * meaningful — `resolveLadderSlot` picks among the hard-filter-eligible members with the
+   * injected RNG. All members share the anchor's `metric`; band range and equipment may differ.
+   */
+  exercise_ids: string[];
 }
 
 export interface ProgressionFamily {

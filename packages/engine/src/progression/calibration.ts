@@ -43,7 +43,7 @@ export function applyCalibrationStep(
         levelChanged: null,
       };
     }
-    const exercise = library.find((e) => e.id === prev.exercise_id);
+    const exercise = library.find((e) => e.id === prev.anchor_exercise_id);
     return {
       state: {
         ...state,
@@ -70,7 +70,7 @@ export function applyCalibrationStep(
         levelChanged: null,
       };
     }
-    const exercise = library.find((e) => e.id === next.exercise_id);
+    const exercise = library.find((e) => e.id === next.anchor_exercise_id);
     return {
       state: {
         ...state,

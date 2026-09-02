@@ -24,6 +24,13 @@ export function levelById(
   return family.levels.find((l) => l.level_id === levelId);
 }
 
+/**
+ * The level's **anchor** exercise (ADR 0010) — the one whose `metric`/`equipment`/`band` drive
+ * every micro-progression calculation, and the one to name when displaying the level. This is
+ * deliberately NOT "the exercise that was programmed": a level can hold several siblings, and
+ * basing the progression math on whichever one the RNG picked would make advancing depend on the
+ * draw. Use `exercisesForLevel` when you want the full programmable set.
+ */
 export function exerciseForLevel(
   family: ProgressionFamily,
   levelId: string,
@@ -31,7 +38,23 @@ export function exerciseForLevel(
 ): Exercise | undefined {
   const level = levelById(family, levelId);
   if (!level) return undefined;
-  return library.find((e) => e.id === level.exercise_id);
+  return library.find((e) => e.id === level.anchor_exercise_id);
+}
+
+/** Every exercise programmable at this level (ADR 0010), anchor included. Missing ids are
+ *  skipped rather than throwing — `validate.ts` is what guarantees they resolve. */
+export function exercisesForLevel(
+  family: ProgressionFamily,
+  levelId: string,
+  library: readonly Exercise[],
+): Exercise[] {
+  const level = levelById(family, levelId);
+  if (!level) return [];
+  const byId = new Map(library.map((e) => [e.id, e]));
+  return level.exercise_ids.flatMap((id) => {
+    const ex = byId.get(id);
+    return ex ? [ex] : [];
+  });
 }
 
 export function isMaxLevel(family: ProgressionFamily, levelId: string): boolean {

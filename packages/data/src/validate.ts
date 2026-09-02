@@ -212,27 +212,65 @@ function main() {
       }
       allLevelIds.add(lvl.level_id);
 
-      const ex = byId.get(lvl.exercise_id);
-      if (!ex) {
-        fail(
-          `family ${fam.id} level ${lvl.level_id}: references missing exercise ${lvl.exercise_id}`,
-        );
+      // ADR 0010 — a level holds a set of exercises; the anchor drives micro-progression math.
+      if (lvl.exercise_ids.length === 0) {
+        fail(`family ${fam.id} level ${lvl.level_id}: exercise_ids is empty`);
         continue;
       }
-      if (ex.pattern !== fam.pattern) {
+      if (new Set(lvl.exercise_ids).size !== lvl.exercise_ids.length) {
+        fail(`family ${fam.id} level ${lvl.level_id}: duplicate id in exercise_ids`);
+      }
+      if (!lvl.exercise_ids.includes(lvl.anchor_exercise_id)) {
         fail(
-          `family ${fam.id} level ${lvl.level_id}: exercise ${ex.id} has pattern "${ex.pattern}" but family pattern is "${fam.pattern}"`,
+          `family ${fam.id} level ${lvl.level_id}: anchor_exercise_id "${lvl.anchor_exercise_id}" is not in exercise_ids`,
         );
       }
-      if (ex.progression_family !== fam.id) {
+
+      const anchor = byId.get(lvl.anchor_exercise_id);
+      if (!anchor) {
         fail(
-          `family ${fam.id} level ${lvl.level_id}: exercise ${ex.id}.progression_family is "${ex.progression_family}", expected "${fam.id}"`,
+          `family ${fam.id} level ${lvl.level_id}: references missing anchor exercise ${lvl.anchor_exercise_id}`,
         );
       }
-      if (ex.progression_level_id !== lvl.level_id) {
-        fail(
-          `family ${fam.id} level ${lvl.level_id}: exercise ${ex.id}.progression_level_id is "${ex.progression_level_id}", expected "${lvl.level_id}"`,
-        );
+
+      for (const exId of lvl.exercise_ids) {
+        const ex = byId.get(exId);
+        if (!ex) {
+          fail(`family ${fam.id} level ${lvl.level_id}: references missing exercise ${exId}`);
+          continue;
+        }
+        if (ex.pattern !== fam.pattern) {
+          fail(
+            `family ${fam.id} level ${lvl.level_id}: exercise ${ex.id} has pattern "${ex.pattern}" but family pattern is "${fam.pattern}"`,
+          );
+        }
+        if (ex.role !== 'main') {
+          fail(
+            `family ${fam.id} level ${lvl.level_id}: exercise ${ex.id} has role "${ex.role}", ladder members must be "main"`,
+          );
+        }
+        if (ex.tier === 'fill') {
+          fail(
+            `family ${fam.id} level ${lvl.level_id}: exercise ${ex.id} is tier "fill" — conditioning finishers are not ladder rungs (ADR 0010)`,
+          );
+        }
+        if (ex.progression_family !== fam.id) {
+          fail(
+            `family ${fam.id} level ${lvl.level_id}: exercise ${ex.id}.progression_family is "${ex.progression_family}", expected "${fam.id}"`,
+          );
+        }
+        if (ex.progression_level_id !== lvl.level_id) {
+          fail(
+            `family ${fam.id} level ${lvl.level_id}: exercise ${ex.id}.progression_level_id is "${ex.progression_level_id}", expected "${lvl.level_id}"`,
+          );
+        }
+        // ADR 0010 compatibility rule 1 — a level cannot be half reps and half holds; the
+        // prescription shape and the micro rep/hold range both depend on it.
+        if (anchor && ex.metric !== anchor.metric) {
+          fail(
+            `family ${fam.id} level ${lvl.level_id}: sibling ${ex.id} has metric "${ex.metric}" but anchor ${anchor.id} has "${anchor.metric}" — siblings must share a metric (ADR 0010)`,
+          );
+        }
       }
     }
   }
@@ -245,7 +283,7 @@ function main() {
         fail(`${ex.id}: progression_family "${ex.progression_family}" does not exist`);
         continue;
       }
-      const inLevels = fam.levels.some((l) => l.exercise_id === ex.id);
+      const inLevels = fam.levels.some((l) => l.exercise_ids.includes(ex.id));
       if (!inLevels) {
         fail(
           `${ex.id}: claims progression_family "${fam.id}" but is not in that family's levels[]`,

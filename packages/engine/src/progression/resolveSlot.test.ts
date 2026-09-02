@@ -15,7 +15,7 @@ function allFamilyStates(
   const out = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of families) {
     const level = calibrationStartLevel(family);
-    const exercise = library.find((e) => e.id === level.exercise_id)!;
+    const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     out[family.id] = {
       familyId: family.id,
       levelId: level.level_id,
@@ -92,7 +92,9 @@ describe('resolveLadderSlot', () => {
         lastLevelChangeAt: null,
       },
     });
-    const horizontalPushIds = new Set(horizontalPush.levels.map((l) => l.exercise_id));
+    // Every exercise on every rung — siblings included (ADR 0010), not just the anchors, or the
+    // ladder would still have something to resolve to.
+    const horizontalPushIds = new Set(horizontalPush.levels.flatMap((l) => l.exercise_ids));
     const withoutHorizontalPush = library.filter((e) => !horizontalPushIds.has(e.id));
     const result = resolveLadderSlot({
       familyId: 'horizontal_push',

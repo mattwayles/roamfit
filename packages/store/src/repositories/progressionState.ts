@@ -70,7 +70,7 @@ export function ensureProgressionStatesInitialized(
   for (const family of families.families) {
     if (existing.has(family.id)) continue;
     const startLevel = calibrationStartLevel(family);
-    const exercise = library.find((e) => e.id === startLevel.exercise_id);
+    const exercise = library.find((e) => e.id === startLevel.anchor_exercise_id);
     const micro = exercise
       ? defaultMicroForExercise(exercise)
       : { repTarget: 10, band: null, tempoSec: 3, restSec: 45, sets: 3 };

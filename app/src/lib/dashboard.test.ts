@@ -23,7 +23,7 @@ function seedAllFamilies(): Record<ProgressionFamilyId, ProgressionState> {
   const out = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of familyLibrary.families) {
     const start = calibrationStartLevel(family);
-    const exercise = exerciseLibrary.exercises.find((e) => e.id === start.exercise_id)!;
+    const exercise = exerciseLibrary.exercises.find((e) => e.id === start.anchor_exercise_id)!;
     out[family.id] = {
       familyId: family.id,
       levelId: start.level_id,
@@ -78,7 +78,7 @@ describe('§6.4/§14.1.3 nextUnlockHero', () => {
     // Push every family to its own max level.
     for (const family of familyLibrary.families) {
       const maxLevel = family.levels[family.levels.length - 1];
-      const exercise = exerciseLibrary.exercises.find((e) => e.id === maxLevel.exercise_id)!;
+      const exercise = exerciseLibrary.exercises.find((e) => e.id === maxLevel.anchor_exercise_id)!;
       states[family.id] = {
         familyId: family.id,
         levelId: maxLevel.level_id,

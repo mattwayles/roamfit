@@ -25,7 +25,7 @@ function allFamilyStates(
   const out = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of families) {
     const level = calibrationStartLevel(family);
-    const exercise = library.find((e) => e.id === level.exercise_id)!;
+    const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     out[family.id] = {
       familyId: family.id,
       levelId: level.level_id,
@@ -63,7 +63,7 @@ describe('§9.4 the comeback path', () => {
 
   it('"week" tier regresses every family one micro-step', () => {
     const family = families.find((f) => f.id === 'horizontal_push')!;
-    const exId = family.levels.find((l) => l.level_id === 'horizontal_push.l3')!.exercise_id;
+    const exId = family.levels.find((l) => l.level_id === 'horizontal_push.l3')!.anchor_exercise_id;
     const exercise = library.find((e) => e.id === exId)!;
     const advancedMicro = { ...defaultMicroForExercise(exercise), repTarget: 12 };
     const states = allFamilyStates({

@@ -62,16 +62,14 @@ export function buildCelebrationViewModel(
         newExerciseName: exercise?.name ?? event.levelId,
       });
     } else if (event.kind === 'mastery_pr_check') {
-      // The exercise at this family's (already-max) current level is the one being re-attempted
-      // for a best-set PR — record it so a matching best_set_pr milestone below is recognized as
-      // the §6.7 Mastery treatment rather than an ordinary PR.
-      const maxLevelExercise = family.levels
-        .map((l) => l.exercise_id)
-        .find((exId) => {
-          const level = family.levels.find((l) => l.exercise_id === exId);
-          return level && isMaxLevel(family, level.level_id);
-        });
-      if (maxLevelExercise) masteryExerciseIds.add(maxLevelExercise);
+      // The exercises at this family's (already-max) current level are the ones being re-attempted
+      // for a best-set PR — record them so a matching best_set_pr milestone below is recognized as
+      // the §6.7 Mastery treatment rather than an ordinary PR. Any sibling at the max level counts
+      // (ADR 0010): the PR is against whichever one was actually programmed.
+      for (const level of family.levels) {
+        if (!isMaxLevel(family, level.level_id)) continue;
+        for (const exId of level.exercise_ids) masteryExerciseIds.add(exId);
+      }
     }
   }
 
@@ -88,7 +86,9 @@ export function buildCelebrationViewModel(
           kind: 'mastery_pr',
           familyName:
             families.families.find((f) =>
-              f.levels.some((l) => l.exercise_id === exerciseId && isMaxLevel(f, l.level_id)),
+              f.levels.some(
+                (l) => l.exercise_ids.includes(exerciseId) && isMaxLevel(f, l.level_id),
+              ),
             )?.name ?? name,
           exerciseName: name,
           value,
