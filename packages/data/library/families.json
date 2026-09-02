@@ -9,42 +9,50 @@
           "level_id": "horizontal_push.l1",
           "anchor_exercise_id": "bw-wall-push-up",
           "exercise_ids": [
-            "bw-wall-push-up"
+            "bw-wall-push-up",
+            "standing-chest-press"
           ]
         },
         {
           "level_id": "horizontal_push.l2",
           "anchor_exercise_id": "bw-incline-push-up",
           "exercise_ids": [
-            "bw-incline-push-up"
+            "bw-incline-push-up",
+            "floor-press"
           ]
         },
         {
           "level_id": "horizontal_push.l3",
           "anchor_exercise_id": "bw-knee-push-up",
           "exercise_ids": [
-            "bw-knee-push-up"
+            "bw-knee-push-up",
+            "chest-fly"
           ]
         },
         {
           "level_id": "horizontal_push.l4",
           "anchor_exercise_id": "bw-push-up",
           "exercise_ids": [
-            "bw-push-up"
+            "bw-push-up",
+            "bw-wide-push-up",
+            "single-arm-chest-press"
           ]
         },
         {
           "level_id": "horizontal_push.l5",
           "anchor_exercise_id": "banded-push-up",
           "exercise_ids": [
-            "banded-push-up"
+            "banded-push-up",
+            "low-high-fly",
+            "high-low-fly"
           ]
         },
         {
           "level_id": "horizontal_push.l6",
           "anchor_exercise_id": "bw-diamond-push-up",
           "exercise_ids": [
-            "bw-diamond-push-up"
+            "bw-diamond-push-up",
+            "close-grip-push-up"
           ]
         },
         {
@@ -79,7 +87,8 @@
           "level_id": "horizontal_pull.l1",
           "anchor_exercise_id": "pull-apart",
           "exercise_ids": [
-            "pull-apart"
+            "pull-apart",
+            "overhead-pull-apart"
           ]
         },
         {
@@ -93,7 +102,8 @@
           "level_id": "horizontal_pull.l3",
           "anchor_exercise_id": "seated-row",
           "exercise_ids": [
-            "seated-row"
+            "seated-row",
+            "face-pull"
           ]
         },
         {
@@ -303,7 +313,9 @@
           "level_id": "squat.l6",
           "anchor_exercise_id": "bw-jump-squat",
           "exercise_ids": [
-            "bw-jump-squat"
+            "bw-jump-squat",
+            "squat-jump",
+            "bw-broad-jump"
           ]
         },
         {
@@ -324,42 +336,51 @@
           "level_id": "hinge.l1",
           "anchor_exercise_id": "bw-good-morning",
           "exercise_ids": [
-            "bw-good-morning"
+            "bw-good-morning",
+            "glute-kickback"
           ]
         },
         {
           "level_id": "hinge.l2",
           "anchor_exercise_id": "bw-glute-bridge",
           "exercise_ids": [
-            "bw-glute-bridge"
+            "bw-glute-bridge",
+            "glute-bridge",
+            "frog-pump"
           ]
         },
         {
           "level_id": "hinge.l3",
           "anchor_exercise_id": "rdl",
           "exercise_ids": [
-            "rdl"
+            "rdl",
+            "good-morning",
+            "hip-thrust"
           ]
         },
         {
           "level_id": "hinge.l4",
           "anchor_exercise_id": "deadlift",
           "exercise_ids": [
-            "deadlift"
+            "deadlift",
+            "band-swing"
           ]
         },
         {
           "level_id": "hinge.l5",
           "anchor_exercise_id": "sumo-deadlift",
           "exercise_ids": [
-            "sumo-deadlift"
+            "sumo-deadlift",
+            "bw-single-leg-rdl",
+            "bw-single-leg-glute-bridge"
           ]
         },
         {
           "level_id": "hinge.l6",
           "anchor_exercise_id": "single-leg-rdl",
           "exercise_ids": [
-            "single-leg-rdl"
+            "single-leg-rdl",
+            "single-leg-bridge"
           ]
         },
         {
@@ -387,35 +408,40 @@
           "level_id": "lunge.l2",
           "anchor_exercise_id": "split-squat",
           "exercise_ids": [
-            "split-squat"
+            "split-squat",
+            "reverse-lunge"
           ]
         },
         {
           "level_id": "lunge.l3",
           "anchor_exercise_id": "bw-walking-lunge",
           "exercise_ids": [
-            "bw-walking-lunge"
+            "bw-walking-lunge",
+            "bw-curtsy-lunge"
           ]
         },
         {
           "level_id": "lunge.l4",
           "anchor_exercise_id": "lateral-lunge",
           "exercise_ids": [
-            "lateral-lunge"
+            "lateral-lunge",
+            "bw-lateral-lunge"
           ]
         },
         {
           "level_id": "lunge.l5",
           "anchor_exercise_id": "step-up",
           "exercise_ids": [
-            "step-up"
+            "step-up",
+            "bw-step-up"
           ]
         },
         {
           "level_id": "lunge.l6",
           "anchor_exercise_id": "bulgarian-split-squat",
           "exercise_ids": [
-            "bulgarian-split-squat"
+            "bulgarian-split-squat",
+            "bw-bulgarian-split-squat"
           ]
         },
         {
@@ -436,14 +462,20 @@
           "level_id": "anti_extension.l1",
           "anchor_exercise_id": "bw-dead-bug",
           "exercise_ids": [
-            "bw-dead-bug"
+            "bw-dead-bug",
+            "dead-bug",
+            "bw-flutter-kick",
+            "bw-superman"
           ]
         },
         {
           "level_id": "anti_extension.l2",
           "anchor_exercise_id": "bw-bird-dog",
           "exercise_ids": [
-            "bw-bird-dog"
+            "bw-bird-dog",
+            "bird-dog",
+            "flutter-kick",
+            "overhead-march"
           ]
         },
         {
@@ -464,7 +496,9 @@
           "level_id": "anti_extension.l5",
           "anchor_exercise_id": "bw-side-plank",
           "exercise_ids": [
-            "bw-side-plank"
+            "bw-side-plank",
+            "bw-side-plank-hip-dip",
+            "bw-boat-hold"
           ]
         },
         {
@@ -478,7 +512,8 @@
           "level_id": "anti_extension.l7",
           "anchor_exercise_id": "bw-hollow-hold",
           "exercise_ids": [
-            "bw-hollow-hold"
+            "bw-hollow-hold",
+            "hollow-hold"
           ]
         }
       ]

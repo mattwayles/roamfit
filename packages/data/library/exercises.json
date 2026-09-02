@@ -66,8 +66,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l6",
       "contraindications": [
         "elbow",
         "shoulder_horizontal",
@@ -102,8 +102,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l1",
       "contraindications": [
         "shoulder_horizontal"
       ],
@@ -139,8 +139,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l4",
       "contraindications": [
         "shoulder_horizontal"
       ],
@@ -173,8 +173,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l3",
       "contraindications": [
         "shoulder_horizontal"
       ],
@@ -207,8 +207,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l5",
       "contraindications": [
         "shoulder_horizontal"
       ],
@@ -241,8 +241,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l5",
       "contraindications": [
         "shoulder_horizontal"
       ],
@@ -275,8 +275,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l2",
       "contraindications": [
         "shoulder_horizontal",
         "wrist_extension"
@@ -593,8 +593,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l1",
       "contraindications": [
         "shoulder_overhead"
       ],
@@ -628,8 +628,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l3",
       "contraindications": [],
       "setup": "Anchor at head height. Pull toward forehead, elbows high and wide, externally rotate at the end.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Face+Pull+proper+form+tutorial"
@@ -1475,8 +1475,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "lunge",
+      "progression_level_id": "lunge.l2",
       "contraindications": [
         "knee_flexion_loaded"
       ],
@@ -1735,8 +1735,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l3",
       "contraindications": [
         "core_pressure",
         "lower_back_extension"
@@ -1773,8 +1773,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l4",
       "contraindications": [
         "lower_back_extension"
       ],
@@ -1808,8 +1808,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l2",
       "contraindications": [
         "lower_back_extension"
       ],
@@ -1843,8 +1843,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l6",
       "contraindications": [
         "lower_back_extension"
       ],
@@ -1877,8 +1877,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l3",
       "contraindications": [
         "core_pressure",
         "hip",
@@ -1911,8 +1911,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l2",
       "contraindications": [
         "hip",
         "lower_back_extension"
@@ -1978,8 +1978,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l1",
       "contraindications": [
         "lower_back_extension"
       ],
@@ -2243,8 +2243,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "squat",
+      "progression_level_id": "squat.l6",
       "contraindications": [
         "ankle",
         "knee_flexion_loaded",
@@ -2548,8 +2548,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l1",
       "contraindications": [
         "core_pressure"
       ],
@@ -2651,8 +2651,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l2",
       "contraindications": [
         "core_pressure"
       ],
@@ -2869,8 +2869,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l2",
       "contraindications": [
         "core_pressure",
         "wrist_extension"
@@ -2971,8 +2971,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l7",
       "contraindications": [
         "core_pressure",
         "lower_back_flexion"
@@ -4157,8 +4157,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l2",
       "contraindications": [
         "core_pressure"
       ],
@@ -4602,8 +4602,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l5",
       "contraindications": [
         "core_pressure",
         "wrist_extension"
@@ -4735,8 +4735,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l1",
       "contraindications": [
         "core_pressure"
       ],
@@ -5034,8 +5034,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l5",
       "contraindications": [
         "core_pressure",
         "lower_back_flexion"
@@ -5101,8 +5101,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l1",
       "contraindications": [
         "core_pressure"
       ],
@@ -5281,8 +5281,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l4",
       "contraindications": [
         "shoulder_horizontal",
         "wrist_extension"
@@ -5812,8 +5812,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "squat",
+      "progression_level_id": "squat.l6",
       "contraindications": [
         "ankle",
         "knee_flexion_loaded",
@@ -5914,8 +5914,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "lunge",
+      "progression_level_id": "lunge.l4",
       "contraindications": [
         "hip",
         "knee_flexion_loaded"
@@ -5948,8 +5948,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "lunge",
+      "progression_level_id": "lunge.l3",
       "contraindications": [
         "hip",
         "knee_flexion_loaded"
@@ -5982,8 +5982,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "hard",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "lunge",
+      "progression_level_id": "lunge.l6",
       "contraindications": [
         "hip",
         "knee_flexion_loaded"
@@ -6017,8 +6017,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "lunge",
+      "progression_level_id": "lunge.l5",
       "contraindications": [
         "hip",
         "knee_flexion_loaded"
@@ -6155,8 +6155,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l5",
       "contraindications": [
         "lower_back_extension"
       ],
@@ -6225,8 +6225,8 @@
       "tier": "core",
       "role": "main",
       "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l5",
       "contraindications": [
         "hip",
         "lower_back_extension"

@@ -51,11 +51,14 @@ describe('resolveLadderSlot', () => {
       hardFilteredPool: library, // nothing filtered
       rng: createRng(1),
     });
-    expect(result?.exercise.id).toBe('banded-push-up');
+    // Any exercise on that rung is a correct answer (ADR 0010) — what matters is that it came
+    // from level 5 and was not a walk-down.
+    const l5 = horizontalPush.levels.find((l) => l.level_id === 'horizontal_push.l5')!;
+    expect(l5.exercise_ids).toContain(result!.exercise.id);
     expect(result?.substitutedFrom).toBeUndefined();
   });
 
-  it('walks down the ladder when the current level exercise fails a hard filter, and flags it', () => {
+  it('walks down the ladder when every exercise at the current level fails a hard filter, and flags it', () => {
     const states = allFamilyStates({
       horizontal_push: {
         familyId: 'horizontal_push',
@@ -67,7 +70,9 @@ describe('resolveLadderSlot', () => {
         lastLevelChangeAt: null,
       },
     });
-    const withoutL5 = library.filter((e) => e.id !== 'banded-push-up');
+    const l5 = horizontalPush.levels.find((l) => l.level_id === 'horizontal_push.l5')!;
+    const l4 = horizontalPush.levels.find((l) => l.level_id === 'horizontal_push.l4')!;
+    const withoutL5 = library.filter((e) => !l5.exercise_ids.includes(e.id));
     const result = resolveLadderSlot({
       familyId: 'horizontal_push',
       families,
@@ -76,7 +81,8 @@ describe('resolveLadderSlot', () => {
       hardFilteredPool: withoutL5,
       rng: createRng(1),
     });
-    expect(result?.exercise.id).toBe('bw-push-up'); // horizontal_push.l4
+    expect(l4.exercise_ids).toContain(result!.exercise.id);
+    // substitutedFrom names the level's anchor — that is what progression is parked on.
     expect(result?.substitutedFrom).toEqual({
       levelId: 'horizontal_push.l5',
       exerciseId: 'banded-push-up',
