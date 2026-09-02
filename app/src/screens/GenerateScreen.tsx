@@ -186,7 +186,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
           setAnchorsOpen((v) => !v);
         }}
       >
-        <Text style={styles.disclosureText}>Available equipment and anchor points</Text>
+        <Text style={styles.disclosureText}>Available Anchor Points</Text>
         <Text style={styles.disclosureCount} testID="anchors-summary">
           {anchors.length} of {ANCHOR_COUNT} selected {anchorsOpen ? '\u25b4' : '\u25be'}
         </Text>
