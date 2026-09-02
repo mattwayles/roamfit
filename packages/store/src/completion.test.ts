@@ -14,7 +14,13 @@ import { getPendingDeferredWork } from './repositories/queues';
 import { completeSession } from './completion';
 import { ensureUser, updateUser } from './repositories/users';
 import { getStats, shouldSuggestRecoveryWeek } from './repositories/stats';
-import { library, families, clockFor, rngFor, utcInstantFor } from './testFixtures';
+import {
+  library,
+  singleExerciseFamilies as families,
+  clockFor,
+  rngFor,
+  utcInstantFor,
+} from './testFixtures';
 
 function runSession(
   db: ReturnType<typeof createTestDb>['db'],

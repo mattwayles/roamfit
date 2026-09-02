@@ -19,5 +19,15 @@ it('the §13.1 effort cap still applies to the inverted row', () => {
 it('no other exercise became default-available as a side effect', () => {
   const bearing = exerciseLibrary.exercises.filter((e) => e.anchor_class === 'bodyweight_bearing');
   const defaultAvailable = bearing.filter((e) => DEFAULT_ANCHORS_AVAILABLE.includes(e.anchor));
-  expect(defaultAvailable.map((e) => e.id)).toEqual(['bw-inverted-row']);
+  // Both entries are deliberate `low-bar` (ADR 0007) exercises, and nothing on `pullup-bar` or
+  // `body-support` may join them without a decision. `bw-low-bar-hang` was added by ADR 0010 to
+  // give vertical_pull.l1 an option a default user can actually perform — the rung's anchor,
+  // `bw-dead-hang`, is on `pullup-bar` and so is filtered away for most people.
+  expect(defaultAvailable.map((e) => e.id).sort()).toEqual(['bw-inverted-row', 'bw-low-bar-hang']);
+});
+
+it('the §13.1 effort cap applies to the low-bar hang too', () => {
+  const hang = exerciseLibrary.exercises.find((e) => e.id === 'bw-low-bar-hang')!;
+  expect(hang.anchor_class).toBe('bodyweight_bearing');
+  expect(effortCapForExercise(hang, 'hard')).toBe('normal');
 });

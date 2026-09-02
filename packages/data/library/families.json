@@ -152,35 +152,40 @@
           "level_id": "vertical_push.l1",
           "anchor_exercise_id": "overhead-press",
           "exercise_ids": [
-            "overhead-press"
+            "overhead-press",
+            "seated-ohp"
           ]
         },
         {
           "level_id": "vertical_push.l2",
           "anchor_exercise_id": "half-kneeling-ohp",
           "exercise_ids": [
-            "half-kneeling-ohp"
+            "half-kneeling-ohp",
+            "tall-kneeling-ohp"
           ]
         },
         {
           "level_id": "vertical_push.l3",
           "anchor_exercise_id": "single-arm-ohp",
           "exercise_ids": [
-            "single-arm-ohp"
+            "single-arm-ohp",
+            "banded-arnold-press"
           ]
         },
         {
           "level_id": "vertical_push.l4",
           "anchor_exercise_id": "bw-dip",
           "exercise_ids": [
-            "bw-dip"
+            "bw-dip",
+            "banded-push-press"
           ]
         },
         {
           "level_id": "vertical_push.l5",
           "anchor_exercise_id": "bw-pike-push-up",
           "exercise_ids": [
-            "bw-pike-push-up"
+            "bw-pike-push-up",
+            "bw-elevated-pike-push-up"
           ]
         },
         {
@@ -208,28 +213,32 @@
           "level_id": "vertical_pull.l1",
           "anchor_exercise_id": "bw-dead-hang",
           "exercise_ids": [
-            "bw-dead-hang"
+            "bw-dead-hang",
+            "bw-low-bar-hang"
           ]
         },
         {
           "level_id": "vertical_pull.l2",
           "anchor_exercise_id": "straight-arm-pulldown",
           "exercise_ids": [
-            "straight-arm-pulldown"
+            "straight-arm-pulldown",
+            "prone-band-pulldown"
           ]
         },
         {
           "level_id": "vertical_pull.l3",
           "anchor_exercise_id": "floor-pullover",
           "exercise_ids": [
-            "floor-pullover"
+            "floor-pullover",
+            "single-arm-pulldown"
           ]
         },
         {
           "level_id": "vertical_pull.l4",
           "anchor_exercise_id": "lat-pulldown",
           "exercise_ids": [
-            "lat-pulldown"
+            "lat-pulldown",
+            "kneeling-lat-pulldown"
           ]
         },
         {
@@ -285,14 +294,17 @@
           "level_id": "squat.l2",
           "anchor_exercise_id": "bw-squat-pulse",
           "exercise_ids": [
-            "bw-squat-pulse"
+            "bw-squat-pulse",
+            "bw-tempo-squat"
           ]
         },
         {
           "level_id": "squat.l3",
           "anchor_exercise_id": "goblet-squat",
           "exercise_ids": [
-            "goblet-squat"
+            "goblet-squat",
+            "banded-sumo-squat",
+            "banded-pause-squat"
           ]
         },
         {
@@ -482,7 +494,9 @@
           "level_id": "anti_extension.l3",
           "anchor_exercise_id": "bw-plank",
           "exercise_ids": [
-            "bw-plank"
+            "bw-plank",
+            "bw-high-plank",
+            "bw-bear-hold"
           ]
         },
         {
