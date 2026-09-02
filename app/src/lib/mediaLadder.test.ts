@@ -137,10 +137,13 @@ describe('buildSearchUrl', () => {
 });
 
 describe('buildEmbedUrl', () => {
-  it('uses youtube-nocookie.com, never youtube.com, per invariant 8 / §11.4 player behavior', () => {
+  it('is served from the same origin as the page that embeds it, and says so', () => {
+    // Not youtube-nocookie.com any more: cross-site with the host document, the player cannot
+    // reach its own storage inside WKWebView's partition and fails to configure (error 152-4).
+    // See EMBED_BASE_URL for the whole chain.
     const url = buildEmbedUrl('abc123XYZ_9');
-    expect(url).toMatch(/^https:\/\/www\.youtube-nocookie\.com\/embed\//);
-    expect(url).not.toContain('//www.youtube.com');
+    expect(url.startsWith(`${EMBED_BASE_URL}/embed/`)).toBe(true);
+    expect(url).toContain(`origin=${encodeURIComponent(EMBED_BASE_URL)}`);
   });
 
   it('disables autoplay and fullscreen and mutes audio (audio-session guard)', () => {
@@ -167,8 +170,10 @@ describe('buildEmbedHtml', () => {
     expect(EMBED_BASE_URL).toBe('https://www.youtube.com');
   });
 
-  it('keeps the player on the no-cookie host even though the page around it is youtube.com', () => {
-    expect(buildEmbedHtml('abc123XYZ_9')).toContain('https://www.youtube-nocookie.com/embed/');
+  it('keeps the frame same-site with the page it is rendered in', () => {
+    // The pairing is the fix, so it is asserted as a pairing: whatever EMBED_BASE_URL becomes,
+    // the iframe has to be served from it too.
+    expect(buildEmbedHtml('abc123XYZ_9')).toContain(`src="${EMBED_BASE_URL}/embed/`);
   });
 
   it('does not grant fullscreen, matching fs=0 on the URL', () => {

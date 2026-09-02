@@ -80,7 +80,35 @@ export function buildSearchUrl(videoSearchQuery: string, online: boolean): strin
 }
 
 /**
- * Tier 1 embed URL. `youtube-nocookie.com` per §11.4 player-behavior requirement.
+ * The origin the player is served from *and* the origin of the page it is embedded in — one
+ * constant for both, deliberately, because they have to match.
+ *
+ * The story so far, from real-device reports:
+ *   - A WebView pointed straight at an `/embed/` URL *is* the page, so the request carries no
+ *     referring page: "Video player configuration error", error 153.
+ *   - Wrapping it in a host document fixed the referrer, but the document was on youtube.com
+ *     while the player was on youtube-nocookie.com. WKWebView partitions storage by site and
+ *     blocks third-party cookies by default, so the player could not reach its own storage from
+ *     inside a cross-site frame: error 152-4, the next configuration error along.
+ * Same-site host page and player is what a browser embed on a real website effectively gets, and
+ * it is the configuration every working React Native YouTube player uses.
+ *
+ * The cost is `youtube-nocookie.com`, which §11.4 asked for: a player that will not run is worth
+ * less than the cookie-domain nicety, and nothing else about §11.4's player behaviour changes —
+ * no autoplay, no fullscreen, no related videos, muted. The player is also never given the user's
+ * identity by this app, and the WebView is dropped from the tree the moment the block is closed.
+ *
+ * (The tell throughout: the player's own "Watch this video on YouTube" link works in the very
+ * same WebView. That path is a normal watch page, which has neither requirement.)
+ */
+export const EMBED_BASE_URL = 'https://www.youtube.com';
+
+/**
+ * Tier 1 embed URL, on `EMBED_BASE_URL`'s origin — see there for why it is no longer the
+ * no-cookie host.
+ * - `origin=` — the embedding page, which the player cross-checks against the referrer it was
+ *   actually given. Stating it explicitly is what turns "some page, somewhere" into a claim the
+ *   player can verify, and it is the same value the host document is served with.
  * - `autoplay=0` — "no autoplay" (§10.4, §11.4).
  * - `fs=0` — disables the player's own fullscreen control ("no fullscreen takeover").
  * - `playsinline=1` — iOS: play inside the WebView rather than taking over the whole screen the
@@ -92,6 +120,7 @@ export function buildSearchUrl(videoSearchQuery: string, online: boolean): strin
  */
 export function buildEmbedUrl(videoId: string): string {
   const params = new URLSearchParams({
+    origin: EMBED_BASE_URL,
     autoplay: '0',
     fs: '0',
     playsinline: '1',
@@ -99,22 +128,8 @@ export function buildEmbedUrl(videoId: string): string {
     modestbranding: '1',
     rel: '0',
   });
-  return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?${params.toString()}`;
+  return `${EMBED_BASE_URL}/embed/${encodeURIComponent(videoId)}?${params.toString()}`;
 }
-
-/**
- * The origin the embed is served *from*. YouTube's embedded player refuses to play when the
- * request carries no referring page — "Video player configuration error", error 153 — which is
- * exactly what a WebView pointed straight at an `/embed/` URL sends: it *is* the page, so there
- * is no embedding page behind it. (The player's own "Watch this video on YouTube" link works in
- * the same WebView, which is the tell: that path is a normal watch page, not an embed.)
- *
- * Loading a one-line host document with `baseUrl` set gives the iframe a real referrer and the
- * player configures itself normally. It has to be a plausible embedding origin, so it is
- * youtube.com rather than something invented; the *player* is still the no-cookie host, which is
- * what §11.4 actually requires.
- */
-export const EMBED_BASE_URL = 'https://www.youtube.com';
 
 /**
  * The host document for `buildEmbedUrl`'s player: a full-bleed iframe and nothing else. Rendered

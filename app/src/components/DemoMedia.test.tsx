@@ -102,8 +102,11 @@ describe('DemoMedia', () => {
     expect(webview.props.source.uri).toBeUndefined();
     expect(webview.props.source.html).toContain('<iframe');
     expect(webview.props.source.baseUrl).toBe('https://www.youtube.com');
-    // The player itself is still the no-cookie host (§11.4).
-    expect(webview.props.source.html).toContain('https://www.youtube-nocookie.com/embed/');
+    // ...and the frame is same-site with that page, or the player cannot reach its own storage
+    // through WKWebView's partition and fails to configure anyway (error 152-4).
+    expect(webview.props.source.html).toContain('src="https://www.youtube.com/embed/');
+    // Storage has to be on for the same reason.
+    expect(webview.props.domStorageEnabled).toBe(true);
   });
 
   it('online, curated id, but locally demoted: no embed, but the search link survives', async () => {

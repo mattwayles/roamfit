@@ -164,7 +164,8 @@ export default function DemoMedia({
             <View style={styles.mediaFrame}>
               {/* A host document, not the `/embed/` URL itself: pointed straight at the embed the
                   WebView *is* the page, so the player gets no referring page and refuses with
-                  "Video player configuration error" (153). See `EMBED_BASE_URL`. */}
+                  "Video player configuration error" (153) — and the document has to be same-site
+                  with the player, or the next one along (152-4). See `EMBED_BASE_URL`. */}
               <WebView
                 testID="demo-media-webview"
                 source={{
@@ -173,6 +174,10 @@ export default function DemoMedia({
                 }}
                 originWhitelist={['https://*']}
                 style={styles.media}
+                // The player reads its own configuration out of browser storage; a WebView with
+                // storage turned off is the other half of the 152-4 configuration error.
+                domStorageEnabled
+                sharedCookiesEnabled
                 allowsInlineMediaPlayback
                 allowsFullscreenVideo={false}
                 mediaPlaybackRequiresUserAction
