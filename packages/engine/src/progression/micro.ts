@@ -126,6 +126,43 @@ export function microRegress(micro: ProgressionMicroState, exercise: Exercise): 
   return { micro, levelChange: 'down' };
 }
 
+/**
+ * §6.2 — pull the micro-state's band into line with the band the user actually trained with.
+ *
+ * The prescription says B2; the user picks up B3 because that is what is in the bag, or because B2
+ * felt like nothing. Their next session should start from the band they *used*, not the one that
+ * was suggested and ignored — otherwise the app re-prescribes B2 forever and the user re-corrects
+ * it forever.
+ *
+ * The rep target moves with the band exactly as it does when micro-progression itself changes
+ * band (`microAdvance`/`microRegress`): heavier band, back to the bottom of the range; lighter
+ * band, up to the top. Band and reps are one prescription, so adopting half of it would leave a
+ * pairing the progression rules never produce.
+ *
+ * Clamped to the exercise's own suggested range — the library, not the user's grab-bag, decides
+ * what is a sane load for a movement (invariant 2), and a band outside it means "as heavy/light as
+ * this exercise goes". No-ops for bodyweight work, for an unknown observed band, and when the
+ * observed band is the prescribed one, which is the overwhelmingly common case.
+ */
+export function reconcileMicroToObservedBand(
+  micro: ProgressionMicroState,
+  exercise: Exercise,
+  observedBand: BandId | null | undefined,
+): ProgressionMicroState {
+  if (exercise.equipment !== 'band' || !observedBand || !micro.band) return micro;
+  const range = parseBandRange(exercise.band);
+  let target = observedBand;
+  if (range) {
+    const [lo, hi] = range;
+    if (BAND_ORDER.indexOf(target) < BAND_ORDER.indexOf(lo)) target = lo;
+    if (BAND_ORDER.indexOf(target) > BAND_ORDER.indexOf(hi)) target = hi;
+  }
+  if (target === micro.band) return micro;
+  const { low, high } = rangeForExercise(exercise);
+  const heavier = BAND_ORDER.indexOf(target) > BAND_ORDER.indexOf(micro.band);
+  return { ...micro, band: target, repTarget: heavier ? low : high };
+}
+
 /** True once every micro knob is at its floor for this level (used to detect the "two
  *  consecutive regressions at the bottom micro-step" drop-a-level trigger, §6.3). */
 export function isAtBottomMicroStep(micro: ProgressionMicroState, exercise: Exercise): boolean {

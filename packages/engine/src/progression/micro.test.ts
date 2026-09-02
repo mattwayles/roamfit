@@ -5,6 +5,7 @@ import {
   microRegress,
   isAtBottomMicroStep,
   microStepsToNextLevel,
+  reconcileMicroToObservedBand,
 } from './micro';
 import type { ProgressionMicroState } from '../types';
 
@@ -103,6 +104,43 @@ describe('§6.2 micro-progression', () => {
     const timed = { ...bodyweightPush, metric: 'time' as const, default_seconds: 30 };
     const micro = defaultMicroForExercise(timed);
     expect(micro.repTarget).toBe(20); // PROGRESSION_TIME_LOW_SEC
+  });
+});
+
+describe('§6.2 reconcileMicroToObservedBand — the band the user actually used', () => {
+  // "B3-B5" in the library, so there is room to observe a band above, below and outside the range.
+  const wideRange = library.find((e) => e.equipment === 'band' && e.band === 'B3-B5')!;
+
+  it('adopts a heavier observed band and resets reps to the bottom of the range', () => {
+    const micro = defaultMicroForExercise(wideRange); // B3, reps at the bottom
+    const next = reconcileMicroToObservedBand({ ...micro, repTarget: 12 }, wideRange, 'B4');
+    expect(next.band).toBe('B4');
+    expect(next.repTarget).toBe(10);
+  });
+
+  it('adopts a lighter observed band and moves reps to the top of the range', () => {
+    const micro = { ...defaultMicroForExercise(wideRange), band: 'B5' as const, repTarget: 10 };
+    const next = reconcileMicroToObservedBand(micro, wideRange, 'B4');
+    expect(next.band).toBe('B4');
+    expect(next.repTarget).toBe(12);
+  });
+
+  it('clamps an observed band outside the exercise’s suggested range', () => {
+    const micro = defaultMicroForExercise(wideRange); // B3
+    expect(reconcileMicroToObservedBand(micro, wideRange, 'B1').band).toBe('B3');
+    const heavy = { ...micro, band: 'B4' as const };
+    // The user reports the heaviest band they own; the exercise tops out at B5, so that is what
+    // is adopted rather than a load the library never suggests for the movement.
+    expect(reconcileMicroToObservedBand(heavy, wideRange, 'B5').band).toBe('B5');
+  });
+
+  it('is a no-op for the ordinary cases: same band, no report, bodyweight work', () => {
+    const micro = defaultMicroForExercise(bandedPush);
+    expect(reconcileMicroToObservedBand(micro, bandedPush, micro.band)).toBe(micro);
+    expect(reconcileMicroToObservedBand(micro, bandedPush, null)).toBe(micro);
+    expect(reconcileMicroToObservedBand(micro, bandedPush, undefined)).toBe(micro);
+    const bw = defaultMicroForExercise(bodyweightPush);
+    expect(reconcileMicroToObservedBand(bw, bodyweightPush, 'B4')).toBe(bw);
   });
 });
 

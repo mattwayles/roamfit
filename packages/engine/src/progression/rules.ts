@@ -9,6 +9,7 @@ import {
   isAtBottomMicroStep,
   microAdvance,
   microRegress,
+  reconcileMicroToObservedBand,
   defaultMicroForExercise as defaultMicro,
 } from './micro';
 import { isMaxLevel, nextLevel, prevLevel } from './ladder';
@@ -43,11 +44,23 @@ function currentExercise(
 }
 
 export function applySessionResult(
-  state: ProgressionState,
+  inputState: ProgressionState,
   family: ProgressionFamily,
   library: readonly Exercise[],
   perf: SessionPerformance,
 ): ApplySessionResult {
+  // Reconcile to what actually happened *before* judging it. `perf.observedBand` is the band the
+  // user logged having used, which may not be the one that was prescribed; every verdict below is
+  // about how that session went, so it has to be read against the load the user really trained
+  // with. Doing it first also means a session that both switched band and earned an advance
+  // advances from the new band rather than from the abandoned prescription.
+  const state: ProgressionState = (() => {
+    const exercise = currentExercise(family, inputState.levelId, library);
+    if (!exercise) return inputState;
+    const micro = reconcileMicroToObservedBand(inputState.micro, exercise, perf.observedBand);
+    return micro === inputState.micro ? inputState : { ...inputState, micro };
+  })();
+
   if (state.calibrating) {
     const { state: next, levelChanged } = applyCalibrationStep(state, family, library, perf);
     return {

@@ -148,6 +148,39 @@ describe('§6.3 advance / regress / drop-a-level', () => {
   });
 });
 
+// §6.2 — the user logged which band they actually picked up. l5 (banded-push-up, "B1-B2") is the
+// one banded rung of this ladder, so it is where an observed band can differ from the prescription.
+describe('a band the user actually used, reported back at completion', () => {
+  it('adopts it, so the next session no longer re-prescribes the band that was ignored', () => {
+    const state = stateAt('horizontal_push.l5');
+    expect(state.micro.band).toBe('B1');
+    const result = applySessionResult(state, family, library, perf({ observedBand: 'B2' }));
+    expect(result.state.micro.band).toBe('B2');
+  });
+
+  it('judges the session against the band actually used, then advances from there', () => {
+    const state = stateAt('horizontal_push.l5');
+    const result = applySessionResult(
+      state,
+      family,
+      library,
+      perf({ allSetsAtOrAboveTop: true, observedBand: 'B2' }),
+    );
+    expect(result.event.kind).toBe('micro_advance');
+    // B2 with reps reset to the bottom of the range (10), then the advance takes it to 11 — not
+    // an advance from the abandoned B1 prescription.
+    expect(result.state.micro.band).toBe('B2');
+    expect(result.state.micro.repTarget).toBe(11);
+  });
+
+  it('leaves state alone when the prescription was simply followed', () => {
+    const state = stateAt('horizontal_push.l5');
+    const followed = applySessionResult(state, family, library, perf({ observedBand: 'B1' }));
+    const unreported = applySessionResult(state, family, library, perf({}));
+    expect(followed.state).toEqual(unreported.state);
+  });
+});
+
 // ADR 0012 — the user's explicit "this is too easy". Unlike everything else in rules.ts this is
 // an instruction, not an inference from logged performance.
 describe('levelUpForTooEasy (ADR 0012)', () => {
