@@ -327,13 +327,13 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   };
 
   const handlePinnedNoteChange = (note: string) => {
-    const clockToday = nowUtcInstant().slice(0, 10);
+    const localToday = localDateFromDate(new Date());
     exerciseStateRepo.setPinnedNote(
       db,
       entry.exerciseId,
       note.length > 0 ? note : null,
       nowUtcInstant(),
-      clockToday,
+      localToday,
     );
     reload();
   };
@@ -346,13 +346,13 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     sessionsRepo.recordDemoMediaExpanded(db, entry.id, nowUtcInstant());
   };
   const handleReportVideoIssue = () => {
-    const clockToday = nowUtcInstant().slice(0, 10);
+    const localToday = localDateFromDate(new Date());
     exerciseStateRepo.reportVideoIssue(
       db,
       entry.exerciseId,
       'user_report',
       nowUtcInstant(),
-      clockToday,
+      localToday,
     );
     reload();
   };
@@ -377,13 +377,13 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   };
 
   const handleDemoPlayerError = () => {
-    const clockToday = nowUtcInstant().slice(0, 10);
+    const localToday = localDateFromDate(new Date());
     exerciseStateRepo.reportVideoIssue(
       db,
       entry.exerciseId,
       'player_error',
       nowUtcInstant(),
-      clockToday,
+      localToday,
     );
     reload();
   };

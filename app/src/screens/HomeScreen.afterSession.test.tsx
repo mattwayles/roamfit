@@ -82,7 +82,13 @@ describe('Home after a completed session', () => {
       </StoreProvider>,
     );
 
-    await waitFor(() => expect(screen.getByTestId('today-card')).toBeTruthy());
+    // Explicit timeout: RNTL's default is 1000ms, and this screen's first render does real
+    // migrations + generation against a real sqlite file — comfortably over a second on a
+    // loaded machine. The bare default made this the suite's flakiest assertion.
+    await waitFor(() => expect(screen.getByTestId('today-card')).toBeTruthy(), {
+      timeout: 5000,
+      interval: 50,
+    });
 
     expect(screen.getByTestId('lifetime-counters')).toBeTruthy();
     expect(screen.getByText('1')).toBeTruthy(); // Sessions counter
