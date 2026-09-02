@@ -12,6 +12,7 @@
  * covered by `networkStatus.test.ts`.
  */
 import React from 'react';
+import { Linking } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import DemoMedia from './DemoMedia';
 import { getNetworkStatus } from '../lib/networkStatus';
@@ -65,6 +66,11 @@ async function submitUrl(renderer: TestRenderer.ReactTestRenderer, text: string)
 describe('DemoMedia', () => {
   beforeEach(() => {
     mockGetNetworkStatus.mockReset();
+    jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('offline: renders nothing at all — no player, no frame, no toggle (the cue is the demo)', async () => {
@@ -93,61 +99,36 @@ describe('DemoMedia', () => {
     expect(renderer.root.findByProps({ testID: 'demo-media-report' })).toBeTruthy();
   });
 
-  it('serves the player from a host document on a real origin, never the bare embed URL', async () => {
-    // Pointed straight at the /embed/ URL the WebView *is* the page, so the player has no
-    // referring page and fails with "Video player configuration error" (153) on a real device.
+  it('loads the watch page, which is the one video path that works in this WebView', async () => {
+    // Every embedded-player route ends in "Video player configuration error" here — 153, then
+    // 152-4 twice, the last time from a player that reported itself ready first. See
+    // EMBED_BASE_URL for the whole chain.
     mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
     const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
     const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
-    expect(webview.props.source.uri).toBeUndefined();
-    expect(webview.props.source.baseUrl).toBe('https://www.youtube.com');
-    expect(webview.props.source.html).toContain('new YT.Player');
-    // Storage has to be on, or the player cannot read its own configuration (error 152-4).
-    expect(webview.props.domStorageEnabled).toBe(true);
+    expect(webview.props.source.uri).toBe('https://www.youtube.com/watch?v=abc123XYZ_9');
+    expect(webview.props.source.html).toBeUndefined();
+    // What §11.4's player behaviour still holds a watch page to.
+    expect(webview.props.mediaPlaybackRequiresUserAction).toBe(true);
+    expect(webview.props.allowsFullscreenVideo).toBe(false);
   });
 
-  it('falls back to the watch page when the player never configures itself', async () => {
-    // "Video player configuration error" from the outside: the API script loads, the player
-    // never arrives. Not a bad video, so no flag is recorded against the exercise — the frame
-    // just becomes the watch page, which is the path known to work in this WebView.
+  it('keeps YouTube in the frame and sends everything else to the browser', async () => {
     mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
-    const { renderer, onPlayerError } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
+    const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
     const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
-    await act(async () => {
-      webview.props.onMessage({ nativeEvent: { data: '{"type":"player_unavailable"}' } });
-    });
 
-    const after = renderer.root.findByProps({ testID: 'demo-media-webview' });
-    expect(after.props.source.uri).toBe('https://www.youtube.com/watch?v=abc123XYZ_9');
-    expect(onPlayerError).not.toHaveBeenCalled();
-  });
+    expect(
+      webview.props.onShouldStartLoadWithRequest({
+        url: 'https://www.youtube.com/watch?v=other12345',
+      }),
+    ).toBe(true);
+    expect(Linking.openURL).not.toHaveBeenCalled();
 
-  it('a player error is still the §11.4 silent drop, not a watch-page fallback', async () => {
-    // The player worked and rejected this video (embedding disabled, removed, private). The
-    // watch page would not help, and this is the case §11.4 wants flagged.
-    mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
-    const { renderer, onPlayerError } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
-    const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
-    await act(async () => {
-      webview.props.onMessage({ nativeEvent: { data: '{"type":"player_error","code":150}' } });
-    });
-
-    expect(renderer.root.findAllByProps({ testID: 'demo-media-webview' })).toHaveLength(0);
-    expect(onPlayerError).toHaveBeenCalledTimes(1);
-  });
-
-  it('ignores anything else a page in a WebView posts', async () => {
-    mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
-    const { renderer, onPlayerError } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
-    const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
-    await act(async () => {
-      webview.props.onMessage({ nativeEvent: { data: 'hello from somewhere else' } });
-      webview.props.onMessage({ nativeEvent: { data: '{"type":"player_ready"}' } });
-    });
-
-    const after = renderer.root.findByProps({ testID: 'demo-media-webview' });
-    expect(after.props.source.html).toContain('new YT.Player');
-    expect(onPlayerError).not.toHaveBeenCalled();
+    expect(
+      webview.props.onShouldStartLoadWithRequest({ url: 'https://sponsor.example/deal' }),
+    ).toBe(false);
+    expect(Linking.openURL).toHaveBeenCalledWith('https://sponsor.example/deal');
   });
 
   it('online, curated id, but locally demoted: no embed, but the search link survives', async () => {
@@ -252,8 +233,8 @@ describe('DemoMedia', () => {
         curatedVideoId: 'abc123XYZ_9',
       });
       const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
-      expect(webview.props.source.html).toContain('videoId:"USERvid1234"');
-      expect(webview.props.source.html).not.toContain('abc123XYZ_9');
+      expect(webview.props.source.uri).toContain('v=USERvid1234');
+      expect(webview.props.source.uri).not.toContain('abc123XYZ_9');
     });
 
     it('hides the "wrong or broken" report for the user\u2019s own pick', async () => {

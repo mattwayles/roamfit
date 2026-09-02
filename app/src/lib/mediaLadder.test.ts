@@ -8,11 +8,9 @@
  */
 import {
   EMBED_BASE_URL,
-  PLAYER_READY_TIMEOUT_MS,
-  buildEmbedHtml,
   buildSearchUrl,
   buildWatchUrl,
-  parseEmbedMessage,
+  isYouTubeUrl,
   resolveMediaTier,
   type MediaLadderInput,
 } from './mediaLadder';
@@ -138,51 +136,6 @@ describe('buildSearchUrl', () => {
   });
 });
 
-describe('buildEmbedHtml', () => {
-  it('builds the player through the IFrame API, in a document served from EMBED_BASE_URL', () => {
-    // A bare <iframe> in a loadHTMLString document is what produced two rounds of "Video player
-    // configuration error" on device (153, then 152-4). The API is the shape the player is
-    // documented to expect — see EMBED_BASE_URL for the whole chain.
-    const html = buildEmbedHtml('abc123XYZ_9');
-    expect(html).toContain(`${EMBED_BASE_URL}/iframe_api`);
-    expect(html).toContain('new YT.Player');
-    expect(html).toContain(`origin:'${EMBED_BASE_URL}'`);
-  });
-
-  it('plays the exact given video id, and nothing else', () => {
-    expect(buildEmbedHtml('abc123XYZ_9')).toContain('videoId:"abc123XYZ_9"');
-  });
-
-  it('keeps §11.4 player behaviour: no autoplay, no fullscreen, no related videos, muted', () => {
-    const html = buildEmbedHtml('abc123XYZ_9');
-    expect(html).toContain('autoplay:0');
-    expect(html).toContain('fs:0');
-    expect(html).toContain('mute:1');
-    expect(html).toContain('playsinline:1');
-    expect(html).toContain('rel:0');
-  });
-
-  it('reports back both ways it can fail, so a dead frame is never just left there', () => {
-    const html = buildEmbedHtml('abc123XYZ_9');
-    expect(html).toContain('player_unavailable');
-    expect(html).toContain('player_error');
-    expect(html).toContain(String(PLAYER_READY_TIMEOUT_MS));
-  });
-
-  it('cannot be broken out of by a hostile id', () => {
-    // Curated ids arrive by sync, so the id is treated as untrusted input even though the paste
-    // path validates it: it goes in as a JSON string literal, with `<` escaped so nothing in it
-    // can end the script tag early.
-    const html = buildEmbedHtml('</script><img src=x onerror=alert(1)>');
-    // The payload survives only as inert text inside the JSON string literal: no `<` of its own
-    // reaches the document, so it can neither close the script tag nor open an element.
-    expect(html).not.toContain('</script><img');
-    expect(html).toContain('videoId:"\\u003c/script>\\u003cimg');
-    // Exactly one script element, the one this function wrote.
-    expect(html.match(/<\/script>/g)).toHaveLength(1);
-  });
-});
-
 describe('buildWatchUrl', () => {
   it('is the plain watch page — the path that works when the embed will not configure', () => {
     expect(buildWatchUrl('abc123XYZ_9')).toBe(`${EMBED_BASE_URL}/watch?v=abc123XYZ_9`);
@@ -193,29 +146,26 @@ describe('buildWatchUrl', () => {
   });
 });
 
-describe('parseEmbedMessage', () => {
-  it('reads the three messages the host document sends', () => {
-    expect(parseEmbedMessage('{"type":"player_ready"}')).toEqual({ type: 'player_ready' });
-    expect(parseEmbedMessage('{"type":"player_unavailable"}')).toEqual({
-      type: 'player_unavailable',
-    });
-    expect(parseEmbedMessage('{"type":"player_error","code":150}')).toEqual({
-      type: 'player_error',
-      code: 150,
-    });
+describe('isYouTubeUrl', () => {
+  it('keeps YouTube and its playback hosts inside the demo frame', () => {
+    expect(isYouTubeUrl('https://www.youtube.com/watch?v=abc123XYZ_9')).toBe(true);
+    expect(isYouTubeUrl('https://m.youtube.com/watch?v=abc123XYZ_9')).toBe(true);
+    expect(isYouTubeUrl('https://youtu.be/abc123XYZ_9')).toBe(true);
+    expect(isYouTubeUrl('https://r1---sn-abc.googlevideo.com/videoplayback?x=1')).toBe(true);
+    expect(isYouTubeUrl('https://i.ytimg.com/vi/abc123XYZ_9/hq.jpg')).toBe(true);
   });
 
-  it('keeps a code-less error rather than inventing a code', () => {
-    expect(parseEmbedMessage('{"type":"player_error"}')).toEqual({
-      type: 'player_error',
-      code: null,
-    });
+  it('sends everything else out of the frame', () => {
+    // A link in a description, an ad, a sign-in redirect: none of those belong in a 220pt box
+    // in the middle of a set.
+    expect(isYouTubeUrl('https://example.com/whatever')).toBe(false);
+    expect(isYouTubeUrl('https://accounts.google.com/signin')).toBe(false);
+    expect(isYouTubeUrl('not a url')).toBe(false);
+    expect(isYouTubeUrl('javascript:alert(1)')).toBe(false);
   });
 
-  it('is null for anything else a page in a WebView might post', () => {
-    expect(parseEmbedMessage('not json')).toBeNull();
-    expect(parseEmbedMessage('"a string"')).toBeNull();
-    expect(parseEmbedMessage('null')).toBeNull();
-    expect(parseEmbedMessage('{"type":"something_else"}')).toBeNull();
+  it('is not fooled by a lookalike host', () => {
+    expect(isYouTubeUrl('https://youtube.com.evil.example/watch?v=x')).toBe(false);
+    expect(isYouTubeUrl('https://notyoutube.com/watch?v=x')).toBe(false);
   });
 });

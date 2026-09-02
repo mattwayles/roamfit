@@ -12,6 +12,13 @@
  * §11.6's airplane-mode gate is unaffected: the cue text is bundled on the exercise record, so
  * the offline path still has real content and never depends on a network read.
  *
+ * **The "embed" is a watch page.** Every embedded-player route failed on a real device with
+ * "Video player configuration error" — see `mediaLadder.ts`'s `EMBED_BASE_URL` for all three
+ * attempts and why a `loadHTMLString` document cannot satisfy the player's origin checks. The
+ * watch page has worked throughout. It costs §11.4's quiet player (YouTube's own chrome, related
+ * videos, no forced mute) and keeps what it can: no autoplay, no fullscreen takeover, and links
+ * off YouTube open in the browser instead of wandering inside a 220pt frame mid-set.
+ *
  * Network status (online/metered) is read here, not passed in, so every call site gets the same
  * "safe until proven online" behavior from `networkStatus.ts` for free.
  *
@@ -27,14 +34,7 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import {
-  EMBED_BASE_URL,
-  buildEmbedHtml,
-  buildSearchUrl,
-  buildWatchUrl,
-  parseEmbedMessage,
-  resolveMediaTier,
-} from '../lib/mediaLadder';
+import { buildSearchUrl, buildWatchUrl, isYouTubeUrl, resolveMediaTier } from '../lib/mediaLadder';
 import { getNetworkStatus } from '../lib/networkStatus';
 import { parseYouTubeVideoId } from '../lib/youtubeUrl';
 
@@ -85,10 +85,6 @@ export default function DemoMedia({
   // even if the network status re-check would otherwise still favor it, rather than flapping back
   // to a player that just errored.
   const [playerErrored, setPlayerErrored] = useState(false);
-  /** The embedded player could not configure itself, so the frame has switched to the watch page
-   *  — the path the player's own "Watch this video on YouTube" link takes, which works in this
-   *  same WebView. Per mount, and reset by a new assignment, exactly like `playerErrored`. */
-  const [useWatchPage, setUseWatchPage] = useState(false);
   const [draftUrl, setDraftUrl] = useState('');
   const [urlError, setUrlError] = useState<string | null>(null);
   const [network, setNetwork] = useState<{ online: boolean; metered: boolean }>({
@@ -149,7 +145,6 @@ export default function DemoMedia({
     // A previous player error was about the *old* video. Clear it so the new assignment is
     // actually given a chance to render rather than being suppressed by a stale flag.
     setPlayerErrored(false);
-    setUseWatchPage(false);
     onAssignVideo(videoId);
   };
 
@@ -160,27 +155,15 @@ export default function DemoMedia({
   };
 
   /**
-   * What the host document reports about its player.
-   *
-   * A player that never configures itself ("Video player configuration error", codes 152/153 —
-   * the reason this document exists at all) reaches us as `player_unavailable`: the API script
-   * loaded, the player never arrived. That is a frame problem, not a bad video, so the frame
-   * changes shape — it loads the watch page instead — and no video flag is recorded against the
-   * exercise, because there is nothing wrong with the exercise's video.
-   *
-   * `player_error` is the opposite: the player worked and rejected *this video* (embedding
-   * disabled by its owner, removed, private). That is §11.4's "the failure is reported back as an
-   * automatic flag" case, so it keeps the existing silent-drop behaviour. The watch page would
-   * not help — a video whose owner disabled embedding is exactly what the search link is for.
+   * The demo frame is a YouTube watch page (see `EMBED_BASE_URL` for the three device rounds that
+   * settled that), and a watch page has links. Anything that leaves YouTube leaves the frame with
+   * it: it opens in the real browser, where a full screen and a back button are, rather than
+   * loading into a 220pt box in the middle of a set.
    */
-  const handleEmbedMessage = (raw: string) => {
-    const message = parseEmbedMessage(raw);
-    if (message === null) return;
-    if (message.type === 'player_unavailable') {
-      setUseWatchPage(true);
-      return;
-    }
-    if (message.type === 'player_error') handlePlayerError();
+  const handleFrameNavigation = (request: { url: string }): boolean => {
+    if (isYouTubeUrl(request.url)) return true;
+    void Linking.openURL(request.url);
+    return false;
   };
 
   return (
@@ -193,33 +176,24 @@ export default function DemoMedia({
         <View style={styles.body} testID="demo-media-body">
           {showEmbed && (
             <View style={styles.mediaFrame}>
-              {/* A host document, not the `/embed/` URL itself: pointed straight at the embed the
-                  WebView *is* the page, so the player gets no referring page and refuses with
-                  "Video player configuration error" (153) — and the document has to be same-site
-                  with the player, or the next one along (152-4). See `EMBED_BASE_URL`.
-
-                  If the player still cannot configure itself, the document says so and this
-                  becomes the watch page instead, which is the one path known to work here. */}
+              {/* The watch page, not an embed: every embedded-player route ends in "Video player
+                  configuration error" inside this WebView, while this one has always worked. See
+                  `EMBED_BASE_URL` for the whole chain. */}
               <WebView
                 testID="demo-media-webview"
-                source={
-                  useWatchPage
-                    ? { uri: buildWatchUrl(ladder.videoId as string) }
-                    : {
-                        html: buildEmbedHtml(ladder.videoId as string),
-                        baseUrl: EMBED_BASE_URL,
-                      }
-                }
-                onMessage={(event) => handleEmbedMessage(event.nativeEvent.data)}
+                source={{ uri: buildWatchUrl(ladder.videoId as string) }}
                 originWhitelist={['https://*']}
                 style={styles.media}
-                // The player reads its own configuration out of browser storage; a WebView with
-                // storage turned off is the other half of the 152-4 configuration error.
                 domStorageEnabled
                 sharedCookiesEnabled
+                // Playback stays inside the frame and still needs a deliberate tap — the two
+                // parts of §11.4's player behaviour a watch page can still be held to. It cannot
+                // be told to start muted, so the workout's own audio session is re-asserted by
+                // `workoutAudio.ts` rather than assumed.
                 allowsInlineMediaPlayback
                 allowsFullscreenVideo={false}
                 mediaPlaybackRequiresUserAction
+                onShouldStartLoadWithRequest={handleFrameNavigation}
                 onError={handlePlayerError}
                 onHttpError={handlePlayerError}
               />

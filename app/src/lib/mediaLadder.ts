@@ -80,114 +80,54 @@ export function buildSearchUrl(videoSearchQuery: string, online: boolean): strin
 }
 
 /**
- * The origin the player is served from *and* the origin of the page it is embedded in — one
- * constant for both, deliberately, because they have to match.
+ * The host every video URL this app builds is served from.
  *
- * The story so far, from real-device reports:
- *   - A WebView pointed straight at an `/embed/` URL *is* the page, so the request carries no
- *     referring page: "Video player configuration error", error 153.
- *   - Wrapping it in a host document fixed the referrer, but the document was on youtube.com
- *     while the player was on youtube-nocookie.com. WKWebView partitions storage by site and
- *     blocks third-party cookies by default, so the player could not reach its own storage from
- *     inside a cross-site frame: error 152-4, the next configuration error along.
- * Same-site host page and player is what a browser embed on a real website effectively gets, and
- * it is the configuration every working React Native YouTube player uses.
+ * **The embedded player is not used any more.** Three rounds on a real device, in this order:
+ *   - The WebView pointed straight at an `/embed/` URL: "Video player configuration error" 153,
+ *     because the WebView *is* the page, so the embed request carries no referring page.
+ *   - Wrapped in a host document with a `baseUrl`: error 152-4.
+ *   - Built through the IFrame Player API, same-site, with an explicit `origin`: error 152-4
+ *     again, and the player reaches `onReady` before rendering the error itself — so no
+ *     watchdog or `onError` hook can even see it happen.
+ * A document loaded with `loadHTMLString` is not genuinely *served* from its `baseUrl`, and the
+ * embedded player's origin checks are entitled to notice. That is not something this app can
+ * argue with from the outside.
  *
- * The cost is `youtube-nocookie.com`, which §11.4 asked for: a player that will not run is worth
- * less than the cookie-domain nicety, and nothing else about §11.4's player behaviour changes —
- * no autoplay, no fullscreen, no related videos, muted. The player is also never given the user's
- * identity by this app, and the WebView is dropped from the tree the moment the block is closed.
+ * The watch page, meanwhile, has worked in this same WebView the entire time — it is where the
+ * failing player's own "Watch this video on YouTube" link goes, and it plays the right video
+ * every time. So that is what the demo frame loads: the thing that works.
  *
- * (The tell throughout: the player's own "Watch this video on YouTube" link works in the very
- * same WebView. That path is a normal watch page, which has neither requirement.)
+ * What that costs, stated plainly, is §11.4's quiet player: the watch page brings YouTube's own
+ * chrome and its related videos with it, and it cannot be told to start muted. `DemoMedia` keeps
+ * what it still can — no autoplay (playback needs a tap), no fullscreen takeover, and navigation
+ * off YouTube leaves the frame rather than wandering mid-workout.
  */
 export const EMBED_BASE_URL = 'https://www.youtube.com';
 
-/**
- * The watch page for a video — the one path that is *known* to work in this WebView, because it
- * is what the failing player's own "Watch this video on YouTube" link navigates to, in the very
- * same frame, playing the right video every time.
- *
- * It is a fallback, not the default: a watch page brings YouTube's own chrome and its related
- * videos with it, which is the mid-workout rabbit hole §11.4 wanted the embed to avoid. But a
- * noisy video beats a configuration error where a demonstration should be.
- */
+/** The watch page for a video — the demo frame's source. See `EMBED_BASE_URL`. */
 export function buildWatchUrl(videoId: string): string {
   return `${EMBED_BASE_URL}/watch?v=${encodeURIComponent(videoId)}`;
 }
 
-/**
- * The host document for the player: `EMBED_BASE_URL` is its `baseUrl` — see that constant for why
- * the player cannot simply be the WebView's own URL.
- *
- * The player is built through YouTube's IFrame Player API rather than by dropping an `<iframe>`
- * in directly. Two device rounds of "Video player configuration error" (153, then 152-4) are the
- * reason: a bare iframe inside a `loadHTMLString` document is a shape the player is entitled to
- * refuse, and the API is the shape it is documented to expect — it negotiates its own origin with
- * the page it is created in instead of inferring one. This is what every working React Native
- * YouTube player does.
- *
- * The document also reports back, which the bare iframe could not do:
- *   - `player_error` with the API's own error code, if the player rejects the video.
- *   - `player_unavailable` if the API never even becomes ready, which is what a configuration
- *     error looks like from the outside — the API script loads, the player never arrives.
- * Either way the consumer can fall back to `buildWatchUrl`, rather than leaving a dead frame on
- * screen. `PLAYER_READY_TIMEOUT_MS` is generous: a slow connection must not be mistaken for a
- * broken player.
- */
-export const PLAYER_READY_TIMEOUT_MS = 8000;
-
-export type EmbedMessage =
-  | { type: 'player_ready' }
-  | { type: 'player_error'; code: number | null }
-  | { type: 'player_unavailable' };
-
-/** Parses what `buildEmbedHtml`'s document posts back. Anything unrecognised — including whatever
- *  else a page in a WebView might post — is null, never a guess. */
-export function parseEmbedMessage(raw: string): EmbedMessage | null {
-  let parsed: unknown;
+/** Whether a URL the demo frame is about to navigate to is still YouTube's own. Anything else —
+ *  an ad, a link in a description, a sign-in redirect to another provider — belongs in the real
+ *  browser, not in a 220pt frame in the middle of a set. */
+export function isYouTubeUrl(url: string): boolean {
+  let parsed: URL;
   try {
-    parsed = JSON.parse(raw);
+    parsed = new URL(url);
   } catch {
-    return null;
+    return false;
   }
-  if (typeof parsed !== 'object' || parsed === null) return null;
-  const { type, code } = parsed as { type?: unknown; code?: unknown };
-  if (type === 'player_ready') return { type: 'player_ready' };
-  if (type === 'player_unavailable') return { type: 'player_unavailable' };
-  if (type === 'player_error') {
-    return { type: 'player_error', code: typeof code === 'number' ? code : null };
-  }
-  return null;
-}
-
-export function buildEmbedHtml(videoId: string): string {
-  // Only ever an id, and only ever inside a JSON string literal — but built by hand rather than
-  // interpolated raw, so a malformed curated id can never end the script tag early.
-  const idLiteral = JSON.stringify(videoId).replace(/</g, '\\u003c');
-  return [
-    '<!DOCTYPE html><html><head>',
-    '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">',
-    '<style>html,body{margin:0;padding:0;background:#f1f5f9;height:100%;overflow:hidden}',
-    '#player,iframe{border:0;width:100%;height:100%;display:block}</style>',
-    '</head><body><div id="player"></div><script>',
-    'var post=function(m){try{window.ReactNativeWebView.postMessage(JSON.stringify(m));}catch(e){}};',
-    'var settled=false;',
-    'var give=function(m){if(settled)return;settled=true;post(m);};',
-    `var t=setTimeout(function(){give({type:'player_unavailable'});},${PLAYER_READY_TIMEOUT_MS});`,
-    'window.onYouTubeIframeAPIReady=function(){',
-    "new YT.Player('player',{",
-    `videoId:${idLiteral},`,
-    // The same player behaviour §11.4 asks for, now as player vars rather than URL params.
-    "playerVars:{autoplay:0,fs:0,playsinline:1,mute:1,modestbranding:1,rel:0,origin:'",
-    EMBED_BASE_URL,
-    "'},",
-    "events:{onReady:function(){clearTimeout(t);give({type:'player_ready'});},",
-    "onError:function(e){clearTimeout(t);give({type:'player_error',code:e&&e.data});}}",
-    '});};',
-    `var s=document.createElement('script');s.src='${EMBED_BASE_URL}/iframe_api';`,
-    "s.onerror=function(){give({type:'player_unavailable'});};",
-    'document.head.appendChild(s);',
-    '</script></body></html>',
-  ].join('');
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+  const host = parsed.hostname.toLowerCase();
+  return (
+    host === 'youtube.com' ||
+    host === 'youtu.be' ||
+    host === 'youtube-nocookie.com' ||
+    host.endsWith('.youtube.com') ||
+    host.endsWith('.youtube-nocookie.com') ||
+    host.endsWith('.googlevideo.com') ||
+    host.endsWith('.ytimg.com')
+  );
 }
