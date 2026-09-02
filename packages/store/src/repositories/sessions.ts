@@ -1040,6 +1040,40 @@ export function recordEntryFeedback(
   }
 }
 
+/**
+ * §8.1 feedback for a whole stage at once — the warm-up, or the cool-down.
+ *
+ * Asking about six warm-up exercises one at a time, each on its own page, was more questions than
+ * the answers were worth: a warm-up is done as one block and is judged as one block. So the screen
+ * asks once, when the stage ends, and that single answer is written to every entry the stage owns.
+ *
+ * Deliberately not a new column. Storing it per entry means the exercise-level consumers keep
+ * working untouched — `enjoymentEma` still steers `warmupCooldown.ts`'s selection away from the
+ * ones the user dislikes, and the summary still shows a value against each line — which is exactly
+ * what "the warm-up was rough" means about the exercises that made it up. Entries removed at
+ * approval are skipped: they were not part of the stage the user is answering about.
+ */
+export function recordSectionFeedback(
+  db: Db,
+  sessionId: string,
+  section: 'warmup' | 'main' | 'cooldown',
+  feedback: {
+    difficulty?: 'too_easy' | 'just_right' | 'too_hard' | null;
+    enjoyment?: number | null;
+  },
+  now: string,
+): void {
+  const entries = db
+    .select()
+    .from(schema.sessionEntries)
+    .where(eq(schema.sessionEntries.sessionId, sessionId))
+    .all()
+    .filter((e) => e.section === section && e.entryStatus !== 'removed_at_approval');
+  for (const entry of entries) {
+    recordEntryFeedback(db, entry.id, feedback, now);
+  }
+}
+
 export function recordDemoMediaExpanded(db: Db, entryId: string, now: string): void {
   const entry = db
     .select()

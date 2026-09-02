@@ -53,11 +53,13 @@ import { useStore } from '../state/StoreContext';
 import { localDateFromDate, nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import {
   activeEntries,
+  completesSection,
   findCurrentEntry,
   samePosition,
+  sectionHasCompletedSet,
   stepPosition,
 } from '../lib/sessionProgress';
-import type { SessionPosition } from '../lib/sessionProgress';
+import type { Section, SessionPosition } from '../lib/sessionProgress';
 import { useCountdown } from '../lib/useCountdown';
 import type { CountdownController } from '../lib/wallClockTimer';
 import PinnedNote from '../components/PinnedNote';
@@ -82,7 +84,12 @@ import {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Workout'>;
 
-type Phase = 'exercise' | 'resting';
+/**
+ * `stage_feedback` is the warm-up/cool-down question, asked once when the stage ends instead of
+ * once per exercise inside it. It replaces the rest phase for that one transition — there is no
+ * countdown and no rest controls on it, because it is not a rest.
+ */
+type Phase = 'exercise' | 'resting' | 'stage_feedback';
 
 /** Exactly the arguments `finishSetAndRest` was called with, parked while the paused-timer nudge
  *  is on screen so that answering it either way logs the same set. */
@@ -128,6 +135,9 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   // §8.1 — which entry the rest screen's feedback controls apply to (the one just performed,
   // not `current`'s post-reload "next up" entry). See the comment in `finishSetAndRest`.
   const [restingEntryId, setRestingEntryId] = useState<string | null>(null);
+  /** Which stage the `stage_feedback` page is asking about, or null when it isn't showing. Its
+   *  feedback goes to every entry in that stage, not to `restingEntryId`. */
+  const [feedbackSection, setFeedbackSection] = useState<Section | null>(null);
   // Same reasoning, for the §10.7 "+15s recorded as a fatigue signal" write: the set just
   // completed, not whatever `current`'s post-reload setIndex points at during the rest phase.
   const [restingSetIndex, setRestingSetIndex] = useState<number | null>(null);
@@ -210,10 +220,14 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   useEffect(() => {
     // Keyed on the front edge, not on what is being viewed: the workout is over when every set is
     // logged, and a user who has stepped back to look at an earlier set has not undone that.
-    if (session && !frontier) {
+    //
+    // The cool-down question is the one thing that stands between the last logged set and the
+    // summary: its stage ends where the workout does, so without this guard the screen would
+    // navigate straight past the page it just opened.
+    if (session && !frontier && phase !== 'stage_feedback') {
       navigation.replace('Summary', { sessionId });
     }
-  }, [session, frontier, navigation, sessionId]);
+  }, [session, frontier, phase, navigation, sessionId]);
 
   // Hooks must run unconditionally every render — this screen has early `return`s below (loading
   // states) that would otherwise change the hook count between renders (a real bug this track
@@ -261,6 +275,73 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       </View>
     );
   }
+
+  // Everything the stage page needs, defined above the guards below because it renders above them
+  // — none of it depends on there being a current set, which is exactly the case the cool-down's
+  // question runs into.
+  // §10.4 "Elapsed workout timer" — the store's `activeElapsedSec` over the already-persisted
+  // `startedAt`/`pausedAt`/`pausedTotalSec`, not a component-local stopwatch ref. A local ref
+  // silently reset to ~0 on every remount, and a bare `now - startedAt` (what this used to be)
+  // kept counting straight through a pause. Deriving from persisted absolute instants is correct
+  // across unmount/remount and across suspension for free — the same principle
+  // `wallClockTimer.ts` documents for the other timers on this screen — and it is the *same*
+  // function completion uses for `actualMinutes`, so the number the user watched is the number
+  // that gets recorded.
+  const sessionElapsedSec = sessionsRepo.activeElapsedSec(session, nowUtcInstant());
+
+  /** §8.1 stage feedback — one answer, written to every entry in the stage. `null` is "cleared",
+   *  which `recordEntryFeedback`'s contract distinguishes from an omitted key. */
+  const recordStageAnswer = (feedback: {
+    difficulty?: Difficulty | null;
+    enjoyment?: number | null;
+  }) => {
+    if (!feedbackSection) return;
+    sessionsRepo.recordSectionFeedback(db, sessionId, feedbackSection, feedback, nowUtcInstant());
+  };
+  const handleStageDifficulty = (d: Difficulty | undefined) => {
+    setDifficulty(d ?? null);
+    recordStageAnswer({ difficulty: d ?? null });
+  };
+  const handleStageEnjoyment = (e: number | undefined) => {
+    setEnjoyment(e ?? null);
+    recordStageAnswer({ enjoyment: e ?? null });
+  };
+  /** Leaving a stage page. Disarming `feedbackSection` is what lets the Summary effect through
+   *  again, which is how the cool-down page hands off to the end of the workout. */
+  const handleStageFeedbackDone = () => {
+    setStartedAtRef.current = nowUtcInstant();
+    setFeedbackSection(null);
+    setPhase('exercise');
+    reload();
+  };
+  /**
+   * The stage page renders here, above the "no current set" guard below, because the cool-down's
+   * question outlives the workout: it is asked when the last cool-down set is logged, and at that
+   * moment every slot in the plan is logged and there is no current entry left for the rest of
+   * this screen to build itself around. Rendering it here is what makes one code path serve both
+   * stages instead of the warm-up taking one route and the cool-down another.
+   *
+   * It is deliberately just the question: a seam between two stages carries no exercise, no demo,
+   * no set controls. The elapsed clock stays because it is the session's, not the set's.
+   */
+  if (phase === 'stage_feedback' && feedbackSection) {
+    return (
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.elapsed} testID="workout-elapsed">
+          Elapsed {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
+        </Text>
+        <StageFeedbackPhase
+          section={feedbackSection}
+          difficulty={difficulty}
+          enjoyment={enjoyment}
+          onDifficultyChange={handleStageDifficulty}
+          onEnjoymentChange={handleStageEnjoyment}
+          onDone={handleStageFeedbackDone}
+        />
+      </ScrollView>
+    );
+  }
+
   if (!current || !entry) {
     return (
       <View style={styles.centered}>
@@ -417,9 +498,33 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     // already moved on, so dropping the rewind override lands on the set after this one.
     setStartedAtRef.current = nowUtcInstant();
     setRewoundTo(null);
-    setPhase('exercise');
     setSwapNotice(null);
+    // Skipping the last slot still ends the stage, and the stage question is about the stage, not
+    // about this set — so a warm-up that was mostly trained still gets asked about even if its
+    // final set was waved past. One nobody trained at all does not.
+    setPhase(enterStageFeedback('skipped') ? 'stage_feedback' : 'exercise');
     reload();
+  };
+
+  /**
+   * Warm-up and cool-down are answered once, as a stage, at the moment they end — see
+   * `StageFeedbackPhase`. Returns whether that page should now take over, and arms it if so.
+   *
+   * `main` is not included: its exercises are the workout, they are individually chosen and
+   * individually progressed, and their feedback drives `applySessionResult`. It keeps the per-set
+   * rest page it has always had.
+   */
+  const enterStageFeedback = (status: 'completed' | 'skipped'): boolean => {
+    const section = completesSection(session, currentPosition);
+    if (section !== 'warmup' && section !== 'cooldown') return false;
+    // A stage where every single set was skipped is a stage that did not happen. Asking how it
+    // felt would be asking about nothing (invariant 4 — never make the user account for a
+    // skipped day).
+    if (status !== 'completed' && !sectionHasCompletedSet(session, section)) return false;
+    setFeedbackSection(section);
+    setDifficulty(null);
+    setEnjoyment(null);
+    return true;
   };
 
   /**
@@ -496,7 +601,10 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     setRestingSetIndex(setIndex);
     setDifficulty(null);
     setEnjoyment(null);
-    setPhase('resting');
+    // Finishing a warm-up or cool-down goes to that stage's single question instead of to a rest
+    // page — the transition out of the stage is not a rest, and `enterStageFeedback` has already
+    // reset the controls for it.
+    setPhase(enterStageFeedback(status) ? 'stage_feedback' : 'resting');
     setPausedCompletion(null);
     // A set that has just been trained is done with, whether it was the front edge or one the
     // user had stepped back to redo: drop the view offset so the workout resumes from its own
@@ -620,34 +728,40 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     reload();
   };
 
+  /** The stage the rest page belongs to — read off the entry just performed, not off `entry`,
+   *  which `reload()` has already advanced to the next one by the time rest is on screen. */
+  const restingSection: Section | null =
+    (activeEntries(session).find((e) => e.id === restingEntryId)?.section as Section | undefined) ??
+    null;
+
+  /**
+   * One write path for both feedback pages. On the rest page the answer is about the one exercise
+   * just performed; on a stage page it is about the whole warm-up or cool-down, and goes to every
+   * entry in it (see `recordSectionFeedback` for why that is stored per entry rather than as a new
+   * stage-level column).
+   *
+   * `null` here means "the user just cleared it", which is different from omitting the key — see
+   * `recordEntryFeedback`'s contract.
+   */
+  const recordFeedback = (feedback: {
+    difficulty?: Difficulty | null;
+    enjoyment?: number | null;
+  }) => {
+    if (feedbackSection) {
+      recordStageAnswer(feedback);
+      return;
+    }
+    sessionsRepo.recordEntryFeedback(db, restingEntryId ?? entry.id, feedback, nowUtcInstant());
+  };
+
   const handleDifficultyChange = (d: Difficulty | undefined) => {
     setDifficulty(d ?? null);
-    sessionsRepo.recordEntryFeedback(
-      db,
-      restingEntryId ?? entry.id,
-      { difficulty: d ?? null }, // explicit null = "cleared," per recordEntryFeedback's contract
-      nowUtcInstant(),
-    );
+    recordFeedback({ difficulty: d ?? null });
   };
   const handleEnjoymentChange = (e: number | undefined) => {
     setEnjoyment(e ?? null);
-    sessionsRepo.recordEntryFeedback(
-      db,
-      restingEntryId ?? entry.id,
-      { enjoyment: e ?? null },
-      nowUtcInstant(),
-    );
+    recordFeedback({ enjoyment: e ?? null });
   };
-
-  // §10.4 "Elapsed workout timer" — the store's `activeElapsedSec` over the already-persisted
-  // `startedAt`/`pausedAt`/`pausedTotalSec`, not a component-local stopwatch ref. A local ref
-  // silently reset to ~0 on every remount, and a bare `now - startedAt` (what this used to be)
-  // kept counting straight through a pause. Deriving from persisted absolute instants is correct
-  // across unmount/remount and across suspension for free — the same principle
-  // `wallClockTimer.ts` documents for the other timers on this screen — and it is the *same*
-  // function completion uses for `actualMinutes`, so the number the user watched is the number
-  // that gets recorded.
-  const elapsedSec = sessionsRepo.activeElapsedSec(session, nowUtcInstant());
 
   return (
     <ScrollView
@@ -661,7 +775,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     >
       <Text style={styles.stage}>{entry.section}</Text>
       <Text style={styles.elapsed} testID="workout-elapsed">
-        Elapsed {Math.floor(elapsedSec / 60)}m {Math.floor(elapsedSec % 60)}s
+        Elapsed {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
       </Text>
 
       {/* Large icon controls: these are found mid-set, often at arm's length and out of breath,
@@ -764,6 +878,10 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           restSec={entry.restSec}
           nextLabel={`${exercise?.name ?? entry.exerciseId} · set ${setIndex + 1} of ${entry.sets}`}
           paused={paused}
+          // §8.1 — warm-up and cool-down are asked about once per stage, on their own page, so
+          // their rest pages carry no controls. `main` keeps its per-exercise question: those
+          // exercises are individually progressed off exactly this answer.
+          showFeedback={restingSection === 'main'}
           difficulty={difficulty}
           enjoyment={enjoyment}
           onDifficultyChange={handleDifficultyChange}
@@ -1445,6 +1563,7 @@ function RestPhase({
   restSec,
   nextLabel,
   paused,
+  showFeedback,
   difficulty,
   enjoyment,
   onDifficultyChange,
@@ -1458,6 +1577,9 @@ function RestPhase({
    *  notification is scheduled against wall-clock time the OS owns, not against this countdown —
    *  cancels that too, rescheduling for whatever is left when the session resumes. */
   paused: boolean;
+  /** §8.1 — whether this rest asks about the exercise just performed. True only in `main`:
+   *  warm-up and cool-down are asked about once per stage instead, on `StageFeedbackPhase`. */
+  showFeedback: boolean;
   difficulty: Difficulty | null;
   enjoyment: number | null;
   onDifficultyChange: (d: Difficulty | undefined) => void;
@@ -1580,6 +1702,58 @@ function RestPhase({
 
       <Text style={styles.nextUp}>Next up: {nextLabel}</Text>
 
+      {showFeedback && (
+        <FeedbackControls
+          difficulty={difficulty}
+          enjoyment={enjoyment}
+          onDifficultyChange={onDifficultyChange}
+          onEnjoymentChange={onEnjoymentChange}
+        />
+      )}
+
+      <Pressable testID="rest-next" style={styles.completeButton} onPress={handleNext}>
+        <Text style={styles.completeButtonText}>NEXT</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/**
+ * §8.1 — one question for a whole stage, shown once when the warm-up or the cool-down ends.
+ *
+ * It replaced a page per exercise. A six-exercise warm-up meant six rest pages each asking how
+ * that one mobility drill felt, which is more accounting than a warm-up is worth and more than the
+ * answers were: nobody rates a leg swing on its own. A stage is done as one block and judged as
+ * one block, so it is asked about as one block, and the answer lands on every exercise in it.
+ *
+ * There is no countdown and no −15/+15/Skip row, because this is not a rest — it is the seam
+ * between two stages. The one control is the way out, and both questions stay optional: leaving
+ * without answering is a complete, unpunished answer (invariant 4).
+ */
+function StageFeedbackPhase({
+  section,
+  difficulty,
+  enjoyment,
+  onDifficultyChange,
+  onEnjoymentChange,
+  onDone,
+}: {
+  section: Section;
+  difficulty: Difficulty | null;
+  enjoyment: number | null;
+  onDifficultyChange: (d: Difficulty | undefined) => void;
+  onEnjoymentChange: (e: number | undefined) => void;
+  onDone: () => void;
+}): React.JSX.Element {
+  const label = section === 'warmup' ? 'warm-up' : 'cool-down';
+  return (
+    <View style={styles.stageFeedback} testID="stage-feedback">
+      <Text style={styles.stageFeedbackEyebrow}>{label} complete</Text>
+      <Text style={styles.stageFeedbackTitle} testID="stage-feedback-title">
+        How was the {label}?
+      </Text>
+      <Text style={styles.stageFeedbackSubtitle}>Optional — one answer for the whole {label}.</Text>
+
       <FeedbackControls
         difficulty={difficulty}
         enjoyment={enjoyment}
@@ -1587,8 +1761,8 @@ function RestPhase({
         onEnjoymentChange={onEnjoymentChange}
       />
 
-      <Pressable testID="rest-next" style={styles.completeButton} onPress={handleNext}>
-        <Text style={styles.completeButtonText}>NEXT</Text>
+      <Pressable testID="stage-feedback-done" style={styles.completeButton} onPress={onDone}>
+        <Text style={styles.completeButtonText}>CONTINUE</Text>
       </Pressable>
     </View>
   );
@@ -1770,6 +1944,17 @@ const styles = StyleSheet.create({
   },
   circleCaptionStopped: { color: '#0369a1' },
   circleHint: { fontSize: 13, color: '#94a3b8' },
+  // A seam between stages, so it reads as a card rather than as another exercise page.
+  stageFeedback: { gap: 12, paddingVertical: 8 },
+  stageFeedbackEyebrow: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  stageFeedbackTitle: { fontSize: 24, fontWeight: '800', color: '#0f172a' },
+  stageFeedbackSubtitle: { fontSize: 14, color: '#64748b', marginBottom: 4 },
   levelBadge: { fontSize: 12, fontWeight: '700', color: '#64748b' },
   calibrating: { fontSize: 12, color: '#b45309', fontWeight: '600' },
   nextUp: { fontSize: 13, color: '#64748b' },

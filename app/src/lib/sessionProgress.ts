@@ -50,6 +50,47 @@ export function stepPosition(
   return positions[index + delta] ?? null;
 }
 
+export type Section = 'warmup' | 'main' | 'cooldown';
+
+/**
+ * The §10.3 stage `position` belongs to, but only if logging it *finishes* that stage — every
+ * other slot the stage owns is already logged. `null` otherwise.
+ *
+ * This is what the warm-up and cool-down feedback pages hang off: one question per stage, asked
+ * at the moment the stage ends, instead of one per exercise inside it.
+ *
+ * Computed against the session as it stands *plus* the log about to be written, so a caller can
+ * decide where to go next before its `reload()` lands. Set membership, not a count: a set the user
+ * stepped back to and re-logged upserts its row rather than adding one, so counting would say the
+ * stage still had a slot left when it does not.
+ */
+export function completesSection(
+  session: SessionRecord,
+  position: SessionPosition,
+): Section | null {
+  const entries = activeEntries(session);
+  const target = entries.find((e) => e.id === position.entryId);
+  if (!target) return null;
+  const section = target.section;
+  for (const entry of entries) {
+    if (entry.section !== section) continue;
+    const logged = new Set(entry.setLogs.map((l) => l.setIndex));
+    if (entry.id === target.id) logged.add(position.setIndex);
+    for (let i = 0; i < entry.sets; i++) {
+      if (!logged.has(i)) return null;
+    }
+  }
+  return section;
+}
+
+/** Whether any set in `section` has actually been trained, as opposed to skipped past. A stage
+ *  nobody did is a stage there is nothing to ask about. */
+export function sectionHasCompletedSet(session: SessionRecord, section: Section): boolean {
+  return activeEntries(session).some(
+    (e) => e.section === section && e.setLogs.some((l) => l.status === 'completed'),
+  );
+}
+
 /** The first not-yet-fully-logged (entry, setIndex) pair, in plan order — the entire
  *  crash-safety resume rule: reconstructed purely from `set_logs` rows on every read, no
  *  separate cursor to go stale. `null` if the whole plan is already logged (session is either

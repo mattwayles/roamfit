@@ -116,7 +116,10 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
 
     const session = sessionsRepo.getSession(db, sessionId)!;
     const activeEntries = session.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
-    const firstRepsEntry = activeEntries.find((e) => e.durationSec == null);
+    // Deliberately a `main` entry: §8.1's per-exercise question lives only there now. Warm-up and
+    // cool-down rests carry no controls — they are asked about once per stage instead, on their
+    // own page (see `WorkoutScreen.stageFeedback.test.tsx`).
+    const firstRepsEntry = activeEntries.find((e) => e.section === 'main' && e.durationSec == null);
     expect(firstRepsEntry).toBeTruthy(); // a 30-min full session always has rep-based main work
 
     fastForwardTo(db, session, firstRepsEntry!.id);
