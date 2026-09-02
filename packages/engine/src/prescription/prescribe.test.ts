@@ -130,3 +130,55 @@ describe('§5.4 prescription', () => {
     });
   });
 });
+
+// ADR 0010 — `micro.band` tracks the level's *anchor*, but any sibling at that level may be
+// programmed, each with its own authored band range.
+describe('§5.4 prescription — sibling band clamp (ADR 0010)', () => {
+  const rdl = library.find((e) => e.id === 'rdl')!; // band, "B3-B4" — a hinge.l3 anchor
+  const gluteKickback = library.find((e) => e.id === 'glute-kickback')!; // band, "B1-B2"
+  const bwGluteBridge = library.find((e) => e.id === 'bw-glute-bridge')!; // bodyweight
+
+  function prescribe(exercise: typeof rdl, band: 'B1' | 'B2' | 'B3' | 'B4' | null) {
+    return prescribeLaddered({
+      exercise,
+      familyId: 'hinge',
+      levelId: 'hinge.l3',
+      micro: { repTarget: 10, band, tempoSec: 3, restSec: 45, sets: 3 },
+      requestedEffort: 'normal',
+      recoveryTreatment: false,
+    });
+  }
+
+  it('leaves the band alone when it is already inside the exercise’s range', () => {
+    expect(prescribe(rdl, 'B4').band).toBe('B4');
+  });
+
+  it('clamps down to a lighter sibling’s maximum', () => {
+    // B3 is legal for the rdl anchor (B3-B4) but above glute-kickback's B1-B2 ceiling.
+    expect(prescribe(gluteKickback, 'B3').band).toBe('B2');
+  });
+
+  it('clamps up to a heavier sibling’s minimum', () => {
+    expect(prescribe(rdl, 'B1').band).toBe('B3');
+  });
+
+  it('gives a bodyweight sibling no band at all', () => {
+    expect(prescribe(bwGluteBridge, 'B4').band).toBeNull();
+  });
+
+  it('starts a band sibling at its lightest band when the anchor is bodyweight (micro.band null)', () => {
+    expect(prescribe(gluteKickback, null).band).toBe('B1');
+  });
+
+  it('applies the 48h recovery drop after the clamp, not before', () => {
+    const entry = prescribeLaddered({
+      exercise: gluteKickback,
+      familyId: 'hinge',
+      levelId: 'hinge.l3',
+      micro: { repTarget: 10, band: 'B4', tempoSec: 3, restSec: 45, sets: 3 },
+      requestedEffort: 'normal',
+      recoveryTreatment: true,
+    });
+    expect(entry.band).toBe('B1'); // clamped B4 -> B2, then dropped one -> B1
+  });
+});

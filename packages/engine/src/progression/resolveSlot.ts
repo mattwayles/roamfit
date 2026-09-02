@@ -7,8 +7,9 @@
  * violation.
  */
 import type { Exercise, ProgressionFamily, ProgressionFamilyId } from '@roamfit/data';
-import { exerciseForLevel, findFamily, prevLevel } from './ladder';
-import type { ProgressionState } from '../types';
+import { exerciseForLevel, exercisesForLevel, findFamily, prevLevel } from './ladder';
+import { rngIndex } from '../rng';
+import type { ProgressionState, Rng } from '../types';
 
 export interface ResolvedLadderSlot {
   exercise: Exercise;
@@ -27,46 +28,84 @@ export interface ResolveSlotInput {
   progressionStates: Readonly<Record<ProgressionFamilyId, ProgressionState>>;
   /** The already hard-filtered pool (§5.1 step 1) — anchor/injury/equipment eligible. */
   hardFilteredPool: readonly Exercise[];
+  /** Seeded RNG used to pick among a level's siblings (ADR 0010). */
+  rng: Rng;
+  /** Exercise ids programmed in the most recent non-discarded session. A sibling in this set is
+   *  skipped when the level offers an alternative, so consecutive sessions differ. */
+  recentExerciseIds?: ReadonlySet<string>;
+}
+
+/**
+ * Picks one exercise from a level's sibling set (ADR 0010), preferring one not used in the most
+ * recent session so consecutive sessions differ, and falling back to the full eligible set when
+ * every sibling was recently used (or the level has only one).
+ */
+function pickAtLevel(
+  family: ProgressionFamily,
+  levelId: string,
+  library: readonly Exercise[],
+  filteredIds: ReadonlySet<string>,
+  rng: Rng,
+  recentExerciseIds: ReadonlySet<string>,
+): Exercise | undefined {
+  const eligible = exercisesForLevel(family, levelId, library).filter((e) => filteredIds.has(e.id));
+  if (eligible.length === 0) return undefined;
+  const fresh = eligible.filter((e) => !recentExerciseIds.has(e.id));
+  const pool = fresh.length > 0 ? fresh : eligible;
+  return pool[rngIndex(rng, pool.length)];
 }
 
 /**
  * Resolves a laddered pattern slot to a concrete exercise. Walks down the ladder from the
- * user's current level if that level's exercise fails a hard filter, since a stored level_id can
- * point at an exercise the user currently can't do (e.g. their pull-up bar anchor got disabled,
- * or a new limitation excludes it) without that meaning their progression regressed. Returns
+ * user's current level if that level's exercises all fail a hard filter, since a stored level_id
+ * can point at exercises the user currently can't do (e.g. their pull-up bar anchor got disabled,
+ * or a new limitation excludes them) without that meaning their progression regressed. Returns
  * `undefined` only when every level of the ladder, down to level 1, fails the hard filters — at
  * that point the pattern truly has no eligible exercise and the caller should record a
  * PATTERN GAP instead.
+ *
+ * Which *sibling* is programmed is an RNG draw (ADR 0010) and carries no progression meaning:
+ * `state.levelId` is unchanged by it, and all micro-progression math runs against the level's
+ * anchor, never the sibling picked here.
  */
 export function resolveLadderSlot(input: ResolveSlotInput): ResolvedLadderSlot | undefined {
-  const { familyId, families, library, progressionStates, hardFilteredPool } = input;
+  const { familyId, families, library, progressionStates, hardFilteredPool, rng } = input;
+  const recentExerciseIds = input.recentExerciseIds ?? new Set<string>();
   const family = findFamily(families, familyId);
   const state = progressionStates[familyId];
   if (!family || !state) return undefined;
 
   const filteredIds = new Set(hardFilteredPool.map((e) => e.id));
-  const currentExercise = exerciseForLevel(family, state.levelId, library);
-  if (currentExercise && filteredIds.has(currentExercise.id)) {
-    return { exercise: currentExercise, family, state };
+  const chosen = pickAtLevel(family, state.levelId, library, filteredIds, rng, recentExerciseIds);
+  if (chosen) {
+    return { exercise: chosen, family, state };
   }
 
-  // Current level's exercise is filtered out — walk down to the nearest level that survives.
+  // Every exercise at the current level is filtered out — walk down to the nearest level that
+  // has one that survives. `substitutedFrom` names the level's anchor, since that is what the
+  // user's progression is actually parked on.
+  const anchorAtCurrentLevel = exerciseForLevel(family, state.levelId, library);
   let cursor = state.levelId;
-  let candidate = currentExercise;
-  while (candidate) {
+  for (;;) {
     const prev = prevLevel(family, cursor);
     if (!prev) break;
-    const prevExercise = library.find((e) => e.id === prev.anchor_exercise_id);
-    if (prevExercise && filteredIds.has(prevExercise.id)) {
+    const prevChoice = pickAtLevel(
+      family,
+      prev.level_id,
+      library,
+      filteredIds,
+      rng,
+      recentExerciseIds,
+    );
+    if (prevChoice) {
       return {
-        exercise: prevExercise,
+        exercise: prevChoice,
         family,
         state,
-        substitutedFrom: { levelId: state.levelId, exerciseId: currentExercise?.id ?? '' },
+        substitutedFrom: { levelId: state.levelId, exerciseId: anchorAtCurrentLevel?.id ?? '' },
       };
     }
     cursor = prev.level_id;
-    candidate = prevExercise;
   }
 
   return undefined;

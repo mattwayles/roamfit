@@ -198,9 +198,12 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   const levelUps: LevelUpFact[] = [];
   const noveltyNames = new Set<string>();
 
-  const mostRecentSessionDate = [...userState.history]
-    .reverse()
-    .find((s) => s.status !== 'discarded')?.localDate;
+  const mostRecentSession = [...userState.history].reverse().find((s) => s.status !== 'discarded');
+  const mostRecentSessionDate = mostRecentSession?.localDate;
+  // ADR 0010 — what was programmed last time, so a level's sibling set can rotate rather than
+  // re-draw the same exercise. Discarded sessions never happened (§5.2), so they don't count here
+  // either; that is consistent with `sessionsAgo` and with the template's `alternate()`.
+  const recentExerciseIds = new Set(mostRecentSession?.entries.map((e) => e.exerciseId) ?? []);
 
   // §5.1 step 4 — progression: resolve each laddered slot to a concrete exercise ONCE (this
   // does not depend on the sets multiplier, so it isn't repeated by the corrective pass below).
@@ -216,6 +219,8 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       library: allExercises,
       progressionStates: userState.progressionStates,
       hardFilteredPool: pool,
+      rng,
+      recentExerciseIds,
     });
     if (!resolved) {
       if (slot.required) {

@@ -1,8 +1,9 @@
 import { familyLibrary, exerciseLibrary } from '@roamfit/data';
-import type { ProgressionFamilyId } from '@roamfit/data';
+import type { ProgressionFamily, ProgressionFamilyId } from '@roamfit/data';
 import { resolveLadderSlot } from './resolveSlot';
 import { calibrationStartLevel, findFamily } from './ladder';
 import { defaultMicroForExercise } from './micro';
+import { createRng } from '../rng';
 import type { ProgressionState } from '../types';
 
 const library = exerciseLibrary.exercises;
@@ -48,6 +49,7 @@ describe('resolveLadderSlot', () => {
       library,
       progressionStates: states,
       hardFilteredPool: library, // nothing filtered
+      rng: createRng(1),
     });
     expect(result?.exercise.id).toBe('banded-push-up');
     expect(result?.substitutedFrom).toBeUndefined();
@@ -72,6 +74,7 @@ describe('resolveLadderSlot', () => {
       library,
       progressionStates: states,
       hardFilteredPool: withoutL5,
+      rng: createRng(1),
     });
     expect(result?.exercise.id).toBe('bw-push-up'); // horizontal_push.l4
     expect(result?.substitutedFrom).toEqual({
@@ -102,6 +105,7 @@ describe('resolveLadderSlot', () => {
       library,
       progressionStates: states,
       hardFilteredPool: withoutHorizontalPush,
+      rng: createRng(1),
     });
     expect(result).toBeUndefined();
   });
@@ -113,7 +117,114 @@ describe('resolveLadderSlot', () => {
       library,
       progressionStates: allFamilyStates(),
       hardFilteredPool: library,
+      rng: createRng(1),
     });
     expect(result).toBeUndefined();
+  });
+});
+
+// ADR 0010 — sibling exercises at one level. Built by hand rather than read from families.json
+// so these stay true regardless of how the shipped ladders are later populated.
+describe('resolveLadderSlot — sibling selection (ADR 0010)', () => {
+  const SIBLINGS = ['bw-knee-push-up', 'bw-wide-push-up', 'floor-press'];
+
+  const familiesWithSiblings: ProgressionFamily[] = families.map((f) =>
+    f.id !== 'horizontal_push'
+      ? f
+      : {
+          ...f,
+          levels: f.levels.map((l) =>
+            l.level_id === 'horizontal_push.l3'
+              ? { ...l, anchor_exercise_id: 'bw-knee-push-up', exercise_ids: [...SIBLINGS] }
+              : l,
+          ),
+        },
+  );
+
+  function atL3(): Record<ProgressionFamilyId, ProgressionState> {
+    return allFamilyStates({
+      horizontal_push: {
+        familyId: 'horizontal_push',
+        levelId: 'horizontal_push.l3',
+        micro: defaultMicroForExercise(library.find((e) => e.id === 'bw-knee-push-up')!),
+        calibrating: false,
+        consecutiveHits: 0,
+        consecutiveMisses: 0,
+        lastLevelChangeAt: null,
+      },
+    });
+  }
+
+  function resolve(seed: number, recentExerciseIds?: ReadonlySet<string>) {
+    return resolveLadderSlot({
+      familyId: 'horizontal_push',
+      families: familiesWithSiblings,
+      library,
+      progressionStates: atL3(),
+      hardFilteredPool: library,
+      rng: createRng(seed),
+      recentExerciseIds,
+    });
+  }
+
+  it('programs different siblings across seeds, all from the same level', () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 40; seed++) seen.add(resolve(seed)!.exercise.id);
+    expect(seen.size).toBeGreaterThan(1);
+    for (const id of seen) expect(SIBLINGS).toContain(id);
+  });
+
+  it('never changes levelId — which sibling ran carries no progression meaning', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const result = resolve(seed)!;
+      expect(result.state.levelId).toBe('horizontal_push.l3');
+      expect(result.substitutedFrom).toBeUndefined();
+    }
+  });
+
+  it('skips a sibling programmed last session while an alternative exists', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const result = resolve(seed, new Set(['bw-knee-push-up']))!;
+      expect(result.exercise.id).not.toBe('bw-knee-push-up');
+    }
+  });
+
+  it('falls back to the full set when every sibling was used last session', () => {
+    const result = resolve(1, new Set(SIBLINGS));
+    expect(SIBLINGS).toContain(result!.exercise.id);
+  });
+
+  it('only offers siblings that survive the hard filters', () => {
+    const pool = library.filter((e) => e.id !== 'bw-knee-push-up' && e.id !== 'bw-wide-push-up');
+    for (let seed = 1; seed <= 20; seed++) {
+      const result = resolveLadderSlot({
+        familyId: 'horizontal_push',
+        families: familiesWithSiblings,
+        library,
+        progressionStates: atL3(),
+        hardFilteredPool: pool,
+        rng: createRng(seed),
+      });
+      expect(result!.exercise.id).toBe('floor-press');
+      expect(result!.substitutedFrom).toBeUndefined(); // still level 3, not a walk-down
+    }
+  });
+
+  it('walks down a level only when every sibling is filtered out', () => {
+    const pool = library.filter((e) => !SIBLINGS.includes(e.id));
+    const result = resolveLadderSlot({
+      familyId: 'horizontal_push',
+      families: familiesWithSiblings,
+      library,
+      progressionStates: atL3(),
+      hardFilteredPool: pool,
+      rng: createRng(1),
+    });
+    expect(result!.exercise.id).toBe('bw-incline-push-up'); // l2's anchor
+    // substitutedFrom names the level's anchor — that is what progression is parked on.
+    expect(result!.substitutedFrom).toEqual({
+      levelId: 'horizontal_push.l3',
+      exerciseId: 'bw-knee-push-up',
+    });
   });
 });
