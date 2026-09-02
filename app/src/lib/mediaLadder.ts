@@ -104,49 +104,90 @@ export function buildSearchUrl(videoSearchQuery: string, online: boolean): strin
 export const EMBED_BASE_URL = 'https://www.youtube.com';
 
 /**
- * Tier 1 embed URL, on `EMBED_BASE_URL`'s origin — see there for why it is no longer the
- * no-cookie host.
- * - `origin=` — the embedding page, which the player cross-checks against the referrer it was
- *   actually given. Stating it explicitly is what turns "some page, somewhere" into a claim the
- *   player can verify, and it is the same value the host document is served with.
- * - `autoplay=0` — "no autoplay" (§10.4, §11.4).
- * - `fs=0` — disables the player's own fullscreen control ("no fullscreen takeover").
- * - `playsinline=1` — iOS: play inside the WebView rather than taking over the whole screen the
- *   instant playback starts, reinforcing `fs=0`.
- * - `mute=1` — muted by design; see STATUS-6b-media-ladder.md "Decisions/gotchas" for why this is
- *   the audio-session-hijack guard rather than relying on WebView `<video>` audio-route
- *   acquisition timing, which is only verifiable on a real device.
- * - `modestbranding=1`, `rel=0` — minimal chrome, no related-video rabbit hole mid-workout.
+ * The watch page for a video — the one path that is *known* to work in this WebView, because it
+ * is what the failing player's own "Watch this video on YouTube" link navigates to, in the very
+ * same frame, playing the right video every time.
+ *
+ * It is a fallback, not the default: a watch page brings YouTube's own chrome and its related
+ * videos with it, which is the mid-workout rabbit hole §11.4 wanted the embed to avoid. But a
+ * noisy video beats a configuration error where a demonstration should be.
  */
-export function buildEmbedUrl(videoId: string): string {
-  const params = new URLSearchParams({
-    origin: EMBED_BASE_URL,
-    autoplay: '0',
-    fs: '0',
-    playsinline: '1',
-    mute: '1',
-    modestbranding: '1',
-    rel: '0',
-  });
-  return `${EMBED_BASE_URL}/embed/${encodeURIComponent(videoId)}?${params.toString()}`;
+export function buildWatchUrl(videoId: string): string {
+  return `${EMBED_BASE_URL}/watch?v=${encodeURIComponent(videoId)}`;
 }
 
 /**
- * The host document for `buildEmbedUrl`'s player: a full-bleed iframe and nothing else. Rendered
- * with `EMBED_BASE_URL` as its `baseUrl` — see that constant for why the iframe cannot simply be
- * the WebView's own URL.
+ * The host document for the player: `EMBED_BASE_URL` is its `baseUrl` — see that constant for why
+ * the player cannot simply be the WebView's own URL.
  *
- * `allow="encrypted-media"` is what lets a DRM-served video play at all inside an iframe;
- * fullscreen is deliberately not granted, matching the `fs=0` on the URL.
+ * The player is built through YouTube's IFrame Player API rather than by dropping an `<iframe>`
+ * in directly. Two device rounds of "Video player configuration error" (153, then 152-4) are the
+ * reason: a bare iframe inside a `loadHTMLString` document is a shape the player is entitled to
+ * refuse, and the API is the shape it is documented to expect — it negotiates its own origin with
+ * the page it is created in instead of inferring one. This is what every working React Native
+ * YouTube player does.
+ *
+ * The document also reports back, which the bare iframe could not do:
+ *   - `player_error` with the API's own error code, if the player rejects the video.
+ *   - `player_unavailable` if the API never even becomes ready, which is what a configuration
+ *     error looks like from the outside — the API script loads, the player never arrives.
+ * Either way the consumer can fall back to `buildWatchUrl`, rather than leaving a dead frame on
+ * screen. `PLAYER_READY_TIMEOUT_MS` is generous: a slow connection must not be mistaken for a
+ * broken player.
  */
+export const PLAYER_READY_TIMEOUT_MS = 8000;
+
+export type EmbedMessage =
+  | { type: 'player_ready' }
+  | { type: 'player_error'; code: number | null }
+  | { type: 'player_unavailable' };
+
+/** Parses what `buildEmbedHtml`'s document posts back. Anything unrecognised — including whatever
+ *  else a page in a WebView might post — is null, never a guess. */
+export function parseEmbedMessage(raw: string): EmbedMessage | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== 'object' || parsed === null) return null;
+  const { type, code } = parsed as { type?: unknown; code?: unknown };
+  if (type === 'player_ready') return { type: 'player_ready' };
+  if (type === 'player_unavailable') return { type: 'player_unavailable' };
+  if (type === 'player_error') {
+    return { type: 'player_error', code: typeof code === 'number' ? code : null };
+  }
+  return null;
+}
+
 export function buildEmbedHtml(videoId: string): string {
+  // Only ever an id, and only ever inside a JSON string literal — but built by hand rather than
+  // interpolated raw, so a malformed curated id can never end the script tag early.
+  const idLiteral = JSON.stringify(videoId).replace(/</g, '\\u003c');
   return [
     '<!DOCTYPE html><html><head>',
     '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">',
     '<style>html,body{margin:0;padding:0;background:#f1f5f9;height:100%;overflow:hidden}',
-    'iframe{border:0;width:100%;height:100%;display:block}</style>',
-    '</head><body>',
-    `<iframe src="${buildEmbedUrl(videoId)}" allow="encrypted-media" allowfullscreen="false"></iframe>`,
-    '</body></html>',
+    '#player,iframe{border:0;width:100%;height:100%;display:block}</style>',
+    '</head><body><div id="player"></div><script>',
+    'var post=function(m){try{window.ReactNativeWebView.postMessage(JSON.stringify(m));}catch(e){}};',
+    'var settled=false;',
+    'var give=function(m){if(settled)return;settled=true;post(m);};',
+    `var t=setTimeout(function(){give({type:'player_unavailable'});},${PLAYER_READY_TIMEOUT_MS});`,
+    'window.onYouTubeIframeAPIReady=function(){',
+    "new YT.Player('player',{",
+    `videoId:${idLiteral},`,
+    // The same player behaviour §11.4 asks for, now as player vars rather than URL params.
+    "playerVars:{autoplay:0,fs:0,playsinline:1,mute:1,modestbranding:1,rel:0,origin:'",
+    EMBED_BASE_URL,
+    "'},",
+    "events:{onReady:function(){clearTimeout(t);give({type:'player_ready'});},",
+    "onError:function(e){clearTimeout(t);give({type:'player_error',code:e&&e.data});}}",
+    '});};',
+    `var s=document.createElement('script');s.src='${EMBED_BASE_URL}/iframe_api';`,
+    "s.onerror=function(){give({type:'player_unavailable'});};",
+    'document.head.appendChild(s);',
+    '</script></body></html>',
   ].join('');
 }

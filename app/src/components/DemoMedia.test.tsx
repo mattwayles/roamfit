@@ -93,20 +93,61 @@ describe('DemoMedia', () => {
     expect(renderer.root.findByProps({ testID: 'demo-media-report' })).toBeTruthy();
   });
 
-  it('serves the player from a host document with a referring origin, never the bare embed URL', async () => {
+  it('serves the player from a host document on a real origin, never the bare embed URL', async () => {
     // Pointed straight at the /embed/ URL the WebView *is* the page, so the player has no
     // referring page and fails with "Video player configuration error" (153) on a real device.
     mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
     const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
     const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
     expect(webview.props.source.uri).toBeUndefined();
-    expect(webview.props.source.html).toContain('<iframe');
     expect(webview.props.source.baseUrl).toBe('https://www.youtube.com');
-    // ...and the frame is same-site with that page, or the player cannot reach its own storage
-    // through WKWebView's partition and fails to configure anyway (error 152-4).
-    expect(webview.props.source.html).toContain('src="https://www.youtube.com/embed/');
-    // Storage has to be on for the same reason.
+    expect(webview.props.source.html).toContain('new YT.Player');
+    // Storage has to be on, or the player cannot read its own configuration (error 152-4).
     expect(webview.props.domStorageEnabled).toBe(true);
+  });
+
+  it('falls back to the watch page when the player never configures itself', async () => {
+    // "Video player configuration error" from the outside: the API script loads, the player
+    // never arrives. Not a bad video, so no flag is recorded against the exercise — the frame
+    // just becomes the watch page, which is the path known to work in this WebView.
+    mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+    const { renderer, onPlayerError } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
+    const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
+    await act(async () => {
+      webview.props.onMessage({ nativeEvent: { data: '{"type":"player_unavailable"}' } });
+    });
+
+    const after = renderer.root.findByProps({ testID: 'demo-media-webview' });
+    expect(after.props.source.uri).toBe('https://www.youtube.com/watch?v=abc123XYZ_9');
+    expect(onPlayerError).not.toHaveBeenCalled();
+  });
+
+  it('a player error is still the §11.4 silent drop, not a watch-page fallback', async () => {
+    // The player worked and rejected this video (embedding disabled, removed, private). The
+    // watch page would not help, and this is the case §11.4 wants flagged.
+    mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+    const { renderer, onPlayerError } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
+    const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
+    await act(async () => {
+      webview.props.onMessage({ nativeEvent: { data: '{"type":"player_error","code":150}' } });
+    });
+
+    expect(renderer.root.findAllByProps({ testID: 'demo-media-webview' })).toHaveLength(0);
+    expect(onPlayerError).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores anything else a page in a WebView posts', async () => {
+    mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+    const { renderer, onPlayerError } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
+    const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
+    await act(async () => {
+      webview.props.onMessage({ nativeEvent: { data: 'hello from somewhere else' } });
+      webview.props.onMessage({ nativeEvent: { data: '{"type":"player_ready"}' } });
+    });
+
+    const after = renderer.root.findByProps({ testID: 'demo-media-webview' });
+    expect(after.props.source.html).toContain('new YT.Player');
+    expect(onPlayerError).not.toHaveBeenCalled();
   });
 
   it('online, curated id, but locally demoted: no embed, but the search link survives', async () => {
@@ -211,7 +252,7 @@ describe('DemoMedia', () => {
         curatedVideoId: 'abc123XYZ_9',
       });
       const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
-      expect(webview.props.source.html).toContain('/embed/USERvid1234');
+      expect(webview.props.source.html).toContain('videoId:"USERvid1234"');
       expect(webview.props.source.html).not.toContain('abc123XYZ_9');
     });
 
