@@ -86,8 +86,11 @@ describe('§10.3 approval entry card', () => {
     expect(screen.getByTestId(`sets-plus-${entry.exerciseId}`)).toBeTruthy();
     expect(screen.getAllByLabelText('Increase sets').length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText('Decrease reps').length).toBeGreaterThan(0);
-    // The full level-up wording fits now.
-    expect(screen.getAllByText('Too easy — level up').length).toBeGreaterThan(0);
+    // Rest is a dial too, not a fixed consequence of the effort table.
+    expect(screen.getAllByText('Rest').length).toBeGreaterThan(0);
+    // The full wording fits now; Remove is a compact X with an accessible name instead.
+    expect(screen.getAllByText('Swap exercise').length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText(/^Remove /).length).toBeGreaterThan(0);
   });
 
   it('a timed exercise gets a Time stepper that actually changes the duration', async () => {

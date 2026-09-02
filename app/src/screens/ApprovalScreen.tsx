@@ -19,19 +19,22 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
+  alternativesForSlot,
   applyHardFilters,
   createRng,
   prescribeAccessory,
   prescribeWarmupCooldown,
   seedFromString,
 } from '@roamfit/engine';
-import { generate, levelUpEntry, sessionsRepo, usersRepo } from '@roamfit/store';
+import type { SwapAlternative } from '@roamfit/engine';
+import { exerciseStateRepo, generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
-import type { Exercise } from '@roamfit/data';
+import type { AnchorClass, Exercise, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import AbandonSessionButton from '../components/AbandonSessionButton';
+import SwapSheet from '../components/SwapSheet';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Approval'>;
 type Section = 'warmup' | 'main' | 'cooldown';
@@ -79,7 +82,9 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   const [addingSection, setAddingSection] = useState<Section | null>(null);
   /** ADR 0012 — one-line result of the last "too easy" tap. Informational only: never blocks,
    *  never nags, and is replaced rather than stacked (invariant 4). */
-  const [levelUpNotice, setLevelUpNotice] = useState<string | null>(null);
+  /** §10.3 swap — which entry's picker is open, if any. */
+  const [swapEntryId, setSwapEntryId] = useState<string | null>(null);
+  const [swapExcludeAnchor, setSwapExcludeAnchor] = useState(false);
   /** The in-flight drag, or null. `dy` is raw finger travel (what the dragged card follows);
    *  `toIndex` is that travel snapped to a row position (what every other card reacts to). */
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -121,34 +126,11 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     reload();
   };
 
-  /**
-   * ADR 0012 — "this rung is below me". Advances the family's progression state one level and
-   * rewrites this entry to the new rung, right here in the plan, so the user can fix a wrong
-   * starting level before committing to a session. Repeatable: someone several rungs above the
-   * level-1 cold start taps it until the exercise looks right.
-   *
-   * All the work is `levelUpEntry`'s (which is the engine's, via the store) — this only decides
-   * what to say about the outcome.
-   */
-  const handleLevelUp = (entry: sessionsRepo.SessionEntryRecord) => {
-    const result = levelUpEntry(
-      db,
-      {
-        entryId: entry.id,
-        library,
-        families,
-        clock: nowEngineClock(),
-        rng: createRng(seedFromString(nowUtcInstant())),
-      },
-      nowUtcInstant(),
-    );
-    if (result.status === 'at_max') {
-      setLevelUpNotice('That’s the top of this ladder — nice.');
-    } else if (result.status === 'no_eligible_exercise') {
-      setLevelUpNotice('The next level needs an anchor you don’t have set up.');
-    } else if (result.status === 'levelled_up') {
-      setLevelUpNotice(`Moved up to ${result.exerciseName}.`);
-    }
+  /** Rest in 5s steps, floored at 0. Not derived from the effort table here — the store writes
+   *  it and the engine recomputes `estimatedSec`, so the header estimate follows. */
+  const handleAdjustRest = (entry: sessionsRepo.SessionEntryRecord, delta: number) => {
+    const next = Math.max(0, entry.restSec + delta);
+    sessionsRepo.adjustRestAtApproval(db, entry.id, next, nowUtcInstant());
     reload();
   };
 
@@ -230,6 +212,57 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     if (fromIndex < toIndex && index > fromIndex && index <= toIndex) return -CARD_PITCH;
     if (fromIndex > toIndex && index >= toIndex && index < fromIndex) return CARD_PITCH;
     return 0;
+  };
+
+  /**
+   * §10.3 swap, before the session starts. The 3-5 candidates come from `@roamfit/engine`'s
+   * `alternativesForSlot` — the same selection and ranking §10.6's mid-workout swap uses, so the
+   * two surfaces cannot drift. This screen only supplies the current entry plus user state and
+   * renders what comes back; it picks nothing itself (invariant 2).
+   */
+  const swapEntry = session.entries.find((e) => e.id === swapEntryId) ?? null;
+  const swapAlternatives: SwapAlternative[] = swapEntry
+    ? (() => {
+        const clock = nowEngineClock();
+        const profile = usersRepo.buildUserProfile(db, clock.today);
+        return alternativesForSlot({
+          library: library.exercises,
+          entry: {
+            exerciseId: swapEntry.exerciseId,
+            role: 'main',
+            band: swapEntry.band,
+            sets: swapEntry.sets,
+            repTarget: swapEntry.repTarget ?? undefined,
+            durationSec: swapEntry.durationSec ?? undefined,
+            restSec: swapEntry.restSec,
+            tempoSec: swapEntry.tempoSec,
+            notes: swapEntry.notes ?? undefined,
+            effort: swapEntry.effort,
+            progressionFamilyId: swapEntry.progressionFamilyId as ProgressionFamilyId | null,
+            progressionLevelIdAtTime: swapEntry.progressionLevelIdAtTime,
+            pattern: swapEntry.pattern as Pattern,
+            anchorClass: swapEntry.anchorClass as AnchorClass,
+            unilateral: swapEntry.unilateral,
+            estimatedSec: swapEntry.estimatedSec,
+          },
+          anchorsAvailable: profile.anchorsAvailable,
+          limitations: profile.limitations,
+          today: clock.today,
+          history: sessionsRepo.getHistoryForGeneration(db),
+          exerciseStates: exerciseStateRepo.getAllExerciseStates(db),
+          excludeAnchor: swapExcludeAnchor
+            ? (library.exercises.find((e) => e.id === swapEntry.exerciseId)?.anchor ?? undefined)
+            : undefined,
+        });
+      })()
+    : [];
+
+  const handleSwapSelect = (alt: SwapAlternative) => {
+    if (!swapEntryId) return;
+    sessionsRepo.recordSwapAtApproval(db, swapEntryId, alt.replacement, nowUtcInstant());
+    setSwapEntryId(null);
+    setSwapExcludeAnchor(false);
+    reload();
   };
 
   /** §10.3 "add exercise" candidates — the same hard filters (§13.1/§13.2/§5.3) generation
@@ -323,6 +356,19 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
       <Text style={styles.explanation}>{session.explanation}</Text>
       <Text style={styles.estimate}>~{estimateMinutes(session)} min estimated</Text>
 
+      {swapEntry != null ? (
+        <SwapSheet
+          alternatives={swapAlternatives}
+          excludeAnchor={swapExcludeAnchor}
+          onToggleExcludeAnchor={setSwapExcludeAnchor}
+          onSelect={handleSwapSelect}
+          onCancel={() => {
+            setSwapEntryId(null);
+            setSwapExcludeAnchor(false);
+          }}
+        />
+      ) : null}
+
       {(['warmup', 'main', 'cooldown'] as const).map((section) => (
         <View key={section} style={styles.sectionBlock}>
           <Text style={styles.sectionHeading}>{section}</Text>
@@ -341,7 +387,8 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
               onAdjustSets={(d) => handleAdjustSets(entry, d)}
               onAdjustRepTarget={(d) => handleAdjustRepTarget(entry, d)}
               onAdjustDuration={(d) => handleAdjustDuration(entry, d)}
-              onLevelUp={entry.progressionFamilyId != null ? () => handleLevelUp(entry) : undefined}
+              onAdjustRest={(d) => handleAdjustRest(entry, d)}
+              onSwap={() => setSwapEntryId(entry.id)}
               onRemove={() => handleRemove(entry)}
             />
           ))}
@@ -380,12 +427,6 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
         </View>
       ))}
 
-      {levelUpNotice != null && (
-        <Text testID="level-up-notice" style={styles.levelUpNotice}>
-          {levelUpNotice}
-        </Text>
-      )}
-
       <Pressable
         testID="regenerate-button"
         style={styles.regenerateButton}
@@ -406,7 +447,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
 
 /** Fixed so a drag can compute a target index from travel distance without measuring every row.
  *  The card's own content is laid out to fit exactly this height. */
-const CARD_HEIGHT = 132;
+const CARD_HEIGHT = 150;
 const CARD_GAP = 8;
 /** Exported so a test can express a drag in rows rather than hardcoding a pixel count. */
 export const CARD_PITCH = CARD_HEIGHT + CARD_GAP;
@@ -430,7 +471,8 @@ function EntryCard({
   onAdjustSets,
   onAdjustRepTarget,
   onAdjustDuration,
-  onLevelUp,
+  onAdjustRest,
+  onSwap,
   onRemove,
 }: {
   entry: sessionsRepo.SessionEntryRecord;
@@ -443,10 +485,16 @@ function EntryCard({
   onAdjustSets: (delta: number) => void;
   onAdjustRepTarget: (delta: number) => void;
   onAdjustDuration: (delta: number) => void;
-  onLevelUp?: () => void;
+  onAdjustRest: (delta: number) => void;
+  onSwap: () => void;
   onRemove: () => void;
 }): React.JSX.Element {
   const isTimed = entry.durationSec != null;
+  // Rest 0 is a real prescription (warm-ups carry it), but "rest 0s" reads like a bug. Omit it,
+  // and drop the whole line when there is nothing else on it either.
+  const detail = [entry.band, entry.restSec > 0 ? `rest ${entry.restSec}s` : null]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <View
@@ -479,9 +527,7 @@ function EntryCard({
           <Text style={styles.entryName} numberOfLines={2}>
             {exerciseName}
           </Text>
-          <Text style={styles.entryDetail}>
-            {entry.band ? `${entry.band} · ` : ''}rest {entry.restSec}s
-          </Text>
+          {detail !== '' && <Text style={styles.entryDetail}>{detail}</Text>}
         </View>
       </View>
 
@@ -515,31 +561,34 @@ function EntryCard({
         ) : (
           <View style={styles.stepper} />
         )}
+        <Stepper
+          label="Rest"
+          value={`${entry.restSec}s`}
+          minusTestID={`rest-minus-${entry.exerciseId}`}
+          plusTestID={`rest-plus-${entry.exerciseId}`}
+          onMinus={() => onAdjustRest(-5)}
+          onPlus={() => onAdjustRest(5)}
+        />
       </View>
 
       <View style={styles.cardActions}>
-        {/* ADR 0012 — only laddered entries have a level to move. */}
-        {onLevelUp != null ? (
-          <Pressable
-            testID={`level-up-${entry.exerciseId}`}
-            style={[styles.wideButton, styles.levelUpButton]}
-            onPress={onLevelUp}
-          >
-            <Text style={styles.levelUpButtonText} numberOfLines={1}>
-              Too easy — level up
-            </Text>
-          </Pressable>
-        ) : (
-          <View style={styles.wideButtonSpacer} />
-        )}
+        <Pressable
+          testID={`swap-${entry.exerciseId}`}
+          style={[styles.wideButton, styles.swapButton]}
+          onPress={onSwap}
+        >
+          <Text style={styles.swapButtonText} numberOfLines={1}>
+            Swap exercise
+          </Text>
+        </Pressable>
         <Pressable
           testID={`remove-${entry.exerciseId}`}
-          style={[styles.wideButton, styles.removeButton]}
+          accessibilityRole="button"
+          accessibilityLabel={`Remove ${exerciseName}`}
+          style={styles.removeButton}
           onPress={onRemove}
         >
-          <Text style={styles.removeButtonText} numberOfLines={1}>
-            Remove
-          </Text>
+          <Text style={styles.removeButtonText}>✕</Text>
         </Pressable>
       </View>
     </View>
@@ -624,7 +673,7 @@ const styles = StyleSheet.create({
   cardTitleBlock: { flex: 1, paddingTop: 2 },
   entryName: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
   entryDetail: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  stepperRow: { flexDirection: 'row', gap: 10 },
+  stepperRow: { flexDirection: 'row', gap: 6 },
   stepper: { flex: 1 },
   stepperLabel: {
     fontSize: 11,
@@ -635,7 +684,7 @@ const styles = StyleSheet.create({
   },
   stepperControls: { flexDirection: 'row', alignItems: 'center' },
   stepperButton: {
-    width: 40,
+    width: 34,
     height: 36,
     borderRadius: 8,
     backgroundColor: '#e2e8f0',
@@ -646,7 +695,7 @@ const styles = StyleSheet.create({
   stepperValue: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: '#0f172a',
   },
@@ -659,11 +708,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 8,
   },
-  wideButtonSpacer: { flex: 1 },
-  levelUpButton: { backgroundColor: '#dbeafe' },
-  levelUpButtonText: { fontSize: 13, fontWeight: '600', color: '#1d4ed8' },
-  removeButton: { backgroundColor: '#fee2e2' },
-  removeButtonText: { fontSize: 13, fontWeight: '600', color: '#b91c1c' },
+  swapButton: { backgroundColor: '#e2e8f0' },
+  swapButtonText: { fontSize: 13, fontWeight: '600', color: '#334155' },
+  removeButton: {
+    width: 40,
+    minHeight: 36,
+    borderRadius: 8,
+    backgroundColor: '#fee2e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeButtonText: { fontSize: 16, fontWeight: '700', color: '#b91c1c', lineHeight: 20 },
 
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { padding: 20, gap: 16 },
@@ -676,7 +731,6 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textTransform: 'uppercase',
   },
-  levelUpNotice: { paddingHorizontal: 16, paddingBottom: 8, color: '#1d4ed8', fontSize: 13 },
   addExerciseButton: {
     borderRadius: 10,
     paddingVertical: 10,

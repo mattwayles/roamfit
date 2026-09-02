@@ -360,6 +360,13 @@ export const signalEvents = sqliteTable(
         // {entryId, exerciseId, fromDurationSec, toDurationSec}. `signal_events.type` is plain
         // TEXT (no CHECK constraint), so adding this value needs no migration.
         'duration_adjusted_at_approval',
+        // §10.3 — rest length edited while reviewing the plan. Payload: {entryId, exerciseId,
+        // fromRestSec, toRestSec}.
+        'rest_adjusted_at_approval',
+        // §10.3 — an exercise swapped BEFORE the session started. Distinct from 'swap' (§10.6,
+        // mid-workout) because "rejected on sight" and "rejected after trying it" are different
+        // §8.3 evidence. Payload: {entryId, fromExerciseId, toExerciseId}.
+        'swap_at_approval',
       ],
     }).notNull(),
     /** JSON, shape depends on `type` — e.g. swap: {fromExerciseId, toExerciseId, atSetIndex}. */

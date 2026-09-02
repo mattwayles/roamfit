@@ -20,6 +20,9 @@ User decisions already made (do not re-litigate):
       enforces byte-for-byte sync between the two).
 - [x] Approval screen control (`level-up-<exerciseId>`) and mid-workout control (`level-up-set`),
       both with dedicated screen tests driven through the real screens and the real store.
+- [~] **The approval-side control was later removed** and replaced by Swap, from device feedback.
+      See ADR 0012's amendment. Mid-workout level-up is unchanged. The cost: a trained user can no
+      longer fix a too-low starting rung *before* starting a session — watch for this on device.
 
 ### In progress
 - Nothing. `npm run check` is green.

@@ -107,3 +107,26 @@ user-assigned videos are all still true, and none of them describe a ladder posi
 - **Keep the percentile start and add the control anyway.** Rejected by the user, and rightly:
   it keeps the guess, and a guess that is too *high* is the more damaging error — it hands a
   beginner an exercise they cannot safely do.
+
+---
+
+## Amendment, 2026-09-01 — the approval-side level-up button was replaced by Swap
+
+Device feedback on the approval screen replaced "Too easy — level up" with a Swap control (the
+same §10.6 picker the workout screen uses). Decision 4 above therefore now reads **mid-workout
+only**, not "approval and mid-workout".
+
+Nothing about the level-up mechanism changed: `levelUpForTooEasy`, `levelUpEntry`, the
+`level_up_too_easy` signal and the mid-workout control are all untouched and still tested.
+
+**The known cost.** With the cold start at level 1, an already-trained user reviewing their first
+plan sees wall push-ups and dead bugs and can no longer fix that *before* starting — they have to
+begin the session and use the mid-workout control. That is exactly the friction decision 4 existed
+to remove, and it is now half back.
+
+Swap does not substitute for it: `alternativesForSlot` offers exercises of *comparable*
+difficulty, so it changes which exercise you do, not which rung you are on.
+
+If the level-1 start turns out to feel punishing on device, the cheapest fix is to surface the
+level-up inside the swap sheet — "this is too easy, move me up" sits naturally beside "give me a
+different one", costs no extra row on the card, and needs no new store or engine work.

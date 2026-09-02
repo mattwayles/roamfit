@@ -1,14 +1,17 @@
 /**
- * ADR 0012 — the "too easy ▲" control on the approval screen, driven through the real screen and
- * the real store. Cold start is level 1, so the first laddered entry is always a bottom rung and
- * this is the control that gets an already-trained user out of it.
+ * §10.3 swap at approval, driven through the real screen and the real store.
+ *
+ * This file used to test an approval-side "too easy ▲" level-up control (ADR 0012). Device
+ * feedback replaced that button with Swap — see ADR 0012's amendment. The level-up path itself is
+ * unchanged and still covered mid-workout by `WorkoutScreen.levelUp.test.tsx`; what is pinned
+ * here is the cold-start level (still ADR 0012's, and still load-bearing) and the swap that took
+ * the button's place.
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import type { ProgressionFamilyId } from '@roamfit/data';
 import { generate, progressionStateRepo, sessionsRepo } from '@roamfit/store';
 import ApprovalScreen from './ApprovalScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
@@ -49,8 +52,8 @@ async function createPendingSession(db: ReturnType<typeof useStore>['db']): Prom
   });
 }
 
-describe('ADR 0012 — level up from the approval screen', () => {
-  it('starts every family at level 1, then a tap moves the entry to the next rung', async () => {
+describe('§10.3 swap at approval', () => {
+  it('still starts every family at level 1 (ADR 0012)', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -58,20 +61,26 @@ describe('ADR 0012 — level up from the approval screen', () => {
       </StoreProvider>,
     );
     await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+    await createPendingSession(db);
 
-    const sessionId = await createPendingSession(db);
-
-    // Cold start is the bottom of every ladder (ADR 0012).
     const states = progressionStateRepo.getAllProgressionStates(db);
     for (const family of familyLibrary.families) {
       expect(states[family.id].levelId).toBe(family.levels[0].level_id);
     }
+  });
 
+  it('swapping replaces the exercise in the plan without regenerating', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+    const sessionId = await createPendingSession(db);
     const entry = sessionsRepo
       .getSession(db, sessionId)!
-      .entries.find((e) => e.progressionFamilyId)!;
-    const familyId = entry.progressionFamilyId as ProgressionFamilyId;
-    const family = familyLibrary.families.find((f) => f.id === familyId)!;
+      .entries.find((e) => e.section === 'main')!;
 
     render(
       <StoreProvider>
@@ -85,24 +94,29 @@ describe('ADR 0012 — level up from the approval screen', () => {
     );
 
     await waitFor(
-      () => expect(screen.getByTestId(`level-up-${entry.exerciseId}`)).toBeTruthy(),
+      () => expect(screen.getByTestId(`swap-${entry.exerciseId}`)).toBeTruthy(),
       WAIT_OPTS,
     );
-    fireEvent.press(screen.getByTestId(`level-up-${entry.exerciseId}`));
+    fireEvent.press(screen.getByTestId(`swap-${entry.exerciseId}`));
+
+    // The sheet is the same component §10.6 uses mid-workout, fed by the same engine selection.
+    await waitFor(() => expect(screen.getByTestId('swap-sheet')).toBeTruthy(), WAIT_OPTS);
+    const option = screen.getAllByTestId(/^swap-option-/)[0];
+    const chosenId = (option.props.testID as string).replace('swap-option-', '');
+    fireEvent.press(option);
 
     await waitFor(() => {
-      expect(progressionStateRepo.getAllProgressionStates(db)[familyId].levelId).toBe(
-        family.levels[1].level_id,
-      );
+      const after = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === entry.id)!;
+      expect(after.exerciseId).toBe(chosenId);
+      // §10.10 — the plan still records what the engine originally chose.
+      expect(after.plannedExerciseId).toBe(entry.exerciseId);
     }, WAIT_OPTS);
 
-    const after = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === entry.id)!;
-    expect(after.exerciseId).not.toBe(entry.exerciseId);
-    expect(family.levels[1].exercise_ids).toContain(after.exerciseId);
-    expect(screen.getByTestId('level-up-notice')).toBeTruthy();
+    // The session itself was not regenerated.
+    expect(sessionsRepo.getSession(db, sessionId)!.id).toBe(sessionId);
   });
 
-  it('offers no level-up control on a non-laddered accessory entry', async () => {
+  it('no longer offers a level-up button here', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -111,9 +125,9 @@ describe('ADR 0012 — level up from the approval screen', () => {
     );
     await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
     const sessionId = await createPendingSession(db);
-    const accessory = sessionsRepo
+    const entry = sessionsRepo
       .getSession(db, sessionId)!
-      .entries.find((e) => !e.progressionFamilyId)!;
+      .entries.find((e) => e.progressionFamilyId)!;
 
     render(
       <StoreProvider>
@@ -125,8 +139,7 @@ describe('ADR 0012 — level up from the approval screen', () => {
         </NavigationContainer>
       </StoreProvider>,
     );
-
     await waitFor(() => expect(screen.getByTestId('start-button')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.queryByTestId(`level-up-${accessory.exerciseId}`)).toBeNull();
+    expect(screen.queryByTestId(`level-up-${entry.exerciseId}`)).toBeNull();
   });
 });

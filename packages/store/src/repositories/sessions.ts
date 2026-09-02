@@ -556,6 +556,74 @@ export function adjustRepTargetAtApproval(
   });
 }
 
+/** §10.3 — rest is a real dial, not a fixed consequence of the effort table. A user who is
+ *  short on time, or who wants a session to bite harder, is adjusting exactly this. Floors at 0,
+ *  which is a meaningful value (warm-up entries are prescribed with no rest at all) and is why
+ *  the card hides the rest label entirely rather than printing "rest 0s". */
+export function adjustRestAtApproval(
+  db: Db,
+  entryId: string,
+  newRestSec: number,
+  now: string,
+): void {
+  const entry = db
+    .select()
+    .from(schema.sessionEntries)
+    .where(eq(schema.sessionEntries.id, entryId))
+    .all()[0];
+  if (!entry || newRestSec < 0 || newRestSec === entry.restSec) return;
+  db.update(schema.sessionEntries)
+    .set({
+      restSec: newRestSec,
+      estimatedSec: estimateEntrySec({ ...entry, restSec: newRestSec }),
+    })
+    .where(eq(schema.sessionEntries.id, entryId))
+    .run();
+  logSignalEvent(db, {
+    sessionId: entry.sessionId,
+    type: 'rest_adjusted_at_approval',
+    payload: {
+      entryId,
+      exerciseId: entry.exerciseId,
+      fromRestSec: entry.restSec,
+      toRestSec: newRestSec,
+    },
+    utcInstant: now,
+    localDate: getSession(db, entry.sessionId)?.localDate ?? now.slice(0, 10),
+  });
+}
+
+/** §10.3 — swap an exercise while reviewing the plan, before anything has run.
+ *
+ *  Mechanically identical to `recordSwap` (§10.6) and deliberately shares its swap-away penalty:
+ *  the user is rejecting this exercise, which is exactly what `swapAwayCount` is for. It gets its
+ *  own signal type rather than reusing `'swap'` with a fabricated `atSetIndex: 0`, because
+ *  "swapped before starting" and "swapped during the first set" are different pieces of §8.3
+ *  evidence and should not be indistinguishable in the log. */
+export function recordSwapAtApproval(
+  db: Db,
+  entryId: string,
+  replacement: Parameters<typeof recordSwap>[2],
+  now: string,
+): void {
+  const entry = db
+    .select()
+    .from(schema.sessionEntries)
+    .where(eq(schema.sessionEntries.id, entryId))
+    .all()[0];
+  if (!entry) return;
+  const fromExerciseId = entry.exerciseId;
+  applySwapReplacement(db, entryId, replacement);
+  incrementSwapAwayCount(db, fromExerciseId, now);
+  logSignalEvent(db, {
+    sessionId: entry.sessionId,
+    type: 'swap_at_approval',
+    payload: { entryId, fromExerciseId, toExerciseId: replacement.exerciseId },
+    utcInstant: now,
+    localDate: getSession(db, entry.sessionId)?.localDate ?? now.slice(0, 10),
+  });
+}
+
 /** §10.3 — the timed counterpart to `adjustRepTargetAtApproval`, for a `durationSec` entry (a
  *  plank, a hang, a carry). Rep-based work had an approval-time edit surface and timed work did
  *  not, which left half the library uneditable in the one screen whose whole job is editing the
@@ -754,6 +822,38 @@ export function recordRegenerateTap(db: Db, sessionId: string, now: string): voi
  * engine`'s §10.6 export) — the store persists it verbatim rather than recomputing any of it,
  * per CLAUDE.md invariant 2 ("the engine decides, the store/UI never re-derive a prescription").
  */
+/** The entry rewrite shared by `recordSwap` (§10.6, mid-workout) and `recordSwapAtApproval`
+ *  (§10.3). Persists the engine's replacement prescription verbatim — invariant 2: nothing here
+ *  recomputes any of it. `plannedExerciseId` is deliberately untouched, so §10.10's record of
+ *  what the engine originally chose survives the swap. */
+function applySwapReplacement(
+  db: Db,
+  entryId: string,
+  replacement: Parameters<typeof recordSwap>[2],
+): void {
+  db.update(schema.sessionEntries)
+    .set({
+      exerciseId: replacement.exerciseId,
+      band: replacement.band as BandId | null,
+      sets: replacement.sets,
+      repTarget: replacement.repTarget ?? null,
+      durationSec: replacement.durationSec ?? null,
+      restSec: replacement.restSec,
+      tempoSec: replacement.tempoSec,
+      notes: replacement.notes ?? null,
+      effort: replacement.effort,
+      progressionFamilyId: replacement.progressionFamilyId ?? null,
+      progressionLevelIdAtTime: replacement.progressionLevelIdAtTime ?? null,
+      pattern: replacement.pattern,
+      anchorClass: replacement.anchorClass,
+      unilateral: replacement.unilateral,
+      estimatedSec: replacement.estimatedSec,
+      substitutedFor: replacement.substitutedFor ?? null,
+    })
+    .where(eq(schema.sessionEntries.id, entryId))
+    .run();
+}
+
 export function recordSwap(
   db: Db,
   entryId: string,
@@ -787,27 +887,7 @@ export function recordSwap(
   if (!entry) return;
   const fromExerciseId = entry.exerciseId;
   const toExerciseId = replacement.exerciseId;
-  db.update(schema.sessionEntries)
-    .set({
-      exerciseId: replacement.exerciseId,
-      band: replacement.band as BandId | null,
-      sets: replacement.sets,
-      repTarget: replacement.repTarget ?? null,
-      durationSec: replacement.durationSec ?? null,
-      restSec: replacement.restSec,
-      tempoSec: replacement.tempoSec,
-      notes: replacement.notes ?? null,
-      effort: replacement.effort,
-      progressionFamilyId: replacement.progressionFamilyId ?? null,
-      progressionLevelIdAtTime: replacement.progressionLevelIdAtTime ?? null,
-      pattern: replacement.pattern,
-      anchorClass: replacement.anchorClass,
-      unilateral: replacement.unilateral,
-      estimatedSec: replacement.estimatedSec,
-      substitutedFor: replacement.substitutedFor ?? null,
-    })
-    .where(eq(schema.sessionEntries.id, entryId))
-    .run();
+  applySwapReplacement(db, entryId, replacement);
   incrementSwapAwayCount(db, fromExerciseId, now);
   logSignalEvent(db, {
     sessionId: entry.sessionId,
