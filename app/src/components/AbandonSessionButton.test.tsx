@@ -35,6 +35,9 @@ describe('AbandonSessionButton confirm step', () => {
     await waitFor(() => expect(screen.getByTestId('abandon-confirm-yes')).toBeTruthy(), WAIT_OPTS);
     fireEvent.press(screen.getByTestId('abandon-confirm-yes'));
     expect(onConfirm).toHaveBeenCalledTimes(1);
+    // Discarding dismisses the dialog itself — the screen it navigates away from stays mounted
+    // in the stack, so a modal left open would hang over the destination screen.
+    await waitFor(() => expect(screen.queryByTestId('abandon-confirm-row')).toBeNull(), WAIT_OPTS);
   });
 
   it('text variant still confirms inline, replacing the link', async () => {

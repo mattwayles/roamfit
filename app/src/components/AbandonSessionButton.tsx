@@ -47,7 +47,16 @@ export default function AbandonSessionButton({
         >
           <Text style={styles.cancelButtonText}>Keep going</Text>
         </Pressable>
-        <Pressable testID="abandon-confirm-yes" style={styles.discardButton} onPress={onConfirm}>
+        <Pressable
+          testID="abandon-confirm-yes"
+          style={styles.discardButton}
+          // Close first: `onConfirm` navigates away, but the screen underneath stays mounted in
+          // the stack, so a modal left `visible` would sit over the destination screen.
+          onPress={() => {
+            setConfirming(false);
+            onConfirm();
+          }}
+        >
           <Text style={styles.discardButtonText}>Discard</Text>
         </Pressable>
       </View>
