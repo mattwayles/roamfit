@@ -106,7 +106,7 @@ export const MULTI_SELECT_LABELS: Record<MultiSelectKey, string> = {
   laterality: 'Sides',
   difficulty: 'Difficulty',
   tier: 'Tier',
-  role: 'Role',
+  role: 'Section',
   family: 'Progression family',
   contraindication: 'Contraindications',
 };

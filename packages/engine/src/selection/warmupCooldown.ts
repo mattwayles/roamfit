@@ -31,9 +31,16 @@ export interface SelectWarmupCooldownInput {
 export function selectWarmupCooldown(input: SelectWarmupCooldownInput): Exercise | null {
   const { role, pool, focus, userState, today, rng, excludeIds } = input;
   const ctx = { history: userState.history, exerciseStates: userState.exerciseStates, today };
-  const focusPool = pool.filter((e) => e.roles.includes(role) && e.focus.includes(focus));
-  const basePoolAll = focusPool.length > 0 ? focusPool : pool.filter((e) => e.roles.includes(role));
-  const basePool = excludeIds ? basePoolAll.filter((e) => !excludeIds.has(e.id)) : basePoolAll;
+  // Exclusions are applied BEFORE the focus preference, not after. Matching the day's focus is a
+  // preference that already falls back to the whole role pool when it can't be met; applying it
+  // first and then removing the taken ids could empty a one-deep focus pool and return nothing,
+  // even with a dozen perfectly good exercises for other focuses still on the shelf. (Real case:
+  // under a band-only equipment preference the abs cool-down pool is a single band stretch — if
+  // the warm-up took it, the session ended up with no cool-down at all.)
+  const rolePool = pool.filter((e) => e.roles.includes(role));
+  const available = excludeIds ? rolePool.filter((e) => !excludeIds.has(e.id)) : rolePool;
+  const focusPool = available.filter((e) => e.focus.includes(focus));
+  const basePool = focusPool.length > 0 ? focusPool : available;
   if (basePool.length === 0) return null;
 
   const candidates = buildCandidates(basePool, role, ctx).filter((c) => !c.isSuppressed);

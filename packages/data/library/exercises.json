@@ -105,7 +105,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "horizontal_push",
@@ -480,7 +481,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -514,7 +516,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -589,7 +592,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "horizontal_pull",
@@ -624,7 +628,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "horizontal_pull",
@@ -661,7 +666,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "horizontal_pull",
@@ -695,7 +701,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "horizontal_pull",
@@ -786,7 +793,8 @@
       "id": "door-row",
       "name": "Door-Anchor Horizontal Row",
       "aliases": [
-        "door row"
+        "door row",
+        "band row"
       ],
       "focus": [
         "upper"
@@ -809,7 +817,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "horizontal_pull",
@@ -1019,7 +1028,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -1056,7 +1066,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -1909,7 +1920,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "hinge",
@@ -2018,7 +2030,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "hinge",
@@ -2089,7 +2102,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "hinge",
@@ -2125,7 +2139,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -2160,7 +2175,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -2192,7 +2208,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -2226,7 +2243,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -2260,7 +2278,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -2406,7 +2425,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -3030,7 +3050,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "anti_extension",
@@ -3538,7 +3559,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "warmup"
+        "warmup",
+        "cooldown"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -3548,41 +3570,6 @@
       ],
       "setup": "Wide grip on band, sweep from hips overhead and behind you, then back. Widen grip if it feels tight.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Shoulder+Pass-Through+warm+up+how+to"
-    },
-    {
-      "id": "wu-pull-apart",
-      "name": "Warm-Up Pull-Apart",
-      "aliases": [
-        "wu pull apart"
-      ],
-      "focus": [
-        "upper",
-        "full"
-      ],
-      "pattern": "horizontal_pull",
-      "primary": [
-        "rear_delts"
-      ],
-      "secondary": [
-        "upper_back"
-      ],
-      "equipment": "band",
-      "band": "B1",
-      "anchor": "none",
-      "anchor_class": "none",
-      "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
-      "tier": "fill",
-      "roles": [
-        "warmup"
-      ],
-      "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
-      "contraindications": [],
-      "setup": "Light band pull-aparts, 15-20 easy reps to wake up the upper back.",
-      "video_search": "https://www.youtube.com/results?search_query=resistance+band+Warm-Up+Pull-Apart+warm+up+how+to"
     },
     {
       "id": "wu-hip-hinge",
@@ -3622,79 +3609,6 @@
       "video_search": "https://www.youtube.com/results?search_query=Bodyweight+Hip+Hinge+warm+up+how+to"
     },
     {
-      "id": "wu-lateral-walk",
-      "name": "Warm-Up Lateral Walk",
-      "aliases": [
-        "wu lateral walk"
-      ],
-      "focus": [
-        "legs",
-        "full"
-      ],
-      "pattern": "abduction",
-      "primary": [
-        "abductors"
-      ],
-      "secondary": [
-        "glutes"
-      ],
-      "equipment": "band",
-      "band": "B1",
-      "anchor": "thigh-loop",
-      "anchor_class": "band_tension",
-      "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
-      "tier": "fill",
-      "roles": [
-        "warmup"
-      ],
-      "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
-      "contraindications": [],
-      "setup": "Light banded side steps to switch on the glutes.",
-      "video_search": "https://www.youtube.com/results?search_query=resistance+band+Warm-Up+Lateral+Walk+warm+up+how+to"
-    },
-    {
-      "id": "wu-glute-bridge",
-      "name": "Warm-Up Glute Bridge",
-      "aliases": [
-        "wu glute bridge"
-      ],
-      "focus": [
-        "legs",
-        "abs",
-        "full"
-      ],
-      "pattern": "hinge",
-      "primary": [
-        "glutes"
-      ],
-      "secondary": [
-        "hamstrings"
-      ],
-      "equipment": "bodyweight",
-      "band": null,
-      "anchor": "none",
-      "anchor_class": "none",
-      "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
-      "tier": "fill",
-      "roles": [
-        "warmup"
-      ],
-      "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
-      "contraindications": [
-        "lower_back_extension"
-      ],
-      "setup": "Bodyweight bridges, 15 reps, pausing 1s at the top.",
-      "video_search": "https://www.youtube.com/results?search_query=Warm-Up+Glute+Bridge+warm+up+how+to"
-    },
-    {
       "id": "wu-cat-cow",
       "name": "Cat-Cow",
       "aliases": [
@@ -3722,7 +3636,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "warmup"
+        "warmup",
+        "cooldown"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -3761,7 +3676,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "warmup"
+        "warmup",
+        "cooldown"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -3808,41 +3724,6 @@
       ],
       "setup": "Progressively larger circles forward and back.",
       "video_search": "https://www.youtube.com/results?search_query=Arm+Circles+warm+up+how+to"
-    },
-    {
-      "id": "wu-deadbug-bw",
-      "name": "Bodyweight Dead Bug",
-      "aliases": [
-        "wu deadbug bw"
-      ],
-      "focus": [
-        "abs",
-        "full"
-      ],
-      "pattern": "anti_extension",
-      "primary": [
-        "abs"
-      ],
-      "secondary": [],
-      "equipment": "bodyweight",
-      "band": null,
-      "anchor": "none",
-      "anchor_class": "none",
-      "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
-      "tier": "fill",
-      "roles": [
-        "warmup"
-      ],
-      "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
-      "contraindications": [
-        "core_pressure"
-      ],
-      "setup": "Slow opposite arm/leg extensions to set the brace.",
-      "video_search": "https://www.youtube.com/results?search_query=Bodyweight+Dead+Bug+warm+up+how+to"
     },
     {
       "id": "cd-lat-stretch",
@@ -4174,7 +4055,8 @@
       "default_seconds": 30,
       "tier": "stretch",
       "roles": [
-        "cooldown"
+        "cooldown",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -5102,7 +4984,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "anti_extension",
@@ -5137,7 +5020,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "anti_extension",
@@ -5390,7 +5274,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "anti_extension",
@@ -5427,7 +5312,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "horizontal_push",
@@ -5769,7 +5655,7 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -5807,7 +5693,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -6033,7 +5920,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "squat",
@@ -6067,7 +5955,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "squat",
@@ -6178,7 +6067,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "lunge",
@@ -6467,7 +6357,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "hinge",
@@ -6541,7 +6432,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "hinge",
@@ -6682,7 +6574,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -6750,7 +6643,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -6784,7 +6678,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -6819,7 +6714,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -6856,7 +6752,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "medium",
       "progression_family": null,
@@ -7370,48 +7267,8 @@
       "video_search": "https://www.youtube.com/results?search_query=Archer+Pull-Up+proper+form+tutorial"
     },
     {
-      "id": "wu-scap-push-up",
-      "name": "Warm-Up Scapular Push-Up",
-      "aliases": [
-        "wu scap push up",
-        "scapular push up warm up",
-        "scap push up"
-      ],
-      "focus": [
-        "upper",
-        "full"
-      ],
-      "pattern": "shoulder_isolation",
-      "primary": [
-        "upper_back"
-      ],
-      "secondary": [
-        "chest",
-        "front_delts"
-      ],
-      "equipment": "bodyweight",
-      "band": null,
-      "anchor": "none",
-      "anchor_class": "none",
-      "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
-      "tier": "fill",
-      "roles": [
-        "warmup"
-      ],
-      "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
-      "contraindications": [
-        "wrist_extension"
-      ],
-      "setup": "High plank, arms straight. Without bending your elbows, let your shoulder blades spread apart, then squeeze them together toward your spine. Small range, no elbow bend.",
-      "video_search": "https://www.youtube.com/results?search_query=Warm-Up+Scapular+Push-Up+warm+up+how+to"
-    },
-    {
       "id": "wu-band-external-rotation",
-      "name": "Warm-Up Band External Rotation",
+      "name": "Band External Rotation",
       "aliases": [
         "wu band scarecrow",
         "band scarecrow",
@@ -7437,7 +7294,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "warmup"
+        "warmup",
+        "main"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -7473,7 +7331,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "warmup"
+        "warmup",
+        "cooldown"
       ],
       "difficulty": "easy",
       "progression_family": null,
@@ -7483,44 +7342,6 @@
       ],
       "setup": "On hands and knees. Thread one arm underneath your body, rotating your chest toward the floor, then reverse and rotate that same arm up toward the ceiling, following it with your eyes. Slow and controlled; switch sides.",
       "video_search": "https://www.youtube.com/results?search_query=Thread+the+Needle+warm+up+how+to"
-    },
-    {
-      "id": "wu-band-row",
-      "name": "Warm-Up Band Row",
-      "aliases": [
-        "wu band row",
-        "warm up row",
-        "band row warm up"
-      ],
-      "focus": [
-        "upper",
-        "full"
-      ],
-      "pattern": "horizontal_pull",
-      "primary": [
-        "upper_back"
-      ],
-      "secondary": [
-        "rear_delts",
-        "biceps"
-      ],
-      "equipment": "band",
-      "band": "B1",
-      "anchor": "anchor-mid",
-      "anchor_class": "band_tension",
-      "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
-      "tier": "fill",
-      "roles": [
-        "warmup"
-      ],
-      "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
-      "contraindications": [],
-      "setup": "Band anchored at chest height. Step back for light tension, elbows drive straight back to row the band to your ribs, then extend forward with control. Light and easy, 15-20 reps.",
-      "video_search": "https://www.youtube.com/results?search_query=resistance+band+Warm-Up+Band+Row+warm+up+how+to"
     },
     {
       "id": "seated-ohp",
@@ -7864,7 +7685,8 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "squat",
@@ -8041,7 +7863,8 @@
       "default_seconds": 30,
       "tier": "core",
       "roles": [
-        "main"
+        "main",
+        "warmup"
       ],
       "difficulty": "easy",
       "progression_family": "vertical_pull",

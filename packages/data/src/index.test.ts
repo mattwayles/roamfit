@@ -20,8 +20,8 @@ describe('warm-up variety for a shoulder_overhead limitation (issue #33, track 6
   }
 
   // Per the contraindications review sign-off (docs/review/contraindications-review.md) and
-  // ORCHESTRATION.md issue #33's corrected text: of the 3 pre-existing `focus: upper` warmups
-  // that survive a shoulder_overhead limitation, 2 (`wu-cat-cow`, `wu-world-greatest`) are
+  // ORCHESTRATION.md issue #33's corrected text: of the 3 `focus: upper` warmups that survived a
+  // shoulder_overhead limitation at the time, 2 (`wu-cat-cow`, `wu-world-greatest`) are
   // spine/hip mobility drills that merely happen to carry `focus: upper` — their `primary` mover
   // is `lower_back` / `hip_flexors`, not a shoulder-region muscle. `wu-pull-apart` is the only
   // genuinely shoulder-specific survivor. This set (not a pattern bucket, which would exclude a
@@ -50,48 +50,49 @@ describe('warm-up variety for a shoulder_overhead limitation (issue #33, track 6
   }
 
   it('has strictly more genuinely shoulder-specific focus:upper warmups than the pre-track library', () => {
-    // Fails on the library as committed before this track (docs/review/contraindications-review.md
-    // sign-off, ORCHESTRATION.md issue #33): exactly 1 survivor, `wu-pull-apart`. Re-verify that
-    // baseline explicitly (not just implicitly through the >1 bound) so a future change to the
-    // muscle-group filter can't silently make this assertion vacuous.
+    // The pre-track baseline was exactly 1 survivor, `wu-pull-apart` — a purpose-built warm-up
+    // duplicate of `pull-apart` that no longer exists: track 13 made a role a property of the
+    // record, so the real Band Pull-Apart now carries `roles: ['main', 'warmup']` and there is
+    // one exercise where there were two. The baseline id therefore moved to its survivor; the
+    // measure itself is unchanged.
     const survivors = genuinelyShoulderSpecificUpperSurvivors();
-    // The pre-track baseline this must beat. If this ever fails, the "genuinely shoulder-specific"
-    // definition above has drifted from what issue #33 measured, not that new content is missing.
-    expect(survivors).toContain('wu-pull-apart');
+    expect(survivors).toContain('pull-apart');
     expect(survivors.length).toBeGreaterThan(1);
   });
 
-  it('the new shoulder-safe warmups authored for this track survive the shoulder_overhead hard filter', () => {
-    const newIds = [
-      'wu-scap-push-up',
+  it('the shoulder-safe warmups authored for track 6g survive the shoulder_overhead hard filter', () => {
+    // Same list as track 6g authored, mapped onto the surviving records (see above):
+    // `wu-scap-push-up` -> `bw-scap-push-up` is deliberately ABSENT. The two records disagreed on
+    // contraindications for one movement — the purpose-built warm-up was tagged only
+    // `wrist_extension`, the library record `shoulder_overhead` too — and merging them kept the
+    // stricter tagging. Loosening a §13.2 safety tag is not something a refactor gets to do as a
+    // side effect (invariant 3); if scapular push-ups really are shoulder-overhead-safe, that is a
+    // content decision to make deliberately, and it is parked in the backlog.
+    const shoulderSafeWarmups = [
       'wu-band-external-rotation',
       'wu-thread-the-needle',
-      'wu-band-row',
+      'pull-apart',
+      'door-row',
     ];
-    for (const id of newIds) {
+    for (const id of shoulderSafeWarmups) {
       const ex = exerciseLibrary.exercises.find((e) => e.id === id);
       expect(ex).toBeDefined();
+      expect(ex!.roles).toContain('warmup');
       expect(survivesShoulderOverhead(id)).toBe(true);
     }
-    // And they're counted as genuinely shoulder-specific by the same measure as wu-pull-apart —
-    // not just present in the pool.
     const survivors = genuinelyShoulderSpecificUpperSurvivors();
-    for (const id of newIds) {
+    for (const id of shoulderSafeWarmups) {
       expect(survivors).toContain(id);
     }
   });
 
-  it('at least one new warmup also survives a shoulder_horizontal limitation', () => {
-    const newIds = [
-      'wu-scap-push-up',
-      'wu-band-external-rotation',
-      'wu-thread-the-needle',
-      'wu-band-row',
-    ];
-    const survivesBoth = newIds.filter((id) => {
-      const ex = exerciseLibrary.exercises.find((e) => e.id === id);
-      return !!ex && !ex.contraindications.includes('shoulder_horizontal');
-    });
+  it('at least one of them also survives a shoulder_horizontal limitation', () => {
+    const survivesBoth = ['wu-band-external-rotation', 'wu-thread-the-needle', 'pull-apart'].filter(
+      (id) => {
+        const ex = exerciseLibrary.exercises.find((e) => e.id === id);
+        return !!ex && !ex.contraindications.includes('shoulder_horizontal');
+      },
+    );
     expect(survivesBoth.length).toBeGreaterThanOrEqual(1);
   });
 });
