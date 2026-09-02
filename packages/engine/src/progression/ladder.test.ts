@@ -9,6 +9,7 @@ import {
   nextLevel,
   prevLevel,
 } from './ladder';
+import { DEFAULT_ANCHORS_AVAILABLE } from '../filters/hardFilters';
 
 const families = familyLibrary.families;
 const library = exerciseLibrary.exercises;
@@ -52,5 +53,56 @@ describe('§6.1/§4.2 ladder lookups (stable level_id, never a positional index)
     for (const family of familyLibrary.families) {
       expect(calibrationStartLevel(family).level_id).toBe(family.levels[0].level_id);
     }
+  });
+});
+
+/**
+ * A level's anchor is the exercise its progression math runs on (`exerciseForLevel`) and the one
+ * named when the rung is displayed. So an anchor that the hard filters remove for most users, on a
+ * rung a *sibling* still covers, breaks progression: the user climbs a ladder shaped for a movement
+ * they are never shown. `vertical_push.l4` was exactly that — anchored on `bw-dip`, which needs the
+ * non-default `body-support` anchor, while `banded-push-press` was what actually got programmed.
+ *
+ * A rung where NO sibling is default-available is a different, legitimate thing: it is gear-gated
+ * end to end, nothing is programmed, and there is no mismatch to fix.
+ */
+describe('ladder anchors are reachable on the rungs that are reachable', () => {
+  // The two rungs that still have this defect. They are known-broken and parked in
+  // docs/BACKLOG.md — do NOT add to this list to make a new failure go away.
+  const KNOWN_UNREACHABLE_ANCHORS = ['horizontal_push.l2', 'vertical_pull.l1'];
+
+  function offendingLevels(): string[] {
+    const byId = new Map(library.map((e) => [e.id, e]));
+    const offenders: string[] = [];
+    for (const family of families) {
+      for (const level of family.levels) {
+        const anchor = byId.get(level.anchor_exercise_id);
+        if (!anchor || DEFAULT_ANCHORS_AVAILABLE.includes(anchor.anchor)) continue;
+        const coveredBySibling = level.exercise_ids.some((id) => {
+          const ex = byId.get(id);
+          return ex && ex.id !== anchor.id && DEFAULT_ANCHORS_AVAILABLE.includes(ex.anchor);
+        });
+        if (coveredBySibling) offenders.push(level.level_id);
+      }
+    }
+    return offenders;
+  }
+
+  it('no rung is anchored on a filtered-out exercise while a sibling covers it', () => {
+    expect(offendingLevels().sort()).toEqual([...KNOWN_UNREACHABLE_ANCHORS].sort());
+  });
+
+  it('vertical_push.l4 is anchored on the exercise users are actually given', () => {
+    const verticalPush = findFamily(families, 'vertical_push')!;
+    const anchor = exerciseForLevel(verticalPush, 'vertical_push.l4', library)!;
+    expect(anchor.id).toBe('banded-push-press');
+    expect(DEFAULT_ANCHORS_AVAILABLE).toContain(anchor.anchor);
+    // The band rung it was always meant to be: micro-progression can now climb B2 -> B3, which it
+    // could not while the anchor was a bodyweight exercise.
+    expect(anchor.equipment).toBe('band');
+    // bw-dip is kept as a sibling — it is a real vertical push for anyone who ticks "Bench or
+    // step"; it just should not be the rung's reference movement.
+    const level = verticalPush.levels.find((l) => l.level_id === 'vertical_push.l4')!;
+    expect(level.exercise_ids).toContain('bw-dip');
   });
 });

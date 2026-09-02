@@ -174,10 +174,10 @@
         },
         {
           "level_id": "vertical_push.l4",
-          "anchor_exercise_id": "bw-dip",
+          "anchor_exercise_id": "banded-push-press",
           "exercise_ids": [
-            "bw-dip",
-            "banded-push-press"
+            "banded-push-press",
+            "bw-dip"
           ]
         },
         {
