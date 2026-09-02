@@ -7,4 +7,9 @@ export type RootStackParamList = {
   Workout: { sessionId: string };
   Summary: { sessionId: string };
   Settings: undefined;
+  /** The exercise library, browsable — read-only apart from assigning a demo video. */
+  Exercises: undefined;
+  /** Reached from the library list. Keyed by the stable library id, never a list index, so the
+   *  route survives the list being re-sorted or re-filtered underneath it. */
+  ExerciseDetail: { exerciseId: string };
 };

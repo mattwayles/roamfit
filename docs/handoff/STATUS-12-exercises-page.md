@@ -9,15 +9,20 @@ Last updated: 2026-09-02
   *completed* session: sets completed, best reps/seconds, heaviest band actually used, total
   volume, rest/tempo), exported as `exerciseCatalogRepo`. 17 tests.
 
+- [x] Increment 2 — `app/src/lib/exerciseCatalog.ts` (516b2b7): search, filters, A–Z ordering,
+  filter vocabulary derived from the library. 35 tests.
+- [x] Increment 3 — `app/src/lib/exerciseProgress.ts` (04fb50b): chart series + gain summary
+  across best set / sets / volume / band. 17 tests.
+
+- [x] Increment 4 — `ExercisesScreen` + `ExerciseDetailScreen` + both routes + the Home header
+  link. 18 screen tests; `npm run check` green (1428 tests).
+
 ### In progress
-- Increment 2: `app/src/lib/exerciseCatalog.ts` — pure search + filter + alphabetical sort, with
-  the filter-dimension vocabulary derived from the library itself. Tests alongside.
+- Nothing. The track is complete as specified.
 
 ### Next
-1. Increment 3 — `app/src/lib/exerciseProgress.ts`: pure series + first-vs-latest gain summary
-   (best set, sets, total volume, band). Tests alongside.
-2. Increment 4 — `ExercisesScreen` + nav route + Home entry point. Tests.
-3. Increment 5 — `ExerciseDetailScreen` (all fields, How to, `DemoMedia`, progression chart). Tests.
+- Only what feedback asks for. Candidates deliberately not built: saved filter presets, a
+  library-wide "which exercises still need videos" count, and jump-to-letter on the list.
 
 ### Decisions / gotchas
 - **"Times completed" is `exercise_state.sessions_performed`.** `completion.ts` only calls
@@ -33,3 +38,9 @@ Last updated: 2026-09-02
 - **No new dependencies.** The progression chart is plain RN `View`s (bars), not a chart library.
 - Never punish (invariant 4): the detail page badges *gains* only. A flat or lower series is shown
   as a neutral history, never as a loss, a red mark, or a "you've regressed" line.
+- **This repo's `@testing-library/react-native` (14.0.1) has an async `render` and async
+  `fireEvent`.** An un-awaited `fireEvent` has not dispatched by the time the next line asserts, so
+  a state update looks like it never happened. Older test files here get away with it because they
+  follow every event with `await waitFor`. New screen tests `await` both.
+- The list is a `FlatList`, so only the first window of cards is mounted in a test — reach a
+  specific exercise by searching for it first, the way a user would.

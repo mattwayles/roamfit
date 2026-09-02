@@ -355,9 +355,14 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.appName}>RoamFit</Text>
-        <Pressable testID="open-settings" onPress={() => navigation.navigate('Settings')}>
-          <Text style={styles.settingsLink}>Settings</Text>
-        </Pressable>
+        <View style={styles.headerLinks}>
+          <Pressable testID="open-exercises" onPress={() => navigation.navigate('Exercises')}>
+            <Text style={styles.settingsLink}>Exercises</Text>
+          </Pressable>
+          <Pressable testID="open-settings" onPress={() => navigation.navigate('Settings')}>
+            <Text style={styles.settingsLink}>Settings</Text>
+          </Pressable>
+        </View>
       </View>
 
       {comebackTier !== 'none' && (
@@ -761,6 +766,7 @@ const styles = StyleSheet.create({
   container: { padding: 20, gap: 16, paddingBottom: 48 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   appName: { fontSize: 20, fontWeight: '700', color: '#111' },
+  headerLinks: { flexDirection: 'row', gap: 16, alignItems: 'center' },
   settingsLink: { fontSize: 14, color: '#1d4ed8', fontWeight: '600' },
   disclaimerGateContent: { padding: 24, gap: 16, alignItems: 'stretch' },
   body: { fontSize: 14, lineHeight: 20, color: '#334155' },

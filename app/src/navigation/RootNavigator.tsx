@@ -7,6 +7,8 @@ import ApprovalScreen from '../screens/ApprovalScreen';
 import WorkoutScreen from '../screens/WorkoutScreen';
 import SummaryScreen from '../screens/SummaryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import ExercisesScreen from '../screens/ExercisesScreen';
+import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -23,6 +25,12 @@ export default function RootNavigator(): React.JSX.Element {
       />
       <Stack.Screen name="Summary" component={SummaryScreen} options={{ title: 'Summary' }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen name="Exercises" component={ExercisesScreen} options={{ title: 'Exercises' }} />
+      <Stack.Screen
+        name="ExerciseDetail"
+        component={ExerciseDetailScreen}
+        options={{ title: 'Exercise' }}
+      />
     </Stack.Navigator>
   );
 }
