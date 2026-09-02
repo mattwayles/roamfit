@@ -95,6 +95,10 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
    *  `setState` updater — updaters have to be pure, and React may run one twice, which would
    *  apply the reorder twice. */
   const dragRef = React.useRef<DragState | null>(null);
+  /** Card heights as actually laid out, keyed by entry id. A ref rather than state: this is read
+   *  by the drag maths and must never itself trigger a render, or every measurement would cause
+   *  one. */
+  const cardHeightsRef = React.useRef<Map<string, number>>(new Map());
 
   const reload = useCallback(() => {
     setSession(sessionsRepo.getSession(db, sessionId));
@@ -172,16 +176,46 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     setDrag(next);
   };
 
+  /** Measured height of one card, or the estimate until `onLayout` has reported it. */
+  const heightOf = (entryId: string): number =>
+    cardHeightsRef.current.get(entryId) ?? ESTIMATED_CARD_HEIGHT;
+
+  /**
+   * Which row the finger has travelled onto, walking real card heights rather than dividing by a
+   * constant — cards are different heights now, so a single pitch would drift further out with
+   * every card passed.
+   *
+   * A card is passed once the finger has travelled beyond its midpoint, which is what makes the
+   * swap feel like it happens when the two cards visually cross.
+   */
+  const targetIndexFor = (d: DragState, dy: number): number => {
+    const list = bySection(d.section);
+    if (list.length === 0) return 0;
+    let index = d.fromIndex;
+    let travelled = 0;
+    if (dy > 0) {
+      for (let i = d.fromIndex + 1; i < list.length; i++) {
+        const step = heightOf(list[i].id) + CARD_GAP;
+        if (dy < travelled + step / 2) break;
+        travelled += step;
+        index = i;
+      }
+    } else if (dy < 0) {
+      for (let i = d.fromIndex - 1; i >= 0; i--) {
+        const step = heightOf(list[i].id) + CARD_GAP;
+        if (-dy < travelled + step / 2) break;
+        travelled += step;
+        index = i;
+      }
+    }
+    return index;
+  };
+
   const updateDrag = (pageY: number) => {
     const d = dragRef.current;
     if (!d) return;
     const dy = pageY - d.startY;
-    const count = bySection(d.section).length;
-    const toIndex = Math.min(
-      Math.max(d.fromIndex + Math.round(dy / CARD_PITCH), 0),
-      Math.max(count - 1, 0),
-    );
-    const next = { ...d, dy, toIndex };
+    const next = { ...d, dy, toIndex: targetIndexFor(d, dy) };
     dragRef.current = next;
     setDrag(next);
   };
@@ -206,13 +240,15 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   };
 
   /** How far a card should slide to show where the dragged one will land: the dragged card
-   *  follows the finger, and every card it has passed shifts one pitch the other way. */
+   *  follows the finger, and every card it has passed shifts out of the way by exactly the space
+   *  the dragged card occupies — its own measured height, not a shared constant. */
   const dragDisplacement = (section: Section, index: number, entryId: string): number => {
     if (!drag || drag.section !== section) return 0;
     if (drag.entryId === entryId) return drag.dy;
     const { fromIndex, toIndex } = drag;
-    if (fromIndex < toIndex && index > fromIndex && index <= toIndex) return -CARD_PITCH;
-    if (fromIndex > toIndex && index >= toIndex && index < fromIndex) return CARD_PITCH;
+    const gap = heightOf(drag.entryId) + CARD_GAP;
+    if (fromIndex < toIndex && index > fromIndex && index <= toIndex) return -gap;
+    if (fromIndex > toIndex && index >= toIndex && index < fromIndex) return gap;
     return 0;
   };
 
@@ -375,6 +411,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
               bandTensions={bandTensions}
               dragging={drag?.section === section && drag.entryId === entry.id}
               displacement={dragDisplacement(section, index, entry.id)}
+              onMeasure={(height) => cardHeightsRef.current.set(entry.id, height)}
               onDragStart={(y) => beginDrag(section, entry.id, index, y)}
               onDragMove={updateDrag}
               onDragEnd={endDrag}
@@ -441,12 +478,19 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
 
 /** Fixed so a drag can compute a target index from travel distance without measuring every row.
  *  The card's own content is laid out to fit exactly this height. */
-// Sized for a two-line exercise name: the title block is narrower now that the action icons
-// share its row, so more names wrap. Feeds CARD_PITCH, which the drag gesture divides by.
-const CARD_HEIGHT = 132;
 const CARD_GAP = 8;
-/** Exported so a test can express a drag in rows rather than hardcoding a pixel count. */
-export const CARD_PITCH = CARD_HEIGHT + CARD_GAP;
+
+/**
+ * Only a fallback. Cards size themselves to their content — a three-line exercise name gets a
+ * taller card than a one-line one, which is the correct outcome and what the fixed height this
+ * replaced could not do without clipping.
+ *
+ * The drag gesture needs to know how tall each card actually is to work out which row a finger
+ * has travelled onto, so every card reports its height via `onLayout`. This value stands in for
+ * the frame or two before that first measurement arrives, and for a test environment that never
+ * lays anything out at all.
+ */
+export const ESTIMATED_CARD_HEIGHT = 132;
 
 /** One editable exercise in the plan.
  *
@@ -462,6 +506,7 @@ function EntryCard({
   bandTensions,
   dragging,
   displacement,
+  onMeasure,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -478,6 +523,8 @@ function EntryCard({
   bandTensions: Record<BandId, usersRepo.BandTension>;
   dragging: boolean;
   displacement: number;
+  /** Reports this card's laid-out height so the drag gesture can work in real distances. */
+  onMeasure: (height: number) => void;
   onDragStart: (pageY: number) => void;
   onDragMove: (pageY: number) => void;
   onDragEnd: () => void;
@@ -498,6 +545,7 @@ function EntryCard({
   return (
     <View
       testID={`entry-${entry.exerciseId}`}
+      onLayout={(e) => onMeasure(e.nativeEvent.layout.height)}
       style={[
         styles.card,
         dragging && styles.cardDragging,
@@ -650,7 +698,9 @@ function Stepper({
 
 const styles = StyleSheet.create({
   card: {
-    height: CARD_HEIGHT,
+    // No fixed height: a long exercise name gets a taller card, which is correct. `minHeight`
+    // only stops a card with nothing in its detail line from looking collapsed.
+    minHeight: ESTIMATED_CARD_HEIGHT,
     borderRadius: 14,
     backgroundColor: '#f8fafc',
     borderWidth: 1,

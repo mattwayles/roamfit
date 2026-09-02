@@ -44,9 +44,9 @@ foregrounding it. Same for force-quit mid-set and `findCurrent()` resume.
   path.
 - **Glyph rendering is unverified on device.** `❚❚` `■` `⇄` `▸▸` `✕` `⠿` are all plain-text glyphs
   chosen to avoid iOS emoji substitution, but that has only been reasoned about, never seen.
-- **Card height vs. long exercise names.** `CARD_HEIGHT` (approval card) is a fixed 132pt sized for a
-  two-line name; the drag-to-reorder gesture divides by it. A three-line name would overflow. Same
-  class of risk: `OptionPicker`'s fixed 96pt item width.
+- **`OptionPicker` items are a fixed 96pt wide**, so an option label longer than "Full body" or
+  "120 min" truncates. The approval card had the same class of problem vertically and was fixed by
+  measuring instead; this one is still a constant.
 
 ---
 

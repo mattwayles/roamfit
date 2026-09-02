@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
@@ -166,6 +166,56 @@ describe('§10.3 approval entry card', () => {
       reps.estimatedSec,
     );
     expect(estimateMinutes(after)).toBeGreaterThan(estimateBefore);
+  });
+
+  it('cards size to their content, and the drag uses the measured height not a constant', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+    const sessionId = await seed(db);
+    const mains = sessionsRepo
+      .getSession(db, sessionId)!
+      .entries.filter((e) => e.section === 'main');
+    expect(mains.length).toBeGreaterThanOrEqual(2);
+
+    renderApproval(sessionId);
+    await waitFor(() => expect(screen.getByTestId('start-button')).toBeTruthy(), WAIT_OPTS);
+
+    // No fixed height any more — a card is free to grow with a long exercise name.
+    const card = screen.getByTestId(`entry-${mains[0].exerciseId}`);
+    expect(StyleSheet.flatten(card.props.style)?.height).toBeUndefined();
+
+    // Report a much taller first card than the estimate. The drag must then need MORE travel to
+    // move past it — with a fixed pitch it would have swapped at the old constant regardless,
+    // which is exactly the drift this change removes.
+    const TALL = 400;
+    await act(async () => {
+      screen
+        .getByTestId(`entry-${mains[0].exerciseId}`)
+        .props.onLayout({ nativeEvent: { layout: { height: TALL } } });
+    });
+
+    const handle = screen.getByTestId(`drag-handle-${mains[1].exerciseId}`);
+    const startY = 800;
+    // A travel that WOULD have crossed a 132pt card, but is nowhere near half of a 400pt one.
+    await act(async () => {
+      handle.props.onResponderGrant({ nativeEvent: { pageY: startY } });
+    });
+    await act(async () => {
+      handle.props.onResponderMove({ nativeEvent: { pageY: startY - 140 } });
+    });
+    await act(async () => {
+      handle.props.onResponderRelease({ nativeEvent: { pageY: startY - 140 } });
+    });
+
+    const after = sessionsRepo
+      .getSession(db, sessionId)!
+      .entries.filter((e) => e.section === 'main');
+    expect(after[0].id).toBe(mains[0].id); // unmoved: 140pt is not past the tall card's midpoint
   });
 
   it('no longer renders the up/down reorder buttons', async () => {

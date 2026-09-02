@@ -12,7 +12,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import { generate, sessionsRepo } from '@roamfit/store';
-import ApprovalScreen, { CARD_PITCH } from './ApprovalScreen';
+import ApprovalScreen, { ESTIMATED_CARD_HEIGHT } from './ApprovalScreen';
 import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
@@ -99,15 +99,19 @@ describe('§10.3 re-order at approval, driven through ApprovalScreen', () => {
     // event-name mapping does not reach `onResponderGrant`/`onResponderMove` — it silently fires
     // nothing, which would make this test pass for the wrong reason.
     const handle = screen.getByTestId(`drag-handle-${originalSecond.exerciseId}`);
+    // Cards size themselves to their content and report the result via onLayout; RNTL never lays
+    // anything out, so the drag falls back to ESTIMATED_CARD_HEIGHT. Travelling a full card plus
+    // its gap is comfortably past the half-card threshold that triggers a swap.
     const startY = 500;
+    const travel = ESTIMATED_CARD_HEIGHT + 8;
     await act(async () => {
       handle.props.onResponderGrant({ nativeEvent: { pageY: startY } });
     });
     await act(async () => {
-      handle.props.onResponderMove({ nativeEvent: { pageY: startY - CARD_PITCH } });
+      handle.props.onResponderMove({ nativeEvent: { pageY: startY - travel } });
     });
     await act(async () => {
-      handle.props.onResponderRelease({ nativeEvent: { pageY: startY - CARD_PITCH } });
+      handle.props.onResponderRelease({ nativeEvent: { pageY: startY - travel } });
     });
 
     await waitFor(() => {
