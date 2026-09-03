@@ -13,10 +13,12 @@ User decisions already made (do not re-litigate):
 - Lower rungs = every level below current, down to level 1. No window.
 - Disabling from the approval screen swaps the exercise out of the session immediately (reuses
   `alternativesForSlot`).
-- **Difficulty floor on the lower-rung pool only**: `hard` effort admits medium/hard difficulty,
-  `normal` admits easy/medium, `easy` admits easy only. Current-rung selection is unchanged
-  (pre-existing behavior, out of scope). This exists so an easy-difficulty level-1 exercise can
-  never surface in a user-selected hard workout via the new lower-rung pool.
+- **Difficulty floor on the lower-rung pool only**: a `hard`-difficulty request admits medium/hard
+  exercises, `medium` admits easy/medium, `easy` admits easy only (this is exactly
+  `hardFilters.ts`'s `isDifficultyEligible`, reused rather than duplicated — see the
+  concurrent-session note below for why). Current-rung selection is unchanged (pre-existing
+  behavior, out of scope). This exists so an easy-difficulty level-1 exercise can never surface in
+  a user-selected hard workout via the new lower-rung pool.
 
 ### Done
 - [x] Schema: `exercise_state.disabled_at` column + migration `0012_exercise_disabled.sql`
@@ -48,30 +50,32 @@ User decisions already made (do not re-litigate):
       shows all 298 tests passed).
 
 ### In progress
-- Next action: ladder lower-rung pooling (`packages/engine/src/progression/ladder.ts`,
-  `constants.ts`, `resolveSlot.ts`) — step 4 of the plan (step 3, disable wiring, is the part
-  already done above; UI is step 5/6). Not started yet.
+- Next action: the UI half (step 2 below). Ladder pooling logic is done and committed.
+
+### Concurrent-session note (resolved)
+A peer session (`roamfit-5f`) was independently renaming the engine's session "effort"
+(easy/normal/hard) to "difficulty" (easy/medium/hard, unified with `Exercise.difficulty`) in the
+same working tree while this track's lower-rung logic was uncommitted. Both changesets landed
+adapted together on disk; they were then manually separated back into two clean, independently
+green commits: `c62b066` (the rename, plus two content/test fixes it exposed — a lateral_flexion
+difficulty-coverage gap and a stale comeback-tier test date) and `3fd4c46` (this track's ladder
+lower-rung pooling, rebased on top of the rename). `isDifficultyEligibleForEffort` from the
+original plan was dropped in favor of reusing the rename's own canonical `isDifficultyEligible`
+(in `hardFilters.ts`) — same rule, no duplicate logic. If another concurrent-session collision
+happens again: stop, check `ListAgents`/`git status` for unexpected diffs, and ask before
+proceeding rather than assuming a note describing an unexpected file change is wrong.
 
 ### Next
-1. **Ladder lower-rung pooling** (`packages/engine/src/progression/ladder.ts`,
-   `constants.ts`, `resolveSlot.ts`):
-   - `ladder.ts`: new `exercisesBelowLevel(family, levelId, library)`.
-   - `constants.ts`: `CURRENT_RUNG_WEIGHT = 0.6`.
-   - `resolveSlot.ts`: add `isDifficultyEligibleForEffort(difficulty, effort)` (strict floor per
-     decisions above). Refactor `pickAtLevel` into `pickFromPool(candidates, filteredIds, rng,
-     recentExerciseIds)` + a thin `pickAtLevel` wrapper (keeps the existing walk-down loop
-     working unchanged). New `pickLadderCandidate(family, levelId, library, filteredIds, rng,
-     recentExerciseIds, effort)` implementing the current/lower split + 60/40 weighted draw +
-     difficulty floor on the lower pool only, per the plan's exact branch logic. `ResolveSlotInput`
-     gains `effort: Effort`; `resolveLadderSlot` calls `pickLadderCandidate` instead of
-     `pickAtLevel` for the initial attempt, passing `effort` (pipeline.ts already has `effort` in
-     scope at its call site, ~L231, now shifted a couple lines by this session's edits — re-grep).
-     `ResolvedLadderSlot` gets a new optional field (e.g. `pulledFromLevelId?: string`) set only
-     when the 60/40 draw deliberately picks the lower pool (not the hard-filter-failure
-     `substitutedFrom` case).
-   - Engine tests: extend `resolveSlot.test.ts`/`ladder.test.ts` per the plan's verification
-     section (60/40 split assertion via seeded rng, current-empty/lower-empty edges, difficulty
-     floor table incl. the explicit "hard effort excludes easy level-1" case).
+1. **Ladder lower-rung pooling — DONE** (commit `3fd4c46`). `ladder.ts` has
+   `exercisesBelowLevel`; `constants.ts` has `CURRENT_RUNG_WEIGHT = 0.6`; `resolveSlot.ts` has
+   `pickFromPool`/`pickLadderCandidate`/the current-vs-lower 60/40 draw gated by
+   `isDifficultyEligible` on the lower pool only, and `ResolvedLadderSlot.pulledFromLevelId` for
+   the deliberate-lower-rung-pick case (distinct from `substitutedFrom`'s hard-filter-failure
+   case). `ResolveSlotInput.includeLowerRungs` (default true) lets `levelUpFamily` opt out.
+   Still owed, not blocking: dedicated new tests for the 60/40 split and the difficulty floor
+   (the existing `resolveSlot.test.ts` cases were adapted with `includeLowerRungs: false` to keep
+   testing single-level/walk-down behavior in isolation, but nothing yet directly asserts the new
+   blended behavior itself — worth adding before calling this track fully verified).
 2. **UI**:
    - `ExerciseDetailScreen.tsx`: `handleToggleDisabled` next to `handleAssignVideo`/
      `handlePinnedNoteChange`; toggle rendered near `PinnedNote`.
