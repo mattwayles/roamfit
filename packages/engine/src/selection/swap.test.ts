@@ -65,6 +65,7 @@ function exState(overrides: Partial<ExerciseState> = {}): ExerciseState {
     removeAtApprovalCount: 0,
     pinnedNote: null,
     suppressedUntil: null,
+    disabledAt: null,
     ...overrides,
   };
 }
@@ -114,6 +115,7 @@ describe('§10.6 alternativesForSlot', () => {
     entry: entry({ exerciseId: 'original', pattern: 'horizontal_push' }),
     anchorsAvailable: ['anchor-mid', 'anchor-high', 'none', 'stance'] as const,
     limitations: [],
+    disabledExerciseIds: [],
     today: '2026-08-31',
     history: [] as SessionHistoryRecord[],
     exerciseStates: {},

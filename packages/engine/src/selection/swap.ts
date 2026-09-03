@@ -49,6 +49,7 @@ export interface SwapSlotRequest {
   entry: SessionEntry;
   anchorsAvailable: readonly Anchor[];
   limitations: readonly Limitation[];
+  disabledExerciseIds: readonly string[];
   equipmentPreference?: EquipmentPreference;
   today: LocalDate;
   history: CandidateContext['history'];
@@ -160,6 +161,7 @@ export function alternativesForSlot(req: SwapSlotRequest): SwapAlternative[] {
     request: { equipmentPreference: req.equipmentPreference },
     anchorsAvailable: req.anchorsAvailable,
     limitations: req.limitations,
+    disabledExerciseIds: new Set(req.disabledExerciseIds),
     today: req.today,
   });
 

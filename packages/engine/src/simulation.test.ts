@@ -41,6 +41,7 @@ function freshUserState(): UserState {
       weeklyTarget: 3,
       limitations: [],
       anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+    disabledExerciseIds: [],
     },
     exerciseStates: {},
     progressionStates,
@@ -156,6 +157,7 @@ describe('30-session simulation', () => {
           removeAtApprovalCount: prev?.removeAtApprovalCount ?? 0,
           pinnedNote: prev?.pinnedNote ?? null,
           suppressedUntil: prev?.suppressedUntil ?? null,
+          disabledAt: prev?.disabledAt ?? null,
         };
       }
 

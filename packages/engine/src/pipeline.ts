@@ -126,11 +126,13 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   const setsMultiplier = comeback.volumeMultiplier * longSessionSetsMultiplier(targetMinutes);
 
   // §5.1 step 1 — hard filters, before anything else sees the pool.
+  const disabledExerciseIds = new Set(userState.profile.disabledExerciseIds);
   const pool = applyHardFilters({
     library: allExercises,
     request: { equipmentPreference },
     anchorsAvailable: userState.profile.anchorsAvailable,
     limitations: userState.profile.limitations,
+    disabledExerciseIds,
     today: clock.today,
   });
   const poolIgnoringEquipment = applyHardFilters({
@@ -138,6 +140,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     request: { equipmentPreference: 'any' },
     anchorsAvailable: userState.profile.anchorsAvailable,
     limitations: userState.profile.limitations,
+    disabledExerciseIds,
     today: clock.today,
   });
 

@@ -47,13 +47,14 @@ function state(overrides: Partial<ExerciseState> = {}): ExerciseState {
     removeAtApprovalCount: 0,
     pinnedNote: null,
     suppressedUntil: null,
+    disabledAt: null,
     ...overrides,
   };
 }
 
 function userState(overrides: Partial<UserState> = {}): UserState {
   return {
-    profile: { units: 'lb', weeklyTarget: 3, limitations: [], anchorsAvailable: [] },
+    profile: { units: 'lb', weeklyTarget: 3, limitations: [], anchorsAvailable: [], disabledExerciseIds: [] },
     exerciseStates: {},
     progressionStates: {} as UserState['progressionStates'],
     history: [],

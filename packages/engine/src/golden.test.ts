@@ -39,6 +39,7 @@ function coldStartUserState(overrides: Partial<UserState> = {}): UserState {
       weeklyTarget: 3,
       limitations: [],
       anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+    disabledExerciseIds: [],
     },
     exerciseStates: {},
     progressionStates,

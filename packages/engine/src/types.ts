@@ -64,6 +64,9 @@ export interface UserProfile {
   limitations: Limitation[];
   /** §5.3 — single global sticky list, the one per-session constraint. */
   anchorsAvailable: Anchor[];
+  /** Exercises the user has explicitly disabled — permanently excluded from all eligibility
+   *  until re-enabled. Distinct from `ExerciseState.suppressedUntil` (temporary, system-managed). */
+  disabledExerciseIds: string[];
 }
 
 /** §4.4 — per user × exercise. Never on the shared library table (invariant 7). */
@@ -82,6 +85,9 @@ export interface ExerciseState {
   pinnedNote: string | null;
   /** Set by REPEATEDLY-SKIPPED (§5.2) or a pain report (§13.2). */
   suppressedUntil: LocalDate | null;
+  /** Explicit, permanent user veto — set from the Exercises detail screen or the workout
+   *  approval screen, cleared only by re-enabling. Distinct from `suppressedUntil`. */
+  disabledAt: LocalDate | null;
 }
 
 /** §4.5 — per user × progression family. `level_id` is stable, never a positional index. */

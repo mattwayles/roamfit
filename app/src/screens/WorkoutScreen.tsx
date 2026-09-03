@@ -260,6 +260,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       },
       anchorsAvailable: profile.anchorsAvailable,
       limitations: profile.limitations,
+      disabledExerciseIds: profile.disabledExerciseIds,
       today: clock.today,
       history: sessionsRepo.getHistoryForGeneration(db),
       exerciseStates: exerciseStateRepo.getAllExerciseStates(db),

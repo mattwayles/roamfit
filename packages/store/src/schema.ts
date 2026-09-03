@@ -116,6 +116,12 @@ export const exerciseState = sqliteTable(
      *  and keeps a malformed URL from ever reaching the player. NULL = none assigned. */
     userVideoId: text('user_video_id'),
     userVideoAssignedAt: text('user_video_assigned_at'),
+    /** User-driven, permanent exclusion from all future eligibility — set from the Exercises
+     *  detail screen or the workout approval screen, cleared only by explicitly re-enabling.
+     *  Distinct from `suppressedUntil`: that one is temporary and system-managed (§5.2
+     *  REPEATEDLY-SKIPPED, §13.2 pain reports), this one is an explicit, indefinite user veto.
+     *  NULL = eligible. */
+    disabledAt: text('disabled_at'),
     updatedAt: text('updated_at').notNull(),
   },
   (t) => [uniqueIndex('ux_exercise_state_user_exercise').on(t.userId, t.exerciseId)],

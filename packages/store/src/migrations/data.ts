@@ -373,6 +373,16 @@ ALTER TABLE sessions ADD COLUMN paused_at TEXT;
 ALTER TABLE sessions ADD COLUMN paused_total_sec INTEGER NOT NULL DEFAULT 0;
 `;
 
+const MIGRATION_0012_EXERCISE_DISABLED = `-- 0012_exercise_disabled.sql — explicit, permanent user veto on an exercise, distinct from
+-- \`suppressed_until\` (temporary, system-managed §5.2/§13.2 cooldown). Set from the Exercises
+-- detail screen or the workout approval screen; cleared only by explicitly re-enabling.
+-- Lives on exercise_state (per user x exercise, invariant 7) — same shape as every other
+-- per-exercise user toggle already there. NULL = eligible, which is correct for every
+-- existing row.
+
+ALTER TABLE exercise_state ADD COLUMN disabled_at TEXT;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -391,4 +401,5 @@ export const MIGRATIONS: MigrationFile[] = [
   },
   { id: '0010_set_log_band_actual.sql', sql: MIGRATION_0010_SET_LOG_BAND_ACTUAL },
   { id: '0011_session_pause.sql', sql: MIGRATION_0011_SESSION_PAUSE },
+  { id: '0012_exercise_disabled.sql', sql: MIGRATION_0012_EXERCISE_DISABLED },
 ];

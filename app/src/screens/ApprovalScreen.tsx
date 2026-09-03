@@ -295,6 +295,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
       },
       anchorsAvailable: profile.anchorsAvailable,
       limitations: profile.limitations,
+      disabledExerciseIds: profile.disabledExerciseIds,
       today: clock.today,
       history: sessionsRepo.getHistoryForGeneration(db),
       exerciseStates: exerciseStateRepo.getAllExerciseStates(db),
@@ -325,6 +326,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
       request: {},
       anchorsAvailable: profile.anchorsAvailable,
       limitations: profile.limitations,
+      disabledExerciseIds: new Set(profile.disabledExerciseIds),
       today: clock.today,
     });
     return hardFiltered.filter(

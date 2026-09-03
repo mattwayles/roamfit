@@ -2,7 +2,7 @@
  * §5.1 step 1 — HARD FILTERS. Never negotiable, and run first, before anything else (selection,
  * enjoyment, novelty) sees the pool. Invariant 3: safety filters live in code.
  *
- * Three filters, all §13.2-style "removed outright, never a prompt hint":
+ * Four filters, all §13.2-style "removed outright, never a prompt hint":
  *  - equipment: caller's `equipmentPreference`, when not `any`.
  *  - anchors: exercise.anchor must be in the user's sticky `anchorsAvailable` list (§5.3). This
  *    is also where the §13.1 bodyweight-bearing gate lives — those anchors are simply absent
@@ -10,6 +10,9 @@
  *    ever eligible until enabled.
  *  - injuries: any exercise whose `contraindications[]` intersects the user's active
  *    `limitations[]` tags is removed outright (§13.2).
+ *  - disabled: any exercise the user has explicitly disabled from the Exercises detail screen
+ *    or the workout approval screen. Permanent until re-enabled — distinct from
+ *    `ExerciseState.suppressedUntil`'s temporary, system-managed cooldown.
  */
 import type { Anchor, Exercise } from '@roamfit/data';
 import { daysBetween } from '../dates';
@@ -61,21 +64,27 @@ function isInjuryEligible(
   return !exercise.contraindications.some((c) => activeTags.has(c));
 }
 
+function isUserEnabled(exercise: Exercise, disabledExerciseIds: ReadonlySet<string>): boolean {
+  return !disabledExerciseIds.has(exercise.id);
+}
+
 export interface HardFilterInput {
   library: readonly Exercise[];
   request: Pick<GenerationRequest, 'equipmentPreference'>;
   anchorsAvailable: readonly Anchor[];
   limitations: readonly Limitation[];
+  disabledExerciseIds: ReadonlySet<string>;
   today: LocalDate;
 }
 
-/** Returns the subset of the library that survives all three hard filters. */
+/** Returns the subset of the library that survives all four hard filters. */
 export function applyHardFilters(input: HardFilterInput): Exercise[] {
   return input.library.filter(
     (e) =>
       isEquipmentEligible(e, input.request.equipmentPreference) &&
       isAnchorEligible(e, input.anchorsAvailable) &&
-      isInjuryEligible(e, input.limitations, input.today),
+      isInjuryEligible(e, input.limitations, input.today) &&
+      isUserEnabled(e, input.disabledExerciseIds),
   );
 }
 
