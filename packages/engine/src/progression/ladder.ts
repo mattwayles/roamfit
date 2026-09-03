@@ -56,6 +56,21 @@ export function exercisesForLevel(
   });
 }
 
+/** Every exercise programmable at any level strictly below `levelId` (ADR 0010 shape),
+ *  flattened across levels. Used to widen a laddered slot's eligible pool to rungs the user has
+ *  already achieved, so mastering a level doesn't retire its exercises outright. */
+export function exercisesBelowLevel(
+  family: ProgressionFamily,
+  levelId: string,
+  library: readonly Exercise[],
+): Exercise[] {
+  const idx = indexOfLevel(family, levelId);
+  if (idx <= 0) return [];
+  return family.levels
+    .slice(0, idx)
+    .flatMap((level) => exercisesForLevel(family, level.level_id, library));
+}
+
 export function isMaxLevel(family: ProgressionFamily, levelId: string): boolean {
   const idx = indexOfLevel(family, levelId);
   return idx >= 0 && idx === family.levels.length - 1;

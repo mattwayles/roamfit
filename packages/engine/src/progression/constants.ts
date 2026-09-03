@@ -45,6 +45,12 @@ export const CALIBRATION_OVERSHOOT_RATIO = 0.25;
  *  ladder entirely rather than set to 0, so nothing reintroduces a "start them partway up" seed
  *  without reading the ADR first. */
 
+/** Product call, not derived: when a laddered slot has eligible exercises at both the current
+ *  rung and at least one rung below it, this is the chance the current rung is drawn. Keeps
+ *  progressive overload the dominant signal while still surfacing mastered exercises regularly
+ *  rather than only as a last-resort fallback. */
+export const CURRENT_RUNG_WEIGHT = 0.6;
+
 /** §9.4 comeback thresholds. */
 export const COMEBACK_WEEK_GAP_DAYS = 7;
 export const COMEBACK_RESET_GAP_DAYS = 21;

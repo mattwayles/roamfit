@@ -50,6 +50,7 @@ describe('resolveLadderSlot', () => {
       progressionStates: states,
       hardFilteredPool: library, // nothing filtered
       rng: createRng(1),
+      includeLowerRungs: false, // this test is about the walk-down mechanism, not track 14's recall
     });
     // Any exercise on that rung is a correct answer (ADR 0010) — what matters is that it came
     // from level 5 and was not a walk-down.
@@ -80,6 +81,7 @@ describe('resolveLadderSlot', () => {
       progressionStates: states,
       hardFilteredPool: withoutL5,
       rng: createRng(1),
+      includeLowerRungs: false, // this test is about the walk-down mechanism, not track 14's recall
     });
     expect(l4.exercise_ids).toContain(result!.exercise.id);
     // substitutedFrom names the level's anchor — that is what progression is parked on.
@@ -170,6 +172,9 @@ describe('resolveLadderSlot — sibling selection (ADR 0010)', () => {
       hardFilteredPool: library,
       rng: createRng(seed),
       recentExerciseIds,
+      // This block is about ADR 0010 sibling selection at ONE level, not track 14's cross-rung
+      // recall — isolate it from the current/lower-rung weighting so its assertions stay exact.
+      includeLowerRungs: false,
     });
   }
 
@@ -210,6 +215,7 @@ describe('resolveLadderSlot — sibling selection (ADR 0010)', () => {
         progressionStates: atL3(),
         hardFilteredPool: pool,
         rng: createRng(seed),
+        includeLowerRungs: false,
       });
       expect(result!.exercise.id).toBe('floor-press');
       expect(result!.substitutedFrom).toBeUndefined(); // still level 3, not a walk-down
@@ -225,6 +231,7 @@ describe('resolveLadderSlot — sibling selection (ADR 0010)', () => {
       progressionStates: atL3(),
       hardFilteredPool: pool,
       rng: createRng(1),
+      includeLowerRungs: false,
     });
     expect(result!.exercise.id).toBe('bw-incline-push-up'); // l2's anchor
     // substitutedFrom names the level's anchor — that is what progression is parked on.

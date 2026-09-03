@@ -238,6 +238,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       library: allExercises,
       progressionStates: userState.progressionStates,
       hardFilteredPool: pool,
+      difficulty,
       rng,
       recentExerciseIds,
     });

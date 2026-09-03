@@ -78,6 +78,11 @@ export function levelUpFamily(db: Db, input: LevelUpInput, now: string): LevelUp
     progressionStates: { ...states, [familyId]: advanced.state },
     hardFilteredPool: pool,
     rng,
+    // This is checking whether the rung just unlocked has an eligible exercise of its own, and
+    // needs to name one from it for the confirmation copy — pooling in already-mastered lower
+    // rungs (track 14) would let this succeed with the wrong exercise, or with the wrong level's
+    // name, even when the new rung itself is unusable.
+    includeLowerRungs: false,
   });
   // `resolveLadderSlot` walks *down* when a rung is unavailable, which is right during generation
   // and wrong here: a walk-down means the rung just unlocked has nothing the user can actually do.
