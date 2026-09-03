@@ -94,6 +94,23 @@ describe('the anchor a set needs, shown on the set', () => {
     expect(screen.getByText('High anchor')).toBeTruthy();
   }, 20000);
 
+  it('names both anchor options for an exercise with anchor_alt', async () => {
+    let db!: Db;
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    // `face-pull` is anchor-high, anchor_alt anchor-mid — either fixed point works.
+    const sessionId = await sessionStartingWith(db, 'anchor-alt-seed', 'face-pull');
+    renderWorkout(sessionId);
+
+    await waitFor(() => expect(screen.getByTestId('exercise-name')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByText('High anchor or middle anchor')).toBeTruthy();
+  }, 20000);
+
   it('says nothing on a self-anchored exercise, so the badge stays worth reading', async () => {
     let db!: Db;
     render(

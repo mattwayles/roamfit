@@ -187,6 +187,22 @@ describe('the exercise library', () => {
     expect(screen.getByTestId(`exercise-card-${PUSH_UP.id}`)).toBeTruthy();
   });
 
+  it('clears the search query immediately via the Clear button', async () => {
+    await openExercises();
+    await search('push-up');
+    expect(screen.getByTestId(`exercise-card-${PUSH_UP.id}`)).toBeTruthy();
+    expect(screen.getByTestId('clear-search')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('clear-search'));
+    await waitFor(() =>
+      expect(screen.getByTestId('exercise-count')).toHaveTextContent(
+        `${exerciseLibrary.exercises.length} of ${exerciseLibrary.exercises.length} exercises`,
+      ),
+    );
+    expect(screen.getByTestId('exercise-search').props.value).toBe('');
+    expect(screen.queryByTestId('clear-search')).toBeNull();
+  });
+
   it('opens the detail page for the card tapped', async () => {
     await openExercises();
     await search('push-up');

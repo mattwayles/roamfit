@@ -18,6 +18,7 @@ function ex(overrides: Partial<Exercise>): Exercise {
     equipment: overrides.equipment ?? 'band',
     band: overrides.equipment === 'bodyweight' ? null : 'B1-B3',
     anchor: overrides.anchor ?? 'none',
+    anchor_alt: overrides.anchor_alt ?? null,
     anchor_class: overrides.anchor_class ?? 'none',
     unilateral: false,
     metric: 'reps',

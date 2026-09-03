@@ -270,7 +270,14 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
         />
         <Detail label="Equipment" value={formatToken(exercise.equipment)} />
         <Detail label="Band range" value={exercise.band ?? 'Bodyweight'} />
-        <Detail label="Anchor" value={formatToken(exercise.anchor)} />
+        <Detail
+          label="Anchor"
+          value={
+            exercise.anchor_alt
+              ? `${formatToken(exercise.anchor)} or ${formatToken(exercise.anchor_alt)}`
+              : formatToken(exercise.anchor)
+          }
+        />
         <Detail label="Anchor class" value={formatToken(exercise.anchor_class)} />
         <Detail label="Sides" value={exercise.unilateral ? 'One side at a time' : 'Both sides'} />
         <Detail label="Metric" value={formatToken(exercise.metric)} />

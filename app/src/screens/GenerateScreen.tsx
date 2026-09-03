@@ -40,40 +40,38 @@ const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   hard: 'Hard',
 };
 /**
- * §5.3 anchors, as a grouped checklist rather than a wrap of ten chips.
+ * §5.3 available equipment, as a grouped checklist rather than a wrap of chips.
  *
- * Three problems with the old presentation, all fixed here:
+ * Bodyweight exercises and band exercises that need no fixed point (self-low, stance, feet,
+ * thigh-loop) are always eligible for a workout and are not shown here at all — there is
+ * nothing the user could lack, so there is nothing to ask. Only equipment the engine actually
+ * needs to gate on appears: a band anchored to a low/mid/high point, or a bar/bench.
+ *
+ * Two problems with the old presentation, all fixed here:
  *  - the labels were raw enum values (`self-low`, `thigh-loop`, `anchor-mid`), which mean nothing
  *    to a user standing in a car park deciding what they can tie a band to;
  *  - multi-select chips looked identical to the single-select Time/Focus/Difficulty controls above,
  *    so nothing signalled that these behave differently (those are now scrolling pickers, which
- *    separates the two kinds of choice further still);
- *  - `low-bar` was missing entirely. It is in `DEFAULT_ANCHORS_AVAILABLE` (ADR 0007), so every
- *    user has it enabled and nobody could turn it off.
- *
- * Grouped by whether a fixed point is needed, which is the only distinction that matters when
- * you are deciding what to tick.
+ *    separates the two kinds of choice further still).
  */
 const ANCHOR_GROUPS: {
   title: string;
   anchors: { value: Anchor; label: string; hint?: string }[];
 }[] = [
   {
-    title: 'No fixed point needed',
-    anchors: [
-      { value: 'none', label: 'Bodyweight only', hint: 'no band at all' },
-      { value: 'stance', label: 'Stand on the band' },
-      { value: 'feet', label: 'Band under your feet' },
-      { value: 'self-low', label: 'Band around your own body' },
-      { value: 'thigh-loop', label: 'Band looped around a thigh' },
-    ],
-  },
-  {
     title: 'Needs something to anchor to',
     anchors: [
-      { value: 'anchor-low', label: 'Low point', hint: 'door base, post, heavy furniture' },
-      { value: 'anchor-mid', label: 'Mid point', hint: 'rail, handle, waist-height fixing' },
-      { value: 'anchor-high', label: 'High point', hint: 'bar, beam, top of a door' },
+      {
+        value: 'anchor-low',
+        label: 'Low Band Anchor Point',
+        hint: 'door base, post, heavy furniture',
+      },
+      {
+        value: 'anchor-mid',
+        label: 'Mid Band Anchor Point',
+        hint: 'rail, handle, waist-height fixing',
+      },
+      { value: 'anchor-high', label: 'High Band Anchor Point', hint: 'bar, beam, top of a door' },
       { value: 'low-bar', label: 'Waist-height bar', hint: 'picnic table, RV ladder, low branch' },
       { value: 'pullup-bar', label: 'Pull-up bar', hint: 'takes your full hanging weight' },
       { value: 'body-support', label: 'Bench or step', hint: 'something to dip or press off' },
@@ -82,6 +80,9 @@ const ANCHOR_GROUPS: {
 ];
 
 const ANCHOR_COUNT = ANCHOR_GROUPS.reduce((n, g) => n + g.anchors.length, 0);
+const VISIBLE_ANCHOR_VALUES: readonly Anchor[] = ANCHOR_GROUPS.flatMap((g) =>
+  g.anchors.map((a) => a.value),
+);
 
 export default function GenerateScreen({ navigation, route }: Props): React.JSX.Element {
   const { db, library, families } = useStore();
@@ -109,7 +110,15 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
 
   useEffect(() => {
     const user = usersRepo.ensureUser(db, nowUtcInstant());
-    setAnchors(user.anchorsAvailable);
+    // Older profiles may still carry now-always-eligible values (bodyweight/no-fixed-point band
+    // anchors) from before that group was removed from this picker. Trim them so the "N of
+    // ANCHOR_COUNT selected" summary stays meaningful, and persist the trim so it only happens
+    // once per profile.
+    const filtered = user.anchorsAvailable.filter((a) => VISIBLE_ANCHOR_VALUES.includes(a));
+    setAnchors(filtered);
+    if (filtered.length !== user.anchorsAvailable.length) {
+      usersRepo.updateUser(db, { anchorsAvailable: filtered }, nowUtcInstant());
+    }
   }, [db]);
 
   useEffect(() => {
@@ -209,7 +218,6 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
         </View>
       </View>
 
-      <Text style={styles.sectionLabel}>Anchors</Text>
       <Pressable
         testID="anchors-disclosure"
         accessibilityRole="button"
@@ -220,7 +228,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
           setAnchorsOpen((v) => !v);
         }}
       >
-        <Text style={styles.disclosureText}>Available Anchor Points</Text>
+        <Text style={styles.disclosureText}>Available Equipment</Text>
         <Text style={styles.disclosureCount} testID="anchors-summary">
           {anchors.length} of {ANCHOR_COUNT} selected {anchorsOpen ? '\u25b4' : '\u25be'}
         </Text>

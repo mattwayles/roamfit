@@ -179,7 +179,10 @@ export function filterExercises(
         matchesAny(state.primary, exercise.primary) &&
         matchesAny(state.pattern, [exercise.pattern]) &&
         matchesAny(state.equipment, [exercise.equipment]) &&
-        matchesAny(state.anchor, [exercise.anchor]) &&
+        matchesAny(
+          state.anchor,
+          exercise.anchor_alt ? [exercise.anchor, exercise.anchor_alt] : [exercise.anchor],
+        ) &&
         matchesAny(state.anchorClass, [exercise.anchor_class]) &&
         matchesAny(state.metric, [exercise.metric]) &&
         matchesAny(state.laterality, [exercise.unilateral ? 'unilateral' : 'bilateral']) &&
@@ -211,7 +214,7 @@ export function buildFilterOptions(exercises: Exercise[]): FilterOptions {
     primary: collect((e) => e.primary),
     pattern: collect((e) => [e.pattern]),
     equipment: collect((e) => [e.equipment]),
-    anchor: collect((e) => [e.anchor]),
+    anchor: collect((e) => (e.anchor_alt ? [e.anchor, e.anchor_alt] : [e.anchor])),
     anchorClass: collect((e) => [e.anchor_class]),
     metric: collect((e) => [e.metric]),
     laterality: inOrder(

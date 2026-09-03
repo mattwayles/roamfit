@@ -136,6 +136,7 @@ function main() {
     oneOf(ex.pattern, PATTERN_VALUES, 'pattern', id);
     oneOf(ex.equipment, EQUIPMENT_VALUES, 'equipment', id);
     oneOf(ex.anchor, ANCHOR_VALUES, 'anchor', id);
+    if (ex.anchor_alt !== null) oneOf(ex.anchor_alt, ANCHOR_VALUES, 'anchor_alt', id);
     oneOf(ex.anchor_class, ANCHOR_CLASS_VALUES, 'anchor_class', id);
     oneOf(ex.metric, METRIC_VALUES, 'metric', id);
     oneOf(ex.tier, TIER_VALUES, 'tier', id);
@@ -162,6 +163,19 @@ function main() {
       fail(
         `${id}: anchor_class "${ex.anchor_class}" disagrees with anchor "${ex.anchor}" (expected "${expectedClass}")`,
       );
+    }
+
+    // anchor_alt, when set, must be a genuine alternative: distinct from anchor, and mechanically
+    // the same safety class (§13.1) — an alternative can't turn a band exercise into a
+    // bodyweight-bearing one or vice versa.
+    if (ex.anchor_alt !== null) {
+      if (ex.anchor_alt === ex.anchor) {
+        fail(`${id}: anchor_alt "${ex.anchor_alt}" is the same as anchor — remove it`);
+      } else if (anchorClassFor(ex.anchor_alt) !== expectedClass) {
+        fail(
+          `${id}: anchor_alt "${ex.anchor_alt}" has anchor_class "${anchorClassFor(ex.anchor_alt)}" but anchor "${ex.anchor}" expects "${expectedClass}"`,
+        );
+      }
     }
 
     // band exercises need a non-null band; bodyweight needs null band

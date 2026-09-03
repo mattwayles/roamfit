@@ -17,10 +17,10 @@ import AnchorBadge, { anchorLabel } from './AnchorBadge';
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
 /** Renders the badge next to a sentinel, so absence can be told apart from "not yet committed". */
-async function renderBadge(anchor: Anchor | null) {
+async function renderBadge(anchor: Anchor | null, anchorAlt?: Anchor | null) {
   render(
     <View testID="sentinel">
-      <AnchorBadge anchor={anchor} />
+      <AnchorBadge anchor={anchor} anchorAlt={anchorAlt} />
     </View>,
   );
   await waitFor(() => expect(screen.getByTestId('sentinel')).toBeTruthy(), WAIT_OPTS);
@@ -55,5 +55,20 @@ describe('AnchorBadge', () => {
   it('renders no badge at all — not an empty one — when nothing is needed', async () => {
     await renderBadge('stance');
     expect(screen.queryByTestId('anchor-badge')).toBeNull();
+  });
+
+  it('names both options when an alternative anchor is given', async () => {
+    await renderBadge('anchor-low', 'anchor-mid');
+    expect(screen.getByText('Low anchor or middle anchor')).toBeTruthy();
+  });
+
+  it('falls back to the single anchor when there is no alternative', async () => {
+    await renderBadge('anchor-low', null);
+    expect(screen.getByText('Low anchor')).toBeTruthy();
+  });
+
+  it('ignores an alt anchor with no label of its own (self-anchored) and shows just the primary', async () => {
+    await renderBadge('anchor-low', 'stance');
+    expect(screen.getByText('Low anchor')).toBeTruthy();
   });
 });

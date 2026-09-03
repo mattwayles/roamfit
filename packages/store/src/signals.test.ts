@@ -335,13 +335,26 @@ describe('§8.3/§9.3 context signals — device timezone change, travel days, d
   it('a travel day reduces the effective weekly denominator with a floor of 2', () => {
     const { db, close } = createTestDb();
     try {
-      recordTravelDay(db, utcInstantFor('2026-03-01'));
-      recordTravelDay(db, utcInstantFor('2026-03-02'));
+      recordTravelDay(db, utcInstantFor('2026-03-01'), '2026-03-01');
+      recordTravelDay(db, utcInstantFor('2026-03-02'), '2026-03-02');
       const stats = getStats(db)!;
       expect(stats.travelDaysThisWeek).toBe(2);
 
       expect(effectiveWeeklyDenominator(3, 2)).toBe(2); // 3-2=1, floored to 2
       expect(effectiveWeeklyDenominator(3, 0)).toBe(3);
+    } finally {
+      close();
+    }
+  });
+
+  it('a travel day also logs a per-date signal event, for the calendar heatmap', () => {
+    const { db, close } = createTestDb();
+    try {
+      recordTravelDay(db, utcInstantFor('2026-03-01'), '2026-03-01');
+      const events = getSignalEventsByType(db, 'travel_day');
+      expect(events).toHaveLength(1);
+      expect(events[0].localDate).toBe('2026-03-01');
+      expect(events[0].sessionId).toBeNull();
     } finally {
       close();
     }

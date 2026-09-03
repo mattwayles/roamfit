@@ -19,6 +19,7 @@ import { schema } from '../db';
 import { newId } from '../ids';
 import { isWithinRollingWindow } from '../dates';
 import { EMA_ALPHA } from './exerciseState';
+import { logSignalEvent } from './signals';
 
 const USER_ID = 'local';
 const ROLLING_WINDOW_DAYS = 7;
@@ -226,12 +227,25 @@ export function effectiveWeeklyDenominator(
   return Math.max(TRAVEL_DENOMINATOR_FLOOR, weeklyTarget - travelDaysThisWeek);
 }
 
-export function recordTravelDay(db: Db, now: string): void {
+/**
+ * The counter (`travelDaysThisWeek`) drives the §9.3 denominator math; the `travel_day` signal
+ * event, dated to `localDate`, is the per-date record that count alone never carried — it's what
+ * lets the calendar heatmap (§14.1.6) mark this specific day as travel rather than a plain
+ * untrained square.
+ */
+export function recordTravelDay(db: Db, now: string, localDate: string): void {
   const stats = ensureStats(db, now);
   db.update(schema.rolledUpStats)
     .set({ travelDaysThisWeek: stats.travelDaysThisWeek + 1, updatedAt: now })
     .where(eq(schema.rolledUpStats.userId, USER_ID))
     .run();
+  logSignalEvent(db, {
+    sessionId: null,
+    type: 'travel_day',
+    payload: {},
+    utcInstant: now,
+    localDate,
+  });
 }
 
 /** §14.3 — hard sets per muscle group, trailing 14 days, read straight from the ledger. */

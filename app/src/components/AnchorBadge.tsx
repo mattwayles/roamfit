@@ -39,13 +39,19 @@ export function anchorLabel(anchor: Anchor | null | undefined): string | null {
 
 export default function AnchorBadge({
   anchor,
+  anchorAlt,
   testID = 'anchor-badge',
 }: {
   anchor: Anchor | null | undefined;
+  /** A second fixed point this exercise works equally well from (`Exercise.anchor_alt`) — either
+   *  one is fine, so both are worth naming while the user is standing there deciding what to rig. */
+  anchorAlt?: Anchor | null | undefined;
   testID?: string;
 }): React.JSX.Element | null {
   const label = anchorLabel(anchor);
   if (!label) return null;
+  const altLabel = anchorLabel(anchorAlt);
+  const text = altLabel ? `${label} or ${altLabel.toLowerCase()}` : label;
   return (
     <View style={styles.badge} testID={testID}>
       {/* Carries the meaning on its own at a glance, which is what a control read at arm's length
@@ -54,9 +60,13 @@ export default function AnchorBadge({
       <Text
         style={styles.label}
         // Read as one phrase rather than as "anchor emoji, low anchor".
-        accessibilityLabel={`Needs a ${label.toLowerCase()}`}
+        accessibilityLabel={
+          altLabel
+            ? `Needs a ${label.toLowerCase()} or a ${altLabel.toLowerCase()}`
+            : `Needs a ${label.toLowerCase()}`
+        }
       >
-        {label}
+        {text}
       </Text>
     </View>
   );

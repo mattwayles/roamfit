@@ -173,7 +173,9 @@ export function alternativesForSlot(req: SwapSlotRequest): SwapAlternative[] {
       e.pattern === pattern &&
       e.roles.includes('main') &&
       e.id !== req.entry.exerciseId &&
-      (!excludeAnchor || e.anchor !== excludeAnchor),
+      (!excludeAnchor ||
+        e.anchor !== excludeAnchor ||
+        (e.anchor_alt !== null && e.anchor_alt !== excludeAnchor)),
   );
 
   const candidates = buildCandidates(pool, 'main', {

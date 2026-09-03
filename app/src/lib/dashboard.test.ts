@@ -156,7 +156,12 @@ describe('§9.6 Passport — strings only, deduplicated, accumulating', () => {
 
 describe('§14.1.6 calendar heatmap — untrained days are present and neutral, never omitted', () => {
   it('produces one entry per day in the trailing window, with null minutes on untrained days', () => {
-    const days = buildCalendarDays([summary('2026-05-03', { actualMinutes: 42 })], '2026-05-05', 5);
+    const days = buildCalendarDays(
+      [summary('2026-05-03', { actualMinutes: 42 })],
+      '2026-05-05',
+      5,
+      new Set(),
+    );
     expect(days.length).toBe(5);
     expect(days.map((d) => d.localDate)).toEqual([
       '2026-05-01',
@@ -174,8 +179,30 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
       [summary('2026-05-05', { actualMinutes: null, estimatedMinutes: 20 })],
       '2026-05-05',
       1,
+      new Set(),
     );
     expect(days[0].minutes).toBe(20);
+  });
+
+  it('marks an untrained day in transit, but never overrides a trained day', () => {
+    const days = buildCalendarDays(
+      [summary('2026-05-04', { actualMinutes: 30 })],
+      '2026-05-05',
+      2,
+      new Set(['2026-05-04', '2026-05-05']),
+    );
+    // 2026-05-04 was travelled AND trained — the workout is the more informative fact.
+    expect(days.find((d) => d.localDate === '2026-05-04')).toEqual({
+      localDate: '2026-05-04',
+      minutes: 30,
+      inTransit: true,
+    });
+    // 2026-05-05 was travelled and untrained — this is the case the marker exists for.
+    expect(days.find((d) => d.localDate === '2026-05-05')).toEqual({
+      localDate: '2026-05-05',
+      minutes: null,
+      inTransit: true,
+    });
   });
 });
 

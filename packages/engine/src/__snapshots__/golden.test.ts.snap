@@ -3,15 +3,12 @@
 exports[`golden: generateSession output is pinned Quick Session, upper, seed 4 1`] = `
 {
   "anchorsSnapshot": [
-    "none",
-    "stance",
-    "feet",
-    "self-low",
-    "thigh-loop",
     "anchor-low",
     "anchor-mid",
     "anchor-high",
     "low-bar",
+    "pullup-bar",
+    "body-support",
   ],
   "cooldown": [
     {
@@ -33,7 +30,7 @@ exports[`golden: generateSession output is pinned Quick Session, upper, seed 4 1
     },
   ],
   "difficulty": "medium",
-  "engineVersion": "2.8.0",
+  "engineVersion": "2.10.0",
   "estimatedMinutes": 7,
   "explanation": "Balanced to keep working pressing without repeating what you just did.",
   "focus": "upper",
@@ -123,15 +120,12 @@ exports[`golden: generateSession output is pinned Quick Session, upper, seed 4 1
 exports[`golden: generateSession output is pinned abs, 30min, normal — never all-flexion, seed 5 1`] = `
 {
   "anchorsSnapshot": [
-    "none",
-    "stance",
-    "feet",
-    "self-low",
-    "thigh-loop",
     "anchor-low",
     "anchor-mid",
     "anchor-high",
     "low-bar",
+    "pullup-bar",
+    "body-support",
   ],
   "cooldown": [
     {
@@ -187,7 +181,7 @@ exports[`golden: generateSession output is pinned abs, 30min, normal — never a
     },
   ],
   "difficulty": "medium",
-  "engineVersion": "2.8.0",
+  "engineVersion": "2.10.0",
   "estimatedMinutes": 31,
   "explanation": "Balanced to keep working anti-rotation core work without repeating what you just did.",
   "focus": "abs",
@@ -347,15 +341,12 @@ exports[`golden: generateSession output is pinned abs, 30min, normal — never a
 exports[`golden: generateSession output is pinned cold-start legs, 20min, easy, seed 2 1`] = `
 {
   "anchorsSnapshot": [
-    "none",
-    "stance",
-    "feet",
-    "self-low",
-    "thigh-loop",
     "anchor-low",
     "anchor-mid",
     "anchor-high",
     "low-bar",
+    "pullup-bar",
+    "body-support",
   ],
   "cooldown": [
     {
@@ -394,7 +385,7 @@ exports[`golden: generateSession output is pinned cold-start legs, 20min, easy, 
     },
   ],
   "difficulty": "easy",
-  "engineVersion": "2.8.0",
+  "engineVersion": "2.10.0",
   "estimatedMinutes": 19,
   "explanation": "Your first few sessions set your starting levels — push a little and it'll calibrate fast.",
   "focus": "legs",
@@ -466,8 +457,8 @@ exports[`golden: generateSession output is pinned cold-start legs, 20min, easy, 
       "difficulty": "medium",
       "durationSec": undefined,
       "estimatedSec": 78,
-      "exerciseId": "hip-abduction",
-      "pattern": "abduction",
+      "exerciseId": "standing-glute-kickback",
+      "pattern": "hinge",
       "progressionFamilyId": null,
       "progressionLevelIdAtTime": null,
       "repTarget": 12,
@@ -501,15 +492,12 @@ exports[`golden: generateSession output is pinned cold-start legs, 20min, easy, 
 exports[`golden: generateSession output is pinned cold-start upper, 30min, normal, seed 1 1`] = `
 {
   "anchorsSnapshot": [
-    "none",
-    "stance",
-    "feet",
-    "self-low",
-    "thigh-loop",
     "anchor-low",
     "anchor-mid",
     "anchor-high",
     "low-bar",
+    "pullup-bar",
+    "body-support",
   ],
   "cooldown": [
     {
@@ -548,7 +536,7 @@ exports[`golden: generateSession output is pinned cold-start upper, 30min, norma
     },
   ],
   "difficulty": "medium",
-  "engineVersion": "2.8.0",
+  "engineVersion": "2.10.0",
   "estimatedMinutes": 32,
   "explanation": "Your first few sessions set your starting levels — push a little and it'll calibrate fast.",
   "focus": "upper",
@@ -743,15 +731,12 @@ exports[`golden: generateSession output is pinned cold-start upper, 30min, norma
 exports[`golden: generateSession output is pinned mid-progression full, 45min, hard (with a finisher slot), seed 3 1`] = `
 {
   "anchorsSnapshot": [
-    "none",
-    "stance",
-    "feet",
-    "self-low",
-    "thigh-loop",
     "anchor-low",
     "anchor-mid",
     "anchor-high",
     "low-bar",
+    "pullup-bar",
+    "body-support",
   ],
   "cooldown": [
     {
@@ -807,7 +792,7 @@ exports[`golden: generateSession output is pinned mid-progression full, 45min, h
     },
   ],
   "difficulty": "hard",
-  "engineVersion": "2.8.0",
+  "engineVersion": "2.10.0",
   "estimatedMinutes": 48,
   "explanation": "Balanced to keep working squatting without repeating what you just did.",
   "focus": "full",
@@ -838,7 +823,7 @@ exports[`golden: generateSession output is pinned mid-progression full, 45min, h
       "difficulty": "hard",
       "durationSec": undefined,
       "estimatedSec": 345,
-      "exerciseId": "glute-kickback",
+      "exerciseId": "standing-glute-kickback",
       "pattern": "hinge",
       "progressionFamilyId": "hinge",
       "progressionLevelIdAtTime": "hinge.l1",

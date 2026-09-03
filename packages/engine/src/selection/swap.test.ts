@@ -16,6 +16,7 @@ function ex(overrides: Partial<Exercise>): Exercise {
     equipment: overrides.equipment ?? 'band',
     band: overrides.equipment === 'bodyweight' ? null : (overrides.band ?? 'B1-B3'),
     anchor: overrides.anchor ?? 'anchor-mid',
+    anchor_alt: overrides.anchor_alt ?? null,
     anchor_class: overrides.anchor_class ?? 'band_tension',
     unilateral: false,
     metric: overrides.metric ?? 'reps',
@@ -97,6 +98,13 @@ describe('§10.6 alternativesForSlot', () => {
     anchor: 'anchor-high',
     difficulty: 'medium',
   });
+  const altAnchor = ex({
+    id: 'alt-anchor',
+    pattern: 'horizontal_push',
+    anchor: 'anchor-mid',
+    anchor_alt: 'anchor-high',
+    difficulty: 'medium',
+  });
 
   const library = [
     original,
@@ -108,6 +116,7 @@ describe('§10.6 alternativesForSlot', () => {
     bodyweightBearing,
     injuredOut,
     wrongAnchor,
+    altAnchor,
   ];
 
   const baseReq = {
@@ -158,10 +167,18 @@ describe('§10.6 alternativesForSlot', () => {
     expect(bw!.replacement.difficulty).toBe('medium'); // §13.1 cap
   });
 
-  it('"different anchor" quick-filter excludes the named anchor', () => {
+  it('"different anchor" quick-filter excludes a candidate with no alternative to the named anchor', () => {
+    const alts = alternativesForSlot({ ...baseReq, excludeAnchor: 'anchor-high' });
+    // wrong-anchor's only anchor is anchor-high; alt-anchor also has anchor-high, but only as its
+    // anchor_alt (primary is anchor-mid) — the user could do it without re-rigging, so it survives.
+    expect(alts.some((a) => a.exercise.id === 'wrong-anchor')).toBe(false);
+    expect(alts.some((a) => a.exercise.id === 'alt-anchor')).toBe(true);
+  });
+
+  it('"different anchor" quick-filter keeps a candidate whose anchor_alt differs from the excluded anchor', () => {
+    // alt-anchor's primary anchor IS the excluded one here, but its anchor_alt is not.
     const alts = alternativesForSlot({ ...baseReq, excludeAnchor: 'anchor-mid' });
-    expect(alts.some((a) => a.exercise.anchor === 'anchor-mid')).toBe(false);
-    expect(alts.some((a) => a.exercise.id === 'wrong-anchor')).toBe(true);
+    expect(alts.some((a) => a.exercise.id === 'alt-anchor')).toBe(true);
   });
 
   it('ranks same-difficulty alternatives ahead of easier/harder ones', () => {

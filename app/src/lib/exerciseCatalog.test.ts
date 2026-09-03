@@ -38,6 +38,7 @@ function exercise(overrides: Partial<Exercise> & { id: string; name: string }): 
     equipment: 'band',
     band: 'B1-B2',
     anchor: 'none',
+    anchor_alt: null,
     anchor_class: 'none',
     unilateral: false,
     metric: 'reps',

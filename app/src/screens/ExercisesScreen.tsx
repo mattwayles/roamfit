@@ -95,19 +95,33 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
   const header = (
     <View style={styles.header}>
       <View style={styles.searchRow}>
-        <TextInput
-          testID="exercise-search"
-          style={styles.search}
-          value={filters.query}
-          onChangeText={(query) => setFilters((prev) => ({ ...prev, query }))}
-          placeholder="Search exercises"
-          placeholderTextColor="#94a3b8"
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-          clearButtonMode="while-editing"
-          accessibilityLabel="Search exercises"
-        />
+        <View style={styles.searchFieldWrap}>
+          <TextInput
+            testID="exercise-search"
+            style={[styles.search, filters.query.length > 0 && styles.searchWithClear]}
+            value={filters.query}
+            onChangeText={(query) => setFilters((prev) => ({ ...prev, query }))}
+            placeholder="Search exercises"
+            placeholderTextColor="#94a3b8"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+            accessibilityLabel="Search exercises"
+          />
+          {filters.query.length > 0 && (
+            <Pressable
+              testID="clear-search"
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              hitSlop={8}
+              style={styles.clearSearchButton}
+              onPress={() => setFilters((prev) => ({ ...prev, query: '' }))}
+            >
+              <Text style={styles.clearSearchButtonText}>✕</Text>
+            </Pressable>
+          )}
+        </View>
         <Pressable
           testID="toggle-filters"
           accessibilityRole="button"
@@ -299,8 +313,8 @@ const styles = StyleSheet.create({
   container: { padding: 20, paddingBottom: 48, gap: 10 },
   header: { gap: 12, paddingBottom: 4 },
   searchRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  searchFieldWrap: { flex: 1, justifyContent: 'center' },
   search: {
-    flex: 1,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 12,
@@ -310,6 +324,17 @@ const styles = StyleSheet.create({
     minHeight: 44,
     backgroundColor: '#f8fafc',
   },
+  searchWithClear: { paddingRight: 36 },
+  clearSearchButton: {
+    position: 'absolute',
+    right: 10,
+    minWidth: 24,
+    minHeight: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearSearchButtonText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
   filterButton: {
     minHeight: 44,
     justifyContent: 'center',

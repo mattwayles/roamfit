@@ -4,9 +4,17 @@ import { DEFAULT_ANCHORS_AVAILABLE, difficultyCapForExercise } from './hardFilte
 const row = exerciseLibrary.exercises.find((e) => e.id === 'bw-inverted-row')!;
 const pullup = exerciseLibrary.exercises.find((e) => e.id === 'bw-pull-up')!;
 
-it('inverted row is available by default; real pull-ups still are not', () => {
+it('every bodyweight_bearing anchor is available by default, including pull-ups', () => {
+  // §5.3: the "Available Equipment" picker starts fully checked — a new user sees the whole
+  // library, not a pre-narrowed one — so bodyweight_bearing exercises are no longer held back
+  // pending an opt-in. Safety instead lives entirely in the §13.1 difficulty cap below, which
+  // does not depend on this list at all.
   expect(DEFAULT_ANCHORS_AVAILABLE).toContain(row.anchor);
-  expect(DEFAULT_ANCHORS_AVAILABLE).not.toContain(pullup.anchor);
+  expect(DEFAULT_ANCHORS_AVAILABLE).toContain(pullup.anchor);
+  const bearing = exerciseLibrary.exercises.filter((e) => e.anchor_class === 'bodyweight_bearing');
+  for (const e of bearing) {
+    expect(DEFAULT_ANCHORS_AVAILABLE).toContain(e.anchor);
+  }
 });
 
 it('the §13.1 difficulty cap still applies to the inverted row', () => {
@@ -16,18 +24,13 @@ it('the §13.1 difficulty cap still applies to the inverted row', () => {
   expect(difficultyCapForExercise(row, 'easy')).toBe('easy');
 });
 
-it('no other exercise became default-available as a side effect', () => {
-  const bearing = exerciseLibrary.exercises.filter((e) => e.anchor_class === 'bodyweight_bearing');
-  const defaultAvailable = bearing.filter((e) => DEFAULT_ANCHORS_AVAILABLE.includes(e.anchor));
-  // Both entries are deliberate `low-bar` (ADR 0007) exercises, and nothing on `pullup-bar` or
-  // `body-support` may join them without a decision. `bw-low-bar-hang` was added by ADR 0010 to
-  // give vertical_pull.l1 an option a default user can actually perform — the rung's anchor,
-  // `bw-dead-hang`, is on `pullup-bar` and so is filtered away for most people.
-  expect(defaultAvailable.map((e) => e.id).sort()).toEqual(['bw-inverted-row', 'bw-low-bar-hang']);
-});
-
 it('the §13.1 difficulty cap applies to the low-bar hang too', () => {
   const hang = exerciseLibrary.exercises.find((e) => e.id === 'bw-low-bar-hang')!;
   expect(hang.anchor_class).toBe('bodyweight_bearing');
   expect(difficultyCapForExercise(hang, 'hard')).toBe('medium');
+});
+
+it('the §13.1 difficulty cap applies to a real pull-up too', () => {
+  expect(pullup.anchor_class).toBe('bodyweight_bearing');
+  expect(difficultyCapForExercise(pullup, 'hard')).toBe('medium');
 });

@@ -175,15 +175,18 @@ describe('§10.2 Generate screen', () => {
     renderScreen();
     await waitFor(() => expect(screen.getByTestId('anchors-disclosure')).toBeTruthy(), WAIT_OPTS);
 
-    expect(screen.queryByTestId('anchor-stance')).toBeNull();
+    expect(screen.queryByTestId('anchor-anchor-low')).toBeNull();
     fireEvent.press(screen.getByTestId('anchors-disclosure'));
 
-    await waitFor(() => expect(screen.getByTestId('anchor-stance')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.getByText('No fixed point needed')).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('anchor-anchor-low')).toBeTruthy(), WAIT_OPTS);
     expect(screen.getByText('Needs something to anchor to')).toBeTruthy();
     // Plain-language labels, not raw enum values.
-    expect(screen.getByText('Band looped around a thigh')).toBeTruthy();
-    expect(screen.queryByText('thigh-loop')).toBeNull();
+    expect(screen.getByText('Low Band Anchor Point')).toBeTruthy();
+    expect(screen.queryByText('anchor-low')).toBeNull();
+    // Bodyweight/no-fixed-point band exercises are always eligible, so that group is gone.
+    expect(screen.queryByText('No fixed point needed')).toBeNull();
+    expect(screen.queryByTestId('anchor-none')).toBeNull();
+    expect(screen.queryByTestId('anchor-stance')).toBeNull();
   });
 
   it('exposes low-bar, which the old chip row omitted entirely', async () => {
@@ -193,31 +196,73 @@ describe('§10.2 Generate screen', () => {
     await waitFor(() => expect(screen.getByTestId('anchor-low-bar')).toBeTruthy(), WAIT_OPTS);
   });
 
+  it('starts with every option checked', async () => {
+    const { getDb } = renderScreen();
+    await waitFor(() => expect(screen.getByTestId('anchors-disclosure')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('anchors-disclosure'));
+    await waitFor(() => expect(screen.getByTestId('anchor-anchor-low')).toBeTruthy(), WAIT_OPTS);
+
+    for (const value of [
+      'anchor-low',
+      'anchor-mid',
+      'anchor-high',
+      'low-bar',
+      'pullup-bar',
+      'body-support',
+    ]) {
+      expect(screen.getByTestId(`anchor-${value}`).props.accessibilityState.checked).toBe(true);
+    }
+    const anchors = usersRepo.buildUserProfile(getDb(), '2026-09-01').anchorsAvailable;
+    expect(anchors.sort()).toEqual(
+      ['anchor-low', 'anchor-mid', 'anchor-high', 'low-bar', 'pullup-bar', 'body-support'].sort(),
+    );
+  });
+
   it('is still multi-select, and each toggle persists through usersRepo', async () => {
     const { getDb } = renderScreen();
     await waitFor(() => expect(screen.getByTestId('anchors-disclosure')).toBeTruthy(), WAIT_OPTS);
     fireEvent.press(screen.getByTestId('anchors-disclosure'));
-    await waitFor(() => expect(screen.getByTestId('anchor-stance')).toBeTruthy(), WAIT_OPTS);
+    await waitFor(() => expect(screen.getByTestId('anchor-anchor-low')).toBeTruthy(), WAIT_OPTS);
 
     const before = usersRepo.buildUserProfile(getDb(), '2026-09-01').anchorsAvailable;
-    expect(before).toContain('stance');
-    expect(before).not.toContain('pullup-bar');
+    expect(before).toContain('anchor-low');
+    expect(before).toContain('pullup-bar');
 
     // Turning one off does not turn the others off — this is a checklist, not a radio group.
-    fireEvent.press(screen.getByTestId('anchor-stance'));
+    fireEvent.press(screen.getByTestId('anchor-anchor-low'));
     await waitFor(() => {
       const after = usersRepo.buildUserProfile(getDb(), '2026-09-01').anchorsAvailable;
-      expect(after).not.toContain('stance');
-      expect(after).toContain('feet');
+      expect(after).not.toContain('anchor-low');
+      expect(after).toContain('anchor-mid');
     }, WAIT_OPTS);
 
-    // ...and turning a new one on keeps everything already selected.
-    fireEvent.press(screen.getByTestId('anchor-pullup-bar'));
+    // ...and turning it back on restores it, keeping everything else selected.
+    fireEvent.press(screen.getByTestId('anchor-anchor-low'));
     await waitFor(() => {
       const after = usersRepo.buildUserProfile(getDb(), '2026-09-01').anchorsAvailable;
-      expect(after).toContain('pullup-bar');
-      expect(after).toContain('feet');
+      expect(after).toContain('anchor-low');
+      expect(after).toContain('anchor-mid');
     }, WAIT_OPTS);
+  });
+
+  it('remembers a deselected option across a remount, rather than re-defaulting it on', async () => {
+    const { getDb } = renderScreen();
+    await waitFor(() => expect(screen.getByTestId('anchors-disclosure')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('anchors-disclosure'));
+    await waitFor(() => expect(screen.getByTestId('anchor-pullup-bar')).toBeTruthy(), WAIT_OPTS);
+
+    fireEvent.press(screen.getByTestId('anchor-pullup-bar'));
+    await waitFor(() => {
+      expect(usersRepo.buildUserProfile(getDb(), '2026-09-01').anchorsAvailable).not.toContain(
+        'pullup-bar',
+      );
+    }, WAIT_OPTS);
+
+    // Rather than unmount/remount the screen (render()'s returned `unmount` is async in this
+    // library version and awkward to sequence here), re-read what a fresh mount would load: the
+    // same `usersRepo.ensureUser` call GenerateScreen's own mount effect makes.
+    const reloaded = usersRepo.ensureUser(getDb(), '2026-09-01T00:00:00.000Z');
+    expect(reloaded.anchorsAvailable).not.toContain('pullup-bar');
   });
 
   it('the summary count tracks the selection', async () => {
@@ -225,8 +270,8 @@ describe('§10.2 Generate screen', () => {
     await waitFor(() => expect(screen.getByTestId('anchors-summary')).toBeTruthy(), WAIT_OPTS);
     const initial = screen.getByTestId('anchors-summary').props.children.join('');
     fireEvent.press(screen.getByTestId('anchors-disclosure'));
-    await waitFor(() => expect(screen.getByTestId('anchor-feet')).toBeTruthy(), WAIT_OPTS);
-    fireEvent.press(screen.getByTestId('anchor-feet'));
+    await waitFor(() => expect(screen.getByTestId('anchor-anchor-mid')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('anchor-anchor-mid'));
     await waitFor(() => {
       const next = screen.getByTestId('anchors-summary').props.children.join('');
       expect(next).not.toBe(initial);

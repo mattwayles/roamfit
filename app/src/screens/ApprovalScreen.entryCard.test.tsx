@@ -251,7 +251,10 @@ describe('§10.3 approval entry card', () => {
       expect(after.band).toBe(chosen);
     }, WAIT_OPTS);
     // ...and the card now shows that band, so the plan and the screen agree.
-    await waitFor(() => expect(screen.getByTestId(`band-chip-${chosen}`)).toBeTruthy(), WAIT_OPTS);
+    await waitFor(() => {
+      const trigger = screen.getByTestId(`band-${entry.exerciseId}`);
+      expect(trigger.props.accessibilityValue.text).toBe(chosen);
+    }, WAIT_OPTS);
   });
 
   it('no longer renders the up/down reorder buttons', async () => {

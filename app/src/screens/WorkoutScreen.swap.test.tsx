@@ -120,7 +120,7 @@ describe('§10.6 mid-workout swap, driven through WorkoutScreen', () => {
 
     // The elapsed workout timer (rendered above the phase view, unconditionally) is still there
     // and ticking — the session stopwatch was never paused or reset by swapping.
-    expect(screen.getByText(/^Elapsed/)).toBeTruthy();
+    expect(screen.getByTestId('workout-elapsed')).toBeTruthy();
 
     // No re-approval/regeneration navigation happened, and we are straight back on an exercise
     // view (reps or timed — the new exercise may have a different metric).

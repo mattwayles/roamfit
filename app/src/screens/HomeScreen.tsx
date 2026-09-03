@@ -129,7 +129,17 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
 
     const completedSessions = sessionsRepo.getCompletedSessionsForDashboard(db);
     const passport = buildPassportSummary(completedSessions);
-    const calendarDays = buildCalendarDays(completedSessions, clock.today, CALENDAR_WINDOW_DAYS);
+    // §9.3 — every date "I'm in Transit" was tapped for, so the heatmap below can mark an
+    // untrained travel day rather than show it as a plain empty square.
+    const travelLocalDates = new Set(
+      signalsRepo.getSignalEventsByType(db, 'travel_day').map((e) => e.localDate),
+    );
+    const calendarDays = buildCalendarDays(
+      completedSessions,
+      clock.today,
+      CALENDAR_WINDOW_DAYS,
+      travelLocalDates,
+    );
     const muscleBalance = buildMuscleBalanceRows(statsRepo.hardSetsByMuscle14d(db, clock.today));
     const milestones = milestonesRepo.getAllMilestones(db);
     const lifetimeCounters = buildLifetimeCounters(
@@ -272,7 +282,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   }, [data, db, navigation]);
 
   const handleTravelDay = useCallback(() => {
-    statsRepo.recordTravelDay(db, nowUtcInstant());
+    statsRepo.recordTravelDay(db, nowUtcInstant(), nowEngineClock().today);
     load();
   }, [db, load]);
 
@@ -678,25 +688,34 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
         )
       )}
 
-      {/* §14.1.6 calendar heatmap — untrained days are neutral squares, never omitted or red. */}
+      {/* §14.1.6 calendar heatmap — untrained days are neutral squares, never omitted or red.
+          §9.3 — an untrained travel day gets a plane icon instead of a plain square: reviewing
+          the week, that's what explains why a day has no workout on it. A trained travel day
+          still shows the workout — the more informative fact of the two. */}
       {stats.lifetimeSessionCount > 0 && (
         <View testID="calendar-heatmap">
           <Text style={styles.sectionLabel}>Last {CALENDAR_WINDOW_DAYS} days</Text>
           <View style={styles.calendarGrid}>
-            {calendarDays.map((day) => (
-              <View
-                key={day.localDate}
-                testID={`calendar-day-${day.localDate}`}
-                style={[
-                  styles.calendarCell,
-                  day.minutes === null
-                    ? styles.calendarCellUntrained
-                    : day.minutes >= 30
-                      ? styles.calendarCellLong
-                      : styles.calendarCellShort,
-                ]}
-              />
-            ))}
+            {calendarDays.map((day) => {
+              const isTransitDay = day.minutes === null && day.inTransit;
+              return (
+                <View
+                  key={day.localDate}
+                  testID={`calendar-day-${day.localDate}`}
+                  accessibilityLabel={isTransitDay ? 'Travel day' : undefined}
+                  style={[
+                    styles.calendarCell,
+                    day.minutes === null
+                      ? styles.calendarCellUntrained
+                      : day.minutes >= 30
+                        ? styles.calendarCellLong
+                        : styles.calendarCellShort,
+                  ]}
+                >
+                  {isTransitDay && <Text style={styles.calendarCellTransitIcon}>✈</Text>}
+                </View>
+              );
+            })}
           </View>
         </View>
       )}
@@ -934,10 +953,11 @@ const styles = StyleSheet.create({
   },
   passportOptInText: { fontSize: 13, fontWeight: '600', color: '#334155' },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
-  calendarCell: { width: 16, height: 16, borderRadius: 4 },
+  calendarCell: { width: 16, height: 16, borderRadius: 4, alignItems: 'center' },
   calendarCellUntrained: { backgroundColor: '#e2e8f0' },
   calendarCellShort: { backgroundColor: '#86efac' },
   calendarCellLong: { backgroundColor: '#16a34a' },
+  calendarCellTransitIcon: { fontSize: 10, lineHeight: 16, color: '#475569' },
   muscleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   muscleLabel: { width: 90, fontSize: 12, color: '#334155', fontWeight: '600' },
   muscleBarTrack: {

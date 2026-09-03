@@ -13,7 +13,7 @@ import { generateSession } from './pipeline';
 import { createRng } from './rng';
 import { calibrationStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
-import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
+import { ALWAYS_AVAILABLE_ANCHORS, DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
 import type { Difficulty, EquipmentPreference, ProgressionState, UserState } from './types';
 
 const library = exerciseLibrary.exercises;
@@ -147,10 +147,13 @@ describe('property: invariants hold across the full request sweep', () => {
                 }
               }
 
-              // Never a disabled anchor.
+              // Never a disabled anchor — except the always-eligible ones (bodyweight, and band
+              // exercises needing no fixed point), which are never gated by anchorsAvailable.
               for (const entry of allEntries) {
                 const ex = exerciseFor(entry.exerciseId);
-                expect(userState.profile.anchorsAvailable).toContain(ex.anchor);
+                if (!ALWAYS_AVAILABLE_ANCHORS.includes(ex.anchor)) {
+                  expect(userState.profile.anchorsAvailable).toContain(ex.anchor);
+                }
               }
 
               // Never `hard` difficulty on a bodyweight_bearing exercise, regardless of the day's difficulty.

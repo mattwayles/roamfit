@@ -392,6 +392,14 @@ export const signalEvents = sqliteTable(
         // mid-workout) because "rejected on sight" and "rejected after trying it" are different
         // §8.3 evidence. Payload: {entryId, fromExerciseId, toExerciseId}.
         'swap_at_approval',
+        // §9.3 — one per "I'm in Transit" tap (`statsRepo.recordTravelDay`), dated to the local
+        // day it was tapped for. `rolled_up_stats.travel_days_this_week` already carries the
+        // count for the denominator math; this is the per-date record that count never had, so
+        // the calendar heatmap (§14.1.6) can mark that specific day as a travel day rather than
+        // a plain untrained square. Payload: {} — the date and the fact of the tap are the whole
+        // signal. `signal_events.type` is plain TEXT (no CHECK constraint), so this needs no
+        // migration.
+        'travel_day',
       ],
     }).notNull(),
     /** JSON, shape depends on `type` — e.g. swap: {fromExerciseId, toExerciseId, atSetIndex}. */

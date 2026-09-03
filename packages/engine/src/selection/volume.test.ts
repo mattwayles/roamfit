@@ -20,6 +20,7 @@ function ex(id: string, primary: string[], secondary: string[] = []): Exercise {
     equipment: 'band',
     band: 'B1-B3',
     anchor: 'none',
+    anchor_alt: null,
     anchor_class: 'none',
     unilateral: false,
     metric: 'reps',

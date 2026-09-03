@@ -9,7 +9,14 @@ import {
   nextLevel,
   prevLevel,
 } from './ladder';
-import { DEFAULT_ANCHORS_AVAILABLE } from '../filters/hardFilters';
+import { ALWAYS_AVAILABLE_ANCHORS, DEFAULT_ANCHORS_AVAILABLE } from '../filters/hardFilters';
+import type { Anchor } from '@roamfit/data';
+
+/** Default-eligible: either always-available (bodyweight, no-fixed-point band) or in the
+ *  default anchorsAvailable list — mirrors `isAnchorEligible` in `hardFilters.ts`. */
+function isDefaultEligible(anchor: Anchor): boolean {
+  return ALWAYS_AVAILABLE_ANCHORS.includes(anchor) || DEFAULT_ANCHORS_AVAILABLE.includes(anchor);
+}
 
 const families = familyLibrary.families;
 const library = exerciseLibrary.exercises;
@@ -60,16 +67,19 @@ describe('§6.1/§4.2 ladder lookups (stable level_id, never a positional index)
  * A level's anchor is the exercise its progression math runs on (`exerciseForLevel`) and the one
  * named when the rung is displayed. So an anchor that the hard filters remove for most users, on a
  * rung a *sibling* still covers, breaks progression: the user climbs a ladder shaped for a movement
- * they are never shown. `vertical_push.l4` was exactly that — anchored on `bw-dip`, which needs the
- * non-default `body-support` anchor, while `banded-push-press` was what actually got programmed.
+ * they are never shown. `vertical_push.l4` was exactly that — anchored on `bw-dip`, which needed the
+ * once-non-default `body-support` anchor, while `banded-push-press` was what actually got programmed.
+ *
+ * Now that every anchor the "Available Equipment" picker offers is checked by default (§5.3), the
+ * two rungs that used to be known-broken here (`horizontal_push.l2`, anchored on a `pullup-bar`
+ * exercise; `vertical_pull.l1`, anchored on `bw-dead-hang`) are reachable too — their anchors are
+ * default-eligible now, so there is no longer a mismatch to detect.
  *
  * A rung where NO sibling is default-available is a different, legitimate thing: it is gear-gated
  * end to end, nothing is programmed, and there is no mismatch to fix.
  */
 describe('ladder anchors are reachable on the rungs that are reachable', () => {
-  // The two rungs that still have this defect. They are known-broken and parked in
-  // docs/BACKLOG.md — do NOT add to this list to make a new failure go away.
-  const KNOWN_UNREACHABLE_ANCHORS = ['horizontal_push.l2', 'vertical_pull.l1'];
+  const KNOWN_UNREACHABLE_ANCHORS: string[] = [];
 
   function offendingLevels(): string[] {
     const byId = new Map(library.map((e) => [e.id, e]));
@@ -77,10 +87,10 @@ describe('ladder anchors are reachable on the rungs that are reachable', () => {
     for (const family of families) {
       for (const level of family.levels) {
         const anchor = byId.get(level.anchor_exercise_id);
-        if (!anchor || DEFAULT_ANCHORS_AVAILABLE.includes(anchor.anchor)) continue;
+        if (!anchor || isDefaultEligible(anchor.anchor)) continue;
         const coveredBySibling = level.exercise_ids.some((id) => {
           const ex = byId.get(id);
-          return ex && ex.id !== anchor.id && DEFAULT_ANCHORS_AVAILABLE.includes(ex.anchor);
+          return ex && ex.id !== anchor.id && isDefaultEligible(ex.anchor);
         });
         if (coveredBySibling) offenders.push(level.level_id);
       }
@@ -96,7 +106,7 @@ describe('ladder anchors are reachable on the rungs that are reachable', () => {
     const verticalPush = findFamily(families, 'vertical_push')!;
     const anchor = exerciseForLevel(verticalPush, 'vertical_push.l4', library)!;
     expect(anchor.id).toBe('banded-push-press');
-    expect(DEFAULT_ANCHORS_AVAILABLE).toContain(anchor.anchor);
+    expect(isDefaultEligible(anchor.anchor)).toBe(true);
     // The band rung it was always meant to be: micro-progression can now climb B2 -> B3, which it
     // could not while the anchor was a bodyweight exercise.
     expect(anchor.equipment).toBe('band');

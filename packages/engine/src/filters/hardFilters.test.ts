@@ -1,5 +1,6 @@
 import { exerciseLibrary } from '@roamfit/data';
 import {
+  ALWAYS_AVAILABLE_ANCHORS,
   applyHardFilters,
   DEFAULT_ANCHORS_AVAILABLE,
   difficultyCapForExercise,
@@ -8,7 +9,7 @@ import {
 const lib = exerciseLibrary.exercises;
 
 describe('hard filters (§5.1 step 1 / §13.2)', () => {
-  it('never returns an exercise whose anchor is not enabled (§13.1 default-off)', () => {
+  it('never returns an exercise whose anchor is not enabled', () => {
     const out = applyHardFilters({
       library: lib,
       request: {},
@@ -17,27 +18,65 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
       disabledExerciseIds: new Set(),
       today: '2026-08-30',
     });
-    // The real invariant: nothing appears whose anchor the user has not enabled.
-    expect(out.every((e) => DEFAULT_ANCHORS_AVAILABLE.includes(e.anchor))).toBe(true);
-    // §5.3 says all bodyweight_bearing anchors are off by default. ADR 0007 carves out exactly
-    // one documented exception — `low-bar` (bw-inverted-row), which is on by default while
-    // staying bodyweight_bearing so the §13.1 difficulty cap still binds. Pin that the carve-out is
-    // exactly one anchor wide, so a future edit cannot quietly widen it.
+    // The real invariant: nothing appears whose anchor the user has not enabled, except the
+    // always-eligible anchors (bodyweight, and band exercises needing no fixed point) — those
+    // are never gated by anchorsAvailable at all.
+    expect(
+      out.every(
+        (e) =>
+          DEFAULT_ANCHORS_AVAILABLE.includes(e.anchor) ||
+          ALWAYS_AVAILABLE_ANCHORS.includes(e.anchor),
+      ),
+    ).toBe(true);
+    // §5.3: every anchor the "Available Equipment" picker offers is checked by default, so
+    // bodyweight_bearing exercises (pull-ups, dips, low-bar hangs, ...) DO appear by default now
+    // — the §13.1 safety cap lives entirely in `difficultyCapForExercise`, not in whether the
+    // anchor is enabled.
     const bearing = out.filter((e) => e.anchor_class === 'bodyweight_bearing');
-    expect([...new Set(bearing.map((e) => e.anchor))]).toEqual(['low-bar']);
+    expect(bearing.length).toBeGreaterThan(0);
     expect(bearing.every((e) => difficultyCapForExercise(e, 'hard') === 'medium')).toBe(true);
   });
 
-  it('includes bodyweight_bearing exercises once the anchor is explicitly enabled', () => {
+  it('excludes bodyweight_bearing exercises once the user disables that anchor', () => {
+    const withoutBarAndBench = DEFAULT_ANCHORS_AVAILABLE.filter(
+      (a) => a !== 'pullup-bar' && a !== 'body-support',
+    );
     const out = applyHardFilters({
       library: lib,
       request: {},
-      anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE, 'pullup-bar', 'body-support'],
+      anchorsAvailable: withoutBarAndBench,
       limitations: [],
       disabledExerciseIds: new Set(),
       today: '2026-08-30',
     });
-    expect(out.some((e) => e.anchor_class === 'bodyweight_bearing')).toBe(true);
+    expect(out.some((e) => e.anchor === 'pullup-bar' || e.anchor === 'body-support')).toBe(false);
+  });
+
+  it('accepts anchor_alt as a genuine alternative to anchor — either being available is enough', () => {
+    // Banded Bear Crawl: anchor "anchor-low", anchor_alt "anchor-mid".
+    const bearCrawl = lib.find((e) => e.id === 'bear-crawl')!;
+    expect(bearCrawl.anchor).toBe('anchor-low');
+    expect(bearCrawl.anchor_alt).toBe('anchor-mid');
+
+    const onlyMid = applyHardFilters({
+      library: lib,
+      request: {},
+      anchorsAvailable: ['anchor-mid'],
+      limitations: [],
+      disabledExerciseIds: new Set(),
+      today: '2026-08-30',
+    });
+    expect(onlyMid.some((e) => e.id === 'bear-crawl')).toBe(true);
+
+    const neither = applyHardFilters({
+      library: lib,
+      request: {},
+      anchorsAvailable: ['anchor-high'],
+      limitations: [],
+      disabledExerciseIds: new Set(),
+      today: '2026-08-30',
+    });
+    expect(neither.some((e) => e.id === 'bear-crawl')).toBe(false);
   });
 
   it('removes any exercise whose contraindications intersect an active limitation, and never as a hint', () => {
@@ -124,7 +163,8 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
       today: '2026-08-30',
     });
     expect(out.some((e) => e.id === target.id)).toBe(
-      DEFAULT_ANCHORS_AVAILABLE.includes(target.anchor),
+      DEFAULT_ANCHORS_AVAILABLE.includes(target.anchor) ||
+        ALWAYS_AVAILABLE_ANCHORS.includes(target.anchor),
     );
   });
 });

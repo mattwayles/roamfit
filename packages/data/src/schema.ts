@@ -103,6 +103,10 @@ export interface Exercise {
   /** Suggested band range, e.g. "B1-B2". Null for bodyweight. */
   band: string | null;
   anchor: Anchor;
+  /** A second anchor point this exercise works equally well from (e.g. "either low or mid").
+   *  Null when the exercise has only the one requirement in `anchor`. Eligibility checks (§5.3)
+   *  treat `anchor` and `anchor_alt` as alternatives — the user needs one or the other, not both. */
+  anchor_alt: Anchor | null;
   anchor_class: AnchorClass;
 
   unilateral: boolean;

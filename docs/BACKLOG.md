@@ -14,11 +14,9 @@ the record of what was completed and why.
 
 ## Desired Fixes
 
-- Workout Approval Page: Sets, Reps, Rest, Time textboxes have too much space and should be narrower
-- Active Workout: Remove 'Elapsed' from timer label
-- Mark an untracked workout
-- Passport enabled by default
-- I’m in Transit - seplace empty day marker with an airplane
+- I’m in Transit doesn't do anything
+  - But I want to refactor the calendar component anyway; let's spec that out.
+  - Allow the ability to mark an untrack workout as 'workout completed' for a day - no additional info needed.
 - Using AI in workout generation based on previous retrospective input
 - **Ladder rungs with no sibling exercises**, so they repeat every session at that level: `horizontal_push` l7–l9, `horizontal_pull` l4–l8, `anti_extension` l4 and l6. All are high rungs nobody currently occupies — fill them when someone gets there.
 
@@ -26,20 +24,7 @@ the record of what was completed and why.
 
 ## Problems with Individual Exercises
 
-- Standing Glute Kickback: How-To and video are on all fours, not standing. However, there is a difference between Standing Banded Glute Kickbacks and Kneeling Banded Glute Kickbacks, so I want both included in the library.
-- Standing Overhead Press -> Banded Overhead Press
-- Low-Bar Hang is included in a workout where bar anchor is not selected
-- Band Plank Drag: Rename to Banded Plank Pull-Through
-  - How-To uses no achor, revise to include low anchor
-  - Update exercise to require low anchor point
-- Tricep Pushdown -> Banded Tricep Pushdown
-  - Requires high anchor point, make sure properly documented
-- Turn Donkey Kicks into a banded exercise matching the video
-- Banded Hamstring Curl -> How To needs to be modified for a long resistance band
-  - Requires low anchor
-- Anti-Rotation hold is a banded exercise requiring a medium-level anchor
-- Banded Bear Crawl needs low or mid anchor. Update how-to to reflect this alternative
-- Banded Burpee needs low anchr, update how-to to reflect this alternative
+*Use this section to backlog changes to individual exercise details*
 
 ---
 
@@ -51,6 +36,7 @@ the record of what was completed and why.
 
 ## Future Features
 
+- **Passport Feature** - What do we want to use it for? What should it look like? What's its primary purpose?
 - **User Accounts** - **Anonymous Firebase Auth session isn't persisted.** No RN AsyncStorage backing, so cross-device continuity silently doesn't work. Zero impact on the core loop — nothing reads it on the critical path.
 - **A native iOS wheel picker** (`@react-native-picker/picker`) instead of the hand-rolled drop-down. Costs two native dependencies and an Expo dev-client rebuild; the component interface wouldn't change, so it's a clean swap if wanted.
 - Backgrounding and force-quite are unproven on a real device;`wallClockTimer.test.ts` proves the timer maths is suspension-proof against an injected fake clock. That is not the same as backgrounding a real phone with a rest timer running, waiting, and foregrounding it. Same for force-quit mid-set and `findCurrent()` resume.

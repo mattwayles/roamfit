@@ -332,7 +332,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     return (
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.elapsed} testID="workout-elapsed">
-          Elapsed {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
+          {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
         </Text>
         <StageFeedbackPhase
           section={feedbackSection}
@@ -781,13 +781,15 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           at arm's length, glances at most often, so it gets the top line and the largest type
           rather than sharing space with a label. Pause/stop ride the same line, right-justified,
           so the whole header costs one row instead of three — real estate the exercise hero
-          below needs more than a caption does. A flex-1 spacer on the left balances the
-          flex-1 actions group on the right, so the centered timer stays visually centered on the
-          screen rather than drifting toward the label-free side. */}
+          below needs more than a caption does. A flex-1 spacer on the left balances the flex-1
+          actions group on the right so the timer stays visually centered — which is also why
+          there is no "Elapsed" prefix on the clock text itself: the actions group has a real
+          minimum width (two icon buttons) the empty spacer does not, so on a narrow screen a
+          wider clock text ate into the spacer's share first and dragged the timer off-center. */}
       <View style={styles.timerRow}>
         <View style={styles.timerRowSpacer} />
         <Text style={styles.elapsed} testID="workout-elapsed">
-          Elapsed {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
+          {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
         </Text>
         <View style={[styles.timerRowSpacer, styles.timerRowActions]}>
           <Pressable
@@ -854,6 +856,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             entry={entry}
             exerciseName={exercise?.name ?? entry.exerciseId}
             anchor={exercise?.anchor ?? null}
+            anchorAlt={exercise?.anchor_alt ?? null}
             band={bandForSet}
             bandTensions={bandTensions}
             onBandChange={(b) => (bandUsedRef.current = b)}
@@ -873,6 +876,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             entry={entry}
             exerciseName={exercise?.name ?? entry.exerciseId}
             anchor={exercise?.anchor ?? null}
+            anchorAlt={exercise?.anchor_alt ?? null}
             band={bandForSet}
             bandTensions={bandTensions}
             onBandChange={(b) => (bandUsedRef.current = b)}
@@ -894,6 +898,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           // worth naming before the set rather than at the top of it. `exercise` is already the
           // *upcoming* entry here — same post-reload reasoning `nextLabel` relies on.
           nextAnchor={exercise?.anchor ?? null}
+          nextAnchorAlt={exercise?.anchor_alt ?? null}
           paused={paused}
           // §8.1 — warm-up and cool-down are asked about once per stage, on their own page, so
           // their rest pages carry no controls. `main` keeps its per-exercise question: those
@@ -957,6 +962,7 @@ function RepsExercise({
   entry,
   exerciseName,
   anchor,
+  anchorAlt,
   band,
   bandTensions,
   onBandChange,
@@ -974,6 +980,9 @@ function RepsExercise({
    *  renders nothing. Read off the library record, not the entry: the plan stores `anchorClass`
    *  (the §13.1 safety bucket), not the specific fixed point the user has to go and find. */
   anchor: Anchor | null;
+  /** A second fixed point that works equally well (`Exercise.anchor_alt`) — the user should see
+   *  every safe option while they're the one deciding what to rig, not just the first one. */
+  anchorAlt: Anchor | null;
   /** The band this set starts on — the prescription, or whatever the last set actually used. */
   band: BandId | null;
   /** The user's own band colours/labels (spec §1140), for `BandPicker`. */
@@ -1005,7 +1014,7 @@ function RepsExercise({
       </Text>
       {/* What the band goes on, right under what the exercise is — the two setup facts a user
           reads before they pick anything up, together. */}
-      <AnchorBadge anchor={anchor} />
+      <AnchorBadge anchor={anchor} anchorAlt={anchorAlt} />
       {/* Which band to actually pick up, mid-set, without leaving this screen — and, if that is
           not the one in your hand, which one you really used. */}
       {bandUsed != null && (
@@ -1147,6 +1156,7 @@ function TimedExercise({
   entry,
   exerciseName,
   anchor,
+  anchorAlt,
   setIndex,
   onComplete,
   onSkip,
@@ -1164,6 +1174,9 @@ function TimedExercise({
    *  renders nothing. Read off the library record, not the entry: the plan stores `anchorClass`
    *  (the §13.1 safety bucket), not the specific fixed point the user has to go and find. */
   anchor: Anchor | null;
+  /** A second fixed point that works equally well (`Exercise.anchor_alt`) — the user should see
+   *  every safe option while they're the one deciding what to rig, not just the first one. */
+  anchorAlt: Anchor | null;
   setIndex: number;
   /** §10.5 — "actual seconds held are recorded," summed across both sides for unilateral work.
    *  `pauseInfo` is the §8.3 pause signal (`set_logs.pause_count`/`paused_duration_sec`), also
@@ -1566,7 +1579,7 @@ function TimedExercise({
       </Text>
       {/* What the band goes on, right under what the exercise is — the two setup facts a user
           reads before they pick anything up, together. */}
-      <AnchorBadge anchor={anchor} />
+      <AnchorBadge anchor={anchor} anchorAlt={anchorAlt} />
       {/* Which band to actually pick up, mid-set, without leaving this screen — and, if that is
           not the one in your hand, which one you really used. */}
       {bandUsed != null && (
@@ -1675,6 +1688,7 @@ function RestPhase({
   restSec,
   nextLabel,
   nextAnchor,
+  nextAnchorAlt,
   paused,
   showFeedback,
   difficulty,
@@ -1688,6 +1702,8 @@ function RestPhase({
   nextLabel: string;
   /** The fixed point the *next* exercise needs, or null when it needs none. */
   nextAnchor: Anchor | null;
+  /** A second fixed point the next exercise works equally well from (`Exercise.anchor_alt`). */
+  nextAnchorAlt: Anchor | null;
   /** Session-level pause. Stops the rest countdown, and — since the background "rest complete"
    *  notification is scheduled against wall-clock time the OS owns, not against this countdown —
    *  cancels that too, rescheduling for whatever is left when the session resumes. */
@@ -1816,7 +1832,7 @@ function RestPhase({
       </View>
 
       <Text style={styles.nextUp}>Next up: {nextLabel}</Text>
-      <AnchorBadge anchor={nextAnchor} testID="rest-next-anchor" />
+      <AnchorBadge anchor={nextAnchor} anchorAlt={nextAnchorAlt} testID="rest-next-anchor" />
 
       {showFeedback && (
         <FeedbackControls

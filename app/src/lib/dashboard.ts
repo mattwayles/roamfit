@@ -165,15 +165,24 @@ export interface CalendarDay {
   localDate: string;
   /** null = untrained (neutral, never red/empty per §14.1.6/§1.1). */
   minutes: number | null;
+  /** §9.3 — this day had an "I'm in Transit" tap recorded against it. Only meaningful when
+   *  `minutes` is null: a day that was both travelled and trained still shows the workout, since
+   *  that's the more informative fact — this exists to explain an untrained day, not override a
+   *  trained one. */
+  inTransit: boolean;
 }
 
 /** §14.1.6 calendar heatmap — the trailing `days`-day window ending today, one entry per
  *  calendar day (including untrained ones, so the caller can render them neutrally rather than
- *  simply omitting them, which would look like a gap). */
+ *  simply omitting them, which would look like a gap). `travelLocalDates` are the dates §9.3's
+ *  "I'm in Transit" was tapped for (`signalsRepo.getSignalEventsByType(db, 'travel_day')`, mapped
+ *  to `localDate`), so an untrained travel day can be marked as one rather than looking like any
+ *  other empty day. */
 export function buildCalendarDays(
   sessions: DashboardSessionSummary[],
   today: string,
   days: number,
+  travelLocalDates: ReadonlySet<string>,
 ): CalendarDay[] {
   const byDate = new Map<string, number>();
   for (const s of sessions) {
@@ -185,7 +194,11 @@ export function buildCalendarDays(
   for (let i = days - 1; i >= 0; i -= 1) {
     const date = new Date(Date.UTC(y, m - 1, d - i));
     const localDate = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
-    out.push({ localDate, minutes: byDate.get(localDate) ?? null });
+    out.push({
+      localDate,
+      minutes: byDate.get(localDate) ?? null,
+      inTransit: travelLocalDates.has(localDate),
+    });
   }
   return out;
 }

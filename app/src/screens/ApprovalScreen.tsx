@@ -561,6 +561,9 @@ function EntryCard({
 }): React.JSX.Element {
   const isTimed = entry.durationSec != null;
   const hasDetail = entry.band != null;
+  // Controlled so the card can raise its own stacking order while the dropdown is open — it
+  // renders as an overlay that would otherwise paint underneath the next card in the list.
+  const [bandPickerOpen, setBandPickerOpen] = useState(false);
 
   return (
     <View
@@ -569,6 +572,7 @@ function EntryCard({
       style={[
         styles.card,
         dragging && styles.cardDragging,
+        bandPickerOpen && styles.cardElevated,
         displacement !== 0 && { transform: [{ translateY: displacement }] },
       ]}
     >
@@ -594,19 +598,6 @@ function EntryCard({
           <Text style={styles.entryName} numberOfLines={2}>
             {exerciseName}
           </Text>
-          {hasDetail && (
-            <View style={styles.entryDetailRow}>
-              {entry.band != null && (
-                <BandPicker
-                  band={entry.band as BandId}
-                  tensions={bandTensions}
-                  onChange={onChangeBand}
-                  testID={`band-${entry.exerciseId}`}
-                  accessibilityLabel={`Band for ${exerciseName}`}
-                />
-              )}
-            </View>
-          )}
         </View>
 
         {/* Both actions are icons on the title's own row, so they cost no vertical space at
@@ -634,45 +625,66 @@ function EntryCard({
       </View>
 
       <View style={styles.fieldRow}>
-        <NumericField
-          label="Sets"
-          value={entry.sets}
-          minValue={1}
-          testID={`sets-input-${entry.exerciseId}`}
-          accessibilityLabel={`Sets for ${exerciseName}`}
-          onCommit={onSetSets}
-        />
-        {isTimed ? (
+        <View style={styles.fieldsGroup}>
           <NumericField
-            label="Time"
-            value={entry.durationSec!}
-            suffix="s"
-            minValue={5}
-            testID={`duration-input-${entry.exerciseId}`}
-            accessibilityLabel={`Time in seconds for ${exerciseName}`}
-            onCommit={onSetDuration}
-          />
-        ) : entry.repTarget != null ? (
-          <NumericField
-            label="Reps"
-            value={entry.repTarget}
+            label="Sets"
+            value={entry.sets}
             minValue={1}
-            testID={`reps-input-${entry.exerciseId}`}
-            accessibilityLabel={`Reps for ${exerciseName}`}
-            onCommit={onSetRepTarget}
+            testID={`sets-input-${entry.exerciseId}`}
+            accessibilityLabel={`Sets for ${exerciseName}`}
+            onCommit={onSetSets}
           />
-        ) : (
-          <View style={styles.field} />
+          {isTimed ? (
+            <NumericField
+              label="Time"
+              value={entry.durationSec!}
+              suffix="s"
+              minValue={5}
+              testID={`duration-input-${entry.exerciseId}`}
+              accessibilityLabel={`Time in seconds for ${exerciseName}`}
+              onCommit={onSetDuration}
+            />
+          ) : entry.repTarget != null ? (
+            <NumericField
+              label="Reps"
+              value={entry.repTarget}
+              minValue={1}
+              testID={`reps-input-${entry.exerciseId}`}
+              accessibilityLabel={`Reps for ${exerciseName}`}
+              onCommit={onSetRepTarget}
+            />
+          ) : (
+            <View style={styles.field} />
+          )}
+          <NumericField
+            label="Rest"
+            value={entry.restSec}
+            suffix="s"
+            minValue={0}
+            testID={`rest-input-${entry.exerciseId}`}
+            accessibilityLabel={`Rest in seconds for ${exerciseName}`}
+            onCommit={onSetRest}
+          />
+        </View>
+
+        {/* Narrowing the number fields (above) opened up the row's bottom-right — the natural
+            place for the band selector, which used to sit under the exercise name and cost a
+            line of its own. Wrapped in the same `field` box the numeric fields use, so it is
+            exactly their size rather than an approximation of it. */}
+        {hasDetail && (
+          <View style={styles.field}>
+            <BandPicker
+              variant="field"
+              band={entry.band as BandId}
+              tensions={bandTensions}
+              onChange={onChangeBand}
+              testID={`band-${entry.exerciseId}`}
+              accessibilityLabel={`Band for ${exerciseName}`}
+              open={bandPickerOpen}
+              onOpenChange={setBandPickerOpen}
+            />
+          </View>
         )}
-        <NumericField
-          label="Rest"
-          value={entry.restSec}
-          suffix="s"
-          minValue={0}
-          testID={`rest-input-${entry.exerciseId}`}
-          accessibilityLabel={`Rest in seconds for ${exerciseName}`}
-          onCommit={onSetRest}
-        />
       </View>
     </View>
   );
@@ -758,6 +770,10 @@ const styles = StyleSheet.create({
     elevation: 6,
     zIndex: 10,
   },
+  // Just the stacking bits of `cardDragging`, without its visual restyle: the band picker's open
+  // dropdown is an absolute overlay that extends below this card's own bounds, and would
+  // otherwise paint underneath the next card in the list rather than over it.
+  cardElevated: { zIndex: 10, elevation: 6 },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   dragHandle: {
     width: 32,
@@ -770,9 +786,13 @@ const styles = StyleSheet.create({
   cardTitleBlock: { flex: 1, paddingTop: 2 },
   entryName: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
   swapNotice: { fontSize: 13, color: '#1d4ed8' },
-  entryDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-  fieldRow: { flexDirection: 'row', gap: 16 },
-  field: { flex: 1 },
+  // `field` used to be `flex: 1`, stretching all four columns to fill the row — fine for a label,
+  // wasteful for a box that only ever holds 1-3 digits. Fixed-width instead, left-aligned with
+  // `gap`, so each box is only as wide as the value it holds actually needs — which is what freed
+  // up the row's right edge for the band picker (`justify-content: space-between` below).
+  fieldRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  fieldsGroup: { flexDirection: 'row', gap: 16 },
+  field: { width: 60 },
   fieldLabel: {
     fontSize: 11,
     fontWeight: '700',
@@ -783,18 +803,19 @@ const styles = StyleSheet.create({
   fieldInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
     borderRadius: 8,
     backgroundColor: '#e2e8f0',
     paddingHorizontal: 8,
   },
   fieldInput: {
-    flex: 1,
     height: 36,
     fontSize: 14,
     fontWeight: '700',
     color: '#0f172a',
     padding: 0,
+    textAlign: 'center',
   },
   fieldSuffix: { fontSize: 13, fontWeight: '600', color: '#64748b' },
   // In the header row, not on a line of their own: an icon pair is far narrower than the row it

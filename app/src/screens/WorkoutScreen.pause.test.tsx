@@ -340,13 +340,13 @@ describe('§10.4/§10.8 pause an active workout', () => {
       </StoreProvider>,
     );
 
-    // A component-local stopwatch that starts counting from mount time would show "Elapsed 0m
-    // 0s" (or a few seconds at most) here. The fix reads real elapsed time since the persisted
-    // `startedAt`, so it should show ~5 minutes immediately, on the very first render — not
-    // after waiting out several 1s ticks.
+    // A component-local stopwatch that starts counting from mount time would show "0m 0s" (or a
+    // few seconds at most) here. The fix reads real elapsed time since the persisted `startedAt`,
+    // so it should show ~5 minutes immediately, on the very first render — not after waiting out
+    // several 1s ticks.
     await waitFor(() => {
       const text = screen.getByTestId('workout-elapsed').props.children.join('');
-      expect(text).toMatch(/Elapsed 5m/);
+      expect(text).toMatch(/^5m/);
     }, WAIT_OPTS);
   }, 20000);
 });
