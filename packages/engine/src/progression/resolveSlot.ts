@@ -106,8 +106,11 @@ function pickAtLevel(
  * "hard" than the current rung alone provides for. The current rung's own pool is not gated
  * (pre-existing behavior — see the `difficulty` field doc on `ResolveSlotInput`).
  *
- * Returns a tuple so the caller can tell a deliberate lower-rung pick (ordinary variety) apart
- * from the current-rung-exhausted case (which reads the same as it always has).
+ * Returns a tagged result so the caller can tell three cases apart: an ordinary current-rung
+ * pick, a deliberate lower-rung pick (variety — see `pulledFromLevelId` on `ResolvedLadderSlot`),
+ * and the current rung being entirely hard-filtered out (a failure, same meaning as the
+ * pre-existing walk-down's `substitutedFrom` — NOT variety, even though it also draws from the
+ * lower pool).
  */
 function pickLadderCandidate(
   family: ProgressionFamily,
@@ -117,7 +120,8 @@ function pickLadderCandidate(
   rng: Rng,
   recentExerciseIds: ReadonlySet<string>,
   difficulty: Difficulty,
-): { exercise: Exercise; fromLowerRung: boolean } | undefined {
+):
+  { exercise: Exercise; reason: 'current' | 'lower-weighted' | 'current-unavailable' } | undefined {
   const currentCandidates = exercisesForLevel(family, levelId, library);
   const lowerCandidates = exercisesBelowLevel(family, levelId, library).filter((e) =>
     isDifficultyEligible(e, difficulty),
@@ -127,11 +131,11 @@ function pickLadderCandidate(
 
   if (currentEligible.length === 0) {
     const exercise = pickFromPool(lowerCandidates, filteredIds, rng, recentExerciseIds);
-    return exercise ? { exercise, fromLowerRung: true } : undefined;
+    return exercise ? { exercise, reason: 'current-unavailable' } : undefined;
   }
   if (lowerEligible.length === 0) {
     const exercise = pickFromPool(currentCandidates, filteredIds, rng, recentExerciseIds);
-    return exercise ? { exercise, fromLowerRung: false } : undefined;
+    return exercise ? { exercise, reason: 'current' } : undefined;
   }
 
   const useCurrent = rng.next() < CURRENT_RUNG_WEIGHT;
@@ -141,7 +145,7 @@ function pickLadderCandidate(
     rng,
     recentExerciseIds,
   );
-  return exercise ? { exercise, fromLowerRung: !useCurrent } : undefined;
+  return exercise ? { exercise, reason: useCurrent ? 'current' : 'lower-weighted' } : undefined;
 }
 
 /**
@@ -167,6 +171,7 @@ export function resolveLadderSlot(input: ResolveSlotInput): ResolvedLadderSlot |
   if (!family || !state) return undefined;
 
   const filteredIds = new Set(hardFilteredPool.map((e) => e.id));
+  const anchorAtCurrentLevel = exerciseForLevel(family, state.levelId, library);
 
   if (!includeLowerRungs) {
     const chosen = pickAtLevel(family, state.levelId, library, filteredIds, rng, recentExerciseIds);
@@ -182,16 +187,24 @@ export function resolveLadderSlot(input: ResolveSlotInput): ResolvedLadderSlot |
       input.difficulty ?? 'medium',
     );
     if (picked) {
-      return picked.fromLowerRung
-        ? { exercise: picked.exercise, family, state, pulledFromLevelId: state.levelId }
-        : { exercise: picked.exercise, family, state };
+      if (picked.reason === 'lower-weighted') {
+        return { exercise: picked.exercise, family, state, pulledFromLevelId: state.levelId };
+      }
+      if (picked.reason === 'current-unavailable') {
+        return {
+          exercise: picked.exercise,
+          family,
+          state,
+          substitutedFrom: { levelId: state.levelId, exerciseId: anchorAtCurrentLevel?.id ?? '' },
+        };
+      }
+      return { exercise: picked.exercise, family, state };
     }
   }
 
   // Every exercise at the current level (and every achieved rung below it) is filtered out —
   // walk further down to the nearest level that has one that survives. `substitutedFrom` names
   // the level's anchor, since that is what the user's progression is actually parked on.
-  const anchorAtCurrentLevel = exerciseForLevel(family, state.levelId, library);
   let cursor = state.levelId;
   for (;;) {
     const prev = prevLevel(family, cursor);

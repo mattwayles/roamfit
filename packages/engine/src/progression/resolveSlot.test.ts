@@ -241,3 +241,114 @@ describe('resolveLadderSlot — sibling selection (ADR 0010)', () => {
     });
   });
 });
+
+// Track 14 — an achieved rung stays eligible instead of being retired. `close-grip-push-up` is a
+// real `hard`-difficulty horizontal_push exercise; `bw-incline-push-up` is a real `easy` one.
+// Levels 1-4 are overridden to resolve to that single easy exercise so "the lower pool" is a
+// known, fixed quantity rather than whatever the real ladder's lower rungs happen to contain.
+describe('resolveLadderSlot — lower-rung recall (track 14)', () => {
+  const CURRENT = 'close-grip-push-up'; // hard
+  const LOWER = 'bw-incline-push-up'; // easy
+
+  const familiesForRecall: ProgressionFamily[] = families.map((f) =>
+    f.id !== 'horizontal_push'
+      ? f
+      : {
+          ...f,
+          levels: f.levels.map((l) => {
+            if (l.level_id === 'horizontal_push.l5') {
+              return { ...l, anchor_exercise_id: CURRENT, exercise_ids: [CURRENT] };
+            }
+            if (
+              [
+                'horizontal_push.l1',
+                'horizontal_push.l2',
+                'horizontal_push.l3',
+                'horizontal_push.l4',
+              ].includes(l.level_id)
+            ) {
+              return { ...l, anchor_exercise_id: LOWER, exercise_ids: [LOWER] };
+            }
+            return l;
+          }),
+        },
+  );
+
+  function statesAtL5(): Record<ProgressionFamilyId, ProgressionState> {
+    return allFamilyStates({
+      horizontal_push: {
+        familyId: 'horizontal_push',
+        levelId: 'horizontal_push.l5',
+        micro: defaultMicroForExercise(library.find((e) => e.id === CURRENT)!),
+        calibrating: false,
+        consecutiveHits: 0,
+        consecutiveMisses: 0,
+        lastLevelChangeAt: null,
+      },
+    });
+  }
+
+  it('picks the current rung roughly 60% of the time when both pools are eligible', () => {
+    let currentCount = 0;
+    let lowerCount = 0;
+    const seeds = 400;
+    for (let seed = 1; seed <= seeds; seed++) {
+      const result = resolveLadderSlot({
+        familyId: 'horizontal_push',
+        families: familiesForRecall,
+        library,
+        progressionStates: statesAtL5(),
+        hardFilteredPool: library,
+        difficulty: 'medium', // admits both easy (lower) and... not hard. See floor test below.
+        rng: createRng(seed),
+      })!;
+      if (result.exercise.id === CURRENT) {
+        currentCount++;
+        expect(result.pulledFromLevelId).toBeUndefined();
+      } else {
+        expect(result.exercise.id).toBe(LOWER);
+        expect(result.pulledFromLevelId).toBe('horizontal_push.l5');
+        lowerCount++;
+      }
+    }
+    expect(currentCount + lowerCount).toBe(seeds);
+    const currentRatio = currentCount / seeds;
+    // Wide-ish tolerance: this is a real weighted coin flip over 400 draws, not a fixed count.
+    expect(currentRatio).toBeGreaterThan(0.45);
+    expect(currentRatio).toBeLessThan(0.75);
+  });
+
+  it('never pulls an easy-difficulty lower rung into a hard-requested workout', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const result = resolveLadderSlot({
+        familyId: 'horizontal_push',
+        families: familiesForRecall,
+        library,
+        progressionStates: statesAtL5(),
+        hardFilteredPool: library,
+        difficulty: 'hard',
+        rng: createRng(seed),
+      })!;
+      expect(result.exercise.id).toBe(CURRENT);
+      expect(result.pulledFromLevelId).toBeUndefined();
+    }
+  });
+
+  it('falls back to the lower pool when the current rung itself is entirely hard-filtered out', () => {
+    const withoutCurrent = library.filter((e) => e.id !== CURRENT);
+    const result = resolveLadderSlot({
+      familyId: 'horizontal_push',
+      families: familiesForRecall,
+      library,
+      progressionStates: statesAtL5(),
+      hardFilteredPool: withoutCurrent,
+      difficulty: 'medium',
+      rng: createRng(1),
+    })!;
+    expect(result.exercise.id).toBe(LOWER);
+    // This is the hard-filter-failure case, not deliberate variety — it gets the pre-existing
+    // `substitutedFrom` tag, not the new `pulledFromLevelId`.
+    expect(result.pulledFromLevelId).toBeUndefined();
+    expect(result.substitutedFrom).toEqual({ levelId: 'horizontal_push.l5', exerciseId: CURRENT });
+  });
+});
