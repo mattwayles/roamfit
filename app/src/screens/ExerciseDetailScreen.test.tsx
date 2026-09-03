@@ -195,12 +195,12 @@ describe('the exercise detail page', () => {
     const exercise = await openDetail(PUSH_UP.name);
     expect(exerciseStateRepo.getExerciseState(getDb(), exercise.id)?.disabledAt ?? null).toBeNull();
 
-    await fireEvent(screen.getByTestId('toggle-exercise-disabled'), 'valueChange', true);
+    await fireEvent.press(screen.getByTestId('toggle-exercise-disabled'));
     await waitFor(() =>
       expect(exerciseStateRepo.getExerciseState(getDb(), exercise.id)?.disabledAt).not.toBeNull(),
     );
 
-    await fireEvent(screen.getByTestId('toggle-exercise-disabled'), 'valueChange', false);
+    await fireEvent.press(screen.getByTestId('toggle-exercise-disabled'));
     await waitFor(() =>
       expect(
         exerciseStateRepo.getExerciseState(getDb(), exercise.id)?.disabledAt ?? null,

@@ -17,7 +17,7 @@
  * deliberately exhaustive rather than curated.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { exerciseCatalogRepo, exerciseStateRepo, remoteConfigRepo } from '@roamfit/store';
@@ -129,8 +129,8 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
     );
     load();
   };
-  const handleToggleDisabled = (disabled: boolean) => {
-    exerciseStateRepo.setDisabled(db, exerciseId, disabled, nowUtcInstant());
+  const handleToggleDisabled = () => {
+    exerciseStateRepo.setDisabled(db, exerciseId, !(data?.disabled ?? false), nowUtcInstant());
     load();
   };
 
@@ -187,15 +187,29 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
       <PinnedNote note={data?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
 
       {/* Permanent, explicit user veto — never appears in any generated workout while on.
-          Distinct from the system's own temporary suppression, which has no UI of its own. */}
-      <View style={styles.row}>
-        <Text style={styles.rowLabel}>Disabled — won’t appear in workouts</Text>
-        <Switch
-          testID="toggle-exercise-disabled"
-          value={data?.disabled ?? false}
-          onValueChange={handleToggleDisabled}
-        />
-      </View>
+          Distinct from the system's own temporary suppression, which has no UI of its own.
+          Deliberately loud: this is the one control on this screen that removes an exercise
+          from every future workout, so it gets the visual weight a decision like that deserves
+          rather than blending in with the smaller settings around it. */}
+      <Pressable
+        testID="toggle-exercise-disabled"
+        accessibilityRole="button"
+        accessibilityLabel={
+          data?.disabled
+            ? 'Enable this exercise — it will appear in workouts again'
+            : 'Disable this exercise — it will never be suggested again'
+        }
+        style={[
+          styles.disableToggle,
+          data?.disabled ? styles.enableToggle : styles.disableToggleOn,
+        ]}
+        onPress={handleToggleDisabled}
+      >
+        <Text style={styles.disableToggleText}>{data?.disabled ? 'Enable' : 'Disable'}</Text>
+        <Text style={styles.disableToggleSubtext}>
+          {data?.disabled ? 'Currently hidden from workouts' : 'Currently appears in workouts'}
+        </Text>
+      </Pressable>
 
       <Section label="How to">
         <Text testID="detail-setup" style={styles.body}>
@@ -369,6 +383,17 @@ const styles = StyleSheet.create({
   aliases: { fontSize: 12, color: '#94a3b8', marginTop: 4 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   rowLabel: { fontSize: 14, flexShrink: 1, paddingRight: 12, color: '#334155' },
+  disableToggle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    paddingVertical: 16,
+    gap: 2,
+  },
+  disableToggleOn: { backgroundColor: '#dc2626' },
+  enableToggle: { backgroundColor: '#16a34a' },
+  disableToggleText: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
+  disableToggleSubtext: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.85)' },
   statRow: { flexDirection: 'row', gap: 24 },
   stat: { gap: 2 },
   statValue: { fontSize: 24, fontWeight: '800', color: '#0f172a' },
