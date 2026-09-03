@@ -144,6 +144,16 @@ describe('the exercise library', () => {
     expect(screen.getByTestId(`exercise-card-no-video-${withoutVideo.id}`)).toBeTruthy();
   });
 
+  it('marks a disabled exercise on its card — the same at-a-glance signal as "no video"', async () => {
+    const other = exerciseLibrary.exercises.find((e) => e.id !== PUSH_UP.id)!;
+    exerciseStateRepo.setDisabled(getDb(), other.id, true, nowUtcInstant());
+
+    await openExercises();
+    await search(other.name);
+    expect(screen.getByTestId(`exercise-card-disabled-${other.id}`)).toBeTruthy();
+    expect(screen.queryByTestId(`exercise-card-disabled-${PUSH_UP.id}`)).toBeNull();
+  });
+
   it('filters by a library dimension, and counts what is applied', async () => {
     await openExercises();
     await openFilters();

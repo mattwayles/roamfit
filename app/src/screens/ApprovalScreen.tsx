@@ -310,6 +310,58 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     reload();
   };
 
+  /**
+   * Disabling from this screen is permanent (`exerciseStateRepo.setDisabled`, same store call the
+   * Exercises detail screen makes) AND immediate: the reviewer should never keep looking at an
+   * exercise they just vetoed. Re-reads the profile after the write so `alternativesForSlot`'s own
+   * hard filters (§13.1/§13.2/§5.3, now including this exercise) already exclude it, then reuses
+   * the exact swap path `handleSwap` uses. Falls back to removing the entry, same as
+   * `handleRemove`, when nothing else fits the slot.
+   */
+  const handleDisable = (entry: sessionsRepo.SessionEntryRecord) => {
+    const now = nowUtcInstant();
+    exerciseStateRepo.setDisabled(db, entry.exerciseId, true, now);
+    const clock = nowEngineClock();
+    const profile = usersRepo.buildUserProfile(db, clock.today);
+    const [best] = alternativesForSlot({
+      library: library.exercises,
+      entry: {
+        exerciseId: entry.exerciseId,
+        role: 'main',
+        band: entry.band,
+        sets: entry.sets,
+        repTarget: entry.repTarget ?? undefined,
+        durationSec: entry.durationSec ?? undefined,
+        restSec: entry.restSec,
+        tempoSec: entry.tempoSec,
+        notes: entry.notes ?? undefined,
+        difficulty: entry.difficulty,
+        progressionFamilyId: entry.progressionFamilyId as ProgressionFamilyId | null,
+        progressionLevelIdAtTime: entry.progressionLevelIdAtTime,
+        pattern: entry.pattern as Pattern,
+        anchorClass: entry.anchorClass as AnchorClass,
+        unilateral: entry.unilateral,
+        estimatedSec: entry.estimatedSec,
+      },
+      anchorsAvailable: profile.anchorsAvailable,
+      limitations: profile.limitations,
+      disabledExerciseIds: profile.disabledExerciseIds,
+      today: clock.today,
+      history: sessionsRepo.getHistoryForGeneration(db),
+      exerciseStates: exerciseStateRepo.getAllExerciseStates(db),
+      maxResults: 1,
+    });
+    if (!best) {
+      sessionsRepo.removeEntryAtApproval(db, entry.id, now);
+      setSwapNotice('Disabled. Nothing else fits that slot, so it was removed.');
+      reload();
+      return;
+    }
+    sessionsRepo.recordSwapAtApproval(db, entry.id, best.replacement, now);
+    setSwapNotice(`Disabled. Swapped to ${best.exercise.name}.`);
+    reload();
+  };
+
   /** §10.3 "add exercise" candidates — the same hard filters (§13.1/§13.2/§5.3) generation
    *  itself runs, via the engine's own `applyHardFilters`, never reimplemented here. Excludes
    *  exercises already active in this session (adding a duplicate isn't a meaningful edit). */
@@ -431,6 +483,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
               onChangeBand={(band) => handleChangeBand(entry, band)}
               onSwap={() => handleSwap(entry)}
               onRemove={() => handleRemove(entry)}
+              onDisable={() => handleDisable(entry)}
             />
           ))}
 
@@ -527,6 +580,7 @@ function EntryCard({
   onChangeBand,
   onSwap,
   onRemove,
+  onDisable,
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
@@ -546,6 +600,7 @@ function EntryCard({
   onChangeBand: (band: BandId) => void;
   onSwap: () => void;
   onRemove: () => void;
+  onDisable: () => void;
 }): React.JSX.Element {
   const isTimed = entry.durationSec != null;
   // Rest 0 is a real prescription (warm-ups carry it), but "rest 0s" reads like a bug. Omit it,
@@ -603,8 +658,8 @@ function EntryCard({
           )}
         </View>
 
-        {/* Both actions are icons on the title's own row, so they cost no vertical space at all.
-            The accessible names carry the meaning the glyphs cannot. */}
+        {/* All three actions are icons on the title's own row, so they cost no vertical space at
+            all. The accessible names carry the meaning the glyphs cannot. */}
         <View style={styles.cardActions}>
           <Pressable
             testID={`swap-${entry.exerciseId}`}
@@ -614,6 +669,15 @@ function EntryCard({
             onPress={onSwap}
           >
             <Text style={styles.swapButtonText}>⇄</Text>
+          </Pressable>
+          <Pressable
+            testID={`disable-${entry.exerciseId}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Disable ${exerciseName} — never suggest it again`}
+            style={[styles.iconButton, styles.disableButton]}
+            onPress={onDisable}
+          >
+            <Text style={styles.disableButtonText}>⊘</Text>
           </Pressable>
           <Pressable
             testID={`remove-${entry.exerciseId}`}
@@ -795,6 +859,8 @@ const styles = StyleSheet.create({
   // fourth hue: on this card it is unique, and app-wide it stays consistent.
   swapButton: { backgroundColor: '#dbeafe' },
   swapButtonText: { fontSize: 17, fontWeight: '700', color: '#1d4ed8', lineHeight: 21 },
+  disableButton: { backgroundColor: '#f1f5f9' },
+  disableButtonText: { fontSize: 17, fontWeight: '700', color: '#475569', lineHeight: 21 },
   removeButton: { backgroundColor: '#fee2e2' },
   removeButtonText: { fontSize: 16, fontWeight: '700', color: '#b91c1c', lineHeight: 20 },
 

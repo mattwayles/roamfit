@@ -191,6 +191,23 @@ describe('the exercise detail page', () => {
     );
   });
 
+  it('disables an exercise and re-enables it from the same toggle', async () => {
+    const exercise = await openDetail(PUSH_UP.name);
+    expect(exerciseStateRepo.getExerciseState(getDb(), exercise.id)?.disabledAt ?? null).toBeNull();
+
+    await fireEvent(screen.getByTestId('toggle-exercise-disabled'), 'valueChange', true);
+    await waitFor(() =>
+      expect(exerciseStateRepo.getExerciseState(getDb(), exercise.id)?.disabledAt).not.toBeNull(),
+    );
+
+    await fireEvent(screen.getByTestId('toggle-exercise-disabled'), 'valueChange', false);
+    await waitFor(() =>
+      expect(
+        exerciseStateRepo.getExerciseState(getDb(), exercise.id)?.disabledAt ?? null,
+      ).toBeNull(),
+    );
+  });
+
   it('removes that video again from the same place', async () => {
     const exercise = await openDetail(PUSH_UP.name);
     exerciseStateRepo.assignUserVideo(

@@ -25,6 +25,7 @@ const FALLBACK: CatalogState = {
   userVideoId: null,
   curatedVideoId: null,
   hasVideo: false,
+  disabled: false,
 };
 
 function exercise(overrides: Partial<Exercise> & { id: string; name: string }): Exercise {

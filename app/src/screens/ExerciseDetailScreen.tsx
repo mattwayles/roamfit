@@ -17,7 +17,7 @@
  * deliberately exhaustive rather than curated.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { exerciseCatalogRepo, exerciseStateRepo, remoteConfigRepo } from '@roamfit/store';
@@ -52,6 +52,7 @@ interface DetailData {
   curatedVideoId: string | null;
   videoDemoted: boolean;
   pinnedNote: string | null;
+  disabled: boolean;
 }
 
 export default function ExerciseDetailScreen({ route, navigation }: Props): React.JSX.Element {
@@ -73,6 +74,7 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
       curatedVideoId: remoteConfigRepo.getCuratedVideoId(db, exerciseId),
       videoDemoted: exerciseStateRepo.getVideoFlagState(db, exerciseId).demoted,
       pinnedNote: exerciseStateRepo.getExerciseState(db, exerciseId)?.pinnedNote ?? null,
+      disabled: exerciseStateRepo.getExerciseState(db, exerciseId)?.disabledAt != null,
     });
   }, [db, exerciseId]);
 
@@ -127,6 +129,10 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
     );
     load();
   };
+  const handleToggleDisabled = (disabled: boolean) => {
+    exerciseStateRepo.setDisabled(db, exerciseId, disabled, nowUtcInstant());
+    load();
+  };
 
   if (!exercise) {
     return (
@@ -179,6 +185,17 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
       {/* The note the user wrote for themselves about this movement — the same one the workout
           screen shows above the exercise, on the same per-exercise row. */}
       <PinnedNote note={data?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
+
+      {/* Permanent, explicit user veto — never appears in any generated workout while on.
+          Distinct from the system's own temporary suppression, which has no UI of its own. */}
+      <View style={styles.row}>
+        <Text style={styles.rowLabel}>Disabled — won’t appear in workouts</Text>
+        <Switch
+          testID="toggle-exercise-disabled"
+          value={data?.disabled ?? false}
+          onValueChange={handleToggleDisabled}
+        />
+      </View>
 
       <Section label="How to">
         <Text testID="detail-setup" style={styles.body}>
@@ -350,6 +367,8 @@ const styles = StyleSheet.create({
   name: { fontSize: 24, fontWeight: '800', color: '#0f172a' },
   subtitle: { fontSize: 14, color: '#475569', marginTop: 2 },
   aliases: { fontSize: 12, color: '#94a3b8', marginTop: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  rowLabel: { fontSize: 14, flexShrink: 1, paddingRight: 12, color: '#334155' },
   statRow: { flexDirection: 'row', gap: 24 },
   stat: { gap: 2 },
   statValue: { fontSize: 24, fontWeight: '800', color: '#0f172a' },

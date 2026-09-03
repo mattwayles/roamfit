@@ -283,6 +283,13 @@ function ExerciseCard({
             No video
           </Text>
         )}
+        {/* The toggle itself lives on the detail screen (one source of truth) — this is just the
+            at-a-glance signal that a workout will never pick this exercise right now. */}
+        {state.disabled && (
+          <Text testID={`exercise-card-disabled-${exercise.id}`} style={styles.disabledTag}>
+            Disabled
+          </Text>
+        )}
       </View>
     </Pressable>
   );
@@ -359,6 +366,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#a16207',
     backgroundColor: '#fef9c3',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    overflow: 'hidden',
+  },
+  disabledTag: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#991b1b',
+    backgroundColor: '#fee2e2',
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,

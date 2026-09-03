@@ -6,7 +6,7 @@
  */
 import { createTestDb } from '../testHarness';
 import { schema } from '../db';
-import { assignUserVideo } from './exerciseState';
+import { assignUserVideo, setDisabled } from './exerciseState';
 import { applyRemoteVideoConfig } from './remoteConfig';
 import { recordExercisePerformed } from './exerciseState';
 import {
@@ -134,6 +134,7 @@ describe('getExerciseCatalogState', () => {
       userVideoId: null,
       curatedVideoId: null,
       hasVideo: false,
+      disabled: false,
     });
   });
 
@@ -197,6 +198,15 @@ describe('getExerciseCatalogState', () => {
     const state = getExerciseCatalogState(db)[EXERCISE_ID];
     expect(state.timesCompleted).toBe(1);
     expect(state.hasVideo).toBe(true);
+  });
+
+  it('reports a user-disabled exercise, and clears once re-enabled', () => {
+    const { db } = createTestDb();
+    setDisabled(db, EXERCISE_ID, true, NOW);
+    expect(getExerciseCatalogState(db)[EXERCISE_ID].disabled).toBe(true);
+
+    setDisabled(db, EXERCISE_ID, false, NOW);
+    expect(getExerciseCatalogState(db)[EXERCISE_ID].disabled).toBe(false);
   });
 });
 

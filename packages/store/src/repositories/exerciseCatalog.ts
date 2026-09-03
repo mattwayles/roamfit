@@ -38,6 +38,9 @@ export interface ExerciseCatalogState {
    * curated id does not need a link pasted for it.
    */
   hasVideo: boolean;
+  /** Explicit, permanent user veto (Exercises detail screen or the workout approval screen) —
+   *  distinct from `exercise_state.suppressed_until`'s temporary, system-managed cooldown. */
+  disabled: boolean;
 }
 
 const EMPTY_STATE: ExerciseCatalogState = {
@@ -46,6 +49,7 @@ const EMPTY_STATE: ExerciseCatalogState = {
   userVideoId: null,
   curatedVideoId: null,
   hasVideo: false,
+  disabled: false,
 };
 
 /** The state for an exercise with no rows anywhere — never performed, no video. Exported so the
@@ -72,6 +76,7 @@ export function getExerciseCatalogState(db: Db): Record<string, ExerciseCatalogS
       sessionsPerformed: schema.exerciseState.sessionsPerformed,
       lastPerformedAt: schema.exerciseState.lastPerformedAt,
       userVideoId: schema.exerciseState.userVideoId,
+      disabledAt: schema.exerciseState.disabledAt,
     })
     .from(schema.exerciseState)
     .where(eq(schema.exerciseState.userId, USER_ID))
@@ -84,6 +89,7 @@ export function getExerciseCatalogState(db: Db): Record<string, ExerciseCatalogS
       lastPerformedAt: row.lastPerformedAt,
       userVideoId: row.userVideoId ?? null,
       hasVideo: row.userVideoId != null,
+      disabled: row.disabledAt != null,
     };
   }
 
