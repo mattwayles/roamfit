@@ -10,7 +10,7 @@ const families = familyLibrary.families;
 const TODAY = '2026-08-30';
 
 function historyEndingOn(localDate: string): SessionHistoryRecord[] {
-  return [{ localDate, focus: 'upper', effort: 'normal', status: 'completed', entries: [] }];
+  return [{ localDate, focus: 'upper', difficulty: 'medium', status: 'completed', entries: [] }];
 }
 
 /**

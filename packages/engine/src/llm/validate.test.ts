@@ -6,7 +6,7 @@ import {
 
 describe('§7.3 "validate anyway" — LLM output validation', () => {
   describe('validateIntakeOutput', () => {
-    const good = { focus: 'upper', effort: 'normal', targetMinutes: 25 };
+    const good = { focus: 'upper', difficulty: 'medium', targetMinutes: 25 };
 
     it('accepts a well-formed structured intake result', () => {
       expect(validateIntakeOutput(good).valid).toBe(true);
@@ -18,8 +18,8 @@ describe('§7.3 "validate anyway" — LLM output validation', () => {
       expect(result.errors.join()).toMatch(/focus/);
     });
 
-    it('rejects an invalid effort enum value', () => {
-      const result = validateIntakeOutput({ ...good, effort: 'brutal' });
+    it('rejects an invalid difficulty enum value', () => {
+      const result = validateIntakeOutput({ ...good, difficulty: 'brutal' });
       expect(result.valid).toBe(false);
     });
 

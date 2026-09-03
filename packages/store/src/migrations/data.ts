@@ -383,6 +383,16 @@ const MIGRATION_0012_EXERCISE_DISABLED = `-- 0012_exercise_disabled.sql — expl
 ALTER TABLE exercise_state ADD COLUMN disabled_at TEXT;
 `;
 
+const MIGRATION_0013_EFFORT_TO_DIFFICULTY = `-- 0013_effort_to_difficulty.sql — the session-level "Effort" dial is retired; the app now asks
+-- for a "Difficulty" that reuses the exercise library's own difficulty scale, so its middle value
+-- renames from 'normal' to 'medium' to match. Both columns stay physically named \`effort\` —
+-- schema.ts maps them to a \`difficulty\` field; a same-shape value rename isn't worth an
+-- ALTER TABLE RENAME COLUMN, unprecedented in this schema.
+
+UPDATE sessions SET effort = 'medium' WHERE effort = 'normal';
+UPDATE session_entries SET effort = 'medium' WHERE effort = 'normal';
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -402,4 +412,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0010_set_log_band_actual.sql', sql: MIGRATION_0010_SET_LOG_BAND_ACTUAL },
   { id: '0011_session_pause.sql', sql: MIGRATION_0011_SESSION_PAUSE },
   { id: '0012_exercise_disabled.sql', sql: MIGRATION_0012_EXERCISE_DISABLED },
+  { id: '0013_effort_to_difficulty.sql', sql: MIGRATION_0013_EFFORT_TO_DIFFICULTY },
 ];

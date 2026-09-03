@@ -167,7 +167,11 @@ export const sessions = sqliteTable(
     localDate: text('local_date').notNull(),
     tzId: text('tz_id').notNull(),
     focus: text('focus').notNull(),
-    effort: text('effort', { enum: ['easy', 'normal', 'hard'] }).notNull(),
+    /** Column stays physically named `effort` (migration 0013 only rewrote its stored values,
+     *  'normal' -> 'medium' — a same-shape value rename wasn't worth an `ALTER TABLE RENAME
+     *  COLUMN`, unprecedented in this schema). The field here is `difficulty` to match the
+     *  engine's `GenerationRequest.difficulty`/`SessionPlan.difficulty`. */
+    difficulty: text('effort', { enum: ['easy', 'medium', 'hard'] }).notNull(),
     format: text('format').notNull().default('straight_sets'),
     targetMinutes: integer('target_minutes').notNull(),
     estimatedMinutes: integer('estimated_minutes').notNull(),
@@ -248,7 +252,8 @@ export const sessionEntries = sqliteTable(
     restSec: integer('rest_sec').notNull(),
     tempoSec: integer('tempo_sec').notNull(),
     notes: text('notes'),
-    effort: text('effort', { enum: ['easy', 'normal', 'hard'] }).notNull(),
+    /** See the `sessions.difficulty` doc comment above — same column-name/field-name split. */
+    difficulty: text('effort', { enum: ['easy', 'medium', 'hard'] }).notNull(),
     progressionFamilyId: text('progression_family_id'),
     progressionLevelIdAtTime: text('progression_level_id_at_time'),
     pattern: text('pattern').notNull(),
@@ -493,7 +498,7 @@ export const sessionMuscleVolume = sqliteTable(
      *  scheme (`selection/volume.ts`) so the dashboard's OVER-WORKED framing matches what
      *  generation itself used. */
     sets: real('sets').notNull(),
-    /** Sets counted here whose entry effort was 'hard' — the §14.3 metric specifically. */
+    /** Sets counted here whose entry difficulty was 'hard' — the §14.3 metric specifically. */
     hardSets: real('hard_sets').notNull().default(0),
   },
   (t) => [

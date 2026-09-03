@@ -32,7 +32,7 @@ function completeAnOptedInSession(
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library,
     families,
-    request: { focus: 'upper', effort: 'normal', targetMinutes: 30 },
+    request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
     clock,
     rng: rngFor(1),
     utcInstant: utcInstantFor(localDate),
@@ -300,7 +300,7 @@ describe('§11.1 offline safety — a fully offline device queue pass never thro
     const { plan, comebackTier, recoveryWeekManual } = generate(db, {
       library,
       families,
-      request: { focus: 'upper', effort: 'normal', targetMinutes: 30 },
+      request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
       clock,
       rng: rngFor(1),
       utcInstant: utcInstantFor('2026-09-01'),

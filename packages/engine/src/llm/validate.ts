@@ -9,7 +9,7 @@
  *  - Natural-language intake never returns an exercise id, a set count, a rep target, or a band —
  *    those fields are structurally absent from `IntakeLlmOutput`, so "the LLM never selects
  *    exercises" (invariant 2) is enforced by the schema shape, not just by validating values.
- *    What *is* returned (focus/effort/targetMinutes/equipmentPreference) is checked against the
+ *    What *is* returned (focus/difficulty/targetMinutes/equipmentPreference) is checked against the
  *    same enums the engine already treats as legal, plus one optional suggested limitation tag
  *    that the caller must treat as a suggestion requiring confirmation, never an applied filter.
  *  - Coach voice rewrites the §5.8 line and may expand a setup cue for one exercise; the only
@@ -22,7 +22,7 @@
  *    inject something into a filter.
  */
 import type { Anchor, Contraindication, Focus } from '@roamfit/data';
-import type { Effort, EquipmentPreference } from '../types';
+import type { Difficulty, EquipmentPreference } from '../types';
 
 export interface ValidationResult {
   valid: boolean;
@@ -38,7 +38,7 @@ function fail(...errors: string[]): ValidationResult {
 }
 
 const FOCUS_VALUES: readonly Focus[] = ['upper', 'abs', 'legs', 'full'];
-const EFFORT_VALUES: readonly Effort[] = ['easy', 'normal', 'hard'];
+const DIFFICULTY_VALUES: readonly Difficulty[] = ['easy', 'medium', 'hard'];
 const EQUIPMENT_VALUES: readonly EquipmentPreference[] = ['any', 'band', 'bodyweight'];
 
 /** Kept in sync with `packages/data`'s `Contraindication` union by the type import — a value
@@ -72,7 +72,7 @@ const MAX_TARGET_MINUTES = 90;
  */
 export interface IntakeLlmOutput {
   focus: unknown;
-  effort: unknown;
+  difficulty: unknown;
   targetMinutes: unknown;
   equipmentPreference?: unknown;
   /** A tag the model believes the user's freeform text implied (e.g. "shoulder's cranky"). Never
@@ -86,8 +86,8 @@ export function validateIntakeOutput(output: IntakeLlmOutput): ValidationResult 
   if (!FOCUS_VALUES.includes(output.focus as Focus)) {
     errors.push(`focus "${String(output.focus)}" is not a valid Focus`);
   }
-  if (!EFFORT_VALUES.includes(output.effort as Effort)) {
-    errors.push(`effort "${String(output.effort)}" is not a valid Effort`);
+  if (!DIFFICULTY_VALUES.includes(output.difficulty as Difficulty)) {
+    errors.push(`difficulty "${String(output.difficulty)}" is not a valid Difficulty`);
   }
   if (
     typeof output.targetMinutes !== 'number' ||

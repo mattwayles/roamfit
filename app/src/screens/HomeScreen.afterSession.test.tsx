@@ -8,7 +8,7 @@
 import React from 'react';
 import { Share } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import { completeSession, generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import { createRng, seedFromString } from '@roamfit/engine';
@@ -27,7 +27,7 @@ function CompleteOneSession({ children }: { children: React.ReactNode }): React.
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library: exerciseLibrary,
     families: familyLibrary,
-    request: { focus: 'full', effort: 'hard', targetMinutes: 30 },
+    request: { focus: 'full', difficulty: 'hard', targetMinutes: 30 },
     clock,
     rng: createRng(seedFromString('after-session-test')),
     utcInstant,
@@ -90,8 +90,11 @@ describe('Home after a completed session', () => {
       interval: 50,
     });
 
+    // Scoped to the counters card: a muscle-balance bucket can independently land on the same
+    // "1" text depending on which exercises the difficulty-eligible pool drew this session, and
+    // an unscoped query would then (correctly) fail on ambiguity rather than pin the wrong thing.
     expect(screen.getByTestId('lifetime-counters')).toBeTruthy();
-    expect(screen.getByText('1')).toBeTruthy(); // Sessions counter
+    expect(within(screen.getByTestId('lifetime-counters')).getByText('1')).toBeTruthy(); // Sessions counter
     expect(screen.getByTestId('muscle-balance')).toBeTruthy();
     expect(screen.getByTestId('calendar-heatmap')).toBeTruthy();
 

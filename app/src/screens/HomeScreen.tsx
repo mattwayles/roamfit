@@ -233,7 +233,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       const { plan, comebackTier, recoveryWeekManual } = generate(db, {
         library,
         families,
-        request: { focus: 'full', effort: 'normal', targetMinutes: 15, quickSession: true },
+        request: { focus: 'full', difficulty: 'medium', targetMinutes: 15, quickSession: true },
         clock,
         rng: createRng(seedFromString(utcInstant)),
         utcInstant,
@@ -417,7 +417,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           >
             <Text style={styles.cardEyebrow}>Resume session</Text>
             <Text style={styles.cardTitle}>
-              {pending.focus} · {pending.targetMinutes} min · {pending.effort}
+              {pending.focus} · {pending.targetMinutes} min · {pending.difficulty}
             </Text>
             <Text style={styles.cardSubtitle}>
               {pending.status === 'active' ? 'In progress — tap to continue' : 'Ready to approve'}
@@ -433,7 +433,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
         >
           <Text style={styles.cardEyebrow}>Today</Text>
           <Text style={styles.cardTitle}>Generate a session</Text>
-          <Text style={styles.cardSubtitle}>Pick your time, anchors, focus, and effort.</Text>
+          <Text style={styles.cardSubtitle}>Pick your time, anchors, focus, and difficulty.</Text>
         </Pressable>
       )}
 

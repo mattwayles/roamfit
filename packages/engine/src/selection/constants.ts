@@ -41,3 +41,10 @@ export const BAND_MIN_RATIO = 0.5;
 
 /** Warmup/cooldown light rotation window (ADR 0001) — much narrower than BLOCKED. */
 export const WARMUP_COOLDOWN_ROTATION_SESSIONS = 1;
+
+/** Weight nudging selection toward the requested difficulty's preferred tier (medium request
+ *  prefers medium exercises over the easy exercises also eligible; hard prefers hard over
+ *  medium) — smaller than the PREFERRED recency tier gap (1000) so recency still dominates, but
+ *  larger than novelty (400) so the preference is a real, visible thumb on the scale rather than
+ *  a tie-break. */
+export const DIFFICULTY_PREFERENCE_BONUS = 500;

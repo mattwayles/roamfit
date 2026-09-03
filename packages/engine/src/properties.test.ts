@@ -1,6 +1,6 @@
 /**
  * Property tests (wave-02 brief item 10) — invariants that must hold for *every* generated
- * session, checked across a broad sweep of `(focus, effort, targetMinutes, equipmentPreference)`
+ * session, checked across a broad sweep of `(focus, difficulty, targetMinutes, equipmentPreference)`
  * combinations crossed with a few different user states (cold-start, an "established" user with
  * history and mixed progression levels, a user with an active limitation, a user with
  * `bodyweight_bearing` anchors enabled). The sweep is exhaustive over the request space rather
@@ -14,7 +14,7 @@ import { createRng } from './rng';
 import { calibrationStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
 import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
-import type { Effort, EquipmentPreference, ProgressionState, UserState } from './types';
+import type { Difficulty, EquipmentPreference, ProgressionState, UserState } from './types';
 
 const library = exerciseLibrary.exercises;
 const families = familyLibrary.families;
@@ -105,7 +105,7 @@ const userStates: [string, () => UserState][] = [
 ];
 
 const FOCI: Focus[] = ['upper', 'legs', 'abs', 'full'];
-const EFFORTS: Effort[] = ['easy', 'normal', 'hard'];
+const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
 const MINUTES = [15, 20, 30, 45, 60];
 const EQUIPMENT: EquipmentPreference[] = ['any', 'band', 'bodyweight'];
 
@@ -121,17 +121,17 @@ function exerciseFor(exerciseId: string): Exercise {
 describe('property: invariants hold across the full request sweep', () => {
   for (const [label, buildState] of userStates) {
     for (const focus of FOCI) {
-      for (const effort of EFFORTS) {
+      for (const difficulty of DIFFICULTIES) {
         for (const targetMinutes of MINUTES) {
           for (const equipmentPreference of EQUIPMENT) {
-            it(`${label} / ${focus} / ${effort} / ${targetMinutes}min / ${equipmentPreference}`, () => {
+            it(`${label} / ${focus} / ${difficulty} / ${targetMinutes}min / ${equipmentPreference}`, () => {
               const userState = buildState();
-              const seed = `${label}-${focus}-${effort}-${targetMinutes}-${equipmentPreference}`;
+              const seed = `${label}-${focus}-${difficulty}-${targetMinutes}-${equipmentPreference}`;
               const plan = generateSession({
                 library: exerciseLibrary,
                 families: familyLibrary,
                 userState,
-                request: { focus, effort, targetMinutes, equipmentPreference },
+                request: { focus, difficulty, targetMinutes, equipmentPreference },
                 clock: { today: TODAY, tzId: 'UTC' },
                 rng: createRng(hashSeed(seed)),
               });
@@ -153,10 +153,10 @@ describe('property: invariants hold across the full request sweep', () => {
                 expect(userState.profile.anchorsAvailable).toContain(ex.anchor);
               }
 
-              // Never `hard` effort on a bodyweight_bearing exercise, regardless of the day's effort.
+              // Never `hard` difficulty on a bodyweight_bearing exercise, regardless of the day's difficulty.
               for (const entry of plan.main) {
                 if (entry.anchorClass === 'bodyweight_bearing') {
-                  expect(entry.effort).not.toBe('hard');
+                  expect(entry.difficulty).not.toBe('hard');
                 }
               }
 

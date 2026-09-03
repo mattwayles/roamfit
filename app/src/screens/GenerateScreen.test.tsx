@@ -107,13 +107,13 @@ describe('§10.2 Generate screen', () => {
     expect(screen.queryByTestId('time-picker-list')).toBeNull();
   });
 
-  it('Focus and Effort are drop-downs too, with human labels rather than enum values', async () => {
+  it('Focus and Difficulty are drop-downs too, with human labels rather than enum values', async () => {
     renderScreen();
     await waitFor(() => expect(screen.getByTestId('focus-picker')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.getByTestId('effort-picker')).toBeTruthy();
+    expect(screen.getByTestId('difficulty-picker')).toBeTruthy();
     // Closed, the fields already read as words.
     expect(screen.getByText('Full body')).toBeTruthy();
-    expect(screen.getByText('Normal')).toBeTruthy();
+    expect(screen.getByText('Medium')).toBeTruthy();
 
     fireEvent.press(screen.getByTestId('focus-picker'));
     await waitFor(

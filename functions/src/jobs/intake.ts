@@ -5,10 +5,9 @@
  * are structurally absent from `IntakeOutputSchema`, so invariant 2 is enforced by the schema
  * shape before validation even runs.
  */
-import type { Contraindication, Focus } from '@roamfit/data';
+import type { Contraindication, Difficulty, Focus } from '@roamfit/data';
 import {
   validateIntakeOutput,
-  type Effort,
   type EquipmentPreference,
   type GenerationRequest,
 } from '@roamfit/engine';
@@ -20,7 +19,7 @@ import { IntakeOutputFormat } from '../schemas';
 const INTAKE_SYSTEM_PROMPT = `You translate a user's freeform description of what they want out of
 a workout today into structured parameters. You do not choose exercises, sets, reps, or bands —
 that is decided entirely by a separate deterministic engine after you respond. Return only:
-focus (upper/abs/legs/full), effort (easy/normal/hard), targetMinutes (15-90), and optionally
+focus (upper/abs/legs/full), difficulty (easy/medium/hard), targetMinutes (15-90), and optionally
 equipmentPreference (any/band/bodyweight) and a suggestedLimitationTag if the text clearly implies
 a physical limitation (e.g. "shoulder's cranky" -> shoulder_overhead). If the text is ambiguous,
 make a reasonable default choice rather than refusing.`;
@@ -83,7 +82,7 @@ export async function runIntakeJob(
   return {
     params: {
       focus: parsed.focus as Focus,
-      effort: parsed.effort as Effort,
+      difficulty: parsed.difficulty as Difficulty,
       targetMinutes: parsed.targetMinutes,
       equipmentPreference: parsed.equipmentPreference as EquipmentPreference | undefined,
     },

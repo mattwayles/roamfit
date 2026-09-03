@@ -32,7 +32,7 @@ function makeSession(db: ReturnType<typeof createTestDb>['db'], localDate = '202
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library,
     families,
-    request: { focus: 'upper', effort: 'normal', targetMinutes: 30 },
+    request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
     clock,
     rng: rngFor(1),
     utcInstant: utcInstantFor(localDate),
@@ -175,7 +175,7 @@ describe('§8.3 preference & aversion / comprehension signals', () => {
       )!;
       const prescription = prescribeAccessory({
         exercise: newExercise,
-        requestedEffort: 'normal',
+        requestedDifficulty: 'medium',
         recoveryTreatment: false,
       });
 

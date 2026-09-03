@@ -13,13 +13,13 @@ const bwBearing = library.find((e) => e.anchor_class === 'bodyweight_bearing')!;
 const warmupEx = library.find((e) => e.roles.includes('warmup'))!;
 
 describe('§5.4 prescription', () => {
-  it('a laddered exercise is prescribed directly from ProgressionState.micro, not the effort table', () => {
+  it('a laddered exercise is prescribed directly from ProgressionState.micro, not the difficulty table', () => {
     const entry = prescribeLaddered({
       exercise: bandedPush,
       familyId: 'horizontal_push',
       levelId: 'horizontal_push.l5',
       micro: { repTarget: 11, band: 'B2', tempoSec: 3, restSec: 45, sets: 3 },
-      requestedEffort: 'hard', // deliberately different from the micro state's own numbers
+      requestedDifficulty: 'hard', // deliberately different from the micro state's own numbers
       recoveryTreatment: false,
     });
     expect(entry.repTarget).toBe(11);
@@ -30,17 +30,17 @@ describe('§5.4 prescription', () => {
     expect(entry.progressionLevelIdAtTime).toBe('horizontal_push.l5');
   });
 
-  it('48h recovery drops the laddered exercise a band size and caps effort below hard', () => {
+  it('48h recovery drops the laddered exercise a band size and caps difficulty below hard', () => {
     const entry = prescribeLaddered({
       exercise: bandedPush,
       familyId: 'horizontal_push',
       levelId: 'horizontal_push.l5',
       micro: { repTarget: 11, band: 'B2', tempoSec: 3, restSec: 45, sets: 3 },
-      requestedEffort: 'hard',
+      requestedDifficulty: 'hard',
       recoveryTreatment: true,
     });
     expect(entry.band).toBe('B1');
-    expect(entry.effort).not.toBe('hard');
+    expect(entry.difficulty).not.toBe('hard');
   });
 
   it('§13.1 caps a bodyweight_bearing laddered exercise at normal even on a hard day', () => {
@@ -49,31 +49,31 @@ describe('§5.4 prescription', () => {
       familyId: 'vertical_pull',
       levelId: 'x',
       micro: { repTarget: 10, band: null, tempoSec: 3, restSec: 45, sets: 3 },
-      requestedEffort: 'hard',
+      requestedDifficulty: 'hard',
       recoveryTreatment: false,
     });
-    expect(entry.effort).toBe('normal');
+    expect(entry.difficulty).toBe('medium');
   });
 
-  it('accessory prescription uses the §5.4 effort table', () => {
+  it('accessory prescription uses the §5.4 difficulty table', () => {
     const easy = prescribeAccessory({
       exercise: bwPush,
-      requestedEffort: 'easy',
+      requestedDifficulty: 'easy',
       recoveryTreatment: false,
     });
     expect(easy).toMatchObject({ sets: 3, repTarget: 15, restSec: 60, tempoSec: 3 });
     const hard = prescribeAccessory({
       exercise: bwPush,
-      requestedEffort: 'hard',
+      requestedDifficulty: 'hard',
       recoveryTreatment: false,
     });
     expect(hard).toMatchObject({ sets: 4, repTarget: 12, restSec: 30, tempoSec: 4 });
   });
 
-  it('the finisher slot at hard effort is prescribed AMRAP', () => {
+  it('the finisher slot at hard difficulty is prescribed AMRAP', () => {
     const entry = prescribeAccessory({
       exercise: bwPush,
-      requestedEffort: 'hard',
+      requestedDifficulty: 'hard',
       recoveryTreatment: false,
       isFinisherAmrap: true,
     });
@@ -89,10 +89,10 @@ describe('§5.4 prescription', () => {
   });
 
   describe('the same exercise, warmed up rather than trained', () => {
-    it("is one set of light reps with no rest — not the effort table's working dose", () => {
+    it("is one set of light reps with no rest — not the difficulty table's working dose", () => {
       const asMain = prescribeAccessory({
         exercise: bandedPush,
-        requestedEffort: 'normal',
+        requestedDifficulty: 'medium',
         recoveryTreatment: false,
       });
       const asWarmup = prescribeWarmupCooldown(bandedPush, 'warmup');
@@ -130,7 +130,7 @@ describe('§5.4 prescription', () => {
     it('removes exactly one set and recomputes estimatedSec, not a proportional-rounded multiplier', () => {
       const entry = prescribeAccessory({
         exercise: bwPush,
-        requestedEffort: 'normal',
+        requestedDifficulty: 'medium',
         recoveryTreatment: false,
       });
       expect(entry.sets).toBe(3);
@@ -145,7 +145,7 @@ describe('§5.4 prescription', () => {
       const entry = {
         ...prescribeAccessory({
           exercise: bwPush,
-          requestedEffort: 'normal',
+          requestedDifficulty: 'medium',
           recoveryTreatment: false,
         }),
         sets: 1,
@@ -158,7 +158,7 @@ describe('§5.4 prescription', () => {
       const timedEx = library.find((e) => e.metric === 'time' && e.roles.includes('main'))!;
       const entry = prescribeAccessory({
         exercise: timedEx,
-        requestedEffort: 'normal',
+        requestedDifficulty: 'medium',
         recoveryTreatment: false,
       });
       const trimmed = withOneFewerSet(entry);
@@ -182,7 +182,7 @@ describe('§5.4 prescription — sibling band clamp (ADR 0010)', () => {
       familyId: 'hinge',
       levelId: 'hinge.l3',
       micro: { repTarget: 10, band, tempoSec: 3, restSec: 45, sets: 3 },
-      requestedEffort: 'normal',
+      requestedDifficulty: 'medium',
       recoveryTreatment: false,
     });
   }
@@ -214,7 +214,7 @@ describe('§5.4 prescription — sibling band clamp (ADR 0010)', () => {
       familyId: 'hinge',
       levelId: 'hinge.l3',
       micro: { repTarget: 10, band: 'B4', tempoSec: 3, restSec: 45, sets: 3 },
-      requestedEffort: 'normal',
+      requestedDifficulty: 'medium',
       recoveryTreatment: true,
     });
     expect(entry.band).toBe('B1'); // clamped B4 -> B2, then dropped one -> B1

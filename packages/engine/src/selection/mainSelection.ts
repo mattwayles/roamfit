@@ -13,11 +13,23 @@
  * (never relaxed) → PATTERN GAP avoidance (a band exception for an otherwise-empty pull slot) →
  * band ratio → PREFERRED ratio → favorites cap → novelty is opportunistic throughout, not a
  * final override, since forcing it late can undo an already-satisfied aggregate.
+ *
+ * Difficulty gates this file's pool before anything else does: `selectMain` narrows `pool` and
+ * `poolIgnoringEquipment` to the requested difficulty's eligible tiers (`isDifficultyEligible` in
+ * `hardFilters.ts`) before building candidates, so every candidate scored below already
+ * qualifies. This is deliberately local to accessory selection — laddered slots resolve via
+ * `resolveSlot.ts` against the raw (difficulty-unfiltered) pool instead, so the user's current
+ * progression rung stays reachable regardless of today's requested difficulty. What this file
+ * adds on top of the hard exclusion is the *preference* within the eligible pool — a medium
+ * request should still favor a medium exercise over an eligible easy one, and a hard request a
+ * hard exercise over an eligible medium one — via `DIFFICULTY_PREFERENCE_BONUS` in `score()`.
  */
 import type { Exercise, Focus, Pattern } from '@roamfit/data';
 import type { TemplateSlot } from '../template/focusTemplate';
+import { isDifficultyEligible } from '../filters/hardFilters';
 import type {
   Candidate,
+  Difficulty,
   EquipmentPreference,
   LocalDate,
   PatternGapNote,
@@ -30,11 +42,19 @@ import { overWorkedMuscles, recentHardMuscles } from './volume';
 import {
   AVOID_ENJOYMENT_MAX,
   BAND_MIN_RATIO,
+  DIFFICULTY_PREFERENCE_BONUS,
   FAVORITE_ENJOYMENT_MIN,
   FAVORITES_CAP_RATIO,
   PREFERRED_MIN_RATIO,
   RECOVERY_WINDOW_DAYS,
 } from './constants';
+
+/** For a `medium`/`hard` request, the pool already includes one neighboring tier (§ eligibility
+ *  in `hardFilters.ts`'s `isDifficultyEligible`) — this is which of the two eligible tiers the
+ *  score should nudge selection toward. `easy` has only one eligible tier, so nothing to prefer. */
+function preferredDifficulty(requested: Difficulty): Difficulty | null {
+  return requested === 'easy' ? null : requested;
+}
 
 export interface SelectedMain {
   slotId: string;
@@ -42,7 +62,7 @@ export interface SelectedMain {
   exercise: Exercise;
   candidate: Candidate;
   /** §5.2 48h recovery — this exercise touches a muscle trained hard in the last 2 days; the
-   *  prescription stage must drop a band size and this exercise's effort must not be `hard`. */
+   *  prescription stage must drop a band size and this exercise's difficulty must not be `hard`. */
   recoveryTreatment: boolean;
   /** Selected via the pattern-gap band exception, not the requested equipment preference. */
   bandRelaxedForPatternGap: boolean;
@@ -82,11 +102,15 @@ interface ScoreState {
   favoritesCount: number;
   favoritesCap: number;
   noveltyUsed: boolean;
+  preferredDifficulty: Difficulty | null;
 }
 
 function score(c: Candidate, st: ScoreState, rng: Rng): number {
   let s = 0;
   s += c.tier === 'preferred' ? 2000 : 1000; // eligibleForSlot already excludes 'blocked'
+  if (st.preferredDifficulty !== null && c.exercise.difficulty === st.preferredDifficulty) {
+    s += DIFFICULTY_PREFERENCE_BONUS;
+  }
   if (c.isNovel && !st.noveltyUsed) s += 400;
   if (c.enjoyment <= AVOID_ENJOYMENT_MAX) {
     s -= 3000; // avoid ≤2, but still selectable if it's the only candidate
@@ -134,17 +158,26 @@ export interface SelectMainInput {
   rng: Rng;
   focus: Focus;
   equipmentPreference: EquipmentPreference;
+  requestedDifficulty: Difficulty;
 }
 
 export function selectMain(input: SelectMainInput): MainSelectionResult {
   const { slots, pool, poolIgnoringEquipment, userState, today, rng, equipmentPreference } = input;
+  const { requestedDifficulty } = input;
   const history = userState.history;
   const ctx = { history, exerciseStates: userState.exerciseStates, today };
 
+  // OVER-WORKED / recovery are about which muscles the pool can train, not about difficulty, so
+  // they read the full (difficulty-unfiltered) pool.
   const overWorked = overWorkedMuscles(history, pool, today);
   const recoveryMuscles = recentHardMuscles(history, pool, today, RECOVERY_WINDOW_DAYS);
 
-  const candidates = buildCandidates(pool, 'main', ctx);
+  const difficultyEligiblePool = pool.filter((e) => isDifficultyEligible(e, requestedDifficulty));
+  const difficultyEligiblePoolIgnoringEquipment = poolIgnoringEquipment.filter((e) =>
+    isDifficultyEligible(e, requestedDifficulty),
+  );
+
+  const candidates = buildCandidates(difficultyEligiblePool, 'main', ctx);
   const usedIds = new Set<string>();
   const picks: SelectedMain[] = [];
   const patternGaps: PatternGapNote[] = [];
@@ -156,6 +189,7 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
     favoritesCount: 0,
     favoritesCap: Infinity, // set once mainCount is known-ish; approximated below per slot
     noveltyUsed: false,
+    preferredDifficulty: preferredDifficulty(input.requestedDifficulty),
   };
 
   const requiredCount = slots.filter((s) => s.required).length;
@@ -173,9 +207,11 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
       // PATTERN GAP: try the band exception (bodyweight-only sessions can't cover pulling).
       const isPull = slot.patterns.some((p) => p === 'horizontal_pull' || p === 'vertical_pull');
       if (equipmentPreference === 'bodyweight' && isPull) {
-        const relaxedCandidates = buildCandidates(poolIgnoringEquipment, 'main', ctx).filter(
-          (c) => c.exercise.equipment === 'band',
-        );
+        const relaxedCandidates = buildCandidates(
+          difficultyEligiblePoolIgnoringEquipment,
+          'main',
+          ctx,
+        ).filter((c) => c.exercise.equipment === 'band');
         const relaxedEligible = eligibleForSlot(relaxedCandidates, slot, usedIds, overWorked);
         if (relaxedEligible.length > 0) {
           const chosen = pickBest(relaxedEligible, st, rng);

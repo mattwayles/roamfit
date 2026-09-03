@@ -66,7 +66,7 @@ describe('WorkoutScreen crash-safety resume', () => {
     const { plan, comebackTier, recoveryWeekManual } = generate(db, {
       library,
       families,
-      request: { focus: 'upper', effort: 'normal', targetMinutes: 20 },
+      request: { focus: 'upper', difficulty: 'medium', targetMinutes: 20 },
       clock,
       rng: createRng(seedFromString('workout-resume-test-seed')),
       utcInstant,

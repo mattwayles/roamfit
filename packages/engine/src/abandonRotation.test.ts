@@ -54,7 +54,7 @@ function generate(history: SessionHistoryRecord[], seed: number) {
     library: exerciseLibrary,
     families: familyLibrary,
     userState: userState(history),
-    request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+    request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
     clock: { today: TODAY, tzId: 'America/Chicago' },
     rng: createRng(seed),
   });
@@ -68,12 +68,12 @@ function asHistory(
   return {
     localDate,
     focus: 'full',
-    effort: 'normal',
+    difficulty: 'medium',
     status,
     entries: [...plan.warmup, ...plan.main, ...plan.cooldown].map((e) => ({
       exerciseId: e.exerciseId,
       role: e.role,
-      effort: e.effort,
+      difficulty: e.difficulty,
       sets: e.sets,
     })),
   } as unknown as SessionHistoryRecord;

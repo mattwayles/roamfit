@@ -78,7 +78,7 @@ describe('active workout controls', () => {
     const { plan, comebackTier, recoveryWeekManual } = generate(db, {
       library: exerciseLibrary,
       families: familyLibrary,
-      request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
       clock,
       rng: createRng(seedFromString('hero-icons-seed')),
       utcInstant,
@@ -129,7 +129,7 @@ describe('band chip on the active workout screen', () => {
     const { plan, comebackTier, recoveryWeekManual } = generate(db, {
       library: exerciseLibrary,
       families: familyLibrary,
-      request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
       clock,
       rng: createRng(seedFromString('band-chip-seed')),
       utcInstant,
@@ -185,7 +185,7 @@ describe('band chip on the active workout screen', () => {
     const { plan, comebackTier, recoveryWeekManual } = generate(db, {
       library: exerciseLibrary,
       families: familyLibrary,
-      request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
       clock,
       rng: createRng(seedFromString('band-picker-seed')),
       utcInstant,

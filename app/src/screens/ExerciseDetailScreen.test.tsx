@@ -47,7 +47,7 @@ function runOneSession(seed: string, reps: number): string[] {
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library: exerciseLibrary,
     families: familyLibrary,
-    request: { focus: 'full', effort: 'normal', targetMinutes: 20 },
+    request: { focus: 'full', difficulty: 'medium', targetMinutes: 20 },
     clock,
     rng: createRng(seedFromString(seed)),
     utcInstant,

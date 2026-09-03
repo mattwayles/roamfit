@@ -19,7 +19,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';
 
 const FOCUS = z.enum(['upper', 'abs', 'legs', 'full']);
-const EFFORT = z.enum(['easy', 'normal', 'hard']);
+const DIFFICULTY = z.enum(['easy', 'medium', 'hard']);
 const EQUIPMENT_PREFERENCE = z.enum(['any', 'band', 'bodyweight']);
 const CONTRAINDICATION = z.enum([
   'shoulder_overhead',
@@ -40,7 +40,7 @@ const CONTRAINDICATION = z.enum([
 export const IntakeOutputSchema = z
   .object({
     focus: FOCUS,
-    effort: EFFORT,
+    difficulty: DIFFICULTY,
     targetMinutes: z.number().min(15).max(90),
     equipmentPreference: EQUIPMENT_PREFERENCE.optional(),
     suggestedLimitationTag: CONTRAINDICATION.optional(),

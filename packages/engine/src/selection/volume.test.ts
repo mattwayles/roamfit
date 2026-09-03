@@ -45,12 +45,12 @@ describe('trailing volume (§5.2)', () => {
       {
         localDate: '2026-08-28',
         focus: 'upper',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
         entries: [
-          { exerciseId: 'chest1', role: 'main', effort: 'normal', sets: 3 },
-          { exerciseId: 'chest2', role: 'main', effort: 'normal', sets: 3 },
-          { exerciseId: 'tri1', role: 'main', effort: 'normal', sets: 1 },
+          { exerciseId: 'chest1', role: 'main', difficulty: 'medium', sets: 3 },
+          { exerciseId: 'chest2', role: 'main', difficulty: 'medium', sets: 3 },
+          { exerciseId: 'tri1', role: 'main', difficulty: 'medium', sets: 1 },
         ],
       },
     ];
@@ -64,11 +64,11 @@ describe('trailing volume (§5.2)', () => {
       {
         localDate: '2026-08-01',
         focus: 'upper',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
         entries: [
-          { exerciseId: 'chest1', role: 'main', effort: 'normal', sets: 5 },
-          { exerciseId: 'tri1', role: 'main', effort: 'normal', sets: 1 },
+          { exerciseId: 'chest1', role: 'main', difficulty: 'medium', sets: 5 },
+          { exerciseId: 'tri1', role: 'main', difficulty: 'medium', sets: 1 },
         ],
       },
     ];
@@ -87,9 +87,9 @@ describe('trailing volume (§5.2)', () => {
       {
         localDate: '2026-08-25',
         focus: 'upper',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
-        entries: [{ exerciseId: 'chest1', role: 'main', effort: 'normal', sets: 2 }],
+        entries: [{ exerciseId: 'chest1', role: 'main', difficulty: 'medium', sets: 2 }],
       },
     ];
     const low = lowVolumeMuscles(history, library, TODAY, new Set(['chest', 'triceps']));
@@ -97,16 +97,16 @@ describe('trailing volume (§5.2)', () => {
     expect(low.has('triceps')).toBe(false); // zero sets, not "low"
   });
 
-  it('recentHardMuscles only counts main-role exercises prescribed at hard effort', () => {
+  it('recentHardMuscles only counts main-role exercises prescribed at hard difficulty', () => {
     const history: SessionHistoryRecord[] = [
       {
         localDate: '2026-08-29',
         focus: 'upper',
-        effort: 'hard',
+        difficulty: 'hard',
         status: 'completed',
         entries: [
-          { exerciseId: 'chest1', role: 'main', effort: 'hard' },
-          { exerciseId: 'tri1', role: 'main', effort: 'normal' },
+          { exerciseId: 'chest1', role: 'main', difficulty: 'hard' },
+          { exerciseId: 'tri1', role: 'main', difficulty: 'medium' },
         ],
       },
     ];
@@ -120,7 +120,7 @@ describe('trailing volume (§5.2)', () => {
       {
         localDate: '2026-08-29',
         focus: 'upper',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
         entries: [],
       },

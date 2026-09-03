@@ -32,7 +32,7 @@ describe('issue #36 — cache_read_input_tokens is logged, not just returned', (
 
   it('handleIntake logs the real cacheReadInputTokens value from the job result', async () => {
     const parse = fakeParse({
-      parsedOutput: { focus: 'upper', effort: 'normal', targetMinutes: 25 },
+      parsedOutput: { focus: 'upper', difficulty: 'medium', targetMinutes: 25 },
       cacheReadInputTokens: 1234,
     });
     await handleIntake(parse, { freeformText: 'upper body, 25 min' }, log);

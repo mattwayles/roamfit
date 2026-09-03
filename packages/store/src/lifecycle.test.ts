@@ -22,7 +22,7 @@ function makeSession(db: ReturnType<typeof createTestDb>['db'], localDate = '202
   const result = generate(db, {
     library,
     families,
-    request: { focus: 'upper', effort: 'normal', targetMinutes: 30 },
+    request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
     clock,
     rng: rngFor(1),
     utcInstant: utcInstantFor(localDate),
@@ -157,7 +157,7 @@ describe('planned-vs-actual is preserved, not overwritten', () => {
           restSec: entry.restSec,
           tempoSec: entry.tempoSec,
           notes: entry.notes ?? undefined,
-          effort: entry.effort,
+          difficulty: entry.difficulty,
           progressionFamilyId: null,
           progressionLevelIdAtTime: null,
           pattern: swapTarget.pattern,

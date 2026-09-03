@@ -19,13 +19,13 @@ function fakeParse(...results: Array<ParseCallResult<unknown>>): {
 describe('runIntakeJob', () => {
   it('returns structured params on a valid first response', async () => {
     const { parse } = fakeParse({
-      parsedOutput: { focus: 'upper', effort: 'normal', targetMinutes: 25 },
+      parsedOutput: { focus: 'upper', difficulty: 'medium', targetMinutes: 25 },
       cacheReadInputTokens: 500,
     });
     const result = await runIntakeJob(parse, { freeformText: 'upper body, 25 min' });
     expect(result.params).toEqual({
       focus: 'upper',
-      effort: 'normal',
+      difficulty: 'medium',
       targetMinutes: 25,
       equipmentPreference: undefined,
     });
@@ -37,7 +37,7 @@ describe('runIntakeJob', () => {
     const { parse } = fakeParse({
       parsedOutput: {
         focus: 'upper',
-        effort: 'easy',
+        difficulty: 'easy',
         targetMinutes: 20,
         suggestedLimitationTag: 'shoulder_overhead',
       },
@@ -57,11 +57,11 @@ describe('runIntakeJob', () => {
   it('repairs once when the first response fails validation, then succeeds', async () => {
     const { parse, calls } = fakeParse(
       {
-        parsedOutput: { focus: 'upper', effort: 'normal', targetMinutes: 500 },
+        parsedOutput: { focus: 'upper', difficulty: 'medium', targetMinutes: 500 },
         cacheReadInputTokens: 0,
       },
       {
-        parsedOutput: { focus: 'upper', effort: 'normal', targetMinutes: 25 },
+        parsedOutput: { focus: 'upper', difficulty: 'medium', targetMinutes: 25 },
         cacheReadInputTokens: 100,
       },
     );
@@ -77,11 +77,11 @@ describe('runIntakeJob', () => {
   it('falls back to null after a second failed validation (repair does not help)', async () => {
     const { parse, calls } = fakeParse(
       {
-        parsedOutput: { focus: 'cardio', effort: 'normal', targetMinutes: 25 },
+        parsedOutput: { focus: 'cardio', difficulty: 'medium', targetMinutes: 25 },
         cacheReadInputTokens: 0,
       },
       {
-        parsedOutput: { focus: 'still-invalid', effort: 'normal', targetMinutes: 25 },
+        parsedOutput: { focus: 'still-invalid', difficulty: 'medium', targetMinutes: 25 },
         cacheReadInputTokens: 0,
       },
     );
@@ -109,7 +109,7 @@ describe('runIntakeJob', () => {
       {
         parsedOutput: {
           focus: 'upper',
-          effort: 'normal',
+          difficulty: 'medium',
           targetMinutes: 25,
           exerciseId: 'bw-push-up',
         },
@@ -128,12 +128,12 @@ describe('runIntakeJob', () => {
   // text into the system block, this test would catch it.
   it('keeps the system block byte-identical across different freeform inputs (cache-prefix stability)', async () => {
     const { parse, calls } = fakeParse({
-      parsedOutput: { focus: 'upper', effort: 'normal', targetMinutes: 25 },
+      parsedOutput: { focus: 'upper', difficulty: 'medium', targetMinutes: 25 },
       cacheReadInputTokens: 0,
     });
     await runIntakeJob(parse, { freeformText: 'first request, totally different text' });
     const { parse: parse2, calls: calls2 } = fakeParse({
-      parsedOutput: { focus: 'legs', effort: 'hard', targetMinutes: 40 },
+      parsedOutput: { focus: 'legs', difficulty: 'hard', targetMinutes: 40 },
       cacheReadInputTokens: 0,
     });
     await runIntakeJob(parse2, {

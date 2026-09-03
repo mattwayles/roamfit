@@ -3,11 +3,11 @@
  * here as explicit decisions (see STATUS-2-engine.md "Ambiguities" for the reasoning), not
  * silently guessed:
  *
- * - The rep/hold range a family's micro-progression climbs through is the §5.4 **`normal`**
- *   effort row (sets 3, reps 10-12, rest 45s, tempo 3s/rep) — not `easy` or `hard`. §5.4 is
- *   explicit that effort is "for today," while progression is a property of the level, so
- *   progression needs an effort-independent baseline, and `normal`'s numbers are also exactly
- *   the schema's implied micro defaults (rest 45s, tempo 3s, sets 3).
+ * - The rep/hold range a family's micro-progression climbs through is the §5.4 **`medium`**
+ *   difficulty row (sets 3, reps 10-12, rest 45s, tempo 3s/rep) — not `easy` or `hard`. The
+ *   session's requested difficulty is "for today," while progression is a property of the level,
+ *   so progression needs a difficulty-independent baseline, and `medium`'s numbers are also
+ *   exactly the schema's implied micro defaults (rest 45s, tempo 3s, sets 3).
  * - Timed (`metric: 'time'`) exercises use a separate seconds range, since a 10-12 rep window
  *   makes no sense as a hold time. Chosen as a generic 20-45s working hold range.
  * - Bodyweight micro-progression's tempo/rest/sets caps (how far each knob ratchets before the

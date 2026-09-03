@@ -6,7 +6,7 @@
  * no eligible exercise, that's a PATTERN GAP (§5.2), not a silently shorter template.
  */
 import type { Exercise, Focus, Pattern } from '@roamfit/data';
-import type { Effort, SessionHistoryRecord } from '../types';
+import type { Difficulty, SessionHistoryRecord } from '../types';
 
 export interface TemplateSlot {
   id: string;
@@ -121,7 +121,7 @@ function absSlots(
 
 function fullSlots(
   targetMinutes: number,
-  effort: Effort,
+  difficulty: Difficulty,
   history: readonly SessionHistoryRecord[],
   library: readonly Exercise[],
 ): TemplateSlot[] {
@@ -142,7 +142,7 @@ function fullSlots(
     { id: 'full.upper_pull', patterns: [upperPull], required: true },
     { id: 'full.core', patterns: [core], required: true },
   ];
-  if (effort === 'hard' || targetMinutes >= 40) {
+  if (difficulty === 'hard' || targetMinutes >= 40) {
     slots.push({ id: 'full.finisher', patterns: [], required: false, isFinisher: true });
   }
   return slots;
@@ -228,13 +228,13 @@ export function accessoryRotationOffset(
 export interface BuildTemplateInput {
   focus: Focus;
   targetMinutes: number;
-  effort: Effort;
+  difficulty: Difficulty;
   library: readonly Exercise[];
   history: readonly SessionHistoryRecord[];
 }
 
 export function buildFocusTemplate(input: BuildTemplateInput): FocusTemplateResult {
-  const { focus, targetMinutes, effort, library, history } = input;
+  const { focus, targetMinutes, difficulty, library, history } = input;
   switch (focus) {
     case 'upper':
       return { slots: upperSlots(targetMinutes, history, library) };
@@ -245,11 +245,11 @@ export function buildFocusTemplate(input: BuildTemplateInput): FocusTemplateResu
       return { slots, leadPattern };
     }
     case 'full':
-      return { slots: fullSlots(targetMinutes, effort, history, library) };
+      return { slots: fullSlots(targetMinutes, difficulty, history, library) };
   }
 }
 
-/** §9.5 Quick Session — minimal template, 1 warmup + 3 main + 1 cooldown, `normal` effort.
+/** §9.5 Quick Session — minimal template, 1 warmup + 3 main + 1 cooldown, `medium` difficulty.
  *  Same pipeline: this only shrinks the template to the 3 highest-priority required slots
  *  (falling back to optional ones if a focus has fewer than 3 required slots), it does not
  *  bypass hard filters, selection rules, or prescription. */

@@ -1,21 +1,21 @@
 /**
- * §5.1 step 5 — sets, reps or seconds, band, tempo, rest, from the §5.4 effort table. Builds a
- * concrete `SessionEntry` for each resolved slot (laddered or accessory, warmup or cooldown).
+ * §5.1 step 5 — sets, reps or seconds, band, tempo, rest, from the §5.4 difficulty table. Builds
+ * a concrete `SessionEntry` for each resolved slot (laddered or accessory, warmup or cooldown).
  *
  * Laddered exercises (§6.6): the band/rep-or-hold-target/tempo/rest/sets come straight from
  * `ProgressionState.micro` — that IS the current working prescription, tracked independently of
- * the day's chosen effort (§5.4: "effort for today, not absolute difficulty... a property of
- * their progression level"). The day's effort still governs non-laddered accessory exercises via
- * `EFFORT_TABLE`, and — for every main exercise regardless of family — the §13.1 bodyweight-
- * bearing cap and the 48h recovery band-drop (documented as a per-entry treatment rather than a
- * strict "at most one" count, see STATUS-2-engine.md).
+ * the day's chosen difficulty (a property of their progression level, not the session dial). The
+ * day's difficulty still governs non-laddered accessory exercises via `DIFFICULTY_TABLE`, and —
+ * for every main exercise regardless of family — the §13.1 bodyweight-bearing cap and the 48h
+ * recovery band-drop (documented as a per-entry treatment rather than a strict "at most one"
+ * count, see STATUS-2-engine.md).
  */
 import type { Exercise, ProgressionFamilyId, Role } from '@roamfit/data';
 import { BAND_ORDER } from '../types';
-import type { BandId, Effort, SessionEntry } from '../types';
-import { effortCapForExercise } from '../filters/hardFilters';
+import type { BandId, Difficulty, SessionEntry } from '../types';
+import { difficultyCapForExercise } from '../filters/hardFilters';
 import { parseBandRange } from '../progression/micro';
-import { EFFORT_TABLE } from './effortTable';
+import { DIFFICULTY_TABLE } from './difficultyTable';
 import { repExerciseSec, timedExerciseSec } from '../timefit/formulas';
 
 function dropOneBand(band: BandId | null): BandId | null {
@@ -60,7 +60,7 @@ export interface PrescribeLadderedInput {
     restSec: number;
     sets: number;
   };
-  requestedEffort: Effort;
+  requestedDifficulty: Difficulty;
   /** §5.2 48h recovery — this exercise touches a muscle trained hard in the last 2 days. */
   recoveryTreatment: boolean;
   substitutedFor?: string;
@@ -74,11 +74,18 @@ function scaleSets(sets: number, multiplier: number | undefined): number {
 }
 
 export function prescribeLaddered(input: PrescribeLadderedInput): SessionEntry {
-  const { exercise, familyId, levelId, micro, requestedEffort, recoveryTreatment, substitutedFor } =
-    input;
-  const effort = effortCapForExercise(
+  const {
     exercise,
-    recoveryTreatment ? capBelowHard(requestedEffort) : requestedEffort,
+    familyId,
+    levelId,
+    micro,
+    requestedDifficulty,
+    recoveryTreatment,
+    substitutedFor,
+  } = input;
+  const difficulty = difficultyCapForExercise(
+    exercise,
+    recoveryTreatment ? capBelowHard(requestedDifficulty) : requestedDifficulty,
   );
   const levelBand = clampBandToExercise(micro.band, exercise);
   const band = recoveryTreatment ? dropOneBand(levelBand) : levelBand;
@@ -108,7 +115,7 @@ export function prescribeLaddered(input: PrescribeLadderedInput): SessionEntry {
     durationSec: isTimed ? micro.repTarget : undefined,
     restSec: micro.restSec,
     tempoSec: micro.tempoSec,
-    effort,
+    difficulty,
     progressionFamilyId: familyId,
     progressionLevelIdAtTime: levelId,
     pattern: exercise.pattern,
@@ -119,16 +126,16 @@ export function prescribeLaddered(input: PrescribeLadderedInput): SessionEntry {
   };
 }
 
-function capBelowHard(effort: Effort): Effort {
-  return effort === 'hard' ? 'normal' : effort;
+function capBelowHard(difficulty: Difficulty): Difficulty {
+  return difficulty === 'hard' ? 'medium' : difficulty;
 }
 
 export interface PrescribeAccessoryInput {
   exercise: Exercise;
-  requestedEffort: Effort;
+  requestedDifficulty: Difficulty;
   recoveryTreatment: boolean;
-  /** The `full` template's finisher slot, at `hard` effort, gets an AMRAP-style prescription
-   *  (§5.4/§5.5). */
+  /** The `full` template's finisher slot, at `hard` difficulty, gets an AMRAP-style
+   *  prescription (§5.4/§5.5). */
   isFinisherAmrap?: boolean;
   bandRelaxedForPatternGap?: boolean;
   /** §9.4/§9.9 comeback/Recovery Week volume cut (~0.8), applied to sets. 1 = no cut. */
@@ -136,12 +143,12 @@ export interface PrescribeAccessoryInput {
 }
 
 export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry {
-  const { exercise, requestedEffort, recoveryTreatment } = input;
-  const effort = effortCapForExercise(
+  const { exercise, requestedDifficulty, recoveryTreatment } = input;
+  const difficulty = difficultyCapForExercise(
     exercise,
-    recoveryTreatment ? capBelowHard(requestedEffort) : requestedEffort,
+    recoveryTreatment ? capBelowHard(requestedDifficulty) : requestedDifficulty,
   );
-  const row = EFFORT_TABLE[effort];
+  const row = DIFFICULTY_TABLE[difficulty];
   const suggestedBand = parseFirstBand(exercise.band);
   const band =
     exercise.equipment === 'band'
@@ -151,7 +158,7 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
       : null;
   const isTimed = exercise.metric === 'time';
   const durationSec = isTimed ? (exercise.default_seconds ?? 30) : undefined;
-  const amrap = Boolean(input.isFinisherAmrap) && !isTimed && effort === 'hard';
+  const amrap = Boolean(input.isFinisherAmrap) && !isTimed && difficulty === 'hard';
   const sets = scaleSets(row.sets, input.setsMultiplier);
 
   const estimatedSec = isTimed
@@ -179,7 +186,7 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
     restSec: row.restSec,
     tempoSec: row.tempoSec,
     notes: amrap ? 'AMRAP' : undefined,
-    effort,
+    difficulty,
     progressionFamilyId: null,
     progressionLevelIdAtTime: null,
     pattern: exercise.pattern,
@@ -191,7 +198,7 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
 
 /** One set, twelve unloaded-tempo reps, no rest — the dose that distinguishes "warming this
  *  movement up" from "training it". A main exercise programmed into the warm-up section gets this
- *  instead of the effort table's 3x8-12 at its working band, which is the whole point of one
+ *  instead of the difficulty table's 3x8-12 at its working band, which is the whole point of one
  *  exercise being eligible for both. */
 const WARMUP_COOLDOWN_REPS = 12;
 const WARMUP_COOLDOWN_TEMPO_SEC = 2;
@@ -231,7 +238,7 @@ export function prescribeWarmupCooldown(
     durationSec: exercise.metric === 'time' ? durationSec : undefined,
     restSec: 0,
     tempoSec: exercise.metric === 'time' ? 0 : WARMUP_COOLDOWN_TEMPO_SEC,
-    effort: 'normal',
+    difficulty: 'medium',
     progressionFamilyId: null,
     progressionLevelIdAtTime: null,
     pattern: exercise.pattern,

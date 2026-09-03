@@ -38,7 +38,7 @@ function generateAndApprove(
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library,
     families,
-    request: { focus: 'full', effort: 'normal', targetMinutes: opts.targetMinutes ?? 30 },
+    request: { focus: 'full', difficulty: 'medium', targetMinutes: opts.targetMinutes ?? 30 },
     clock,
     rng: rngFor(seed),
     utcInstant: utcInstantFor(localDate),

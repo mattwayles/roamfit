@@ -92,10 +92,10 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   const { library, families, request, clock, rng } = input;
   const allExercises = library.exercises;
 
-  // §9.5 Quick Session overrides target/effort; everything downstream is identical.
+  // §9.5 Quick Session overrides target/difficulty; everything downstream is identical.
   const isQuick = Boolean(request.quickSession);
   const focus: Focus = request.focus;
-  const effort = isQuick ? 'normal' : request.effort;
+  const difficulty = isQuick ? 'medium' : request.difficulty;
   // ADR 0002 — the general pipeline's warmup/cooldown-minutes budget is internally inconsistent
   // below 15 minutes (the 3min floor on each alone consumes 6 of a 10-minute request before any
   // main work). Clamp up to the documented minimum; Quick Session's own fixed ~7min path is
@@ -152,14 +152,14 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     ? buildQuickSessionTemplate({
         focus,
         targetMinutes,
-        effort,
+        difficulty,
         library: allExercises,
         history: userState.history,
       })
     : buildFocusTemplate({
         focus,
         targetMinutes,
-        effort,
+        difficulty,
         library: allExercises,
         history: userState.history,
       });
@@ -203,6 +203,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
           rng,
           focus,
           equipmentPreference,
+          requestedDifficulty: difficulty,
         })
       : { picks: [], patternGaps: [] };
 
@@ -285,7 +286,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
           familyId,
           levelId: resolved.state.levelId,
           micro: resolved.state.micro,
-          requestedEffort: effort,
+          requestedDifficulty: difficulty,
           recoveryTreatment: touchesRecovery,
           setsMultiplier: multiplier,
           substitutedFor: resolved.substitutedFrom
@@ -300,7 +301,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
         pick.slotId,
         prescribeAccessory({
           exercise: pick.exercise,
-          requestedEffort: effort,
+          requestedDifficulty: difficulty,
           recoveryTreatment: pick.recoveryTreatment,
           isFinisherAmrap: Boolean(slot.isFinisher),
           bandRelaxedForPatternGap: pick.bandRelaxedForPatternGap,
@@ -523,7 +524,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
 
   return {
     focus,
-    effort,
+    difficulty,
     format: 'straight_sets',
     targetMinutes,
     estimatedMinutes: fit.estimatedMinutes,
@@ -539,13 +540,13 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   };
 }
 
-/** §9.5 — same pipeline, minimal template + fixed ~7min budget + `normal` effort. */
+/** §9.5 — same pipeline, minimal template + fixed ~7min budget + `medium` difficulty. */
 export function generateQuickSession(
   input: Omit<GenerateSessionInput, 'request'> & { focus: Focus },
 ): SessionPlan {
   return generateSession({
     ...input,
-    request: { focus: input.focus, effort: 'normal', targetMinutes: 7, quickSession: true },
+    request: { focus: input.focus, difficulty: 'medium', targetMinutes: 7, quickSession: true },
   });
 }
 

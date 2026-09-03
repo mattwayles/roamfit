@@ -1,5 +1,9 @@
 import { exerciseLibrary } from '@roamfit/data';
-import { applyHardFilters, DEFAULT_ANCHORS_AVAILABLE, effortCapForExercise } from './hardFilters';
+import {
+  applyHardFilters,
+  DEFAULT_ANCHORS_AVAILABLE,
+  difficultyCapForExercise,
+} from './hardFilters';
 
 const lib = exerciseLibrary.exercises;
 
@@ -17,11 +21,11 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
     expect(out.every((e) => DEFAULT_ANCHORS_AVAILABLE.includes(e.anchor))).toBe(true);
     // §5.3 says all bodyweight_bearing anchors are off by default. ADR 0007 carves out exactly
     // one documented exception — `low-bar` (bw-inverted-row), which is on by default while
-    // staying bodyweight_bearing so the §13.1 effort cap still binds. Pin that the carve-out is
+    // staying bodyweight_bearing so the §13.1 difficulty cap still binds. Pin that the carve-out is
     // exactly one anchor wide, so a future edit cannot quietly widen it.
     const bearing = out.filter((e) => e.anchor_class === 'bodyweight_bearing');
     expect([...new Set(bearing.map((e) => e.anchor))]).toEqual(['low-bar']);
-    expect(bearing.every((e) => effortCapForExercise(e, 'hard') === 'normal')).toBe(true);
+    expect(bearing.every((e) => difficultyCapForExercise(e, 'hard') === 'medium')).toBe(true);
   });
 
   it('includes bodyweight_bearing exercises once the anchor is explicitly enabled', () => {
@@ -87,13 +91,13 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
   it('caps a bodyweight_bearing exercise at normal even when the day is hard', () => {
     const bwBearing = lib.find((e) => e.anchor_class === 'bodyweight_bearing');
     expect(bwBearing).toBeDefined();
-    expect(effortCapForExercise(bwBearing!, 'hard')).toBe('normal');
+    expect(difficultyCapForExercise(bwBearing!, 'hard')).toBe('medium');
   });
 
   it('does not cap a non-bodyweight_bearing exercise', () => {
     const other = lib.find((e) => e.anchor_class !== 'bodyweight_bearing');
     expect(other).toBeDefined();
-    expect(effortCapForExercise(other!, 'hard')).toBe('hard');
+    expect(difficultyCapForExercise(other!, 'hard')).toBe('hard');
   });
 
   it('removes an exercise the user has explicitly disabled, permanently and regardless of other filters', () => {

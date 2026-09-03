@@ -9,6 +9,7 @@ import type {
   Anchor,
   AnchorClass,
   Contraindication,
+  Difficulty,
   Exercise,
   Focus,
   Pattern,
@@ -16,8 +17,7 @@ import type {
   Role,
 } from '@roamfit/data';
 
-/** §5.4 — the user's chosen effort for today, not absolute difficulty. */
-export type Effort = 'easy' | 'normal' | 'hard';
+export type { Difficulty };
 
 /** §8.1 difficulty feedback, 3-position control. Unset means `just_right`. */
 export type DifficultyFeedback = 'too_easy' | 'just_right' | 'too_hard';
@@ -118,8 +118,9 @@ export interface ProgressionState {
 export interface SessionHistoryEntry {
   exerciseId: string;
   role: Role;
-  /** Effort actually prescribed to this exercise (may be capped below the session's effort). */
-  effort: Effort;
+  /** Difficulty actually prescribed to this exercise (may be capped below the session's
+   *  requested difficulty). */
+  difficulty: Difficulty;
   /** Sets actually prescribed (planned, not necessarily all completed) — drives trailing muscle
    *  volume the same way the prototype's `muscle_sets` does (primary=1 credit/set, secondary=0.5).
    *  Defaults to 1 if a caller can't supply it (e.g. warmup/cooldown, or legacy data). */
@@ -129,7 +130,7 @@ export interface SessionHistoryEntry {
 export interface SessionHistoryRecord {
   localDate: LocalDate;
   focus: Focus;
-  effort: Effort;
+  difficulty: Difficulty;
   status: 'completed' | 'partial' | 'skipped' | 'discarded';
   entries: SessionHistoryEntry[];
 }
@@ -155,7 +156,9 @@ export type EquipmentPreference = 'any' | 'band' | 'bodyweight';
 
 export interface GenerationRequest {
   focus: Focus;
-  effort: Effort;
+  /** Drives both exercise-selection eligibility/weighting (easy/medium/hard match the exercise
+   *  library's own `difficulty` field) and prescription (sets/reps/rest/tempo). */
+  difficulty: Difficulty;
   /** Target session length in minutes, warmup and cooldown included. */
   targetMinutes: number;
   equipmentPreference?: EquipmentPreference;
@@ -183,9 +186,9 @@ export interface SessionEntry {
   restSec: number;
   tempoSec: number;
   notes?: string;
-  /** True when the effort actually prescribed was capped below the session's chosen effort
-   *  (§13.1 bodyweight-bearing cap, or 48h recovery). */
-  effort: Effort;
+  /** The difficulty actually prescribed to this entry — may be capped below the session's
+   *  requested difficulty (§13.1 bodyweight-bearing cap, or 48h recovery). */
+  difficulty: Difficulty;
   progressionFamilyId: ProgressionFamilyId | null;
   progressionLevelIdAtTime: string | null;
   pattern: Pattern;
@@ -241,7 +244,7 @@ export interface TimeBudgetDeviation {
 
 export interface SessionPlan {
   focus: Focus;
-  effort: Effort;
+  difficulty: Difficulty;
   format: SessionFormat;
   targetMinutes: number;
   estimatedMinutes: number;

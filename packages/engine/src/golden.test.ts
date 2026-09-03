@@ -55,7 +55,7 @@ describe('golden: generateSession output is pinned', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState: coldStartUserState(),
-      request: { focus: 'upper', effort: 'normal', targetMinutes: 30 },
+      request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
       clock: { today: TODAY, tzId: 'America/Chicago' },
       rng: createRng(1),
     });
@@ -67,7 +67,7 @@ describe('golden: generateSession output is pinned', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState: coldStartUserState(),
-      request: { focus: 'legs', effort: 'easy', targetMinutes: 20 },
+      request: { focus: 'legs', difficulty: 'easy', targetMinutes: 20 },
       clock: { today: TODAY, tzId: 'America/Chicago' },
       rng: createRng(2),
     });
@@ -94,7 +94,7 @@ describe('golden: generateSession output is pinned', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState,
-      request: { focus: 'full', effort: 'hard', targetMinutes: 45 },
+      request: { focus: 'full', difficulty: 'hard', targetMinutes: 45 },
       clock: { today: TODAY, tzId: 'America/Chicago' },
       rng: createRng(3),
     });
@@ -118,7 +118,7 @@ describe('golden: generateSession output is pinned', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState: coldStartUserState({ hasEverCompletedSession: true }),
-      request: { focus: 'abs', effort: 'normal', targetMinutes: 30 },
+      request: { focus: 'abs', difficulty: 'medium', targetMinutes: 30 },
       clock: { today: TODAY, tzId: 'America/Chicago' },
       rng: createRng(5),
     });

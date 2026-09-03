@@ -10,7 +10,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { estimateEntrySec } from '@roamfit/engine';
 import type {
   BandId,
-  Effort,
+  Difficulty,
   PatternGapNote,
   SessionEntry as EngineSessionEntry,
   SessionHistoryEntry,
@@ -82,7 +82,7 @@ export interface SessionEntryRecord {
   restSec: number;
   tempoSec: number;
   notes: string | null;
-  effort: Effort;
+  difficulty: Difficulty;
   progressionFamilyId: string | null;
   progressionLevelIdAtTime: string | null;
   pattern: string;
@@ -105,7 +105,7 @@ export interface SessionRecord {
   localDate: string;
   tzId: string;
   focus: Focus;
-  effort: Effort;
+  difficulty: Difficulty;
   format: string;
   targetMinutes: number;
   estimatedMinutes: number;
@@ -175,7 +175,7 @@ function rowToEntry(
     restSec: row.restSec,
     tempoSec: row.tempoSec,
     notes: row.notes,
-    effort: row.effort,
+    difficulty: row.difficulty,
     progressionFamilyId: row.progressionFamilyId,
     progressionLevelIdAtTime: row.progressionLevelIdAtTime,
     pattern: row.pattern,
@@ -224,7 +224,7 @@ function rowToSession(
     localDate: row.localDate,
     tzId: row.tzId,
     focus: row.focus as Focus,
-    effort: row.effort,
+    difficulty: row.difficulty,
     format: row.format,
     targetMinutes: row.targetMinutes,
     estimatedMinutes: row.estimatedMinutes,
@@ -301,7 +301,7 @@ function entryValues(
     restSec: e.restSec,
     tempoSec: e.tempoSec,
     notes: e.notes ?? null,
-    effort: e.effort,
+    difficulty: e.difficulty,
     progressionFamilyId: e.progressionFamilyId,
     progressionLevelIdAtTime: e.progressionLevelIdAtTime,
     pattern: e.pattern,
@@ -331,7 +331,7 @@ export function createPendingSession(db: Db, input: CreateSessionInput): string 
       localDate: input.localDate,
       tzId: input.tzId,
       focus: plan.focus,
-      effort: plan.effort,
+      difficulty: plan.difficulty,
       format: plan.format,
       targetMinutes: plan.targetMinutes,
       estimatedMinutes: plan.estimatedMinutes,
@@ -620,7 +620,7 @@ export function adjustRepTargetAtApproval(
   });
 }
 
-/** §10.3 — rest is a real dial, not a fixed consequence of the effort table. A user who is
+/** §10.3 — rest is a real dial, not a fixed consequence of the difficulty table. A user who is
  *  short on time, or who wants a session to bite harder, is adjusting exactly this. Floors at 0,
  *  which is a meaningful value (warm-up entries are prescribed with no rest at all) and is why
  *  the card hides the rest label entirely rather than printing "rest 0s". */
@@ -867,7 +867,7 @@ export function addEntryAtApproval(
       restSec: prescription.restSec,
       tempoSec: prescription.tempoSec,
       notes: prescription.notes ?? null,
-      effort: prescription.effort,
+      difficulty: prescription.difficulty,
       progressionFamilyId: prescription.progressionFamilyId,
       progressionLevelIdAtTime: prescription.progressionLevelIdAtTime,
       pattern: prescription.pattern,
@@ -937,7 +937,7 @@ function applySwapReplacement(
       restSec: replacement.restSec,
       tempoSec: replacement.tempoSec,
       notes: replacement.notes ?? null,
-      effort: replacement.effort,
+      difficulty: replacement.difficulty,
       progressionFamilyId: replacement.progressionFamilyId ?? null,
       progressionLevelIdAtTime: replacement.progressionLevelIdAtTime ?? null,
       pattern: replacement.pattern,
@@ -963,7 +963,7 @@ export function recordSwap(
     | 'restSec'
     | 'tempoSec'
     | 'notes'
-    | 'effort'
+    | 'difficulty'
     | 'progressionFamilyId'
     | 'progressionLevelIdAtTime'
     | 'pattern'
@@ -1203,13 +1203,13 @@ export function getHistoryForGeneration(db: Db, limit = 90): SessionHistoryRecor
     const historyEntries: SessionHistoryEntry[] = entries.map((e) => ({
       exerciseId: e.exerciseId,
       role: e.role as SessionHistoryEntry['role'],
-      effort: e.effort,
+      difficulty: e.difficulty,
       sets: e.sets,
     }));
     return {
       localDate: row.localDate,
       focus: row.focus as Focus,
-      effort: row.effort,
+      difficulty: row.difficulty,
       status: row.status === 'completed' ? 'completed' : 'discarded',
       entries: historyEntries,
     };

@@ -119,7 +119,7 @@ function muscleCreditsForEntry(
   completedCount: number,
 ): MuscleVolumeEntry[] {
   if (!exercise || completedCount === 0) return [];
-  const isHard = entry.effort === 'hard';
+  const isHard = entry.difficulty === 'hard';
   const out: MuscleVolumeEntry[] = [];
   for (const m of exercise.primary) {
     out.push({ muscle: m, sets: completedCount, hardSets: isHard ? completedCount : 0 });

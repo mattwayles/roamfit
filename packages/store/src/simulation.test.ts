@@ -25,7 +25,7 @@ function runOneSession(db: ReturnType<typeof createTestDb>['db'], localDate: str
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library,
     families,
-    request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+    request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
     clock,
     rng: rngFor(seed),
     utcInstant: utcInstantFor(localDate),
@@ -130,7 +130,7 @@ describe('five-session scripted run', () => {
       const { plan, comebackTier, recoveryWeekManual } = generate(db, {
         library,
         families,
-        request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+        request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
         clock,
         rng: rngFor(7),
         utcInstant: utcInstantFor('2026-02-01'),

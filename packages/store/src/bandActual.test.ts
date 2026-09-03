@@ -34,7 +34,7 @@ function makeSession(db: Db, localDate = '2026-03-01'): string {
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library,
     families,
-    request: { focus: 'upper', effort: 'normal', targetMinutes: 45 },
+    request: { focus: 'upper', difficulty: 'medium', targetMinutes: 45 },
     clock,
     rng: rngFor(1),
     utcInstant: utcInstantFor(localDate),

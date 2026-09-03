@@ -13,16 +13,25 @@
  *  - disabled: any exercise the user has explicitly disabled from the Exercises detail screen
  *    or the workout approval screen. Permanent until re-enabled — distinct from
  *    `ExerciseState.suppressedUntil`'s temporary, system-managed cooldown.
+ *
+ * Difficulty eligibility (`isDifficultyEligible`, below) is a separate, narrower-scoped filter
+ * applied only where the requested difficulty should actually gate exercise choice —
+ * `mainSelection.ts`'s accessory pool, and `resolveSlot.ts`'s already-mastered-lower-rung pool.
+ * It is deliberately not folded into `applyHardFilters` itself: the current progression rung
+ * (the exercise the user's ladder state actually points at) stays reachable regardless of the
+ * day's requested difficulty, so progressive overload isn't interrupted by picking "easy" on an
+ * off day, and mid-workout swap keeps ranking by closeness to the replaced exercise's own
+ * difficulty (`swap.ts`) rather than by the session's original request.
  */
-import type { Anchor, Exercise } from '@roamfit/data';
+import type { Anchor, Difficulty, Exercise } from '@roamfit/data';
 import { daysBetween } from '../dates';
 import type { EquipmentPreference, GenerationRequest, LocalDate, Limitation } from '../types';
 
 /** §5.3 defaults: all band-tension anchors on, all bodyweight-bearing anchors off — with one
  *  documented exception, `low-bar` (ADR 0007, carried-forward issue #2). A waist-height bar is
  *  near-universally available, and an inverted row is partial-support rather than a full dynamic
- *  hang, so it is on by default. It remains `bodyweight_bearing`, so `effortCapForExercise` still
- *  caps it at `normal` — availability was relaxed, the §13.1 safety cap was not.
+ *  hang, so it is on by default. It remains `bodyweight_bearing`, so `difficultyCapForExercise`
+ *  still caps it at `medium` — availability was relaxed, the §13.1 safety cap was not.
  *  Callers (app/settings layer) own the persisted list; this is a convenience for tests and cold
  *  start. */
 export const DEFAULT_ANCHORS_AVAILABLE: readonly Anchor[] = [
@@ -68,6 +77,27 @@ function isUserEnabled(exercise: Exercise, disabledExerciseIds: ReadonlySet<stri
   return !disabledExerciseIds.has(exercise.id);
 }
 
+/**
+ * The user-selected session difficulty determines which exercises are eligible by their own
+ * library `difficulty` tag:
+ *  - `easy` request: `easy` exercises only.
+ *  - `medium` request: `easy` + `medium` eligible (medium preferred — see `mainSelection.ts`'s
+ *    scoring bonus).
+ *  - `hard` request: `medium` + `hard` eligible (hard preferred).
+ * There is deliberately no path from `easy` to `hard` or back — each request only reaches one
+ * neighboring tier, not the whole scale.
+ */
+export function isDifficultyEligible(exercise: Exercise, requested: Difficulty): boolean {
+  switch (requested) {
+    case 'easy':
+      return exercise.difficulty === 'easy';
+    case 'medium':
+      return exercise.difficulty === 'easy' || exercise.difficulty === 'medium';
+    case 'hard':
+      return exercise.difficulty === 'medium' || exercise.difficulty === 'hard';
+  }
+}
+
 export interface HardFilterInput {
   library: readonly Exercise[];
   request: Pick<GenerationRequest, 'equipmentPreference'>;
@@ -89,17 +119,17 @@ export function applyHardFilters(input: HardFilterInput): Exercise[] {
 }
 
 /**
- * §13.1 — regardless of the day's chosen effort, any exercise with `anchor_class:
- * bodyweight_bearing` is hard-capped at `normal` (2+ reps in reserve, no AMRAP). This is a code
- * filter on the effort actually prescribed to that exercise, not a suggestion. `hard` and `easy`
- * both pass through unaffected for other anchor classes; only `hard` is ever capped down.
+ * §13.1 — regardless of the day's chosen difficulty, any exercise with `anchor_class:
+ * bodyweight_bearing` is hard-capped at `medium` (2+ reps in reserve, no AMRAP). This is a code
+ * filter on the difficulty actually prescribed to that exercise, not a suggestion. `hard` and
+ * `easy` both pass through unaffected for other anchor classes; only `hard` is ever capped down.
  */
-export function effortCapForExercise(
+export function difficultyCapForExercise(
   exercise: Exercise,
-  requestedEffort: 'easy' | 'normal' | 'hard',
-): 'easy' | 'normal' | 'hard' {
-  if (exercise.anchor_class === 'bodyweight_bearing' && requestedEffort === 'hard') {
-    return 'normal';
+  requestedDifficulty: Difficulty,
+): Difficulty {
+  if (exercise.anchor_class === 'bodyweight_bearing' && requestedDifficulty === 'hard') {
+    return 'medium';
   }
-  return requestedEffort;
+  return requestedDifficulty;
 }

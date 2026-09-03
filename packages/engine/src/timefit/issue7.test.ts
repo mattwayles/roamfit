@@ -1,5 +1,5 @@
 /**
- * Carried-forward issue #7 (docs/ORCHESTRATION.md) — pins the four (focus, effort,
+ * Carried-forward issue #7 (docs/ORCHESTRATION.md) — pins the four (focus, difficulty,
  * targetMinutes) combinations an independent review found landing 11-20% under the requested
  * duration while the engine reported `timeBudgetDeviation.reason: 'thin_pool'`. The label was
  * wrong in at least 3 of 4 cases: `legs/25min`'s `legs.isolation`/`legs.calf` optional slots and
@@ -19,7 +19,7 @@ import { defaultMicroForExercise } from '../progression/micro';
 import { DEFAULT_ANCHORS_AVAILABLE } from '../filters/hardFilters';
 import { longSessionSetsMultiplier, mainExerciseCountRange } from './formulas';
 import { COMEBACK_VOLUME_MULTIPLIER } from '../progression/constants';
-import type { Effort, ProgressionState, UserState } from '../types';
+import type { Difficulty, ProgressionState, UserState } from '../types';
 
 const library = exerciseLibrary.exercises;
 const families = familyLibrary.families;
@@ -56,34 +56,37 @@ function coldStart(overrides: Partial<UserState> = {}): UserState {
   };
 }
 
-const cases: [Focus, Effort, number][] = [
+const cases: [Focus, Difficulty, number][] = [
   ['legs', 'easy', 25],
   ['legs', 'hard', 25],
   ['abs', 'hard', 30],
 ];
 
 describe('issue #7 — time-fit shortfalls with a mislabeled reason', () => {
-  it.each(cases)('%s / %s / %dmin lands within ±10% of target', (focus, effort, targetMinutes) => {
-    const seed = `${focus}-${effort}-${targetMinutes}`;
-    const plan = generateSession({
-      library: exerciseLibrary,
-      families: familyLibrary,
-      userState: coldStart(),
-      request: { focus, effort, targetMinutes, equipmentPreference: 'any' },
-      clock: { today: TODAY, tzId: 'UTC' },
-      rng: createRng(seedFromString(seed)),
-    });
-    expect(plan.estimatedMinutes).toBeGreaterThanOrEqual(targetMinutes * 0.9);
-    expect(plan.estimatedMinutes).toBeLessThanOrEqual(targetMinutes * 1.1);
-    expect(plan.timeBudgetDeviation).toBeUndefined();
-  });
+  it.each(cases)(
+    '%s / %s / %dmin lands within ±10% of target',
+    (focus, difficulty, targetMinutes) => {
+      const seed = `${focus}-${difficulty}-${targetMinutes}`;
+      const plan = generateSession({
+        library: exerciseLibrary,
+        families: familyLibrary,
+        userState: coldStart(),
+        request: { focus, difficulty, targetMinutes, equipmentPreference: 'any' },
+        clock: { today: TODAY, tzId: 'UTC' },
+        rng: createRng(seedFromString(seed)),
+      });
+      expect(plan.estimatedMinutes).toBeGreaterThanOrEqual(targetMinutes * 0.9);
+      expect(plan.estimatedMinutes).toBeLessThanOrEqual(targetMinutes * 1.1);
+      expect(plan.timeBudgetDeviation).toBeUndefined();
+    },
+  );
 
   it('abs/hard/30min fills the required lateral/oblique slot (§5.5: "plus one oblique/lateral")', () => {
     const plan = generateSession({
       library: exerciseLibrary,
       families: familyLibrary,
       userState: coldStart(),
-      request: { focus: 'abs', effort: 'hard', targetMinutes: 30, equipmentPreference: 'any' },
+      request: { focus: 'abs', difficulty: 'hard', targetMinutes: 30, equipmentPreference: 'any' },
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(seedFromString('abs-hard-30-lateral')),
     });
@@ -95,7 +98,12 @@ describe('issue #7 — time-fit shortfalls with a mislabeled reason', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState: coldStart(),
-      request: { focus: 'full', effort: 'normal', targetMinutes: 60, equipmentPreference: 'any' },
+      request: {
+        focus: 'full',
+        difficulty: 'medium',
+        targetMinutes: 60,
+        equipmentPreference: 'any',
+      },
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(seedFromString('full-normal-60')),
     });
@@ -119,7 +127,7 @@ describe('long targets (ADR 0013)', () => {
           library: exerciseLibrary,
           families: familyLibrary,
           userState: coldStart(),
-          request: { focus, effort: 'normal', targetMinutes },
+          request: { focus, difficulty: 'medium', targetMinutes },
           clock: { today: TODAY, tzId: 'UTC' },
           rng: createRng(1),
         });
@@ -136,7 +144,7 @@ describe('long targets (ADR 0013)', () => {
         library: exerciseLibrary,
         families: familyLibrary,
         userState: coldStart(),
-        request: { focus: 'full', effort: 'normal', targetMinutes },
+        request: { focus: 'full', difficulty: 'medium', targetMinutes },
         clock: { today: TODAY, tzId: 'UTC' },
         rng: createRng(1),
       });
@@ -160,11 +168,13 @@ describe('long targets (ADR 0013)', () => {
   });
 
   it('a comeback cut still lightens a long session rather than being overridden by it', () => {
-    // The two multipliers compose: 0.8 (§9.4) x 2 (ADR 0013) < 2.
+    // The two multipliers compose: 0.8 (§9.4) x 2 (ADR 0013) < 2. 15 days before TODAY lands in
+    // the 7-21 day 'week' comeback tier (COMEBACK_VOLUME_MULTIPLIER applies) rather than the
+    // >=21 day 'reset' tier (calibration re-entry, no volume multiplier at all).
     const yesterday = {
-      localDate: '2026-07-01',
+      localDate: '2026-08-15',
       focus: 'full',
-      effort: 'normal',
+      difficulty: 'medium',
       status: 'completed',
       entries: [],
     };
@@ -172,7 +182,7 @@ describe('long targets (ADR 0013)', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState: coldStart({ history: [yesterday] as never }),
-      request: { focus: 'full', effort: 'normal', targetMinutes: 120 },
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 120 },
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(1),
     });
@@ -180,7 +190,7 @@ describe('long targets (ADR 0013)', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState: coldStart(),
-      request: { focus: 'full', effort: 'normal', targetMinutes: 120 },
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 120 },
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(1),
     });

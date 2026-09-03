@@ -41,7 +41,7 @@ async function createAndRunSessionForLevelUp(
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library: exerciseLibrary,
     families: familyLibrary,
-    request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+    request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
     clock,
     rng: createRng(seedFromString('summary-levelup-seed')),
     utcInstant,
@@ -90,7 +90,7 @@ async function createSessionWithASkippedFirstSet(
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library: exerciseLibrary,
     families: familyLibrary,
-    request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+    request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
     clock,
     rng: createRng(seedFromString('summary-skipped-seed')),
     utcInstant,

@@ -40,7 +40,7 @@ function startedSession(db: Db): string {
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library,
     families,
-    request: { focus: 'upper', effort: 'normal', targetMinutes: 30 },
+    request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
     clock,
     rng: rngFor(1),
     utcInstant: utcInstantFor(DATE),

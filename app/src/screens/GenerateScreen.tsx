@@ -1,11 +1,11 @@
 /**
- * §10.2 Generate. Picker order per the brief: Time, Anchors, Focus, Effort. ADR 0002: no
+ * §10.2 Generate. Picker order per the brief: Time, Anchors, Focus, Difficulty. ADR 0002: no
  * sub-15-minute option in this picker — Quick Session (Home screen) is the only supported short
  * path. Anchors default from the user's sticky `anchorsAvailable` (§5.3) and any change here
  * persists back through `usersRepo.updateUser`, never a local-only edit.
  *
  * "Pre-filled with the recommendation" (smart generation as the default): this build pre-fills
- * sensible fixed defaults (full/normal/30min) rather than inventing a recommendation heuristic
+ * sensible fixed defaults (full/medium/30min) rather than inventing a recommendation heuristic
  * of its own — the engine/store do not yet expose a "recommended next focus" query, and
  * fabricating one here would put a selection decision in the UI layer, which this wave's
  * ground rule forbids. Flagged in STATUS-4-loop.md as a follow-up once such a query exists.
@@ -15,7 +15,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { Anchor, Focus } from '@roamfit/data';
 import { createRng, seedFromString } from '@roamfit/engine';
-import type { Effort } from '@roamfit/engine';
+import type { Difficulty } from '@roamfit/engine';
 import { generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
@@ -33,10 +33,10 @@ const FOCUS_LABELS: Record<Focus, string> = {
   legs: 'Legs',
   full: 'Full body',
 };
-const EFFORT_OPTIONS: Effort[] = ['easy', 'normal', 'hard'];
-const EFFORT_LABELS: Record<Effort, string> = {
+const DIFFICULTY_OPTIONS: Difficulty[] = ['easy', 'medium', 'hard'];
+const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   easy: 'Easy',
-  normal: 'Normal',
+  medium: 'Medium',
   hard: 'Hard',
 };
 /**
@@ -45,7 +45,7 @@ const EFFORT_LABELS: Record<Effort, string> = {
  * Three problems with the old presentation, all fixed here:
  *  - the labels were raw enum values (`self-low`, `thigh-loop`, `anchor-mid`), which mean nothing
  *    to a user standing in a car park deciding what they can tie a band to;
- *  - multi-select chips looked identical to the single-select Time/Focus/Effort controls above,
+ *  - multi-select chips looked identical to the single-select Time/Focus/Difficulty controls above,
  *    so nothing signalled that these behave differently (those are now scrolling pickers, which
  *    separates the two kinds of choice further still);
  *  - `low-bar` was missing entirely. It is in `DEFAULT_ANCHORS_AVAILABLE` (ADR 0007), so every
@@ -87,7 +87,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
   const { db, library, families } = useStore();
   const [minutes, setMinutes] = useState(30);
   const [focus, setFocus] = useState<Focus>('full');
-  const [effort, setEffort] = useState<Effort>('normal');
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [anchors, setAnchors] = useState<Anchor[]>([]);
   // Collapsed by default: anchors are sticky user state (§5.3), set once and rarely revisited, so
   // they should not cost eleven rows of the picker on every generation.
@@ -95,7 +95,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
   /** Which drop-down is open, if any. Held here rather than inside each picker so opening one
    *  closes the others — two lists open at once on a short screen is how you pick from the wrong
    *  one. */
-  const [openPicker, setOpenPicker] = useState<'time' | 'focus' | 'effort' | null>(null);
+  const [openPicker, setOpenPicker] = useState<'time' | 'focus' | 'difficulty' | null>(null);
   const [generating, setGenerating] = useState(false);
   // §9.9 — pre-filled by an accepted Recovery Week auto-suggestion (Home), or toggled manually
   // here. Either way it's just a request flag until the user taps Generate — never applied
@@ -141,7 +141,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
       const { plan, comebackTier, recoveryWeekManual } = generate(db, {
         library,
         families,
-        request: { focus, effort, targetMinutes: minutes },
+        request: { focus, difficulty, targetMinutes: minutes },
         clock,
         rng: createRng(seedFromString(utcInstant)),
         utcInstant,
@@ -160,7 +160,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
     } finally {
       setGenerating(false);
     }
-  }, [db, library, families, focus, effort, minutes, recoveryWeek, online, navigation]);
+  }, [db, library, families, focus, difficulty, minutes, recoveryWeek, online, navigation]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -196,15 +196,15 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
         </View>
 
         <View style={styles.pickerColumn}>
-          <Text style={styles.sectionLabel}>Effort</Text>
+          <Text style={styles.sectionLabel}>Difficulty</Text>
           <OptionPicker
-            testID="effort-picker"
-            accessibilityLabel="Effort"
-            options={EFFORT_OPTIONS.map((e) => ({ value: e, label: EFFORT_LABELS[e] }))}
-            value={effort}
-            onChange={setEffort}
-            open={openPicker === 'effort'}
-            onOpenChange={(next) => setOpenPicker(next ? 'effort' : null)}
+            testID="difficulty-picker"
+            accessibilityLabel="Difficulty"
+            options={DIFFICULTY_OPTIONS.map((d) => ({ value: d, label: DIFFICULTY_LABELS[d] }))}
+            value={difficulty}
+            onChange={setDifficulty}
+            open={openPicker === 'difficulty'}
+            onOpenChange={(next) => setOpenPicker(next ? 'difficulty' : null)}
           />
         </View>
       </View>

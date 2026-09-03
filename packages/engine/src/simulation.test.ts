@@ -95,7 +95,7 @@ describe('30-session simulation', () => {
         library: exerciseLibrary,
         families: familyLibrary,
         userState,
-        request: { focus, effort: 'normal', targetMinutes: 30 },
+        request: { focus, difficulty: 'medium', targetMinutes: 30 },
         clock: { today, tzId: 'UTC' },
         rng: createRng(session + 1),
       });
@@ -164,12 +164,12 @@ describe('30-session simulation', () => {
       const historyRecord: SessionHistoryRecord = {
         localDate: today,
         focus,
-        effort: plan.effort,
+        difficulty: plan.difficulty,
         status: 'completed',
         entries: [...plan.warmup, ...plan.main, ...plan.cooldown].map((e) => ({
           exerciseId: e.exerciseId,
           role: e.role,
-          effort: e.effort,
+          difficulty: e.difficulty,
           sets: e.sets,
         })),
       };

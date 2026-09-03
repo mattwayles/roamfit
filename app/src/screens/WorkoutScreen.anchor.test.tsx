@@ -40,7 +40,7 @@ async function sessionStartingWith(db: Db, seed: string, exerciseId: string) {
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library: exerciseLibrary,
     families: familyLibrary,
-    request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+    request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
     clock,
     rng: createRng(seedFromString(seed)),
     utcInstant,

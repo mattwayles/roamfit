@@ -132,7 +132,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     reload();
   };
 
-  /** Rest in 5s steps, floored at 0. Not derived from the effort table here — the store writes
+  /** Rest in 5s steps, floored at 0. Not derived from the difficulty table here — the store writes
    *  it and the engine recomputes `estimatedSec`, so the header estimate follows. */
   const handleAdjustRest = (entry: sessionsRepo.SessionEntryRecord, delta: number) => {
     const next = Math.max(0, entry.restSec + delta);
@@ -148,7 +148,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   };
 
   /** The timed counterpart. Steps in 5s rather than 1s — a hold is not meaningfully edited a
-   *  second at a time, and 5s matches the granularity the §5.4 effort table itself works in. */
+   *  second at a time, and 5s matches the granularity the §5.4 difficulty table itself works in. */
   const handleAdjustDuration = (entry: sessionsRepo.SessionEntryRecord, delta: number) => {
     if (entry.durationSec == null) return;
     const next = Math.max(5, entry.durationSec + delta);
@@ -285,7 +285,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
         restSec: entry.restSec,
         tempoSec: entry.tempoSec,
         notes: entry.notes ?? undefined,
-        effort: entry.effort,
+        difficulty: entry.difficulty,
         progressionFamilyId: entry.progressionFamilyId as ProgressionFamilyId | null,
         progressionLevelIdAtTime: entry.progressionLevelIdAtTime,
         pattern: entry.pattern as Pattern,
@@ -339,7 +339,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
       section === 'main'
         ? prescribeAccessory({
             exercise,
-            requestedEffort: session.effort,
+            requestedDifficulty: session.difficulty,
             recoveryTreatment: false,
           })
         : prescribeWarmupCooldown(exercise, section);
@@ -359,7 +359,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
         families,
         request: {
           focus: session.focus,
-          effort: session.effort,
+          difficulty: session.difficulty,
           targetMinutes: session.targetMinutes,
         },
         clock,

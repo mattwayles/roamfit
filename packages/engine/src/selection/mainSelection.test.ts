@@ -84,9 +84,9 @@ describe('§5.2 selection rules', () => {
       {
         localDate: '2026-08-29',
         focus: 'upper',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
-        entries: [{ exerciseId: 'a', role: 'main', effort: 'normal' }],
+        entries: [{ exerciseId: 'a', role: 'main', difficulty: 'medium' }],
       },
     ];
     const result = selectMain({
@@ -98,6 +98,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'any',
+      requestedDifficulty: 'medium',
     });
     expect(result.picks.map((p) => p.exercise.id)).toEqual(['b']);
   });
@@ -110,30 +111,30 @@ describe('§5.2 selection rules', () => {
       {
         localDate: '2026-08-22',
         focus: 'abs',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
-        entries: [{ exerciseId: 'soft', role: 'main', effort: 'normal' }],
+        entries: [{ exerciseId: 'soft', role: 'main', difficulty: 'medium' }],
       },
       {
         localDate: '2026-08-24',
         focus: 'abs',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
-        entries: [{ exerciseId: 'filler', role: 'main', effort: 'normal' }],
+        entries: [{ exerciseId: 'filler', role: 'main', difficulty: 'medium' }],
       },
       {
         localDate: '2026-08-26',
         focus: 'abs',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
-        entries: [{ exerciseId: 'filler', role: 'main', effort: 'normal' }],
+        entries: [{ exerciseId: 'filler', role: 'main', difficulty: 'medium' }],
       },
       {
         localDate: '2026-08-28',
         focus: 'abs',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
-        entries: [{ exerciseId: 'filler', role: 'main', effort: 'normal' }],
+        entries: [{ exerciseId: 'filler', role: 'main', difficulty: 'medium' }],
       },
     ];
     const result = selectMain({
@@ -148,6 +149,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'any',
+      requestedDifficulty: 'medium',
     });
     expect(result.picks[0].exercise.id).toBe('pref');
   });
@@ -158,30 +160,30 @@ describe('§5.2 selection rules', () => {
       {
         localDate: '2026-08-22',
         focus: 'abs',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
-        entries: [{ exerciseId: 'soft-only', role: 'main', effort: 'normal' }],
+        entries: [{ exerciseId: 'soft-only', role: 'main', difficulty: 'medium' }],
       },
       {
         localDate: '2026-08-24',
         focus: 'abs',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
-        entries: [{ exerciseId: 'filler2', role: 'main', effort: 'normal' }],
+        entries: [{ exerciseId: 'filler2', role: 'main', difficulty: 'medium' }],
       },
       {
         localDate: '2026-08-26',
         focus: 'abs',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
-        entries: [{ exerciseId: 'filler2', role: 'main', effort: 'normal' }],
+        entries: [{ exerciseId: 'filler2', role: 'main', difficulty: 'medium' }],
       },
       {
         localDate: '2026-08-28',
         focus: 'abs',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
-        entries: [{ exerciseId: 'filler2', role: 'main', effort: 'normal' }],
+        entries: [{ exerciseId: 'filler2', role: 'main', difficulty: 'medium' }],
       },
     ];
     const result = selectMain({
@@ -193,6 +195,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'any',
+      requestedDifficulty: 'medium',
     });
     expect(result.picks[0].exercise.id).toBe('soft-only');
   });
@@ -219,6 +222,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'any',
+      requestedDifficulty: 'medium',
     });
     expect(result.picks.some((p) => p.exercise.id === 'novel')).toBe(true);
   });
@@ -232,12 +236,12 @@ describe('§5.2 selection rules', () => {
       {
         localDate: '2026-08-28',
         focus: 'upper',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
         entries: [
-          { exerciseId: 'chest-history-1', role: 'main', effort: 'normal', sets: 3 },
-          { exerciseId: 'chest-history-2', role: 'main', effort: 'normal', sets: 3 },
-          { exerciseId: 'triceps-history', role: 'main', effort: 'normal', sets: 1 },
+          { exerciseId: 'chest-history-1', role: 'main', difficulty: 'medium', sets: 3 },
+          { exerciseId: 'chest-history-2', role: 'main', difficulty: 'medium', sets: 3 },
+          { exerciseId: 'triceps-history', role: 'main', difficulty: 'medium', sets: 1 },
         ],
       },
     ];
@@ -265,6 +269,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'any',
+      requestedDifficulty: 'medium',
     });
     expect(result.picks[0]?.exercise.id).toBe('arm-move');
   });
@@ -281,9 +286,9 @@ describe('§5.2 selection rules', () => {
       {
         localDate: '2026-08-29',
         focus: 'upper',
-        effort: 'hard',
+        difficulty: 'hard',
         status: 'completed',
-        entries: [{ exerciseId: 'yesterday-shoulder', role: 'main', effort: 'hard' }],
+        entries: [{ exerciseId: 'yesterday-shoulder', role: 'main', difficulty: 'hard' }],
       },
     ];
     const yesterdayShoulder = ex({
@@ -300,6 +305,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'any',
+      requestedDifficulty: 'medium',
     });
     // yesterday-shoulder is itself 1 session ago -> BLOCKED, excluded regardless.
     // s1 must pick shoulder-a (only horizontal_push option, touches front_delts: allowed once).
@@ -322,6 +328,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'any',
+      requestedDifficulty: 'medium',
     });
     expect(result.picks[0].exercise.id).toBe('neutral');
   });
@@ -341,6 +348,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'any',
+      requestedDifficulty: 'medium',
     });
     expect(result.picks[0].exercise.id).toBe('disliked-only');
   });
@@ -361,6 +369,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'any',
+      requestedDifficulty: 'medium',
     });
     expect(result.picks.some((p) => p.exercise.id === 'suppressed')).toBe(false);
   });
@@ -380,6 +389,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'any',
+      requestedDifficulty: 'medium',
     });
     expect(result.picks[0]?.exercise.id).toBe('was-suppressed');
   });
@@ -410,6 +420,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'any',
+      requestedDifficulty: 'medium',
     });
     const bandCount = result.picks.filter((p) => p.exercise.equipment === 'band').length;
     expect(bandCount / result.picks.length).toBeGreaterThanOrEqual(0.5);
@@ -444,6 +455,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'any',
+      requestedDifficulty: 'medium',
     });
     const favCount = result.picks.filter((p) => p.candidate.enjoyment >= 4).length;
     expect(favCount / result.picks.length).toBeLessThanOrEqual(0.5); // ~40% cap, generous bound for a 3-slot session
@@ -461,6 +473,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'bodyweight',
+      requestedDifficulty: 'medium',
     });
     expect(result.patternGaps).toEqual([{ pattern: 'horizontal_pull', resolution: 'used_band' }]);
     expect(result.picks.some((p) => p.exercise.id === 'band-pull')).toBe(true);
@@ -477,6 +490,7 @@ describe('§5.2 selection rules', () => {
       rng: rng(),
       focus: 'upper',
       equipmentPreference: 'bodyweight',
+      requestedDifficulty: 'medium',
     });
     expect(result.patternGaps).toEqual([
       { pattern: 'horizontal_pull', resolution: 'stated_imbalance' },

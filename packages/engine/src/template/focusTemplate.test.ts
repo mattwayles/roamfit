@@ -15,7 +15,7 @@ describe('§5.5 focus templates', () => {
     const { slots } = buildFocusTemplate({
       focus: 'upper',
       targetMinutes: 30,
-      effort: 'normal',
+      difficulty: 'medium',
       library: lib,
       history: noHistory,
     });
@@ -32,7 +32,7 @@ describe('§5.5 focus templates', () => {
     const { slots } = buildFocusTemplate({
       focus: 'upper',
       targetMinutes: 20,
-      effort: 'normal',
+      difficulty: 'medium',
       library: lib,
       history: noHistory,
     });
@@ -45,7 +45,7 @@ describe('§5.5 focus templates', () => {
     const { slots } = buildFocusTemplate({
       focus: 'abs',
       targetMinutes: 30,
-      effort: 'normal',
+      difficulty: 'medium',
       library: lib,
       history: noHistory,
     });
@@ -58,7 +58,7 @@ describe('§5.5 focus templates', () => {
     const first = buildFocusTemplate({
       focus: 'abs',
       targetMinutes: 30,
-      effort: 'normal',
+      difficulty: 'medium',
       library: lib,
       history: noHistory,
     });
@@ -69,15 +69,15 @@ describe('§5.5 focus templates', () => {
       {
         localDate: '2026-08-20',
         focus: 'abs',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
-        entries: [{ exerciseId: leadExercise.id, role: 'main', effort: 'normal' }],
+        entries: [{ exerciseId: leadExercise.id, role: 'main', difficulty: 'medium' }],
       },
     ];
     const second = buildFocusTemplate({
       focus: 'abs',
       targetMinutes: 30,
-      effort: 'normal',
+      difficulty: 'medium',
       library: lib,
       history: historyAfter,
     });
@@ -88,21 +88,21 @@ describe('§5.5 focus templates', () => {
     const easy = buildFocusTemplate({
       focus: 'full',
       targetMinutes: 30,
-      effort: 'normal',
+      difficulty: 'medium',
       library: lib,
       history: noHistory,
     });
     const hard = buildFocusTemplate({
       focus: 'full',
       targetMinutes: 30,
-      effort: 'hard',
+      difficulty: 'hard',
       library: lib,
       history: noHistory,
     });
     const long = buildFocusTemplate({
       focus: 'full',
       targetMinutes: 45,
-      effort: 'normal',
+      difficulty: 'medium',
       library: lib,
       history: noHistory,
     });
@@ -115,7 +115,7 @@ describe('§5.5 focus templates', () => {
     const { slots } = buildFocusTemplate({
       focus: 'legs',
       targetMinutes: 30,
-      effort: 'normal',
+      difficulty: 'medium',
       library: lib,
       history: noHistory,
     });
@@ -127,7 +127,7 @@ describe('§5.5 focus templates', () => {
     const { slots } = buildQuickSessionTemplate({
       focus: 'full',
       targetMinutes: 7,
-      effort: 'normal',
+      difficulty: 'medium',
       library: lib,
       history: noHistory,
     });
@@ -142,7 +142,7 @@ describe('accessory slot rotation (ADR 0010)', () => {
     buildFocusTemplate({
       focus: 'full',
       targetMinutes: 30,
-      effort: 'normal',
+      difficulty: 'medium',
       library: lib,
       history: noHistory,
     });
@@ -205,7 +205,7 @@ describe('full-body alternates the knee-dominant lower slot (squat <-> lunge)', 
     return buildFocusTemplate({
       focus: 'full',
       targetMinutes: 30,
-      effort: 'normal',
+      difficulty: 'medium',
       library: lib,
       history,
     });

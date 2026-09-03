@@ -99,7 +99,7 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
     const { plan, comebackTier, recoveryWeekManual } = generate(db, {
       library: exerciseLibrary,
       families: familyLibrary,
-      request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
       clock,
       rng: createRng(seedFromString('rest-timer-test-seed')),
       utcInstant,

@@ -15,7 +15,8 @@ export { generateSession, generateQuickSession } from './pipeline';
 export {
   applyHardFilters,
   DEFAULT_ANCHORS_AVAILABLE,
-  effortCapForExercise,
+  difficultyCapForExercise,
+  isDifficultyEligible,
 } from './filters/hardFilters';
 export type { HardFilterInput } from './filters/hardFilters';
 // §14.1.7 muscle-balance OVER-WORKED flag — the same 1.5x-trailing-mean rule §5.2 uses at

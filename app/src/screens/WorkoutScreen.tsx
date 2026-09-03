@@ -250,7 +250,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         restSec: entry.restSec,
         tempoSec: entry.tempoSec,
         notes: entry.notes ?? undefined,
-        effort: entry.effort,
+        difficulty: entry.difficulty,
         progressionFamilyId: entry.progressionFamilyId as ProgressionFamilyId | null,
         progressionLevelIdAtTime: entry.progressionLevelIdAtTime,
         pattern: entry.pattern as Pattern,

@@ -33,7 +33,7 @@ function runSession(
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library,
     families,
-    request: { focus: 'upper', effort: 'normal', targetMinutes: 30 },
+    request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
     clock,
     rng: rngFor(seed),
     utcInstant: utcInstantFor(localDate),
@@ -243,7 +243,7 @@ describe('Wave 7 §11.6 adversarial pass — kill during the completion transact
       const { plan, comebackTier, recoveryWeekManual } = generate(db, {
         library,
         families,
-        request: { focus: 'upper', effort: 'normal', targetMinutes: 30 },
+        request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
         clock: clockFor('2026-06-01'),
         rng: rngFor(9),
         utcInstant: utcInstantFor('2026-06-01'),

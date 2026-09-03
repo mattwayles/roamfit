@@ -81,7 +81,7 @@ export function lowVolumeMuscles(
   );
 }
 
-/** Muscles trained at `hard` effort within the last `RECOVERY_WINDOW_DAYS` days (§5.2 48h
+/** Muscles trained at `hard` difficulty within the last `RECOVERY_WINDOW_DAYS` days (§5.2 48h
  *  recovery — "anything trained hard in the last two days"). */
 export function recentHardMuscles(
   history: readonly SessionHistoryRecord[],
@@ -96,7 +96,7 @@ export function recentHardMuscles(
     const age = daysBetween(session.localDate, today);
     if (age < 0 || age > windowDays) continue;
     for (const entry of session.entries) {
-      if (entry.role !== 'main' || entry.effort !== 'hard') continue;
+      if (entry.role !== 'main' || entry.difficulty !== 'hard') continue;
       const ex = byId.get(entry.exerciseId);
       if (!ex) continue;
       for (const m of ex.primary) muscles.add(m);

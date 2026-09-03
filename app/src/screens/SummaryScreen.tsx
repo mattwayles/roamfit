@@ -163,7 +163,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.heading}>
-        {session.focus} · {session.targetMinutes} min · {session.effort}
+        {session.focus} · {session.targetMinutes} min · {session.difficulty}
       </Text>
 
       {session.entries

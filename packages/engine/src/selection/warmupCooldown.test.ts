@@ -58,9 +58,9 @@ describe('warmup/cooldown light rotation (ADR 0001)', () => {
       {
         localDate: '2026-08-29',
         focus: 'abs',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
-        entries: [{ exerciseId: 'wu-a', role: 'warmup', effort: 'normal' }],
+        entries: [{ exerciseId: 'wu-a', role: 'warmup', difficulty: 'medium' }],
       },
     ];
     // Run many seeds to confirm 'a' is never returned once excluded (not a probabilistic dodge).
@@ -83,9 +83,9 @@ describe('warmup/cooldown light rotation (ADR 0001)', () => {
       {
         localDate: '2026-08-29',
         focus: 'abs',
-        effort: 'normal',
+        difficulty: 'medium',
         status: 'completed',
-        entries: [{ exerciseId: 'wu-only', role: 'warmup', effort: 'normal' }],
+        entries: [{ exerciseId: 'wu-only', role: 'warmup', difficulty: 'medium' }],
       },
     ];
     const picked = selectWarmupCooldown({

@@ -45,7 +45,7 @@ function runOneSession(
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library,
     families,
-    request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+    request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
     clock,
     rng: rngFor(seed),
     utcInstant: utcInstantFor(localDate, hour),
@@ -119,7 +119,7 @@ describe('§11.6 release gate — 5 workouts across exactly 3 days, cold install
       const { plan } = generate(db, {
         library,
         families,
-        request: { focus: 'full', effort: 'normal', targetMinutes: 30 },
+        request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
         clock,
         rng: rngFor(1),
         utcInstant: utcInstantFor('2026-03-01'),

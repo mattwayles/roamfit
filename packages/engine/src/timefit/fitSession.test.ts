@@ -10,7 +10,7 @@ function entry(estimatedSec: number, id: string): SessionEntry {
     repTarget: 10,
     restSec: 45,
     tempoSec: 3,
-    effort: 'normal',
+    difficulty: 'medium',
     progressionFamilyId: null,
     progressionLevelIdAtTime: null,
     pattern: 'horizontal_push',

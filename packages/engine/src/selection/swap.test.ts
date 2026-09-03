@@ -41,7 +41,7 @@ function entry(overrides: Partial<SessionEntry> = {}): SessionEntry {
     repTarget: 12,
     restSec: 45,
     tempoSec: 3,
-    effort: 'normal',
+    difficulty: 'medium',
     progressionFamilyId: null,
     progressionLevelIdAtTime: null,
     pattern: 'horizontal_push',
@@ -147,15 +147,15 @@ describe('§10.6 alternativesForSlot', () => {
     expect(alts.some((a) => a.exercise.id === 'bw-bearing')).toBe(false);
   });
 
-  it('offers bodyweight-bearing alternatives once the user enables that anchor, capped at normal effort', () => {
+  it('offers bodyweight-bearing alternatives once the user enables that anchor, capped at normal difficulty', () => {
     const alts = alternativesForSlot({
       ...baseReq,
       anchorsAvailable: ['anchor-mid', 'anchor-high', 'pullup-bar', 'none'],
-      entry: entry({ exerciseId: 'original', pattern: 'horizontal_push', effort: 'hard' }),
+      entry: entry({ exerciseId: 'original', pattern: 'horizontal_push', difficulty: 'hard' }),
     });
     const bw = alts.find((a) => a.exercise.id === 'bw-bearing');
     expect(bw).toBeDefined();
-    expect(bw!.replacement.effort).toBe('normal'); // §13.1 cap
+    expect(bw!.replacement.difficulty).toBe('medium'); // §13.1 cap
   });
 
   it('"different anchor" quick-filter excludes the named anchor', () => {

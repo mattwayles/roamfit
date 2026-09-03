@@ -4,7 +4,7 @@
  * alternatives that:
  *   - fill the SAME pattern slot as the entry being replaced,
  *   - respect ALL current hard filters (§13.2 injuries, §5.3 anchors, §13.1 bodyweight-bearing
- *     effort cap — reused verbatim from `applyHardFilters`/`effortCapForExercise`, never
+ *     difficulty cap — reused verbatim from `applyHardFilters`/`difficultyCapForExercise`, never
  *     reimplemented here),
  *   - sit at the SAME progression level, approximated (since a laddered family has exactly one
  *     exercise per level — see `packages/data`'s `ProgressionFamily.levels`, invariant 5) by
@@ -17,9 +17,9 @@
  * or rank candidates itself.
  */
 import type { Anchor, Exercise, Pattern } from '@roamfit/data';
-import { applyHardFilters, effortCapForExercise } from '../filters/hardFilters';
+import { applyHardFilters, difficultyCapForExercise } from '../filters/hardFilters';
 import { repExerciseSec, timedExerciseSec } from '../timefit/formulas';
-import { EFFORT_TABLE } from '../prescription/effortTable';
+import { DIFFICULTY_TABLE } from '../prescription/difficultyTable';
 import { buildCandidates, type CandidateContext } from './candidates';
 import { BAND_ORDER } from '../types';
 import type {
@@ -64,7 +64,7 @@ export interface SwapSlotRequest {
 export interface SwapAlternative {
   exercise: Exercise;
   /** Ready to hand straight to the store as the replacement entry — same slot shape (sets,
-   *  rest, tempo, effort), re-prescribed for the new exercise's own metric/equipment. */
+   *  rest, tempo, difficulty), re-prescribed for the new exercise's own metric/equipment. */
   replacement: SessionEntry;
 }
 
@@ -87,14 +87,14 @@ function bandForExercise(exercise: Exercise, target: BandId | null): BandId | nu
 
 /**
  * Re-prescribes `exercise` into the same slot `entry` occupied: same `sets`/`restSec`/`tempoSec`/
- * effort, adapted for the new exercise's metric (reps vs. time) and equipment (band vs.
+ * difficulty, adapted for the new exercise's metric (reps vs. time) and equipment (band vs.
  * bodyweight). `substitutedFor` is set to the id of the exercise the swap replaced — session-only,
  * mirrors how the engine already records an in-generation substitution (§4.7), does not persist a
  * level change.
  */
 export function buildSwapReplacementEntry(exercise: Exercise, entry: SessionEntry): SessionEntry {
-  const effort = effortCapForExercise(exercise, entry.effort);
-  const row = EFFORT_TABLE[effort];
+  const difficulty = difficultyCapForExercise(exercise, entry.difficulty);
+  const row = DIFFICULTY_TABLE[difficulty];
   const isTimed = exercise.metric === 'time';
   const band = bandForExercise(exercise, entry.band);
   const sets = entry.sets;
@@ -133,7 +133,7 @@ export function buildSwapReplacementEntry(exercise: Exercise, entry: SessionEntr
     restSec: entry.restSec,
     tempoSec: entry.tempoSec,
     notes: isTimed ? undefined : entry.notes,
-    effort,
+    difficulty,
     progressionFamilyId: sameFamilyLevel?.familyId ?? null,
     progressionLevelIdAtTime: sameFamilyLevel?.levelId ?? null,
     pattern: exercise.pattern,

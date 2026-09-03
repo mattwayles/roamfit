@@ -50,7 +50,7 @@ describe('generateSession — pipeline wiring', () => {
         library: exerciseLibrary,
         families: familyLibrary,
         userState: coldStartUserState(),
-        request: { focus, effort: 'normal', targetMinutes: 30 },
+        request: { focus, difficulty: 'medium', targetMinutes: 30 },
         clock: { today: TODAY, tzId: 'UTC' },
         rng: createRng(1),
       });
@@ -68,12 +68,12 @@ describe('generateSession — pipeline wiring', () => {
       // seeded at the 30th percentile, where no bearing exercise happened to sit. ADR 0012 moved
       // the cold start to level 1, and `vertical_pull.l1` is a hang, so the real rule is what is
       // pinned now: any bearing exercise must use an anchor the user actually has, and §13.1's
-      // effort cap must have been applied to it.
+      // difficulty cap must have been applied to it.
       for (const entry of [...plan.warmup, ...plan.main, ...plan.cooldown]) {
         if (entry.anchorClass !== 'bodyweight_bearing') continue;
         const exercise = exerciseLibrary.exercises.find((e) => e.id === entry.exerciseId)!;
         expect(DEFAULT_ANCHORS_AVAILABLE).toContain(exercise.anchor);
-        expect(entry.effort).not.toBe('hard');
+        expect(entry.difficulty).not.toBe('hard');
       }
     }
   });
@@ -83,7 +83,7 @@ describe('generateSession — pipeline wiring', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState: coldStartUserState(),
-      request: { focus: 'upper', effort: 'normal', targetMinutes: 30 },
+      request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(1),
     });
@@ -97,7 +97,7 @@ describe('generateSession — pipeline wiring', () => {
         library: exerciseLibrary,
         families: familyLibrary,
         userState,
-        request: { focus: 'full', effort: 'hard', targetMinutes: 45 },
+        request: { focus: 'full', difficulty: 'hard', targetMinutes: 45 },
         clock: { today: TODAY, tzId: 'UTC' },
         rng: createRng(42),
       });
@@ -118,7 +118,7 @@ describe('generateSession — pipeline wiring', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState,
-      request: { focus: 'upper', effort: 'normal', targetMinutes: 30 },
+      request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(7),
     });
@@ -128,7 +128,7 @@ describe('generateSession — pipeline wiring', () => {
     }
   });
 
-  it('§9.5 Quick Session runs the same pipeline: ~7min, normal effort, 1 warmup + <=3 main + 1 cooldown', () => {
+  it('§9.5 Quick Session runs the same pipeline: ~7min, normal difficulty, 1 warmup + <=3 main + 1 cooldown', () => {
     const plan = generateQuickSession({
       library: exerciseLibrary,
       families: familyLibrary,
@@ -137,7 +137,7 @@ describe('generateSession — pipeline wiring', () => {
       rng: createRng(3),
       focus: 'upper',
     });
-    expect(plan.effort).toBe('normal');
+    expect(plan.difficulty).toBe('medium');
     expect(plan.targetMinutes).toBe(7);
     expect(plan.main.length).toBeLessThanOrEqual(3);
     expect(plan.warmup.length).toBe(1);
@@ -151,9 +151,9 @@ describe('generateSession — pipeline wiring', () => {
         {
           localDate: '2026-08-19', // 11 days before TODAY
           focus: 'upper',
-          effort: 'normal',
+          difficulty: 'medium',
           status: 'completed',
-          entries: [{ exerciseId: 'bw-push-up', role: 'main', effort: 'normal', sets: 3 }],
+          entries: [{ exerciseId: 'bw-push-up', role: 'main', difficulty: 'medium', sets: 3 }],
         },
       ],
     });
@@ -161,7 +161,7 @@ describe('generateSession — pipeline wiring', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState: withGap,
-      request: { focus: 'upper', effort: 'normal', targetMinutes: 30 },
+      request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(5),
     });
@@ -175,7 +175,7 @@ describe('generateSession — pipeline wiring', () => {
       userState: coldStartUserState({ hasEverCompletedSession: true }),
       request: {
         focus: 'upper',
-        effort: 'normal',
+        difficulty: 'medium',
         targetMinutes: 30,
         equipmentPreference: 'bodyweight',
       },
@@ -195,7 +195,7 @@ describe('generateSession — pipeline wiring', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState: coldStartUserState({ hasEverCompletedSession: true }),
-      request: { focus: 'full', effort: 'normal', targetMinutes: 10 },
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 10 },
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(13),
     });
@@ -209,7 +209,7 @@ describe('generateSession — pipeline wiring', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState: coldStartUserState({ hasEverCompletedSession: true }),
-      request: { focus: 'full', effort: 'normal', targetMinutes: 15 },
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 15 },
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(13),
     });
@@ -239,7 +239,12 @@ describe('generateSession — pipeline wiring', () => {
         library: exerciseLibrary,
         families: familyLibrary,
         userState: coldStartUserState({ hasEverCompletedSession: true }),
-        request: { focus: 'legs', effort: 'normal', targetMinutes, equipmentPreference: 'band' },
+        request: {
+          focus: 'legs',
+          difficulty: 'medium',
+          targetMinutes,
+          equipmentPreference: 'band',
+        },
         clock: { today: TODAY, tzId: 'UTC' },
         rng: createRng(1),
       });
@@ -259,7 +264,7 @@ describe('generateSession — pipeline wiring', () => {
       library: exerciseLibrary,
       families: familyLibrary,
       userState,
-      request: { focus: 'full', effort: 'hard', targetMinutes: 60 },
+      request: { focus: 'full', difficulty: 'hard', targetMinutes: 60 },
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(11),
     });
