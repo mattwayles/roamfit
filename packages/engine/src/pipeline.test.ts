@@ -33,7 +33,7 @@ function coldStartUserState(overrides: Partial<UserState> = {}): UserState {
       weeklyTarget: 3,
       limitations: [],
       anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
-    disabledExerciseIds: [],
+      disabledExerciseIds: [],
     },
     exerciseStates: {},
     progressionStates,
@@ -111,7 +111,7 @@ describe('generateSession — pipeline wiring', () => {
         weeklyTarget: 3,
         limitations: [{ tag: 'shoulder_overhead', createdAt: '2026-01-01', source: 'user' }],
         anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
-      disabledExerciseIds: [],
+        disabledExerciseIds: [],
       },
     });
     const plan = generateSession({

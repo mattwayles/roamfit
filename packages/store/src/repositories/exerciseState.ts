@@ -4,7 +4,7 @@
  * rating turns into a stored trend" is a storage-layer decision the engine doesn't make (it only
  * ever *reads* `ExerciseState.difficultyEma`/`enjoymentEma`).
  */
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNotNull } from 'drizzle-orm';
 import type {
   BandId,
   DifficultyFeedback,
@@ -54,6 +54,7 @@ function rowToState(row: typeof schema.exerciseState.$inferSelect): EngineExerci
     removeAtApprovalCount: row.removeAtApprovalCount,
     pinnedNote: row.pinnedNote,
     suppressedUntil: row.suppressedUntil,
+    disabledAt: row.disabledAt,
   };
 }
 
@@ -286,6 +287,35 @@ export function setSuppressedUntil(
       ),
     )
     .run();
+}
+
+/** Explicit, permanent user veto — set from the Exercises detail screen or the workout approval
+ *  screen. Unlike `setSuppressedUntil`, this never expires on its own; it only clears when the
+ *  user explicitly re-enables the exercise. */
+export function setDisabled(db: Db, exerciseId: string, disabled: boolean, now: string): void {
+  ensureRow(db, exerciseId, now);
+  db.update(schema.exerciseState)
+    .set({ disabledAt: disabled ? now : null, updatedAt: now })
+    .where(
+      and(
+        eq(schema.exerciseState.userId, USER_ID),
+        eq(schema.exerciseState.exerciseId, exerciseId),
+      ),
+    )
+    .run();
+}
+
+/** Every exercise id the user has explicitly disabled — feeds `UserProfile.disabledExerciseIds`,
+ *  the engine's hard-filter input (§5.1 step 1). */
+export function getDisabledExerciseIds(db: Db): string[] {
+  const rows = db
+    .select({ exerciseId: schema.exerciseState.exerciseId })
+    .from(schema.exerciseState)
+    .where(
+      and(eq(schema.exerciseState.userId, USER_ID), isNotNull(schema.exerciseState.disabledAt)),
+    )
+    .all();
+  return rows.map((r) => r.exerciseId);
 }
 
 // ------------------------------------------------------------------------------------------

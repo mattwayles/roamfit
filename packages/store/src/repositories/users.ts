@@ -11,6 +11,7 @@ import type { Db } from '../db';
 import { schema } from '../db';
 import { newId } from '../ids';
 import { logSignalEvent } from './signals';
+import { getDisabledExerciseIds } from './exerciseState';
 
 const USER_ID = 'local';
 
@@ -242,5 +243,6 @@ export function buildUserProfile(db: Db, today: string): UserProfile {
     weeklyTarget: user.weeklyTarget,
     limitations: getActiveLimitations(db, today),
     anchorsAvailable: user.anchorsAvailable,
+    disabledExerciseIds: getDisabledExerciseIds(db),
   };
 }

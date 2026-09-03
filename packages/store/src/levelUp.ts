@@ -68,6 +68,7 @@ export function levelUpFamily(db: Db, input: LevelUpInput, now: string): LevelUp
     request: { equipmentPreference: 'any' },
     anchorsAvailable: profile.anchorsAvailable,
     limitations: profile.limitations,
+    disabledExerciseIds: new Set(profile.disabledExerciseIds),
     today: clock.today,
   });
   const resolved = resolveLadderSlot({

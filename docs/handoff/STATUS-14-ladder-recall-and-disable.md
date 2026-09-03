@@ -35,17 +35,25 @@ User decisions already made (do not re-litigate):
 - [x] New `hardFilters.test.ts` cases: disabling removes an exercise regardless of other filters;
       an empty disabled set doesn't change anything.
 - [x] `npm run test` (packages/engine) and `packages/store`'s `migrate.test.ts` green.
+- [x] Repo layer: `exerciseState.ts` — `rowToState` maps `disabledAt`; added
+      `setDisabled(db, exerciseId, disabled, now)` and `getDisabledExerciseIds(db): string[]`.
+      `users.ts`'s `buildUserProfile` now includes `disabledExerciseIds`. Also fixed a call site
+      the earlier grep missed: `packages/store/src/levelUp.ts`'s own `applyHardFilters` call.
+      New test file `exerciseState.disabled.test.ts` (5 cases, following the
+      `exerciseState.userVideo.test.ts` naming/pattern convention).
+- [x] Full `npm run check` green (engine 966, store 159 incl. the 5 new, app 298, data 5,
+      functions 29 — all passing; a `npm run check` app-workspace "Lifecycle script test failed"
+      was jest's known non-zero exit from a pre-existing "worker process failed to exit
+      gracefully" warning, unrelated to this change — re-running `npx jest` directly in `app/`
+      shows all 298 tests passed).
 
 ### In progress
-- Next action: repository layer (`packages/store/src/repositories/exerciseState.ts` +
-  `users.ts`'s `buildUserProfile`) — step 2 of the plan. Not started yet.
+- Next action: ladder lower-rung pooling (`packages/engine/src/progression/ladder.ts`,
+  `constants.ts`, `resolveSlot.ts`) — step 4 of the plan (step 3, disable wiring, is the part
+  already done above; UI is step 5/6). Not started yet.
 
 ### Next
-1. **Repo layer**: `exerciseState.ts` — `rowToState` maps `disabledAt`; add
-   `setDisabled(db, exerciseId, disabled, now)` (mirror `setSuppressedUntil`'s shape, using the
-   existing `ensureRow` helper) and `getDisabledExerciseIds(db): string[]`. `users.ts`'s
-   `buildUserProfile` adds `disabledExerciseIds: exerciseStateRepo.getDisabledExerciseIds(db)`.
-2. **Ladder lower-rung pooling** (`packages/engine/src/progression/ladder.ts`,
+1. **Ladder lower-rung pooling** (`packages/engine/src/progression/ladder.ts`,
    `constants.ts`, `resolveSlot.ts`):
    - `ladder.ts`: new `exercisesBelowLevel(family, levelId, library)`.
    - `constants.ts`: `CURRENT_RUNG_WEIGHT = 0.6`.
@@ -64,7 +72,7 @@ User decisions already made (do not re-litigate):
    - Engine tests: extend `resolveSlot.test.ts`/`ladder.test.ts` per the plan's verification
      section (60/40 split assertion via seeded rng, current-empty/lower-empty edges, difficulty
      floor table incl. the explicit "hard effort excludes easy level-1" case).
-3. **UI**:
+2. **UI**:
    - `ExerciseDetailScreen.tsx`: `handleToggleDisabled` next to `handleAssignVideo`/
      `handlePinnedNoteChange`; toggle rendered near `PinnedNote`.
    - `ExercisesScreen.tsx`: `ExerciseCard` gets a "Disabled" badge (same slot as the "No video"
@@ -74,10 +82,10 @@ User decisions already made (do not re-litigate):
      after the write so the just-disabled id is actually excluded); falls back to `handleRemove`'s
      no-alternative messaging if nothing survives. `EntryCard` gets a third icon button
      (`onDisable`) in `cardActions` next to `onSwap`/`onRemove`.
-4. Manual/device verification per the plan's Verification section (disable from both screens,
+3. Manual/device verification per the plan's Verification section (disable from both screens,
    confirm exclusion; confirm lower-rung recall + weighting qualitatively; confirm the hard-effort
    difficulty floor).
-5. Delete this status file's originating BACKLOG-adjacent notes (there are none — this was a
+4. Delete this status file's originating BACKLOG-adjacent notes (there are none — this was a
    direct request, no backlog entry to remove) once the track is fully done and `npm run check`
    is green end to end.
 

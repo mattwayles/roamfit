@@ -40,7 +40,7 @@ function userState(history: SessionHistoryRecord[]): UserState {
       weeklyTarget: 3,
       limitations: [],
       anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
-    disabledExerciseIds: [],
+      disabledExerciseIds: [],
     },
     exerciseStates: {},
     progressionStates,
