@@ -64,7 +64,7 @@ function renderApproval(sessionId: string) {
 }
 
 describe('§10.3 approval entry card', () => {
-  it('labels every stepper and shows its current value', async () => {
+  it('labels every numeric field and shows its current value', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -80,13 +80,15 @@ describe('§10.3 approval entry card', () => {
     renderApproval(sessionId);
     await waitFor(() => expect(screen.getByTestId('start-button')).toBeTruthy(), WAIT_OPTS);
 
-    // The label lives beside the buttons, not inside them, so it can never be clipped.
+    // The label lives above the field, not inside it, so it can never be clipped.
     expect(screen.getAllByText('Sets').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Reps').length).toBeGreaterThan(0);
-    // Buttons carry only the glyph, plus an accessible name saying what they do.
-    expect(screen.getByTestId(`sets-plus-${entry.exerciseId}`)).toBeTruthy();
-    expect(screen.getAllByLabelText('Increase sets').length).toBeGreaterThan(0);
-    expect(screen.getAllByLabelText('Decrease reps').length).toBeGreaterThan(0);
+    // Each field is a real text input, carrying its current value and an accessible name.
+    const setsField = screen.getByTestId(`sets-input-${entry.exerciseId}`);
+    expect(setsField).toBeTruthy();
+    expect(setsField.props.value).toBe(String(entry.sets));
+    expect(screen.getAllByLabelText(/^Sets for /).length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText(/^Reps for /).length).toBeGreaterThan(0);
     // Rest is a dial too, not a fixed consequence of the difficulty table.
     expect(screen.getAllByText('Rest').length).toBeGreaterThan(0);
     // Swap and Remove are both icon buttons; the meaning lives in the accessible name, since a
@@ -94,17 +96,16 @@ describe('§10.3 approval entry card', () => {
     expect(screen.getAllByLabelText(/^Swap .* for another exercise$/).length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText(/^Remove /).length).toBeGreaterThan(0);
 
-    // Swap must not look like the +/- buttons or like Remove: it is the only control on the card
-    // that replaces the exercise, so it should not read as one that nudges a number.
+    // Swap must not look like the numeric fields or like Remove: it is the only control on the
+    // card that replaces the exercise, so it should not read as one that edits a number.
     const bg = (testID: string): unknown =>
       StyleSheet.flatten(screen.getByTestId(testID).props.style)?.backgroundColor;
     const swapBg = bg(`swap-${entry.exerciseId}`);
     expect(swapBg).toBeDefined();
-    expect(swapBg).not.toBe(bg(`sets-plus-${entry.exerciseId}`));
     expect(swapBg).not.toBe(bg(`remove-${entry.exerciseId}`));
   });
 
-  it('a timed exercise gets a Time stepper that actually changes the duration', async () => {
+  it('a timed exercise gets a Time field that actually changes the duration', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -121,25 +122,28 @@ describe('§10.3 approval entry card', () => {
 
     renderApproval(sessionId);
     await waitFor(
-      () => expect(screen.getByTestId(`duration-plus-${timed.exerciseId}`)).toBeTruthy(),
+      () => expect(screen.getByTestId(`duration-input-${timed.exerciseId}`)).toBeTruthy(),
       WAIT_OPTS,
     );
     expect(screen.getAllByText('Time').length).toBeGreaterThan(0);
 
-    fireEvent.press(screen.getByTestId(`duration-plus-${timed.exerciseId}`));
+    const durationField = screen.getByTestId(`duration-input-${timed.exerciseId}`);
+    await fireEvent.changeText(durationField, String(before + 5));
+    await fireEvent(durationField, 'submitEditing');
     await waitFor(() => {
       const after = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === timed.id)!;
       expect(after.durationSec).toBe(before + 5);
     }, WAIT_OPTS);
 
-    fireEvent.press(screen.getByTestId(`duration-minus-${timed.exerciseId}`));
+    await fireEvent.changeText(durationField, String(before));
+    await fireEvent(durationField, 'submitEditing');
     await waitFor(() => {
       const after = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === timed.id)!;
       expect(after.durationSec).toBe(before);
     }, WAIT_OPTS);
 
-    // A timed entry must not also offer a Reps stepper.
-    expect(screen.queryByTestId(`reps-plus-${timed.exerciseId}`)).toBeNull();
+    // A timed entry must not also offer a Reps field.
+    expect(screen.queryByTestId(`reps-input-${timed.exerciseId}`)).toBeNull();
   });
 
   it('editing sets, reps or duration keeps estimatedSec — and so the estimate — honest', async () => {

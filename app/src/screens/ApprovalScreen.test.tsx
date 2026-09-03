@@ -115,13 +115,15 @@ describe('§10.3 Plan Approval, driven through ApprovalScreen', () => {
       expect(nowText).not.toBe(initialEstimateText);
     }, WAIT_OPTS);
 
-    // --- Edit rep target (only entries with a rep target expose the stepper) ---------------
+    // --- Edit rep target (only entries with a rep target expose the field) -----------------
     const repEntry = sessionsRepo
       .getSession(db, sessionId)!
       .entries.find((e) => e.entryStatus !== 'removed_at_approval' && e.repTarget != null)!;
     const originalRepTarget = repEntry.repTarget!;
 
-    await fireEvent.press(screen.getByTestId(`reps-plus-${repEntry.exerciseId}`));
+    const repsField = screen.getByTestId(`reps-input-${repEntry.exerciseId}`);
+    await fireEvent.changeText(repsField, String(originalRepTarget + 1));
+    await fireEvent(repsField, 'submitEditing');
     await waitFor(() => {
       const after = sessionsRepo
         .getSession(db, sessionId)!
@@ -131,7 +133,9 @@ describe('§10.3 Plan Approval, driven through ApprovalScreen', () => {
 
     // --- Adjust sets ------------------------------------------------------------------------
     const originalSets = repEntry.sets;
-    await fireEvent.press(screen.getByTestId(`sets-plus-${repEntry.exerciseId}`));
+    const setsField = screen.getByTestId(`sets-input-${repEntry.exerciseId}`);
+    await fireEvent.changeText(setsField, String(originalSets + 1));
+    await fireEvent(setsField, 'submitEditing');
     await waitFor(() => {
       const after = sessionsRepo
         .getSession(db, sessionId)!

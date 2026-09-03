@@ -15,7 +15,15 @@
  * out of scope for the offline-first loop this wave proves out.
  */
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -126,32 +134,31 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     reload();
   };
 
-  const handleAdjustSets = (entry: sessionsRepo.SessionEntryRecord, delta: number) => {
-    const next = Math.max(1, entry.sets + delta);
+  const handleSetSets = (entry: sessionsRepo.SessionEntryRecord, value: number) => {
+    const next = Math.max(1, value);
     sessionsRepo.adjustSetsAtApproval(db, entry.id, next, nowUtcInstant());
     reload();
   };
 
-  /** Rest in 5s steps, floored at 0. Not derived from the difficulty table here — the store writes
-   *  it and the engine recomputes `estimatedSec`, so the header estimate follows. */
-  const handleAdjustRest = (entry: sessionsRepo.SessionEntryRecord, delta: number) => {
-    const next = Math.max(0, entry.restSec + delta);
+  /** Floored at 0 — rest 0 is a real prescription (warm-ups carry it). Not derived from the
+   *  difficulty table here — the store writes it and the engine recomputes `estimatedSec`, so the
+   *  header estimate follows. */
+  const handleSetRest = (entry: sessionsRepo.SessionEntryRecord, value: number) => {
+    const next = Math.max(0, value);
     sessionsRepo.adjustRestAtApproval(db, entry.id, next, nowUtcInstant());
     reload();
   };
 
-  const handleAdjustRepTarget = (entry: sessionsRepo.SessionEntryRecord, delta: number) => {
+  const handleSetRepTarget = (entry: sessionsRepo.SessionEntryRecord, value: number) => {
     if (entry.repTarget == null) return;
-    const next = Math.max(1, entry.repTarget + delta);
+    const next = Math.max(1, value);
     sessionsRepo.adjustRepTargetAtApproval(db, entry.id, next, nowUtcInstant());
     reload();
   };
 
-  /** The timed counterpart. Steps in 5s rather than 1s — a hold is not meaningfully edited a
-   *  second at a time, and 5s matches the granularity the §5.4 difficulty table itself works in. */
-  const handleAdjustDuration = (entry: sessionsRepo.SessionEntryRecord, delta: number) => {
+  const handleSetDuration = (entry: sessionsRepo.SessionEntryRecord, value: number) => {
     if (entry.durationSec == null) return;
-    const next = Math.max(5, entry.durationSec + delta);
+    const next = Math.max(5, value);
     sessionsRepo.adjustDurationAtApproval(db, entry.id, next, nowUtcInstant());
     reload();
   };
@@ -310,58 +317,6 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     reload();
   };
 
-  /**
-   * Disabling from this screen is permanent (`exerciseStateRepo.setDisabled`, same store call the
-   * Exercises detail screen makes) AND immediate: the reviewer should never keep looking at an
-   * exercise they just vetoed. Re-reads the profile after the write so `alternativesForSlot`'s own
-   * hard filters (§13.1/§13.2/§5.3, now including this exercise) already exclude it, then reuses
-   * the exact swap path `handleSwap` uses. Falls back to removing the entry, same as
-   * `handleRemove`, when nothing else fits the slot.
-   */
-  const handleDisable = (entry: sessionsRepo.SessionEntryRecord) => {
-    const now = nowUtcInstant();
-    exerciseStateRepo.setDisabled(db, entry.exerciseId, true, now);
-    const clock = nowEngineClock();
-    const profile = usersRepo.buildUserProfile(db, clock.today);
-    const [best] = alternativesForSlot({
-      library: library.exercises,
-      entry: {
-        exerciseId: entry.exerciseId,
-        role: 'main',
-        band: entry.band,
-        sets: entry.sets,
-        repTarget: entry.repTarget ?? undefined,
-        durationSec: entry.durationSec ?? undefined,
-        restSec: entry.restSec,
-        tempoSec: entry.tempoSec,
-        notes: entry.notes ?? undefined,
-        difficulty: entry.difficulty,
-        progressionFamilyId: entry.progressionFamilyId as ProgressionFamilyId | null,
-        progressionLevelIdAtTime: entry.progressionLevelIdAtTime,
-        pattern: entry.pattern as Pattern,
-        anchorClass: entry.anchorClass as AnchorClass,
-        unilateral: entry.unilateral,
-        estimatedSec: entry.estimatedSec,
-      },
-      anchorsAvailable: profile.anchorsAvailable,
-      limitations: profile.limitations,
-      disabledExerciseIds: profile.disabledExerciseIds,
-      today: clock.today,
-      history: sessionsRepo.getHistoryForGeneration(db),
-      exerciseStates: exerciseStateRepo.getAllExerciseStates(db),
-      maxResults: 1,
-    });
-    if (!best) {
-      sessionsRepo.removeEntryAtApproval(db, entry.id, now);
-      setSwapNotice('Disabled. Nothing else fits that slot, so it was removed.');
-      reload();
-      return;
-    }
-    sessionsRepo.recordSwapAtApproval(db, entry.id, best.replacement, now);
-    setSwapNotice(`Disabled. Swapped to ${best.exercise.name}.`);
-    reload();
-  };
-
   /** §10.3 "add exercise" candidates — the same hard filters (§13.1/§13.2/§5.3) generation
    *  itself runs, via the engine's own `applyHardFilters`, never reimplemented here. Excludes
    *  exercises already active in this session (adding a duplicate isn't a meaningful edit). */
@@ -476,14 +431,13 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
               onDragStart={(y) => beginDrag(section, entry.id, index, y)}
               onDragMove={updateDrag}
               onDragEnd={endDrag}
-              onAdjustSets={(d) => handleAdjustSets(entry, d)}
-              onAdjustRepTarget={(d) => handleAdjustRepTarget(entry, d)}
-              onAdjustDuration={(d) => handleAdjustDuration(entry, d)}
-              onAdjustRest={(d) => handleAdjustRest(entry, d)}
+              onSetSets={(v) => handleSetSets(entry, v)}
+              onSetRepTarget={(v) => handleSetRepTarget(entry, v)}
+              onSetDuration={(v) => handleSetDuration(entry, v)}
+              onSetRest={(v) => handleSetRest(entry, v)}
               onChangeBand={(band) => handleChangeBand(entry, band)}
               onSwap={() => handleSwap(entry)}
               onRemove={() => handleRemove(entry)}
-              onDisable={() => handleDisable(entry)}
             />
           ))}
 
@@ -560,8 +514,13 @@ export const ESTIMATED_CARD_HEIGHT = 132;
  * Replaces a single cramped horizontal row that packed a reorder column, the name, the detail
  * line and up to six buttons across one line — the name was squeezed to a couple of characters
  * and every button label was clipped ("reps−" rendered as "reps", "too easy ▲" as "too e").
- * Controls now sit on their own lines below the name, each stepper labelled with what it changes
- * and showing its current value, so nothing depends on a label that might not fit.
+ * Controls now sit on their own lines below the name, each a labelled numeric field showing its
+ * current value, so nothing depends on a label that might not fit.
+ *
+ * These were originally −/+ steppers. Nudging sets from 3 to 8, or rest from 30s to 90s, took a
+ * run of taps; a direct numeric field gets there in one edit. The field still clamps to the same
+ * floors the steppers enforced (§5.4) — it is a faster way to reach the same valid range, not a
+ * looser one.
  */
 function EntryCard({
   entry,
@@ -573,14 +532,13 @@ function EntryCard({
   onDragStart,
   onDragMove,
   onDragEnd,
-  onAdjustSets,
-  onAdjustRepTarget,
-  onAdjustDuration,
-  onAdjustRest,
+  onSetSets,
+  onSetRepTarget,
+  onSetDuration,
+  onSetRest,
   onChangeBand,
   onSwap,
   onRemove,
-  onDisable,
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
@@ -593,22 +551,16 @@ function EntryCard({
   onDragStart: (pageY: number) => void;
   onDragMove: (pageY: number) => void;
   onDragEnd: () => void;
-  onAdjustSets: (delta: number) => void;
-  onAdjustRepTarget: (delta: number) => void;
-  onAdjustDuration: (delta: number) => void;
-  onAdjustRest: (delta: number) => void;
+  onSetSets: (value: number) => void;
+  onSetRepTarget: (value: number) => void;
+  onSetDuration: (value: number) => void;
+  onSetRest: (value: number) => void;
   onChangeBand: (band: BandId) => void;
   onSwap: () => void;
   onRemove: () => void;
-  onDisable: () => void;
 }): React.JSX.Element {
   const isTimed = entry.durationSec != null;
-  // Rest 0 is a real prescription (warm-ups carry it), but "rest 0s" reads like a bug. Omit it,
-  // and drop the whole line when there is nothing else on it either. The band is no longer part
-  // of this string — it renders as a colour chip beside it, which is also the control for
-  // changing which band this exercise is meant to be done with (see `BandPicker`).
-  const restLabel = entry.restSec > 0 ? `rest ${entry.restSec}s` : null;
-  const hasDetail = entry.band != null || restLabel != null;
+  const hasDetail = entry.band != null;
 
   return (
     <View
@@ -653,12 +605,11 @@ function EntryCard({
                   accessibilityLabel={`Band for ${exerciseName}`}
                 />
               )}
-              {restLabel != null && <Text style={styles.entryDetail}>{restLabel}</Text>}
             </View>
           )}
         </View>
 
-        {/* All three actions are icons on the title's own row, so they cost no vertical space at
+        {/* Both actions are icons on the title's own row, so they cost no vertical space at
             all. The accessible names carry the meaning the glyphs cannot. */}
         <View style={styles.cardActions}>
           <Pressable
@@ -669,15 +620,6 @@ function EntryCard({
             onPress={onSwap}
           >
             <Text style={styles.swapButtonText}>⇄</Text>
-          </Pressable>
-          <Pressable
-            testID={`disable-${entry.exerciseId}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Disable ${exerciseName} — never suggest it again`}
-            style={[styles.iconButton, styles.disableButton]}
-            onPress={onDisable}
-          >
-            <Text style={styles.disableButtonText}>⊘</Text>
           </Pressable>
           <Pressable
             testID={`remove-${entry.exerciseId}`}
@@ -691,89 +633,103 @@ function EntryCard({
         </View>
       </View>
 
-      <View style={styles.stepperRow}>
-        <Stepper
+      <View style={styles.fieldRow}>
+        <NumericField
           label="Sets"
-          value={String(entry.sets)}
-          minusTestID={`sets-minus-${entry.exerciseId}`}
-          plusTestID={`sets-plus-${entry.exerciseId}`}
-          onMinus={() => onAdjustSets(-1)}
-          onPlus={() => onAdjustSets(1)}
+          value={entry.sets}
+          minValue={1}
+          testID={`sets-input-${entry.exerciseId}`}
+          accessibilityLabel={`Sets for ${exerciseName}`}
+          onCommit={onSetSets}
         />
         {isTimed ? (
-          <Stepper
+          <NumericField
             label="Time"
-            value={`${entry.durationSec}s`}
-            minusTestID={`duration-minus-${entry.exerciseId}`}
-            plusTestID={`duration-plus-${entry.exerciseId}`}
-            onMinus={() => onAdjustDuration(-5)}
-            onPlus={() => onAdjustDuration(5)}
+            value={entry.durationSec!}
+            suffix="s"
+            minValue={5}
+            testID={`duration-input-${entry.exerciseId}`}
+            accessibilityLabel={`Time in seconds for ${exerciseName}`}
+            onCommit={onSetDuration}
           />
         ) : entry.repTarget != null ? (
-          <Stepper
+          <NumericField
             label="Reps"
-            value={String(entry.repTarget)}
-            minusTestID={`reps-minus-${entry.exerciseId}`}
-            plusTestID={`reps-plus-${entry.exerciseId}`}
-            onMinus={() => onAdjustRepTarget(-1)}
-            onPlus={() => onAdjustRepTarget(1)}
+            value={entry.repTarget}
+            minValue={1}
+            testID={`reps-input-${entry.exerciseId}`}
+            accessibilityLabel={`Reps for ${exerciseName}`}
+            onCommit={onSetRepTarget}
           />
         ) : (
-          <View style={styles.stepper} />
+          <View style={styles.field} />
         )}
-        <Stepper
+        <NumericField
           label="Rest"
-          value={`${entry.restSec}s`}
-          minusTestID={`rest-minus-${entry.exerciseId}`}
-          plusTestID={`rest-plus-${entry.exerciseId}`}
-          onMinus={() => onAdjustRest(-5)}
-          onPlus={() => onAdjustRest(5)}
+          value={entry.restSec}
+          suffix="s"
+          minValue={0}
+          testID={`rest-input-${entry.exerciseId}`}
+          accessibilityLabel={`Rest in seconds for ${exerciseName}`}
+          onCommit={onSetRest}
         />
       </View>
     </View>
   );
 }
 
-/** A labelled −/value/+ group. The old buttons carried the label *inside* them ("reps−"), which
- *  clipped; the label now sits above and the buttons carry only the glyph, which always fits. */
-function Stepper({
+/** A labelled numeric field: type a value directly rather than tapping −/+ some number of times.
+ *  Local `text` state tracks keystrokes (including a momentarily-empty field mid-edit); the value
+ *  only commits — clamped to `minValue` and written to the store — on blur or submit, so a partial
+ *  edit never round-trips through the store as an invalid intermediate value. */
+function NumericField({
   label,
   value,
-  minusTestID,
-  plusTestID,
-  onMinus,
-  onPlus,
+  suffix,
+  minValue,
+  testID,
+  accessibilityLabel,
+  onCommit,
 }: {
   label: string;
-  value: string;
-  minusTestID: string;
-  plusTestID: string;
-  onMinus: () => void;
-  onPlus: () => void;
+  value: number;
+  suffix?: string;
+  minValue: number;
+  testID: string;
+  accessibilityLabel: string;
+  onCommit: (value: number) => void;
 }): React.JSX.Element {
+  const [text, setText] = useState(String(value));
+  // Keeps the field in sync when the value changes from outside this input (another field's edit
+  // recomputing `estimatedSec`, or a store mutation from swap/regenerate).
+  React.useEffect(() => {
+    setText(String(value));
+  }, [value]);
+
+  const commit = () => {
+    const parsed = parseInt(text, 10);
+    const next = Number.isNaN(parsed) ? value : Math.max(minValue, parsed);
+    setText(String(next));
+    if (next !== value) onCommit(next);
+  };
+
   return (
-    <View style={styles.stepper}>
-      <Text style={styles.stepperLabel}>{label}</Text>
-      <View style={styles.stepperControls}>
-        <Pressable
-          testID={minusTestID}
-          accessibilityRole="button"
-          accessibilityLabel={`Decrease ${label.toLowerCase()}`}
-          style={styles.stepperButton}
-          onPress={onMinus}
-        >
-          <Text style={styles.stepperButtonText}>−</Text>
-        </Pressable>
-        <Text style={styles.stepperValue}>{value}</Text>
-        <Pressable
-          testID={plusTestID}
-          accessibilityRole="button"
-          accessibilityLabel={`Increase ${label.toLowerCase()}`}
-          style={styles.stepperButton}
-          onPress={onPlus}
-        >
-          <Text style={styles.stepperButtonText}>+</Text>
-        </Pressable>
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={styles.fieldInputRow}>
+        <TextInput
+          testID={testID}
+          accessibilityLabel={accessibilityLabel}
+          style={styles.fieldInput}
+          value={text}
+          onChangeText={(t) => setText(t.replace(/[^0-9]/g, ''))}
+          onBlur={commit}
+          onSubmitEditing={commit}
+          keyboardType="number-pad"
+          returnKeyType="done"
+          selectTextOnFocus
+        />
+        {suffix != null && <Text style={styles.fieldSuffix}>{suffix}</Text>}
       </View>
     </View>
   );
@@ -815,33 +771,32 @@ const styles = StyleSheet.create({
   entryName: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
   swapNotice: { fontSize: 13, color: '#1d4ed8' },
   entryDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-  entryDetail: { fontSize: 12, color: '#64748b' },
-  stepperRow: { flexDirection: 'row', gap: 16 },
-  stepper: { flex: 1 },
-  stepperLabel: {
+  fieldRow: { flexDirection: 'row', gap: 16 },
+  field: { flex: 1 },
+  fieldLabel: {
     fontSize: 11,
     fontWeight: '700',
     color: '#94a3b8',
     textTransform: 'uppercase',
     marginBottom: 2,
   },
-  stepperControls: { flexDirection: 'row', alignItems: 'center' },
-  stepperButton: {
-    width: 32,
-    height: 36,
+  fieldInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     borderRadius: 8,
     backgroundColor: '#e2e8f0',
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 8,
   },
-  stepperButtonText: { fontSize: 20, fontWeight: '700', color: '#334155', lineHeight: 24 },
-  stepperValue: {
+  fieldInput: {
     flex: 1,
-    textAlign: 'center',
+    height: 36,
     fontSize: 14,
     fontWeight: '700',
     color: '#0f172a',
+    padding: 0,
   },
+  fieldSuffix: { fontSize: 13, fontWeight: '600', color: '#64748b' },
   // In the header row, not on a line of their own: an icon pair is far narrower than the row it
   // used to occupy, and giving it a whole line cost ~26pt of every card for no information.
   // Pinned to the top so they stay level with the first line of a name that wraps.
@@ -859,8 +814,6 @@ const styles = StyleSheet.create({
   // fourth hue: on this card it is unique, and app-wide it stays consistent.
   swapButton: { backgroundColor: '#dbeafe' },
   swapButtonText: { fontSize: 17, fontWeight: '700', color: '#1d4ed8', lineHeight: 21 },
-  disableButton: { backgroundColor: '#f1f5f9' },
-  disableButtonText: { fontSize: 17, fontWeight: '700', color: '#475569', lineHeight: 21 },
   removeButton: { backgroundColor: '#fee2e2' },
   removeButtonText: { fontSize: 16, fontWeight: '700', color: '#b91c1c', lineHeight: 20 },
 
