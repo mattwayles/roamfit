@@ -64,11 +64,11 @@ export default function AbandonSessionButton({
   );
 
   if (variant === 'icon') {
-    // The stop button lives in a fixed `space-between` control row, so the confirm step cannot
-    // render *in its place* — the box's intrinsic width blows the row out and pushes the buttons
-    // off the right edge of the screen. It goes in a centered modal instead: the row underneath
-    // keeps its layout, and the dialog is centred and width-capped no matter how narrow the
-    // slot the button sits in.
+    // The stop button lives in a right-justified actions group sharing a line with the elapsed
+    // timer, so the confirm step cannot render *in its place* — the box's intrinsic width would
+    // blow that line out. It goes in a centered modal instead: the row underneath keeps its
+    // layout, and the dialog is centred and width-capped no matter how narrow the slot the
+    // button sits in.
     return (
       <>
         <Pressable
@@ -120,15 +120,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   abandonButtonText: { fontSize: 13, fontWeight: '600', color: '#94a3b8' },
+  // Matches `WorkoutScreen`'s (also shrunk) `sessionIconButton`: both now share a line with the
+  // elapsed timer rather than owning a row of their own.
   abandonIconButton: {
-    width: 76,
-    height: 56,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: '#fee2e2',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  abandonIconText: { fontSize: 22, fontWeight: '800', color: '#b91c1c', lineHeight: 26 },
+  abandonIconText: { fontSize: 18, fontWeight: '800', color: '#b91c1c', lineHeight: 22 },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',

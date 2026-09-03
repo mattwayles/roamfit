@@ -6,8 +6,10 @@
  *
  * Every mutation is a `@roamfit/store` call — `logSet`, `recordEntryFeedback`, `setPinnedNote`.
  * Nothing here computes a prescription or decides an exercise; §10.4's hierarchy rule (hero =
- * name + target + "Set N of M", nothing else at that size; body focus/pattern/difficulty never
- * shown) is honored by simply not reading those fields into the hero view.
+ * name + "Set N of M" + the rep/hold target, nothing else at that size; body focus/pattern/
+ * difficulty never shown) is honored by simply not reading those fields into the hero view. The
+ * rep target itself is no longer a standalone line — it is what the "Reps" picker defaults to and
+ * is labelled with, so it does not also get repeated as its own line above the picker.
  *
  * **Remove set** mid-workout has no store mutation to call (only §10.3 approval-time removal
  * exists) — also not implemented. Superset "Round N of M" display is simplified to plain
@@ -775,25 +777,32 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >
-      <Text style={styles.stage}>{entry.section}</Text>
-      <Text style={styles.elapsed} testID="workout-elapsed">
-        Elapsed {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
-      </Text>
-
-      {/* Large icon controls: these are found mid-set, often at arm's length and out of breath,
-          so they are targets rather than sentences. The accessible names carry the meaning. */}
-      <View style={styles.sessionActionsRow}>
-        <Pressable
-          testID="pause-workout"
-          accessibilityRole="button"
-          accessibilityLabel={paused ? 'Resume workout' : 'Pause workout'}
-          style={styles.sessionIconButton}
-          onPress={paused ? handleResume : handlePause}
-        >
-          <Text style={styles.sessionIconText}>{paused ? '▶' : '❚❚'}</Text>
-        </Pressable>
-        <AbandonSessionButton onConfirm={handleAbandon} variant="icon" />
+      {/* The elapsed clock is the single biggest thing on this page: it is what a user mid-set,
+          at arm's length, glances at most often, so it gets the top line and the largest type
+          rather than sharing space with a label. Pause/stop ride the same line, right-justified,
+          so the whole header costs one row instead of three — real estate the exercise hero
+          below needs more than a caption does. A flex-1 spacer on the left balances the
+          flex-1 actions group on the right, so the centered timer stays visually centered on the
+          screen rather than drifting toward the label-free side. */}
+      <View style={styles.timerRow}>
+        <View style={styles.timerRowSpacer} />
+        <Text style={styles.elapsed} testID="workout-elapsed">
+          Elapsed {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
+        </Text>
+        <View style={[styles.timerRowSpacer, styles.timerRowActions]}>
+          <Pressable
+            testID="pause-workout"
+            accessibilityRole="button"
+            accessibilityLabel={paused ? 'Resume workout' : 'Pause workout'}
+            style={styles.sessionIconButton}
+            onPress={paused ? handleResume : handlePause}
+          >
+            <Text style={styles.sessionIconText}>{paused ? '▶' : '❚❚'}</Text>
+          </Pressable>
+          <AbandonSessionButton onConfirm={handleAbandon} variant="icon" />
+        </View>
       </View>
+      <Text style={styles.stage}>{entry.section}</Text>
 
       {swapNotice != null && (
         <Text testID="swap-notice" style={styles.swapNotice}>
@@ -1012,11 +1021,15 @@ function RepsExercise({
           />
         </View>
       )}
-      <Text style={styles.target}>{entry.repTarget} reps</Text>
       <Text style={styles.setOf}>
         Set {setIndex + 1} of {entry.sets}
       </Text>
 
+      {/* The target rep count used to repeat here as its own "N reps" line — the same number the
+          picker below already shows (it defaults to the prescription), so the two just echoed
+          each other. A "Reps" label on the picker itself says what the number means without a
+          second line saying it again. */}
+      <Text style={styles.repCounterLabel}>Reps</Text>
       <View style={styles.repCounterRow}>
         <Pressable
           testID="rep-minus"
@@ -1173,12 +1186,22 @@ function TimedExercise({
   onRewind: (() => void) | null;
   forwardIsSkip: boolean;
 }): React.JSX.Element {
-  const durationMs = (entry.durationSec ?? 0) * 1000;
+  // The prescription, fixed for the life of this mounted set. `durationSec` below is the
+  // (possibly user-adjusted) hold length actually used; the two are only ever different between
+  // mount and the moment `handleStart` is pressed, while the ±5s buttons are live.
+  const originalDurationSec = entry.durationSec ?? 0;
+  const durationMs = originalDurationSec * 1000;
   // §10.5 — "unilateral timed work runs two sequential timers with a short switch-side interval
   // between them." `sideIndex` is 0 for the only side (bilateral) or the first side
   // (unilateral), 1 for a unilateral exercise's second side.
   const totalSides = entry.unilateral ? 2 : 1;
   const [started, setStarted] = useState(false);
+  /** Adjustable, in 5s steps, only before the hold starts — the ±5s buttons flanking the
+   *  "tap to start" ring. `useCountdown`'s controllers are created once with `durationMs` above
+   *  (see its own header comment) and never rebuilt when this changes; `handleStart` instead
+   *  reconciles the two by `addMs`-ing the difference onto each side's controller the moment it
+   *  starts, which is also why this is read (not re-derived) after that point. */
+  const [durationSec, setDurationSec] = useState(originalDurationSec);
   // Remounted per set (the caller keys on entry+setIndex), so this resets to the incoming default
   // each set without any explicit clearing.
   const [bandUsed, setBandUsed] = useState(band);
@@ -1249,6 +1272,18 @@ function TimedExercise({
     getReadyCountdown.controller.start();
   };
 
+  /** The ±5s adjust buttons, live only before the hold starts (mirrors §10.7's rest ±extend
+   *  shape, applied here to the hold itself rather than the rest after it). Floored at 5s — a
+   *  0s or negative hold isn't a hold. */
+  const adjustDuration = (deltaSec: number) => {
+    if (started) return;
+    setDurationSec((s) => Math.max(5, s + deltaSec));
+  };
+  /** The gap between the (possibly adjusted) hold and the prescription each side's controller
+   *  was actually built with — applied via `addMs` the instant a side starts, since the
+   *  controller's own total is fixed at creation (see `durationSec`'s comment above). */
+  const durationAdjustMs = (durationSec - originalDurationSec) * 1000;
+
   /**
    * §10.5's whole phase machine (get-ready -> side 1 -> [switch interval -> side 2] -> complete),
    * driven by ONE 100ms poll that reads the underlying `.controller`s directly — not by chaining
@@ -1284,17 +1319,18 @@ function TimedExercise({
         if (!side1StartedRef.current) {
           side1StartedRef.current = true;
           side1Countdown.controller.start();
+          if (durationAdjustMs !== 0) side1Countdown.controller.addMs(durationAdjustMs);
         } else if (side1Countdown.controller.isComplete()) {
           if (totalSides === 1) {
             if (!completedRef.current) {
               completedRef.current = true;
-              onComplete(entry.durationSec ?? 0, {
+              onComplete(durationSec, {
                 pauseCount: side1Countdown.controller.pauseCount(),
                 pausedDurationSec: Math.round(side1Countdown.controller.pausedDurationMs() / 1000),
               });
             }
           } else {
-            heldSecRef.current = entry.durationSec ?? 0;
+            heldSecRef.current = durationSec;
             startCueFiredRef.current = false;
             lastOutCueSecondRef.current = null;
             switchCueFiredRef.current = false;
@@ -1311,9 +1347,10 @@ function TimedExercise({
         if (!side2StartedRef.current) {
           side2StartedRef.current = true;
           side2Countdown.controller.start();
+          if (durationAdjustMs !== 0) side2Countdown.controller.addMs(durationAdjustMs);
         } else if (side2Countdown.controller.isComplete() && !completedRef.current) {
           completedRef.current = true;
-          onComplete(heldSecRef.current + (entry.durationSec ?? 0), {
+          onComplete(heldSecRef.current + durationSec, {
             pauseCount:
               side1Countdown.controller.pauseCount() + side2Countdown.controller.pauseCount(),
             pausedDurationSec: Math.round(
@@ -1395,7 +1432,7 @@ function TimedExercise({
       startCueFiredRef.current = true;
       cueStart();
     }
-    const totalSec = entry.durationSec ?? 0;
+    const totalSec = durationSec;
     if (
       totalSec > 45 &&
       !halfwayCueFiredPerSideRef.current[sideIndex] &&
@@ -1431,7 +1468,7 @@ function TimedExercise({
   const handleEndEarly = () => {
     const partialHeld = switching
       ? 0
-      : Math.max(0, (entry.durationSec ?? 0) - Math.floor(activeCountdown.remainingMs / 1000));
+      : Math.max(0, durationSec - Math.floor(activeCountdown.remainingMs / 1000));
     completedRef.current = true;
     onComplete(heldSecRef.current + partialHeld, {
       pauseCount:
@@ -1473,15 +1510,29 @@ function TimedExercise({
     else if (tapAction === 'toggle') handleTogglePause();
   };
 
-  /** The number in the middle. Before the start it is the prescription — how long this hold is —
-   *  which is worth knowing before committing to it, and it counts down from exactly there. */
+  /** The number in the middle. Before the start it is the prescription — how long this hold is,
+   *  adjustable by the ±5s buttons — which is worth knowing before committing to it, and it
+   *  counts down from exactly there. */
   const circleValue = !started
-    ? (entry.durationSec ?? 0)
+    ? durationSec
     : inGetReady
       ? Math.ceil(getReadyMs / 1000)
       : switching
         ? switchRemainingSeconds
         : remainingSeconds;
+
+  /** A bare number on the ring reads as ambiguous — reps, a set count, seconds? — so the
+   *  prescription and the running hold (the two states where the number really is "how long")
+   *  get a small unit label. Get-ready and switch-side are left alone: they are always a couple
+   *  of seconds, already captioned ("Get ready"/"Switch sides"), and a unit label on them would
+   *  just be noise. The ±5s buttons have no upper bound, so past a minute the number itself
+   *  switches to M:SS — a bare "125" is harder to read at a glance than "2:05". */
+  const ringIsDuration = !started || inHold;
+  const ringUnit = ringIsDuration ? (circleValue >= 60 ? 'min' : 'sec') : null;
+  const ringDisplay =
+    ringIsDuration && circleValue >= 60
+      ? `${Math.floor(circleValue / 60)}:${String(circleValue % 60).padStart(2, '0')}`
+      : circleValue;
 
   // Short enough to sit inside a 216pt ring on one line, at every phase.
   const circleCaption = !started
@@ -1497,7 +1548,7 @@ function TimedExercise({
             : 'Tap to pause';
 
   const circleLabel = !started
-    ? `Start this ${entry.durationSec ?? 0} second hold`
+    ? `Start this ${durationSec} second hold`
     : inGetReady
       ? 'Getting ready'
       : switching
@@ -1536,35 +1587,72 @@ function TimedExercise({
         {totalSides === 2 ? ` · Side ${sideIndex + 1} of 2` : ''}
       </Text>
 
-      <Pressable
-        testID="timed-circle"
-        accessibilityRole="button"
-        accessibilityLabel={circleLabel}
-        accessibilityHint={started ? 'Press and hold to end this hold early' : undefined}
-        onPress={handleCirclePress}
-        // Ending early is a real, recorded outcome — it logs the seconds actually held — so it
-        // stays reachable at every phase the END EARLY button covered, including while the session
-        // is paused. A long press keeps it off the screen without taking it away.
-        onLongPress={started ? handleEndEarly : undefined}
-        style={({ pressed }) => [
-          styles.circleTimer,
-          (selfPaused || paused) && styles.circleTimerStopped,
-          pressed && tapAction !== null && styles.circleTimerPressed,
-        ]}
-      >
-        <Text
-          testID="timed-remaining"
-          style={[styles.circleTimerText, (selfPaused || paused) && styles.circleTimerTextStopped]}
+      <View style={styles.circleRow}>
+        {/* Live only before the hold starts — once it is running, the ring itself is the
+            control (tap to pause/resume), and there is nothing left here to adjust. */}
+        {!started && (
+          <Pressable
+            testID="duration-minus"
+            accessibilityRole="button"
+            accessibilityLabel="Decrease hold time by 5 seconds"
+            style={styles.repAdjustButton}
+            onPress={() => adjustDuration(-5)}
+          >
+            <Text style={styles.repAdjustText}>−</Text>
+          </Pressable>
+        )}
+        <Pressable
+          testID="timed-circle"
+          accessibilityRole="button"
+          accessibilityLabel={circleLabel}
+          accessibilityHint={started ? 'Press and hold to end this hold early' : undefined}
+          onPress={handleCirclePress}
+          // Ending early is a real, recorded outcome — it logs the seconds actually held — so it
+          // stays reachable at every phase the END EARLY button covered, including while the
+          // session is paused. A long press keeps it off the screen without taking it away.
+          onLongPress={started ? handleEndEarly : undefined}
+          style={({ pressed }) => [
+            styles.circleTimer,
+            (selfPaused || paused) && styles.circleTimerStopped,
+            pressed && tapAction !== null && styles.circleTimerPressed,
+          ]}
         >
-          {circleValue}
-        </Text>
-        <Text
-          testID="timed-caption"
-          style={[styles.circleCaption, (selfPaused || paused) && styles.circleCaptionStopped]}
-        >
-          {circleCaption}
-        </Text>
-      </Pressable>
+          <Text
+            testID="timed-remaining"
+            style={[
+              styles.circleTimerText,
+              (selfPaused || paused) && styles.circleTimerTextStopped,
+            ]}
+          >
+            {ringDisplay}
+          </Text>
+          {ringUnit != null && (
+            <Text
+              testID="timed-remaining-unit"
+              style={[styles.circleUnit, (selfPaused || paused) && styles.circleCaptionStopped]}
+            >
+              {ringUnit}
+            </Text>
+          )}
+          <Text
+            testID="timed-caption"
+            style={[styles.circleCaption, (selfPaused || paused) && styles.circleCaptionStopped]}
+          >
+            {circleCaption}
+          </Text>
+        </Pressable>
+        {!started && (
+          <Pressable
+            testID="duration-plus"
+            accessibilityRole="button"
+            accessibilityLabel="Increase hold time by 5 seconds"
+            style={styles.repAdjustButton}
+            onPress={() => adjustDuration(5)}
+          >
+            <Text style={styles.repAdjustText}>+</Text>
+          </Pressable>
+        )}
+      </View>
 
       {/* The one thing a tap cannot say. Quiet, and only once there is a hold to end. */}
       {inHold && (
@@ -1822,23 +1910,27 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { padding: 20, gap: 16 },
   stage: { fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' },
-  elapsed: { fontSize: 12, color: '#94a3b8' },
+  // Timer row: a flex-1 spacer, the centered timer, and a flex-1 actions group — equal-width
+  // outer flex areas are what keep the timer text visually centered on the screen even though
+  // the actions group (two icon buttons) is wider than the empty spacer opposite it.
+  timerRow: { flexDirection: 'row', alignItems: 'center' },
+  timerRowSpacer: { flex: 1 },
+  timerRowActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
+  elapsed: { fontSize: 34, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
+  // Compact rather than the old 76x56: they now share a line with the timer instead of owning a
+  // row of their own, so their footprint has to stay small enough not to eat into that line's
+  // height or crowd the centered timer.
   sessionIconButton: {
-    width: 76,
-    height: 56,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: '#e2e8f0',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sessionIconText: { fontSize: 22, fontWeight: '800', color: '#334155', lineHeight: 26 },
+  sessionIconText: { fontSize: 18, fontWeight: '800', color: '#334155', lineHeight: 22 },
   pausedBanner: { textAlign: 'center', fontSize: 14, color: '#0369a1', paddingVertical: 4 },
   swapNotice: { textAlign: 'center', fontSize: 13, color: '#1d4ed8', paddingVertical: 2 },
-  sessionActionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   hero: { alignItems: 'center', gap: 12 },
   // Paused, not disabled: a cool tint behind the still-live set, so the state reads at a glance
   // without anything looking switched off.
@@ -1872,8 +1964,14 @@ const styles = StyleSheet.create({
   pausedNudgePrimaryText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   bandRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 6 },
   exerciseName: { fontSize: 26, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
-  target: { fontSize: 20, fontWeight: '600', color: '#334155' },
   setOf: { fontSize: 15, color: '#64748b' },
+  repCounterLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    marginBottom: -4,
+  },
   repCounterRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   repAdjustButton: {
     width: 48,
@@ -1927,6 +2025,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionButtonText: { fontWeight: '600', color: '#334155' },
+  // Flanks the ring with the ±5s buttons pre-start; centered either way since they unmount once
+  // the hold begins rather than leaving an empty gap where they sat.
+  circleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'center' },
   // The set's primary control, so it is filled and lifted rather than an outline drawn on the page
   // — it should read as something to press from across a room. 216 leaves the caption a full line
   // inside the stroke at every phase.
@@ -1962,6 +2063,17 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   circleTimerTextStopped: { color: '#075985' },
+  // Sits right under the big number, small enough that it reads as a unit on that number rather
+  // than a second line competing with the caption below it.
+  circleUnit: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#94a3b8',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginTop: -6,
+  },
   circleCaption: {
     fontSize: 12,
     fontWeight: '700',
