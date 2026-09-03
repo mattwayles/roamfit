@@ -43,9 +43,10 @@
     },
     {
       "id": "close-grip-push-up",
-      "name": "Close-Grip Banded Push-Up",
+      "name": "Banded Close-Grip Push-Up",
       "aliases": [
-        "close grip push up"
+        "close grip push up",
+        "close-grip banded push-up"
       ],
       "focus": [
         "upper"
@@ -82,8 +83,10 @@
     },
     {
       "id": "standing-chest-press",
-      "name": "Standing Chest Press",
-      "aliases": [],
+      "name": "Banded Standing Chest Press",
+      "aliases": [
+        "standing chest press"
+      ],
       "focus": [
         "upper",
         "full"
@@ -119,9 +122,10 @@
     },
     {
       "id": "single-arm-chest-press",
-      "name": "Single-Arm Standing Chest Press",
+      "name": "Banded Single-Arm Standing Chest Press",
       "aliases": [
-        "single arm chest press"
+        "single arm chest press",
+        "single-arm standing chest press"
       ],
       "focus": [
         "upper",
@@ -158,9 +162,10 @@
     },
     {
       "id": "chest-fly",
-      "name": "Door-Anchor Chest Fly",
+      "name": "Banded Door-Anchor Chest Fly",
       "aliases": [
-        "chest fly"
+        "chest fly",
+        "door-anchor chest fly"
       ],
       "focus": [
         "upper"
@@ -194,9 +199,10 @@
     },
     {
       "id": "low-high-fly",
-      "name": "Low-to-High Chest Fly",
+      "name": "Banded Low-to-High Chest Fly",
       "aliases": [
-        "low high fly"
+        "low high fly",
+        "low-to-high chest fly"
       ],
       "focus": [
         "upper"
@@ -230,9 +236,10 @@
     },
     {
       "id": "high-low-fly",
-      "name": "High-to-Low Chest Fly",
+      "name": "Banded High-to-Low Chest Fly",
       "aliases": [
-        "high low fly"
+        "high low fly",
+        "high-to-low chest fly"
       ],
       "focus": [
         "upper"
@@ -303,9 +310,10 @@
     },
     {
       "id": "overhead-press",
-      "name": "Standing Overhead Press",
+      "name": "Banded Standing Overhead Press",
       "aliases": [
-        "overhead press"
+        "overhead press",
+        "standing overhead press"
       ],
       "focus": [
         "upper",
@@ -342,9 +350,10 @@
     },
     {
       "id": "single-arm-ohp",
-      "name": "Single-Arm Overhead Press",
+      "name": "Banded Single-Arm Overhead Press",
       "aliases": [
-        "single arm ohp"
+        "single arm ohp",
+        "single-arm overhead press"
       ],
       "focus": [
         "upper",
@@ -380,9 +389,10 @@
     },
     {
       "id": "half-kneeling-ohp",
-      "name": "Half-Kneeling Overhead Press",
+      "name": "Banded Half-Kneeling Overhead Press",
       "aliases": [
-        "half kneeling ohp"
+        "half kneeling ohp",
+        "half-kneeling overhead press"
       ],
       "focus": [
         "upper",
@@ -567,9 +577,10 @@
     },
     {
       "id": "pull-apart",
-      "name": "Band Pull-Apart",
+      "name": "Banded Pull-Apart",
       "aliases": [
-        "pull apart"
+        "pull apart",
+        "band pull-apart"
       ],
       "focus": [
         "upper",
@@ -604,9 +615,10 @@
     },
     {
       "id": "overhead-pull-apart",
-      "name": "Overhead Band Pull-Apart",
+      "name": "Banded Overhead Pull-Apart",
       "aliases": [
-        "overhead pull apart"
+        "overhead pull apart",
+        "overhead band pull-apart"
       ],
       "focus": [
         "upper"
@@ -642,9 +654,10 @@
     },
     {
       "id": "face-pull",
-      "name": "Band Face Pull",
+      "name": "Banded Face Pull",
       "aliases": [
-        "face pull"
+        "face pull",
+        "band face pull"
       ],
       "focus": [
         "upper"
@@ -677,9 +690,47 @@
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Face+Pull+proper+form+tutorial"
     },
     {
+      "id": "banded-seated-face-pull",
+      "name": "Banded Seated Face Pull",
+      "aliases": [
+        "seated face pull"
+      ],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "horizontal_pull",
+      "primary": [
+        "rear_delts"
+      ],
+      "secondary": [
+        "upper_back",
+        "traps"
+      ],
+      "equipment": "band",
+      "band": "B1-B2",
+      "anchor": "none",
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main",
+        "warmup"
+      ],
+      "difficulty": "easy",
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l3",
+      "contraindications": [],
+      "setup": "Sit tall, hold the band with hands about shoulder-width apart in front of your face. Pull hands apart and back toward your ears, elbows high and wide, externally rotate at the end. Tension stays between your hands the whole time, so no anchor point is needed.",
+      "video_search": "https://www.youtube.com/results?search_query=resistance+band+Seated+Face+Pull+proper+form+tutorial"
+    },
+    {
       "id": "seated-row",
-      "name": "Seated Row",
-      "aliases": [],
+      "name": "Banded Seated Row",
+      "aliases": [
+        "seated row"
+      ],
       "focus": [
         "upper",
         "full"
@@ -713,9 +764,10 @@
     },
     {
       "id": "bent-over-row",
-      "name": "Bent-Over Row",
+      "name": "Banded Bent-Over Row",
       "aliases": [
-        "bent over row"
+        "bent over row",
+        "bent-over row"
       ],
       "focus": [
         "upper",
@@ -752,9 +804,10 @@
     },
     {
       "id": "single-arm-row",
-      "name": "Single-Arm Bent-Over Row",
+      "name": "Banded Single-Arm Bent-Over Row",
       "aliases": [
-        "single arm row"
+        "single arm row",
+        "single-arm bent-over row"
       ],
       "focus": [
         "upper",
@@ -791,10 +844,11 @@
     },
     {
       "id": "door-row",
-      "name": "Door-Anchor Horizontal Row",
+      "name": "Banded Door-Anchor Horizontal Row",
       "aliases": [
         "door row",
-        "band row"
+        "band row",
+        "door-anchor horizontal row"
       ],
       "focus": [
         "upper"
@@ -829,9 +883,10 @@
     },
     {
       "id": "lat-pulldown",
-      "name": "Kneeling Lat Pulldown",
+      "name": "Banded Lat Pulldown",
       "aliases": [
-        "lat pulldown"
+        "lat pulldown",
+        "kneeling lat pulldown"
       ],
       "focus": [
         "upper"
@@ -866,9 +921,10 @@
     },
     {
       "id": "straight-arm-pulldown",
-      "name": "Straight-Arm Pulldown",
+      "name": "Banded Straight-Arm Pulldown",
       "aliases": [
-        "straight arm pulldown"
+        "straight arm pulldown",
+        "straight-arm pulldown"
       ],
       "focus": [
         "upper"
@@ -903,9 +959,10 @@
     },
     {
       "id": "assisted-pull-up",
-      "name": "Band-Assisted Pull-Up",
+      "name": "Banded Assisted Pull-Up",
       "aliases": [
-        "assisted pull up"
+        "assisted pull up",
+        "band-assisted pull-up"
       ],
       "focus": [
         "upper"
@@ -940,8 +997,10 @@
     },
     {
       "id": "wide-high-row",
-      "name": "Wide High Row",
-      "aliases": [],
+      "name": "Banded Wide High Row",
+      "aliases": [
+        "wide high row"
+      ],
       "focus": [
         "upper"
       ],
@@ -973,9 +1032,10 @@
     },
     {
       "id": "reverse-fly",
-      "name": "Bent-Over Reverse Fly",
+      "name": "Banded Bent-Over Reverse Fly",
       "aliases": [
-        "reverse fly"
+        "reverse fly",
+        "bent-over reverse fly"
       ],
       "focus": [
         "upper"
@@ -1009,8 +1069,10 @@
     },
     {
       "id": "band-shrug",
-      "name": "Band Shrug",
-      "aliases": [],
+      "name": "Banded Shrug",
+      "aliases": [
+        "band shrug"
+      ],
       "focus": [
         "upper"
       ],
@@ -1042,9 +1104,10 @@
     },
     {
       "id": "ytw-raise",
-      "name": "Prone Y-T-W Raise",
+      "name": "Banded Prone Y-T-W Raise",
       "aliases": [
-        "ytw raise"
+        "ytw raise",
+        "prone y-t-w raise"
       ],
       "focus": [
         "upper"
@@ -1152,9 +1215,10 @@
     },
     {
       "id": "single-arm-curl",
-      "name": "Single-Arm Curl",
+      "name": "Banded Single-Arm Curl",
       "aliases": [
-        "single arm curl"
+        "single arm curl",
+        "single-arm curl"
       ],
       "focus": [
         "upper"
@@ -1224,8 +1288,10 @@
     },
     {
       "id": "tricep-pushdown",
-      "name": "Tricep Pushdown",
-      "aliases": [],
+      "name": "Banded Tricep Pushdown",
+      "aliases": [
+        "tricep pushdown"
+      ],
       "focus": [
         "upper"
       ],
@@ -1256,9 +1322,10 @@
     },
     {
       "id": "overhead-tricep-ext",
-      "name": "Overhead Tricep Extension",
+      "name": "Banded Overhead Tricep Extension",
       "aliases": [
-        "overhead tricep ext"
+        "overhead tricep ext",
+        "overhead tricep extension"
       ],
       "focus": [
         "upper"
@@ -1291,8 +1358,10 @@
     },
     {
       "id": "tricep-kickback",
-      "name": "Tricep Kickback",
-      "aliases": [],
+      "name": "Banded Tricep Kickback",
+      "aliases": [
+        "tricep kickback"
+      ],
       "focus": [
         "upper"
       ],
@@ -1508,8 +1577,10 @@
     },
     {
       "id": "bulgarian-split-squat",
-      "name": "Bulgarian Split Squat",
-      "aliases": [],
+      "name": "Banded Bulgarian Split Squat",
+      "aliases": [
+        "bulgarian split squat"
+      ],
       "focus": [
         "legs"
       ],
@@ -1698,9 +1769,10 @@
     },
     {
       "id": "single-leg-rdl",
-      "name": "Single-Leg RDL",
+      "name": "Banded Single-Leg RDL",
       "aliases": [
-        "single leg rdl"
+        "single leg rdl",
+        "single-leg rdl"
       ],
       "focus": [
         "legs"
@@ -1934,9 +2006,10 @@
     },
     {
       "id": "single-leg-bridge",
-      "name": "Single-Leg Glute Bridge",
+      "name": "Banded Single-Leg Glute Bridge",
       "aliases": [
-        "single leg bridge"
+        "single leg bridge",
+        "single-leg glute bridge"
       ],
       "focus": [
         "legs"
@@ -2079,9 +2152,10 @@
     },
     {
       "id": "glute-kickback",
-      "name": "Standing Glute Kickback",
+      "name": "Banded Standing Glute Kickback",
       "aliases": [
-        "glute kickback"
+        "glute kickback",
+        "standing glute kickback"
       ],
       "focus": [
         "legs"
@@ -2116,9 +2190,10 @@
     },
     {
       "id": "hip-abduction",
-      "name": "Standing Hip Abduction",
+      "name": "Banded Standing Hip Abduction",
       "aliases": [
-        "hip abduction"
+        "hip abduction",
+        "standing hip abduction"
       ],
       "focus": [
         "legs"
@@ -2151,9 +2226,10 @@
     },
     {
       "id": "lateral-walk",
-      "name": "Lateral Band Walk",
+      "name": "Banded Lateral Walk",
       "aliases": [
-        "lateral walk"
+        "lateral walk",
+        "lateral band walk"
       ],
       "focus": [
         "legs"
@@ -2187,8 +2263,10 @@
     },
     {
       "id": "monster-walk",
-      "name": "Monster Walk",
-      "aliases": [],
+      "name": "Banded Monster Walk",
+      "aliases": [
+        "monster walk"
+      ],
       "focus": [
         "legs"
       ],
@@ -2292,9 +2370,10 @@
     },
     {
       "id": "single-leg-calf-raise",
-      "name": "Single-Leg Calf Raise",
+      "name": "Banded Single-Leg Calf Raise",
       "aliases": [
-        "single leg calf raise"
+        "single leg calf raise",
+        "single-leg calf raise"
       ],
       "focus": [
         "legs"
@@ -2326,9 +2405,10 @@
     },
     {
       "id": "wall-sit-abduction",
-      "name": "Wall Sit with Abduction",
+      "name": "Banded Wall Sit with Abduction",
       "aliases": [
-        "wall sit abduction"
+        "wall sit abduction",
+        "wall sit with abduction"
       ],
       "focus": [
         "legs"
@@ -2404,9 +2484,10 @@
     },
     {
       "id": "tke",
-      "name": "Terminal Knee Extension",
+      "name": "Banded Terminal Knee Extension",
       "aliases": [
-        "tke"
+        "tke",
+        "terminal knee extension"
       ],
       "focus": [
         "legs"
@@ -2437,8 +2518,10 @@
     },
     {
       "id": "pallof-press",
-      "name": "Pallof Press",
-      "aliases": [],
+      "name": "Banded Pallof Press",
+      "aliases": [
+        "pallof press"
+      ],
       "focus": [
         "abs",
         "full"
@@ -2471,9 +2554,10 @@
     },
     {
       "id": "half-kneeling-pallof",
-      "name": "Half-Kneeling Pallof Press",
+      "name": "Banded Half-Kneeling Pallof Press",
       "aliases": [
-        "half kneeling pallof"
+        "half kneeling pallof",
+        "half-kneeling pallof press"
       ],
       "focus": [
         "abs"
@@ -2506,9 +2590,10 @@
     },
     {
       "id": "pallof-hold",
-      "name": "Anti-Rotation Hold",
+      "name": "Banded Anti-Rotation Hold",
       "aliases": [
-        "pallof hold"
+        "pallof hold",
+        "anti-rotation hold"
       ],
       "focus": [
         "abs"
@@ -2540,9 +2625,10 @@
     },
     {
       "id": "kneeling-crunch",
-      "name": "Kneeling Band Crunch",
+      "name": "Banded Kneeling Crunch",
       "aliases": [
-        "kneeling crunch"
+        "kneeling crunch",
+        "kneeling band crunch"
       ],
       "focus": [
         "abs"
@@ -2576,9 +2662,10 @@
     },
     {
       "id": "woodchop",
-      "name": "High-to-Low Woodchop",
+      "name": "Banded High-to-Low Woodchop",
       "aliases": [
-        "woodchop"
+        "woodchop",
+        "high-to-low woodchop"
       ],
       "focus": [
         "abs",
@@ -2614,9 +2701,10 @@
     },
     {
       "id": "reverse-woodchop",
-      "name": "Low-to-High Woodchop",
+      "name": "Banded Low-to-High Woodchop",
       "aliases": [
-        "reverse woodchop"
+        "reverse woodchop",
+        "low-to-high woodchop"
       ],
       "focus": [
         "abs",
@@ -2908,9 +2996,10 @@
     },
     {
       "id": "plank-row",
-      "name": "Plank Band Row",
+      "name": "Banded Plank Row",
       "aliases": [
-        "plank row"
+        "plank row",
+        "plank band row"
       ],
       "focus": [
         "abs",
@@ -2988,9 +3077,10 @@
     },
     {
       "id": "side-plank-abduction",
-      "name": "Side Plank with Abduction",
+      "name": "Banded Side Plank with Abduction",
       "aliases": [
-        "side plank abduction"
+        "side plank abduction",
+        "side plank with abduction"
       ],
       "focus": [
         "abs"
@@ -3214,9 +3304,10 @@
     },
     {
       "id": "squat-to-press",
-      "name": "Squat to Overhead Press",
+      "name": "Banded Squat to Overhead Press",
       "aliases": [
-        "squat to press"
+        "squat to press",
+        "squat to overhead press"
       ],
       "focus": [
         "full"
@@ -3253,9 +3344,10 @@
     },
     {
       "id": "deadlift-high-pull",
-      "name": "Deadlift to High Pull",
+      "name": "Banded Deadlift to High Pull",
       "aliases": [
-        "deadlift high pull"
+        "deadlift high pull",
+        "deadlift to high pull"
       ],
       "focus": [
         "full"
@@ -3335,9 +3427,10 @@
     },
     {
       "id": "lunge-press",
-      "name": "Reverse Lunge with Press",
+      "name": "Banded Reverse Lunge with Press",
       "aliases": [
-        "lunge press"
+        "lunge press",
+        "reverse lunge with press"
       ],
       "focus": [
         "full"
@@ -3374,9 +3467,10 @@
     },
     {
       "id": "push-up-to-row",
-      "name": "Push-Up to Row",
+      "name": "Banded Push-Up to Row",
       "aliases": [
-        "push up to row"
+        "push up to row",
+        "push-up to row"
       ],
       "focus": [
         "full",
@@ -3533,9 +3627,10 @@
     },
     {
       "id": "wu-shoulder-passthrough",
-      "name": "Band Shoulder Pass-Through",
+      "name": "Banded Shoulder Pass-Through",
       "aliases": [
-        "wu shoulder passthrough"
+        "wu shoulder passthrough",
+        "band shoulder pass-through"
       ],
       "focus": [
         "upper",
@@ -4102,9 +4197,10 @@
     },
     {
       "id": "staggered-pallof-press",
-      "name": "Staggered-Stance Pallof Press",
+      "name": "Banded Staggered-Stance Pallof Press",
       "aliases": [
-        "staggered pallof press"
+        "staggered pallof press",
+        "staggered-stance pallof press"
       ],
       "focus": [
         "abs",
@@ -4173,9 +4269,10 @@
     },
     {
       "id": "half-kneeling-chop",
-      "name": "Half-Kneeling Band Chop",
+      "name": "Banded Half-Kneeling Chop",
       "aliases": [
-        "half kneeling chop"
+        "half kneeling chop",
+        "half-kneeling band chop"
       ],
       "focus": [
         "abs",
@@ -4211,8 +4308,10 @@
     },
     {
       "id": "plank-band-drag",
-      "name": "Plank Band Drag",
-      "aliases": [],
+      "name": "Banded Plank Drag",
+      "aliases": [
+        "plank band drag"
+      ],
       "focus": [
         "abs",
         "full"
@@ -4285,9 +4384,10 @@
     },
     {
       "id": "self-anchored-crunch",
-      "name": "Self-Anchored Band Crunch",
+      "name": "Banded Self-Anchored Crunch",
       "aliases": [
-        "self anchored crunch"
+        "self anchored crunch",
+        "self-anchored band crunch"
       ],
       "focus": [
         "abs"
@@ -4321,9 +4421,10 @@
     },
     {
       "id": "standing-side-crunch",
-      "name": "Standing Band Side Crunch",
+      "name": "Banded Standing Side Crunch",
       "aliases": [
-        "standing side crunch"
+        "standing side crunch",
+        "standing band side crunch"
       ],
       "focus": [
         "abs"
@@ -4357,9 +4458,10 @@
     },
     {
       "id": "floor-pullover",
-      "name": "Floor Band Pullover",
+      "name": "Banded Floor Pullover",
       "aliases": [
-        "floor pullover"
+        "floor pullover",
+        "floor band pullover"
       ],
       "focus": [
         "upper"
@@ -4394,9 +4496,10 @@
     },
     {
       "id": "bent-over-y-raise",
-      "name": "Bent-Over Y-Raise",
+      "name": "Banded Bent-Over Y-Raise",
       "aliases": [
-        "bent over y raise"
+        "bent over y raise",
+        "bent-over y-raise"
       ],
       "focus": [
         "upper"
@@ -4431,9 +4534,10 @@
     },
     {
       "id": "squat-to-chop",
-      "name": "Squat to Band Chop",
+      "name": "Banded Squat to Chop",
       "aliases": [
-        "squat to chop"
+        "squat to chop",
+        "squat to band chop"
       ],
       "focus": [
         "full",
@@ -4470,9 +4574,10 @@
     },
     {
       "id": "lunge-to-chop",
-      "name": "Reverse Lunge to Chop",
+      "name": "Banded Reverse Lunge to Chop",
       "aliases": [
-        "lunge to chop"
+        "lunge to chop",
+        "reverse lunge to chop"
       ],
       "focus": [
         "full",
@@ -4546,9 +4651,10 @@
     },
     {
       "id": "cd-shoulder-band-stretch",
-      "name": "Band Shoulder Stretch",
+      "name": "Banded Shoulder Stretch",
       "aliases": [
-        "cd shoulder band stretch"
+        "cd shoulder band stretch",
+        "band shoulder stretch"
       ],
       "focus": [
         "upper",
@@ -5321,7 +5427,7 @@
       "contraindications": [
         "wrist_extension"
       ],
-      "setup": "Hands at shoulder height on any solid vertical surface \u2014 the side of the RV, the truck, or a tree trunk. Lower the chest to it and press back. The easiest push-up regression.",
+      "setup": "Hands at shoulder height on any solid vertical surface — the side of the RV, the truck, or a tree trunk. Lower the chest to it and press back. The easiest push-up regression.",
       "video_search": "https://www.youtube.com/results?search_query=Wall+Push-Up+proper+form+tutorial"
     },
     {
@@ -5664,7 +5770,7 @@
         "shoulder_overhead",
         "wrist_extension"
       ],
-      "setup": "High plank, arms locked. Move only the shoulder blades \u2014 pinch them together, then push the floor away. Great warm-up.",
+      "setup": "High plank, arms locked. Move only the shoulder blades — pinch them together, then push the floor away. Great warm-up.",
       "video_search": "https://www.youtube.com/results?search_query=Scapular+Push-Up+proper+form+tutorial"
     },
     {
@@ -5779,7 +5885,7 @@
         "elbow",
         "shoulder_horizontal"
       ],
-      "setup": "Grip a waist-height bar \u2014 RV ladder rung, picnic table edge, low branch \u2014 and hang underneath with a straight body. Pull the chest to the bar. Walk the feet in to make it easier.",
+      "setup": "Grip a waist-height bar — RV ladder rung, picnic table edge, low branch — and hang underneath with a straight body. Pull the chest to the bar. Walk the feet in to make it easier.",
       "video_search": "https://www.youtube.com/results?search_query=Inverted+Row+proper+form+tutorial"
     },
     {
@@ -6516,7 +6622,7 @@
         "knee_flexion_loaded",
         "lower_back_extension"
       ],
-      "setup": "Kneel with your heels hooked under the RV step or truck frame. Lower your torso forward as slowly as you can, catch with your hands, push back. Brutal \u2014 start with 3 reps.",
+      "setup": "Kneel with your heels hooked under the RV step or truck frame. Lower your torso forward as slowly as you can, catch with your hands, push back. Brutal — start with 3 reps.",
       "video_search": "https://www.youtube.com/results?search_query=Nordic+Hamstring+Curl+proper+form+tutorial"
     },
     {
@@ -6912,7 +7018,7 @@
         "knee_impact",
         "wrist_extension"
       ],
-      "setup": "Burpee without the jump \u2014 drop to the plank and snap the hips down, then pop straight back up. Easier on the shoulders.",
+      "setup": "Burpee without the jump — drop to the plank and snap the hips down, then pop straight back up. Easier on the shoulders.",
       "video_search": "https://www.youtube.com/results?search_query=Sprawl+proper+form+tutorial"
     },
     {
@@ -7225,7 +7331,7 @@
         "shoulder_overhead",
         "wrist_extension"
       ],
-      "setup": "Kick up into a handstand against a wall, chest facing the wall, hands shoulder-width. Lower your head toward the floor under control, elbows tracking forward, then press back to full lockout. Keep reps small and deliberate \u2014 this is an advanced inversion; skip it without a wall and a clear head-landing zone.",
+      "setup": "Kick up into a handstand against a wall, chest facing the wall, hands shoulder-width. Lower your head toward the floor under control, elbows tracking forward, then press back to full lockout. Keep reps small and deliberate — this is an advanced inversion; skip it without a wall and a clear head-landing zone.",
       "video_search": "https://www.youtube.com/results?search_query=Wall+Handstand+Push-Up+proper+form+tutorial"
     },
     {
@@ -7268,11 +7374,12 @@
     },
     {
       "id": "wu-band-external-rotation",
-      "name": "Band External Rotation",
+      "name": "Banded External Rotation",
       "aliases": [
         "wu band scarecrow",
         "band scarecrow",
-        "external rotation warm up"
+        "external rotation warm up",
+        "band external rotation"
       ],
       "focus": [
         "upper",
@@ -7345,8 +7452,10 @@
     },
     {
       "id": "seated-ohp",
-      "name": "Seated Band Overhead Press",
-      "aliases": [],
+      "name": "Banded Seated Overhead Press",
+      "aliases": [
+        "seated band overhead press"
+      ],
       "focus": [
         "upper"
       ],
@@ -7380,8 +7489,10 @@
     },
     {
       "id": "tall-kneeling-ohp",
-      "name": "Tall-Kneeling Overhead Press",
-      "aliases": [],
+      "name": "Banded Tall-Kneeling Overhead Press",
+      "aliases": [
+        "tall-kneeling overhead press"
+      ],
       "focus": [
         "upper",
         "abs"
@@ -7558,8 +7669,10 @@
     },
     {
       "id": "prone-band-pulldown",
-      "name": "Prone Band Pulldown",
-      "aliases": [],
+      "name": "Banded Prone Pulldown",
+      "aliases": [
+        "prone band pulldown"
+      ],
       "focus": [
         "upper"
       ],
@@ -7593,8 +7706,10 @@
     },
     {
       "id": "single-arm-pulldown",
-      "name": "Single-Arm Band Pulldown",
-      "aliases": [],
+      "name": "Banded Single-Arm Pulldown",
+      "aliases": [
+        "single-arm band pulldown"
+      ],
       "focus": [
         "upper"
       ],
@@ -7628,8 +7743,10 @@
     },
     {
       "id": "kneeling-lat-pulldown",
-      "name": "Kneeling Band Lat Pulldown",
-      "aliases": [],
+      "name": "Banded Kneeling Lat Pulldown",
+      "aliases": [
+        "kneeling band lat pulldown"
+      ],
       "focus": [
         "upper"
       ],
