@@ -223,4 +223,43 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     // The set that was actually trained still reports what was done.
     expect(screen.getByText(/Set 2: \d+ (reps|sec)/)).toBeTruthy();
   });
+
+  it('offers a way back to the still-active workout before FINISH, gone once FINISH is tapped', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const sessionId = await createSessionWithASkippedFirstSet(db);
+    const navigation = mockNavigation();
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={navigation as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
+    // Still active in the DB — nothing has been finalized by just being on this screen.
+    expect(sessionsRepo.getSession(db, sessionId)!.status).toBe('active');
+
+    await fireEvent.press(screen.getByTestId('back-to-workout'));
+    expect(navigation.replace).toHaveBeenCalledWith('Workout', {
+      sessionId,
+      reviewFromSummary: true,
+    });
+
+    // Once FINISH has run, the session is completed and there is nothing active to go back to —
+    // the button is specific to the pre-FINISH screens, which don't have it.
+    await fireEvent.press(screen.getByTestId('finish-button'));
+    await waitFor(() => expect(screen.getByTestId('return-home')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.queryByTestId('back-to-workout')).toBeNull();
+  });
 });

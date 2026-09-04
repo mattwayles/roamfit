@@ -104,9 +104,7 @@ export function fitMainEntries(
   const floorSumOf = (list: readonly SlotEntry[]) =>
     list.reduce((sum, s) => sum + floorEntry(s.entry).estimatedSec, 0);
   while (floorSumOf(survivingRequired) > politeCeiling && survivingRequired.length > 0) {
-    const dropIndex = rng
-      ? rngIndex(rng, survivingRequired.length)
-      : survivingRequired.length - 1; // no rng given (e.g. some unit tests): drop from the tail
+    const dropIndex = rng ? rngIndex(rng, survivingRequired.length) : survivingRequired.length - 1; // no rng given (e.g. some unit tests): drop from the tail
     survivingRequired.splice(dropIndex, 1);
   }
 

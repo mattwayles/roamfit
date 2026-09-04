@@ -196,6 +196,19 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
       <Pressable testID="finish-button" style={styles.finishButton} onPress={handleFinish}>
         <Text style={styles.finishButtonText}>FINISH</Text>
       </Pressable>
+
+      {/* The session is still `active` in the DB at this point — nothing is finalized until
+          FINISH is tapped above — so going back to it is genuinely resuming, not reopening
+          something already closed. Gone once FINISH is tapped (the `finished` screens below have
+          no equivalent button): completeSession has run by then and there is nothing active left
+          to return to. */}
+      <Pressable
+        testID="back-to-workout"
+        style={styles.backButton}
+        onPress={() => navigation.replace('Workout', { sessionId, reviewFromSummary: true })}
+      >
+        <Text style={styles.backButtonText}>Back to workout</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -225,6 +238,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   finishButtonText: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  backButton: {
+    marginTop: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  backButtonText: { color: '#2563eb', fontSize: 15, fontWeight: '700' },
   doneTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
   doneSubtitle: { fontSize: 14, color: '#64748b', textAlign: 'center' },
   quietMilestones: { gap: 4, marginTop: 8 },

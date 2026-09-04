@@ -4,7 +4,9 @@ export type RootStackParamList = {
    *  toggle; still requires the user to tap Generate, never applied silently. */
   Generate: { recoveryWeek?: boolean } | undefined;
   Approval: { sessionId: string };
-  Workout: { sessionId: string };
+  /** `reviewFromSummary` — arriving back from Summary before FINISH, to look at or fix something
+   *  in an already-fully-logged session. See WorkoutScreen's review-mode handling. */
+  Workout: { sessionId: string; reviewFromSummary?: boolean };
   Summary: { sessionId: string };
   Settings: undefined;
   /** The exercise library, browsable — read-only apart from assigning a demo video. */

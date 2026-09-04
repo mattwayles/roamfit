@@ -57,6 +57,7 @@ import {
   activeEntries,
   completesSection,
   findCurrentEntry,
+  positionsInOrder,
   samePosition,
   sectionHasCompletedSet,
   stepPosition,
@@ -129,7 +130,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   // abandonment both unmount this screen.
   useKeepAwake();
 
-  const { sessionId } = route.params;
+  const { sessionId, reviewFromSummary } = route.params;
   const { db, library, families } = useStore();
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [phase, setPhase] = useState<Phase>('exercise');
@@ -220,17 +221,49 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const entry = current?.entry;
   const exercise = entry ? library.exercises.find((e) => e.id === entry.exerciseId) : undefined;
 
+  // Arriving back from Summary (before FINISH) to look at or fix something: land on the last set
+  // rather than the front edge — the front edge is `null` (everything is already logged), which
+  // is exactly the empty state the auto-navigate effect below would otherwise read as "done,
+  // go to Summary" and bounce straight back out of. Runs once per arrival; `rewoundTo` afterwards
+  // is the user's own ◂◂/▸▸ navigation to keep.
+  useEffect(() => {
+    if (!reviewFromSummary || !session || rewoundTo) return;
+    const positions = positionsInOrder(session);
+    const last = positions[positions.length - 1];
+    if (last) setRewoundTo(last);
+  }, [reviewFromSummary, session]);
+
   useEffect(() => {
     // Keyed on the front edge, not on what is being viewed: the workout is over when every set is
     // logged, and a user who has stepped back to look at an earlier set has not undone that.
     //
     // The cool-down question is the one thing that stands between the last logged set and the
     // summary: its stage ends where the workout does, so without this guard the screen would
-    // navigate straight past the page it just opened.
-    if (session && !frontier && phase !== 'stage_feedback') {
+    // navigate straight past the page it just opened. Reviewing from Summary is the other case
+    // that has to sit this out — the workout was already over when the user asked to come back to
+    // it, and auto-forwarding right past them would make the return trip pointless.
+    if (session && !frontier && phase !== 'stage_feedback' && !reviewFromSummary) {
       navigation.replace('Summary', { sessionId });
     }
-  }, [session, frontier, phase, navigation, sessionId]);
+  }, [session, frontier, phase, navigation, sessionId, reviewFromSummary]);
+
+  // The one way back out of review mode — ▸▸ dead-ends at the last set since there is no front
+  // edge to walk forward to (see `handleForward` below), so this is the only route to Summary
+  // once here.
+  useEffect(() => {
+    if (!reviewFromSummary) return;
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          testID="review-done"
+          onPress={() => navigation.replace('Summary', { sessionId })}
+          style={styles.reviewDoneButton}
+        >
+          <Text style={styles.reviewDoneButtonText}>Done</Text>
+        </Pressable>
+      ),
+    });
+  }, [reviewFromSummary, navigation, sessionId]);
 
   // Hooks must run unconditionally every render — this screen has early `return`s below (loading
   // states) that would otherwise change the hook count between renders (a real bug this track
@@ -1924,6 +1957,8 @@ function Disclosure({
 
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  reviewDoneButton: { paddingHorizontal: 12, paddingVertical: 6 },
+  reviewDoneButtonText: { color: '#2563eb', fontSize: 16, fontWeight: '700' },
   container: { padding: 20, gap: 16 },
   stage: { fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' },
   // Timer row: a flex-1 spacer, the centered timer, and a flex-1 actions group — equal-width
