@@ -6752,12 +6752,11 @@
       "default_seconds": null,
       "tier": "core",
       "roles": [
-        "main",
         "warmup"
       ],
       "difficulty": "easy",
-      "progression_family": "hinge",
-      "progression_level_id": "hinge.l1",
+      "progression_family": null,
+      "progression_level_id": null,
       "contraindications": [
         "lower_back_extension"
       ],
@@ -6898,7 +6897,6 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main",
         "warmup"
       ],
       "difficulty": "easy",

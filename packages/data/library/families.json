@@ -348,9 +348,8 @@
       "levels": [
         {
           "level_id": "hinge.l1",
-          "anchor_exercise_id": "bw-good-morning",
+          "anchor_exercise_id": "glute-kickback",
           "exercise_ids": [
-            "bw-good-morning",
             "glute-kickback",
             "standing-glute-kickback"
           ]
