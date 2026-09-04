@@ -2264,7 +2264,7 @@
       ],
       "equipment": "band",
       "band": "B1-B2",
-      "anchor": "stance",
+      "anchor": "anchor-low",
       "anchor_alt": null,
       "anchor_class": "band_tension",
       "unilateral": true,
@@ -2281,7 +2281,7 @@
       "contraindications": [
         "lower_back_extension"
       ],
-      "setup": "Standing, band looped around one ankle with the other end pinned under the opposite (stance) foot. Keeping a soft bend in the stance knee and torso upright, drive the working leg straight back to full hip extension without arching the lower back.",
+      "setup": "Anchor the band low behind you and loop the other end around one ankle. Facing away from the anchor point, keeping a soft bend in the stance knee and torso upright, drive the working leg straight back to full hip extension against the band's resistance, without arching the lower back.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Standing+Glute+Kickback+proper+form+tutorial"
     },
     {
