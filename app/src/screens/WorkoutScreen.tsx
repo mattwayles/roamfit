@@ -1045,6 +1045,19 @@ function RepsExercise({
       <Text testID="exercise-name" style={styles.exerciseName}>
         {exerciseName}
       </Text>
+
+      {/* Fixed right under the name — the one thing above it (the name) is always exactly one
+          line, so this is the one part of the hero whose on-screen position never shifts with
+          the anchor badge, band picker, or rep count below it. Below the exercise name is where a
+          thumb quickly scanning through a set expects to find it, not wherever it happened to
+          land after however much of the rest of the hero rendered this time. */}
+      <SetNavRow
+        onRewind={onRewind}
+        onSwap={onSwap}
+        onSkip={onSkip}
+        forwardIsSkip={forwardIsSkip}
+      />
+
       {/* What the band goes on, right under what the exercise is — the two setup facts a user
           reads before they pick anything up, together. */}
       <AnchorBadge anchor={anchor} anchorAlt={anchorAlt} />
@@ -1103,13 +1116,6 @@ function RepsExercise({
       >
         <Text style={styles.completeButtonText}>COMPLETE</Text>
       </Pressable>
-
-      <SetNavRow
-        onRewind={onRewind}
-        onSwap={onSwap}
-        onSkip={onSkip}
-        forwardIsSkip={forwardIsSkip}
-      />
     </View>
   );
 }
@@ -1610,6 +1616,18 @@ function TimedExercise({
       <Text testID="exercise-name" style={styles.exerciseName}>
         {exerciseName}
       </Text>
+
+      {/* Fixed right under the name — see the same row in `RepsExercise` for why: it's the one
+          part of the hero whose position never shifts under the phase engine driving the ring
+          through get-ready/hold/switch-sides, or the ±5s buttons and "end early" hint coming and
+          going below it. */}
+      <SetNavRow
+        onRewind={onRewind}
+        onSwap={onSwap}
+        onSkip={onSkip}
+        forwardIsSkip={forwardIsSkip}
+      />
+
       {/* What the band goes on, right under what the exercise is — the two setup facts a user
           reads before they pick anything up, together. */}
       <AnchorBadge anchor={anchor} anchorAlt={anchorAlt} />
@@ -1706,13 +1724,6 @@ function TimedExercise({
           Press and hold to end early
         </Text>
       )}
-
-      <SetNavRow
-        onRewind={onRewind}
-        onSwap={onSwap}
-        onSkip={onSkip}
-        forwardIsSkip={forwardIsSkip}
-      />
     </View>
   );
 }
