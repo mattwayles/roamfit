@@ -14,7 +14,17 @@
  * image if product wants one.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  InputAccessoryView,
+  Keyboard,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { completeSession, milestonesRepo, sessionsRepo } from '@roamfit/store';
@@ -160,8 +170,14 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     setFinished(true);
   };
 
+  const retrospectiveAccessoryId = 'retrospective-accessory';
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
+    >
       <Text style={styles.heading}>
         {session.focus} · {session.targetMinutes} min · {session.difficulty}
       </Text>
@@ -191,7 +207,23 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
         onChangeText={setRetrospective}
         placeholder="How did that feel?"
         multiline
+        inputAccessoryViewID={retrospectiveAccessoryId}
       />
+      {/* `InputAccessoryView` is iOS-only, which is the only platform this app ships on. A plain
+          `returnKeyType="done"` would have to double as "insert newline" on a multiline field, so
+          it can't also mean "dismiss the keyboard" without giving up typing paragraph breaks.
+          This gives the keyboard its own explicit Done button without taking that away. */}
+      <InputAccessoryView nativeID={retrospectiveAccessoryId}>
+        <View style={styles.keyboardAccessory}>
+          <Pressable
+            testID="retrospective-done"
+            onPress={() => Keyboard.dismiss()}
+            style={styles.keyboardAccessoryButton}
+          >
+            <Text style={styles.keyboardAccessoryButtonText}>Done</Text>
+          </Pressable>
+        </View>
+      </InputAccessoryView>
 
       <Pressable testID="finish-button" style={styles.finishButton} onPress={handleFinish}>
         <Text style={styles.finishButtonText}>FINISH</Text>
@@ -244,6 +276,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backButtonText: { color: '#2563eb', fontSize: 15, fontWeight: '700' },
+  keyboardAccessory: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    backgroundColor: '#f1f5f9',
+    padding: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#cbd5e1',
+  },
+  keyboardAccessoryButton: { paddingHorizontal: 12, paddingVertical: 6 },
+  keyboardAccessoryButtonText: { color: '#2563eb', fontSize: 16, fontWeight: '700' },
   doneTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
   doneSubtitle: { fontSize: 14, color: '#64748b', textAlign: 'center' },
   quietMilestones: { gap: 4, marginTop: 8 },

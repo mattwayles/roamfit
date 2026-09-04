@@ -6,7 +6,7 @@
  * fires "before anything else," not just that it type-checks.
  */
 import React from 'react';
-import { Share } from 'react-native';
+import { Keyboard, Share } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createRng, seedFromString } from '@roamfit/engine';
@@ -222,6 +222,34 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     expect(screen.queryByText(/Set 1: — /)).toBeNull();
     // The set that was actually trained still reports what was done.
     expect(screen.getByText(/Set 2: \d+ (reps|sec)/)).toBeTruthy();
+  });
+
+  it('the retrospective keyboard has its own Done button, distinct from typing a newline', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const sessionId = await createSessionWithASkippedFirstSet(db);
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={mockNavigation() as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('retrospective-done')).toBeTruthy(), WAIT_OPTS);
+    const dismissSpy = jest.spyOn(Keyboard, 'dismiss');
+    await fireEvent.press(screen.getByTestId('retrospective-done'));
+    expect(dismissSpy).toHaveBeenCalledTimes(1);
+    dismissSpy.mockRestore();
   });
 
   it('offers a way back to the still-active workout before FINISH, gone once FINISH is tapped', async () => {
