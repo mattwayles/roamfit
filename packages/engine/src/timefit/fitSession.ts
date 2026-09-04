@@ -1,10 +1,15 @@
 /**
  * §5.1 step 6 — run the §5.6 budget formula; add or drop until within ±10% of target. Operates
- * on already-prescribed entries (required slots first, then optional slots in template priority
- * order) — selection/progression/prescription have already produced each entry's `estimatedSec`;
- * this stage only decides how many of the *optional* entries make the cut. Required entries are
- * never dropped here (a required slot that couldn't be filled at all is a PATTERN GAP, handled
- * upstream in selection, not a time-fit trim).
+ * on already-prescribed entries in template priority order (required slots first, then optional)
+ * — selection/progression/prescription have already produced each entry's `estimatedSec`.
+ *
+ * No focus's required pattern slots are a hard floor on session length: with a realistic
+ * per-exercise transition buffer, a short target genuinely cannot always fit every required
+ * pattern even at the 1-set floor. `required` is priority, not a guarantee — it means "try this
+ * before any optional slot," not "include no matter what." A slot that still doesn't fit at its
+ * 1-set floor is dropped exactly like an optional one would be, rather than forcing the session
+ * over budget. (A required slot with *zero eligible exercises* is a different thing, a PATTERN
+ * GAP, handled upstream in selection — this is purely about time, not eligibility.)
  */
 import type { SessionEntry } from '../types';
 import { cooldownMinutes, mainBudgetSec, mainExerciseCountRange, warmupMinutes } from './formulas';
@@ -38,11 +43,9 @@ export function fitMainEntries(
   // (one short movement, not several minutes' worth) — sizing the main budget off the formula
   // instead of reality was starving Quick Session's main budget down to almost nothing.
   const budgetSec = Math.max(0, targetMinutes * 60 - warmupSec - cooldownSec);
-  const required = slots.filter((s) => s.required).map((s) => s.entry);
-  const optional = slots.filter((s) => !s.required).map((s) => s.entry);
 
-  let total = required.reduce((sum, e) => sum + e.estimatedSec, 0);
-  const chosen = [...required];
+  let total = 0;
+  const chosen: SessionEntry[] = [];
 
   // §5.6: "fill main_sec until the next exercise would overshoot." Strictly never cross the
   // polite +10% ceiling on the ADD side — an earlier version of this function let the loop reach
@@ -51,24 +54,27 @@ export function fitMainEntries(
   // overruns against a promised time (§1.1 names overrunning specifically as the churn risk,
   // worse than a shortfall a caller can label honestly). A shortfall from under-supply is now
   // fixed upstream by giving this function more optional entries to choose from
-  // (`template.expandOptionalSlots`), not by letting this loop overshoot to compensate. If
-  // required entries alone are already over the ceiling, that's on the caller to trim via
-  // prescription (see `pipeline.ts`'s corrective sets multiplier) — this loop only ever adds.
+  // (`template.expandOptionalSlots`), not by letting this loop overshoot to compensate.
   //
   // Two bugs, found together by an independent review of carried-forward issue #7 (§5.5/§5.6):
-  // (1) this loop used to `break` on the first optional entry that didn't fit, which makes slot
-  // *order* rather than slot *size* decide what gets in — a smaller entry later in the
-  // (priority-ordered) list could fit the remaining room but was never even tried. Now it tries
-  // every remaining optional entry regardless of an earlier miss.
-  // (2) even trying every entry, several real optional entries (e.g. an isolation exercise
-  // prescribed at 3 sets) can all be larger than the room actually left, while a *smaller*
-  // prescription of that same exercise (fewer sets) would fit and is still real, useful work —
-  // preferable to leaving the slot empty. Before giving up on a candidate that doesn't fit at its
-  // prescribed size, try it at one fewer set at a time (down to the 1-set floor); use the
-  // smallest trimmed version that fits, never one that still doesn't.
+  // (1) this loop used to `break` on the first entry that didn't fit, which makes slot *order*
+  // rather than slot *size* decide what gets in — a smaller entry later in the (priority-ordered)
+  // list could fit the remaining room but was never even tried. Now it tries every remaining
+  // entry regardless of an earlier miss.
+  // (2) even trying every entry, several real entries (e.g. an isolation exercise prescribed at 3
+  // sets) can all be larger than the room actually left, while a *smaller* prescription of that
+  // same exercise (fewer sets) would fit and is still real, useful work — preferable to leaving
+  // the slot empty. Before giving up on a candidate that doesn't fit at its prescribed size, try
+  // it at one fewer set at a time (down to the 1-set floor); use the smallest trimmed version
+  // that fits, never one that still doesn't.
+  //
+  // This applies uniformly to required and optional slots alike — see the module comment above.
+  // Required slots are tried first (template order puts them ahead of optional ones), so they get
+  // first claim on the budget, but a required slot that still can't fit even at 1 set is dropped
+  // rather than forced through.
   const politeCeiling = budgetSec * 1.1;
-  for (const entry of optional) {
-    let candidate = entry;
+  for (const slot of slots) {
+    let candidate = slot.entry;
     let candidateTotal = total + candidate.estimatedSec;
     while (candidateTotal > politeCeiling && candidate.sets > 1) {
       const trimmed = withOneFewerSet(candidate);
@@ -81,7 +87,7 @@ export function fitMainEntries(
       total = candidateTotal;
     }
     // else: this entry genuinely can't fit even at the 1-set floor — skip it and keep trying the
-    // rest of the optional list, rather than stopping here.
+    // rest of the list, rather than stopping here.
   }
 
   const estimatedMinutes = Math.round((warmupSec + cooldownSec + total) / 60);

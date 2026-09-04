@@ -61,7 +61,7 @@ async function sessionAtLastSetOf(db: Db, seed: string, section: 'warmup' | 'coo
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library: exerciseLibrary,
     families: familyLibrary,
-    request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+    request: { focus: 'full', difficulty: 'medium', targetMinutes: 60 },
     clock,
     rng: createRng(seedFromString(seed)),
     utcInstant,
@@ -174,7 +174,7 @@ describe('§8.1 stage feedback: one question per warm-up and per cool-down', () 
     const { plan, comebackTier, recoveryWeekManual } = generate(db, {
       library: exerciseLibrary,
       families: familyLibrary,
-      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 60 },
       clock,
       rng: createRng(seedFromString('stage-midwarmup-seed')),
       utcInstant,
@@ -260,7 +260,7 @@ describe('§8.1 stage feedback: one question per warm-up and per cool-down', () 
     const { plan, comebackTier, recoveryWeekManual } = generate(db, {
       library: exerciseLibrary,
       families: familyLibrary,
-      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 60 },
       clock,
       rng: createRng(seedFromString('stage-allskipped-seed')),
       utcInstant,

@@ -25,8 +25,15 @@ function clamp(n: number, low: number, high: number): number {
   return Math.min(Math.max(n, low), high);
 }
 
-/** Straight-set rep-based exercise. `anchorRebuild` adds 45s instead of 30s when the anchor must
- *  be re-set up between exercises (e.g. switching to a different anchor point). */
+/** Real-world time to close out one exercise and get set up for the next: re-reading the next
+ *  movement, changing bands/handles, finding the right anchor point and tension. Feedback from
+ *  generated sessions showed the old 30s flat buffer badly undercounted this — 30s barely covers
+ *  putting one band down, let alone the anchor search. `anchorRebuild` scales the same buffer up
+ *  further for exercises that also require moving to a different anchor point entirely. */
+const TRANSITION_BUFFER_SEC = 120;
+const ANCHOR_REBUILD_BUFFER_SEC = 180;
+
+/** Straight-set rep-based exercise. */
 export function repExerciseSec(params: {
   sets: number;
   reps: number;
@@ -37,10 +44,10 @@ export function repExerciseSec(params: {
 }): number {
   const workSec = params.reps * params.tempoSec * (params.unilateral ? 2 : 1);
   const setSec = workSec + params.restSec;
-  return params.sets * setSec + (params.anchorRebuild ? 45 : 30);
+  return params.sets * setSec + (params.anchorRebuild ? ANCHOR_REBUILD_BUFFER_SEC : TRANSITION_BUFFER_SEC);
 }
 
-/** Timed exercise (§5.6: `sets × (duration_sec + rest_sec) + 30`, ×2 if unilateral). */
+/** Timed exercise (§5.6: `sets × (duration_sec + rest_sec) + transition buffer`, ×2 if unilateral). */
 export function timedExerciseSec(params: {
   sets: number;
   durationSec: number;
@@ -50,7 +57,7 @@ export function timedExerciseSec(params: {
 }): number {
   const perSet = params.durationSec + params.restSec;
   const base = params.sets * perSet * (params.unilateral ? 2 : 1);
-  return base + (params.anchorRebuild ? 45 : 30);
+  return base + (params.anchorRebuild ? ANCHOR_REBUILD_BUFFER_SEC : TRANSITION_BUFFER_SEC);
 }
 
 /**

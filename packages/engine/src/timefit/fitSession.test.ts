@@ -21,14 +21,17 @@ function entry(estimatedSec: number, id: string): SessionEntry {
 }
 
 describe('§5.1 step 6 time fit', () => {
-  it('never drops a required entry', () => {
+  it('trims a required entry before dropping it, and drops it if even 1 set does not fit', () => {
     const slots = [
       { required: true, entry: entry(600, 'a') },
       { required: true, entry: entry(600, 'b') },
       { required: true, entry: entry(600, 'c') },
     ];
+    // Required is priority, not a guarantee (see module comment): 'a' and 'b' get trimmed to 2
+    // sets each to fit; 'c' still doesn't fit even at the 1-set floor and is dropped, rather than
+    // forcing the session over budget.
     const result = fitMainEntries(slots, 15, 180, 180); // small budget, big required load
-    expect(result.main.map((e) => e.exerciseId)).toEqual(['a', 'b', 'c']);
+    expect(result.main.map((e) => e.exerciseId)).toEqual(['a', 'b']);
   });
 
   it('adds optional entries until the next one would overshoot the budget', () => {
@@ -43,13 +46,13 @@ describe('§5.1 step 6 time fit', () => {
     expect(result.main.map((e) => e.exerciseId)).toEqual(['req1', 'opt1', 'opt2', 'opt3']);
   });
 
-  it('stops adding once the next optional entry would exceed the +10% ceiling', () => {
+  it('trims a required entry to make room for an optional one that still fits smaller', () => {
     const slots = [
       { required: true, entry: entry(600, 'req1') },
-      { required: false, entry: entry(900, 'opt1') }, // would blow well past budget+10%
+      { required: false, entry: entry(900, 'opt1') }, // too big as-is, but fits once trimmed
     ];
     const result = fitMainEntries(slots, 15, 180, 180); // budget = (15-3-3)*60=540s
-    expect(result.main.map((e) => e.exerciseId)).toEqual(['req1']);
+    expect(result.main.map((e) => e.exerciseId)).toEqual(['req1', 'opt1']);
   });
 
   it('reports the exercise-count sanity check from §5.6', () => {

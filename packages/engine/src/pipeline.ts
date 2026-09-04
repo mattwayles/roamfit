@@ -36,7 +36,6 @@ import {
   prescribeAccessory,
   prescribeLaddered,
   prescribeWarmupCooldown,
-  withOneFewerSet,
 } from './prescription/prescribe';
 import { fitMainEntries } from './timefit/fitSession';
 import type { SlotEntry } from './timefit/fitSession';
@@ -387,43 +386,6 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   }
   const warmupSec = warmupEntries.reduce((a, e) => a + e.estimatedSec, 0);
   const cooldownSec = cooldownEntries.reduce((a, e) => a + e.estimatedSec, 0);
-
-  // Overrun correction: if the REQUIRED entries alone (before any optional slot is even
-  // considered) already exceed the +10% ceiling, trim sets rather than dropping a required
-  // pattern slot (§5.6) — at ANY target length, not just short ones (a 25-60min session can
-  // overrun just as easily as a 15min one when its required patterns happen to run long).
-  // Sized against the *actual* warmup/cooldown time just resolved above, not the clamp-formula
-  // estimate — see the comment on `budgetSec` inside `fitMainEntries` for why that matters.
-  //
-  // Removes exactly one set at a time from whichever required entry is currently largest, rather
-  // than a proportional multiplier: a multiplier rounds to the nearest integer sets count, which
-  // is too coarse to move anything when the needed correction is under ~15%
-  // (`round(3 * 0.9) === 3`) — that coarseness was letting real, mainstream-target overruns
-  // through uncorrected. `withOneFewerSet` floors at 1 set per entry; if every required entry is
-  // already at 1 set and the total still exceeds the ceiling, that's a genuine, reported overrun
-  // (see below) — not silently ignored, but confirmed to be the true floor, not a rounding miss.
-  const requiredSlotIds = new Set(template.slots.filter((s) => s.required).map((s) => s.id));
-  function requiredMainSecTotal(): number {
-    let sum = 0;
-    for (const id of requiredSlotIds) sum += entriesBySlotId.get(id)?.estimatedSec ?? 0;
-    return sum;
-  }
-  const mainBudgetSecActual = Math.max(0, targetMinutes * 60 - warmupSec - cooldownSec);
-  const ceilingSec = mainBudgetSecActual * 1.1;
-  let trimGuard = 200; // bounded: at most a few sets per required entry, never truly unbounded
-  while (requiredMainSecTotal() > ceilingSec && trimGuard-- > 0) {
-    let largestId: string | undefined;
-    let largestSec = -1;
-    for (const id of requiredSlotIds) {
-      const entry = entriesBySlotId.get(id);
-      if (entry && entry.sets > 1 && entry.estimatedSec > largestSec) {
-        largestSec = entry.estimatedSec;
-        largestId = id;
-      }
-    }
-    if (!largestId) break; // every required entry is already at the sets floor
-    entriesBySlotId.set(largestId, withOneFewerSet(entriesBySlotId.get(largestId)!));
-  }
 
   // §5.1 step 6 — time fit, over the slots in template priority order. With the expanded
   // optional-slot supply above, this can now actually fill a long budget instead of stopping

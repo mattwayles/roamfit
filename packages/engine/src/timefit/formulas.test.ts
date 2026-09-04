@@ -15,8 +15,8 @@ describe('§5.6 time budget formulas', () => {
     expect(warmupMinutes(90)).toBe(8); // clamped down
   });
 
-  it('matches the SKILL.md worked example: 30min medium upper, ~29min estimate', () => {
-    // warm-up 4, cool-down 3, main budget 1380s; each exercise 3 x (11reps x 3s + 45s rest) + 30
+  it('per-exercise transition buffer accounts for real setup time between exercises', () => {
+    // warm-up 4, cool-down 3, main budget 1380s; each exercise 3 x (11reps x 3s + 45s rest) + 120
     expect(warmupMinutes(30)).toBe(4);
     expect(cooldownMinutes(30)).toBe(3);
     expect(mainBudgetSec(30)).toBe(1380);
@@ -27,11 +27,11 @@ describe('§5.6 time budget formulas', () => {
       restSec: 45,
       unilateral: false,
     });
-    expect(perExercise).toBe(264);
-    const count = Math.floor(1380 / 264);
-    expect(count).toBe(5);
-    const totalMin = 4 + 3 + Math.round((count * 264) / 60);
-    expect(totalMin).toBe(29);
+    expect(perExercise).toBe(354);
+    const count = Math.floor(1380 / 354);
+    expect(count).toBe(3);
+    const totalMin = 4 + 3 + Math.round((count * 354) / 60);
+    expect(totalMin).toBe(25);
   });
 
   it('unilateral doubles the work seconds', () => {
@@ -53,7 +53,7 @@ describe('§5.6 time budget formulas', () => {
     expect(unilateral - bilateral).toBe(3 * 10 * 3); // extra work_sec per set, x3 sets
   });
 
-  it('anchor rebuild adds 45s instead of 30s', () => {
+  it('anchor rebuild adds 180s instead of 120s', () => {
     const normal = repExerciseSec({
       sets: 3,
       reps: 10,
@@ -69,12 +69,12 @@ describe('§5.6 time budget formulas', () => {
       unilateral: false,
       anchorRebuild: true,
     });
-    expect(rebuild - normal).toBe(15);
+    expect(rebuild - normal).toBe(60);
   });
 
   it('timed exercise formula matches §5.6', () => {
     const sec = timedExerciseSec({ sets: 3, durationSec: 30, restSec: 45, unilateral: false });
-    expect(sec).toBe(3 * (30 + 45) + 30);
+    expect(sec).toBe(3 * (30 + 45) + 120);
   });
 
   it('exercise-count sanity check matches the §5.6 table', () => {
