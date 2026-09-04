@@ -395,7 +395,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     const entry = entriesBySlotId.get(slot.id);
     if (entry) slotEntries.push({ required: slot.required, entry });
   }
-  const fit = fitMainEntries(slotEntries, targetMinutes, warmupSec, cooldownSec);
+  const fit = fitMainEntries(slotEntries, targetMinutes, warmupSec, cooldownSec, rng);
 
   // `withinTenPercent` is §5.6's actual requirement, not a decoration — read it. If the session
   // still falls outside ±10% after the corrective sets-trim above and every optional slot the
@@ -482,7 +482,19 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     minimumTargetClamp,
     comebackNotice: comeback.notice ?? undefined,
     calibrationFirstSessionNotice: !userState.hasEverCompletedSession,
-    balancedAgainst: fit.main[0]?.pattern,
+    // The highest-priority surviving entry, in *template* order — not `fit.main[0]`, which is now
+    // shuffled within each priority tier (see fitSession.ts) so that a tight time budget doesn't
+    // always squeeze out the same trailing pattern. This still reflects the pattern the session is
+    // "balanced against" (the alternation §5.5 already applies per-focus), independent of the
+    // order the fill loop happened to settle on.
+    balancedAgainst: (() => {
+      const survivingIds = new Set(fit.main.map((e) => e.exerciseId));
+      for (const slot of template.slots) {
+        const candidate = entriesBySlotId.get(slot.id);
+        if (candidate && survivingIds.has(candidate.exerciseId)) return candidate.pattern;
+      }
+      return undefined;
+    })(),
   });
 
   return {

@@ -1,19 +1,33 @@
 /**
  * §5.1 step 6 — run the §5.6 budget formula; add or drop until within ±10% of target. Operates
- * on already-prescribed entries in template priority order (required slots first, then optional)
- * — selection/progression/prescription have already produced each entry's `estimatedSec`.
+ * on already-prescribed entries, required slots ahead of optional ones — selection/progression/
+ * prescription have already produced each entry's `estimatedSec`.
  *
  * No focus's required pattern slots are a hard floor on session length: with a realistic
  * per-exercise transition buffer, a short target genuinely cannot always fit every required
  * pattern even at the 1-set floor. `required` is priority, not a guarantee — it means "try this
- * before any optional slot," not "include no matter what." A slot that still doesn't fit at its
- * 1-set floor is dropped exactly like an optional one would be, rather than forcing the session
- * over budget. (A required slot with *zero eligible exercises* is a different thing, a PATTERN
- * GAP, handled upstream in selection — this is purely about time, not eligibility.)
+ * before any optional slot," not "include no matter what." When a drop is unavoidable, *which*
+ * required slot goes is randomized (when an `rng` is given) rather than always the one listed
+ * last in template order — see the comment below. (A required slot with *zero eligible
+ * exercises* is a different thing, a PATTERN GAP, handled upstream in selection — this is purely
+ * about time, not eligibility.)
  */
-import type { SessionEntry } from '../types';
+import type { Rng, SessionEntry } from '../types';
 import { cooldownMinutes, mainBudgetSec, mainExerciseCountRange, warmupMinutes } from './formulas';
-import { withOneFewerSet } from '../prescription/prescribe';
+import { estimateEntrySec, withOneFewerSet } from '../prescription/prescribe';
+import { rngIndex } from '../rng';
+
+/** The smallest this entry can be trimmed down to (1 set), for judging whether a *set* of
+ *  entries can possibly all fit before committing to trimming any one of them. */
+function floorEntry(entry: SessionEntry): SessionEntry {
+  let e = entry;
+  while (e.sets > 1) {
+    const trimmed = withOneFewerSet(e);
+    if (trimmed.sets === e.sets) break;
+    e = trimmed;
+  }
+  return e;
+}
 
 export interface SlotEntry {
   required: boolean;
@@ -35,6 +49,7 @@ export function fitMainEntries(
   targetMinutes: number,
   warmupSec: number,
   cooldownSec: number,
+  rng?: Rng,
 ): FitResult {
   // Use the *actual* prescribed warmup/cooldown time to size the main budget, not
   // `mainBudgetSec`'s clamp-formula estimate of what they'd typically take. The two normally
@@ -73,7 +88,63 @@ export function fitMainEntries(
   // first claim on the budget, but a required slot that still can't fit even at 1 set is dropped
   // rather than forced through.
   const politeCeiling = budgetSec * 1.1;
-  for (const slot of slots) {
+
+  // If the required slots can't all fit *even at their 1-set floor*, one or more has to go before
+  // the fill loop below ever runs — otherwise the fill loop's fixed template order would always
+  // sacrifice whichever slot happens to be listed last (e.g. `full`'s squat/hinge/push/pull/core:
+  // core always losing, session after session, to patterns that are no more important than it
+  // is). That's a predictable, not a deliberate, priority — nothing in the spec ranks squat over
+  // core. So when a drop is genuinely unavoidable, pick the slot(s) to drop at random (when an
+  // `rng` is given) rather than by position; everything that survives is still fit and trimmed
+  // below in ordinary, deterministic template-priority order, exactly as when nothing needed
+  // dropping at all — this only changes who gets sacrificed, not how the rest is measured.
+  const required = slots.filter((s) => s.required);
+  const optional = slots.filter((s) => !s.required);
+  const survivingRequired = [...required];
+  const floorSumOf = (list: readonly SlotEntry[]) =>
+    list.reduce((sum, s) => sum + floorEntry(s.entry).estimatedSec, 0);
+  while (floorSumOf(survivingRequired) > politeCeiling && survivingRequired.length > 0) {
+    const dropIndex = rng
+      ? rngIndex(rng, survivingRequired.length)
+      : survivingRequired.length - 1; // no rng given (e.g. some unit tests): drop from the tail
+    survivingRequired.splice(dropIndex, 1);
+  }
+
+  // Seed every surviving required entry at its 1-set floor first, which the check above already
+  // guaranteed fits collectively — so none of them can be starved out entirely by an earlier
+  // survivor greedily claiming a full, untrimmed size (the risk with trying full-size-first:
+  // entry A fitting at its full 3 sets can leave less room than its own floor would have, so
+  // entry B ends up unable to fit even at 1 set, despite the floor check having confirmed A+B fit
+  // when *both* are at floor). Then hand back whatever slack remains, one set at a time, in
+  // template order — every survivor is already guaranteed a floor slot, so this only decides who
+  // gets *more* than the floor, never who gets dropped.
+  const requiredTargetSets = new Map(survivingRequired.map((s) => [s.entry, s.entry.sets]));
+  const requiredIndices: number[] = [];
+  for (const s of survivingRequired) {
+    const floored = floorEntry(s.entry);
+    requiredIndices.push(chosen.length);
+    chosen.push(floored);
+    total += floored.estimatedSec;
+  }
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (let i = 0; i < requiredIndices.length; i++) {
+      const idx = requiredIndices[i];
+      const current = chosen[idx];
+      const targetSets = requiredTargetSets.get(survivingRequired[i].entry)!;
+      if (current.sets >= targetSets) continue;
+      const grownSets = current.sets + 1;
+      const grownSec = estimateEntrySec({ ...current, sets: grownSets });
+      const delta = grownSec - current.estimatedSec;
+      if (total + delta > politeCeiling) continue;
+      chosen[idx] = { ...current, sets: grownSets, estimatedSec: grownSec };
+      total += delta;
+      grew = true;
+    }
+  }
+
+  for (const slot of optional) {
     let candidate = slot.entry;
     let candidateTotal = total + candidate.estimatedSec;
     while (candidateTotal > politeCeiling && candidate.sets > 1) {
