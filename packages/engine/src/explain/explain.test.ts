@@ -57,12 +57,13 @@ describe('§5.8 the explanation line', () => {
     expect(text).toMatch(/Used a band for rowing/);
   });
 
-  it('states a stated-imbalance PATTERN GAP plainly — never silent', () => {
+  it('absorbs a stated-imbalance PATTERN GAP silently — not every session needs every pattern', () => {
     const text = composeExplanation({
       ...base(),
       patternGaps: [{ pattern: 'horizontal_pull', resolution: 'stated_imbalance' }],
     });
-    expect(text).toMatch(/No rowing today — this session is deliberately unbalanced/);
+    expect(text).not.toMatch(/rowing/);
+    expect(text).not.toMatch(/unbalanced/);
   });
 
   it('carries the §9.4 comeback copy verbatim, first in the line', () => {

@@ -63,9 +63,15 @@ export interface ExplanationInputs {
   noveltyExerciseNames: readonly string[];
   /** §6.3/progression/resolveSlot.ts session-only ladder substitutions. */
   substitutions: readonly SubstitutionFact[];
+  /** A `used_band` gap is still called out (the band swap is worth knowing about); a
+   *  `stated_imbalance` gap — a required pattern with nothing at all to fill it — is absorbed
+   *  silently here. Not every session needs every pattern its focus would ideally cover, and
+   *  calling that out as a deliberate "imbalance" read as a flaw rather than a normal outcome.
+   *  The fact still reaches the caller on `plan.patternGaps` either way; this only stops it from
+   *  becoming a sentence. */
   patternGaps: readonly PatternGapFact[];
   /** §5.6 — set only when, after every fill/trim lever, the estimate still falls outside ±10%
-   *  of target. Never silent, the same as a PATTERN GAP. */
+   *  of target. */
   timeBudgetDeviation?: TimeBudgetDeviationFact;
   /** ADR 0002 — the requested length was below the 15-minute floor and got bumped up. */
   minimumTargetClamp?: { requestedMinutes: number; effectiveMinutes: number };
@@ -108,12 +114,9 @@ export function composeExplanation(input: ExplanationInputs): string {
   }
 
   for (const gap of input.patternGaps) {
+    if (gap.resolution !== 'used_band') continue; // stated_imbalance: absorbed silently, not called out
     const label = PATTERN_LABELS[gap.pattern];
-    sentences.push(
-      gap.resolution === 'used_band'
-        ? `Used a band for ${label} since bodyweight alone can't cover it.`
-        : `No ${label} today — this session is deliberately unbalanced without it.`,
-    );
+    sentences.push(`Used a band for ${label} since bodyweight alone can't cover it.`);
   }
 
   for (const sub of input.substitutions) {
