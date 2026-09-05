@@ -72,6 +72,7 @@ import type { Difficulty } from '../components/FeedbackControls';
 import BandPicker from '../components/BandPicker';
 import DemoMedia from '../components/DemoMedia';
 import AbandonSessionButton from '../components/AbandonSessionButton';
+import SpotifyControls from '../components/SpotifyControls';
 import {
   configureWorkoutAudioSession,
   setCueSoundsEnabled,
@@ -896,6 +897,14 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         </View>
       </View>
       <Text style={styles.stage}>{entry.section}</Text>
+
+      {/* Sits with the session-level controls (timer, mute, pause, stop) rather than with the
+          exercise content, because that is what it is: something about this whole workout, not
+          about this set. Above the phase view so it is in the same place during a set and during
+          a rest — rest is when a user actually reaches for it, and a control that moves between
+          the two moments is a control you have to look for. Renders nothing at all when there is
+          no Spotify, so a user who doesn't use it never pays the row. */}
+      <SpotifyControls />
 
       {swapNotice != null && (
         <Text testID="swap-notice" style={styles.swapNotice}>
