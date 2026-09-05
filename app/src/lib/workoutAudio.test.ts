@@ -14,12 +14,14 @@ import {
   cueHalfway,
   cueRestZero,
   cueStart,
+  setCueSoundsEnabled,
 } from './workoutAudio';
+
+afterEach(() => setCueSoundsEnabled(true));
 
 describe('workoutAudio', () => {
   it('configureWorkoutAudioSession never throws even without a real expo-audio native module', async () => {
-    await expect(configureWorkoutAudioSession(false)).resolves.toBeUndefined();
-    await expect(configureWorkoutAudioSession(true)).resolves.toBeUndefined();
+    await expect(configureWorkoutAudioSession()).resolves.toBeUndefined();
   });
 
   it('every cue helper is safe to call with no native audio module present', () => {
@@ -42,5 +44,21 @@ describe('workoutAudio', () => {
     cueCount();
     expect(spy).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Light);
     spy.mockRestore();
+  });
+
+  it('muting silences tones but never the haptics that carry the same information', () => {
+    setCueSoundsEnabled(false);
+    const impact = jest.spyOn(Haptics, 'impactAsync');
+    const notify = jest.spyOn(Haptics, 'notificationAsync');
+
+    expect(() => cueCount()).not.toThrow();
+    expect(() => cueRestZero()).not.toThrow();
+
+    // §10.8 — a muted user still gets every cue physically. Muting is about not making noise, not
+    // about training without cues, so this is the assertion that has to hold when tones are off.
+    expect(impact).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Light);
+    expect(notify).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Success);
+    impact.mockRestore();
+    notify.mockRestore();
   });
 });

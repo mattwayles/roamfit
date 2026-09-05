@@ -50,6 +50,9 @@ export const users = sqliteTable('users', {
   anchorsAvailable: text('anchors_available').notNull(),
   passportEnabled: integer('passport_enabled', { mode: 'boolean' }).notNull().default(false),
   healthWriteEnabled: integer('health_write_enabled', { mode: 'boolean' }).notNull().default(false),
+  /** §10.8 — do the timer cue *tones* sound? Haptics are unconditional either way. Migration
+   *  0014. */
+  cueSoundsEnabled: integer('cue_sounds_enabled', { mode: 'boolean' }).notNull().default(true),
   /** JSON: { enabled, quiet_hours, observed_training_window }. */
   notificationPrefs: text('notification_prefs').notNull().default('{}'),
   /** §12 — the tz_id last observed for this device; compared against a new session's tz_id to

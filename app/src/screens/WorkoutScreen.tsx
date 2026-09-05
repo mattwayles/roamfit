@@ -74,6 +74,7 @@ import DemoMedia from '../components/DemoMedia';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import {
   configureWorkoutAudioSession,
+  setCueSoundsEnabled,
   cueCompletion,
   cueCount,
   cueHalfway,
@@ -158,7 +159,23 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   /** One-line result of the last swap. Informational, never blocking. */
   const [swapNotice, setSwapNotice] = useState<string | null>(null);
   /** §1140 — band colours are user data, not a palette this screen invents. */
-  const bandTensions = usersRepo.ensureUser(db, nowUtcInstant()).bandTensions;
+  const user = usersRepo.ensureUser(db, nowUtcInstant());
+  const bandTensions = user.bandTensions;
+  /**
+   * §10.8 — mute for *this* workout, on top of the persisted "Timer sounds" setting. Deliberately
+   * not persisted: it answers "not right now, I'm on a call / the baby's asleep", which is a fact
+   * about today's session and not a preference to carry into the next one. Only offered when the
+   * setting is on — with sounds already off globally there is nothing here to mute, and a control
+   * that cannot change anything is worse than no control.
+   */
+  const [mutedThisWorkout, setMutedThisWorkout] = useState(false);
+  const soundsAvailable = user.cueSoundsEnabled;
+  useEffect(() => {
+    setCueSoundsEnabled(soundsAvailable && !mutedThisWorkout);
+    // Leaving the workout hands the module back to the persisted setting, so a session mute can
+    // never leak into whatever plays cues next.
+    return () => setCueSoundsEnabled(soundsAvailable);
+  }, [soundsAvailable, mutedThisWorkout]);
   /** §10.4 — the pending set completion held back by the "your timer is still paused" nudge, or
    *  null when nothing is waiting. Holding the arguments (not just a flag) is what lets the nudge
    *  be a genuine question: whichever way it is answered, the reps the user already entered are
@@ -195,11 +212,8 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     const id = setInterval(() => forceElapsedTick((n) => n + 1), 1000);
     // §10.8 — configured once for the life of the session, re-asserted here rather than only at
     // app boot: the guard against Wave 6's YouTube player having last left the shared audio
-    // session in a different shape (see workoutAudio.ts's file header). No persisted "silent
-    // switch override" setting exists yet (no settings UI in this track's scope) — defaults to
-    // `false`, the safe choice: cues respect the physical silent switch until a future settings
-    // screen wires a real override through.
-    void configureWorkoutAudioSession(false);
+    // session in a different shape (see workoutAudio.ts's file header).
+    void configureWorkoutAudioSession();
     void ensureNotificationPermission();
     return () => clearInterval(id);
   }, [reload]);
@@ -855,6 +869,19 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
         </Text>
         <View style={[styles.timerRowSpacer, styles.timerRowActions]}>
+          {soundsAvailable && (
+            <Pressable
+              testID="mute-workout"
+              accessibilityRole="button"
+              accessibilityLabel={
+                mutedThisWorkout ? 'Unmute sounds for this workout' : 'Mute sounds for this workout'
+              }
+              style={styles.sessionIconButton}
+              onPress={() => setMutedThisWorkout((m) => !m)}
+            >
+              <Text style={styles.sessionIconText}>{mutedThisWorkout ? '🔇' : '🔊'}</Text>
+            </Pressable>
+          )}
           <Pressable
             testID="pause-workout"
             accessibilityRole="button"

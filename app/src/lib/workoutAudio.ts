@@ -18,13 +18,22 @@
  * "the tone actually sounds right." That still needs a real device run (see the status file).
  *
  * §10.8 session shape, configured once here for the life of the app:
- *   - `interruptionMode: 'duckOthers'` — audio ducks over music rather than interrupting it.
- *   - `playsInSilentMode` follows the user's own override setting (default `false`, meaning cues
- *     respect the iOS silent switch — the physical switch silences them exactly like any other
- *     non-`playsInSilentMode` app); flipping the override to `true` is the explicit escape hatch
- *     the spec calls for.
- *   - `shouldPlayInBackground: true` — required for the rest timer to keep making sound with the
- *     screen locked or the app backgrounded (§10.7).
+ *   - `interruptionMode: 'mixWithOthers'` — the cues layer *over* whatever else is playing without
+ *     touching that app's session at all. This is what expo-audio itself recommends for "sound
+ *     effects, UI feedback, or short audio clips", which is exactly what these are.
+ *   - `playsInSilentMode: true` and `shouldPlayInBackground: true` — the rest timer has to keep
+ *     making sound with the screen locked or the app backgrounded (§10.7), and on iOS that
+ *     requires the playback category, which is not silenced by the physical switch. The way to
+ *     silence cues is now the explicit setting (`setCueSoundsEnabled`), not the hardware switch.
+ *
+ * **This trio is load-bearing, and getting it wrong fails silently.** `AudioUtils.validateAudioMode`
+ * in the native module rejects `playsInSilentMode: false` combined with *either* `duckOthers` or
+ * `shouldPlayInBackground`, and `setAudioModeAsync` throws — into the best-effort catch below,
+ * where nothing surfaced it. The session was therefore never configured at all and fell through to
+ * iOS's default `soloAmbient`, which is non-mixing: every 3-2-1 beep activated an exclusive session
+ * and deactivated it again, so background music paused on each beep and resumed between them. If
+ * this needs changing, check `validateAudioMode` first — a throw here is invisible at runtime.
+ *
  * **Wave 6 note**: the in-app YouTube IFrame player must never call `setAudioModeAsync` with an
  * interruption mode other than `'duckOthers'`/`'mixWithOthers'`, and must never disable
  * `shouldPlayInBackground` — either would silently steal priority from these cues. Configuring
@@ -82,17 +91,16 @@ function getPlayer(key: SoundKey): AudioPlayer | null {
 }
 
 /** §10.8 — call once per workout session (mount of the active screen). Idempotent: re-asserts
- *  the session shape every time, which is also the Wave-6-hijack guard described above.
- *  `silentSwitchOverride` is the user's persisted setting (§10.8 "a user override"); default is
- *  `false` (respect the physical silent switch). */
-export async function configureWorkoutAudioSession(silentSwitchOverride: boolean): Promise<void> {
+ *  the session shape every time, which is also the Wave-6-hijack guard described above. See the
+ *  file header before changing any of these three fields — they validate as a set. */
+export async function configureWorkoutAudioSession(): Promise<void> {
   const mod = loadAudioModule();
   if (!mod) return;
   try {
     await mod.setAudioModeAsync({
-      playsInSilentMode: silentSwitchOverride,
+      playsInSilentMode: true,
       shouldPlayInBackground: true,
-      interruptionMode: 'duckOthers',
+      interruptionMode: 'mixWithOthers',
       shouldRouteThroughEarpiece: false,
     });
   } catch {
@@ -100,7 +108,24 @@ export async function configureWorkoutAudioSession(silentSwitchOverride: boolean
   }
 }
 
+/**
+ * Whether cue *tones* sound. Two independent inputs collapse into this one flag, both owned by the
+ * caller: the user's persisted "timer sounds" setting, and the per-workout mute on the active
+ * screen. Held at module level rather than threaded through every `cue*` call so the two can never
+ * drift apart between call sites — the same reasoning as the combined cue helpers below.
+ *
+ * Haptics are deliberately NOT gated by it (§10.8, "haptics carry the same information when
+ * muted"): a muted user still gets every cue, physically. Muting is about not making noise, not
+ * about training blind.
+ */
+let cueSoundsEnabled = true;
+
+export function setCueSoundsEnabled(enabled: boolean): void {
+  cueSoundsEnabled = enabled;
+}
+
 function playSound(key: SoundKey): void {
+  if (!cueSoundsEnabled) return;
   const player = getPlayer(key);
   if (!player) return;
   try {

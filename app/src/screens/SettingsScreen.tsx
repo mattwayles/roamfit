@@ -65,6 +65,14 @@ export default function SettingsScreen(): React.JSX.Element {
     [db, refresh],
   );
 
+  const toggleCueSounds = useCallback(
+    (value: boolean) => {
+      usersRepo.updateUser(db, { cueSoundsEnabled: value }, nowUtcInstant());
+      refresh();
+    },
+    [db, refresh],
+  );
+
   const toggleQuietHours = useCallback(
     (value: boolean) => {
       usersRepo.updateUser(
@@ -146,6 +154,23 @@ export default function SettingsScreen(): React.JSX.Element {
             onValueChange={toggleHealthWrite}
           />
         </View>
+      </Section>
+
+      <Section title="Sounds">
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>Timer sounds</Text>
+          <Switch
+            testID="toggle-cue-sounds"
+            value={user.cueSoundsEnabled}
+            onValueChange={toggleCueSounds}
+          />
+        </View>
+        <Text style={styles.body}>
+          The 3-2-1 count, the halfway chime and the end-of-rest tone. They mix with whatever else
+          is playing rather than pausing it. Vibration cues are unaffected either way, so a silent
+          workout still tells you when a hold or a rest is up. There is also a mute button on the
+          workout itself, for one session at a time.
+        </Text>
       </Section>
 
       <Section title="Notifications">

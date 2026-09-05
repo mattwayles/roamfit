@@ -393,6 +393,14 @@ UPDATE sessions SET effort = 'medium' WHERE effort = 'normal';
 UPDATE session_entries SET effort = 'medium' WHERE effort = 'normal';
 `;
 
+const MIGRATION_0014_CUE_SOUNDS = `-- 0014_cue_sounds.sql — the 3-2-1 / completion / rest-zero cue tones (§10.8) become a user
+-- setting. Default 1 (on), which is the behaviour every existing install already has, so no row
+-- changes meaning. Haptics are not covered by this and stay unconditional: muting is about not
+-- making noise, not about training without cues.
+
+ALTER TABLE users ADD COLUMN cue_sounds_enabled INTEGER NOT NULL DEFAULT 1;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -413,4 +421,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0011_session_pause.sql', sql: MIGRATION_0011_SESSION_PAUSE },
   { id: '0012_exercise_disabled.sql', sql: MIGRATION_0012_EXERCISE_DISABLED },
   { id: '0013_effort_to_difficulty.sql', sql: MIGRATION_0013_EFFORT_TO_DIFFICULTY },
+  { id: '0014_cue_sounds.sql', sql: MIGRATION_0014_CUE_SOUNDS },
 ];

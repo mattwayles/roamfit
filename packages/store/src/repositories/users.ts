@@ -66,6 +66,7 @@ export interface UserRecord {
   bandTensions: Record<BandId, BandTension>;
   passportEnabled: boolean;
   healthWriteEnabled: boolean;
+  cueSoundsEnabled: boolean;
   notificationPrefs: NotificationPrefs;
   lastKnownTzId: string | null;
   hasEverCompletedSession: boolean;
@@ -95,6 +96,7 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
     ),
     passportEnabled: row.passportEnabled,
     healthWriteEnabled: row.healthWriteEnabled,
+    cueSoundsEnabled: row.cueSoundsEnabled,
     notificationPrefs: JSON.parse(row.notificationPrefs) as NotificationPrefs,
     lastKnownTzId: row.lastKnownTzId,
     hasEverCompletedSession: row.hasEverCompletedSession,
@@ -129,6 +131,7 @@ export interface UserPatch {
   anchorsAvailable?: Anchor[];
   passportEnabled?: boolean;
   healthWriteEnabled?: boolean;
+  cueSoundsEnabled?: boolean;
   /** Shallow-merged onto the existing `notificationPrefs`, not replaced wholesale — a settings
    *  screen editing one field must not clobber others it doesn't know about. */
   notificationPrefs?: NotificationPrefs;
@@ -144,6 +147,7 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
   }
   if (patch.passportEnabled !== undefined) values.passportEnabled = patch.passportEnabled;
   if (patch.healthWriteEnabled !== undefined) values.healthWriteEnabled = patch.healthWriteEnabled;
+  if (patch.cueSoundsEnabled !== undefined) values.cueSoundsEnabled = patch.cueSoundsEnabled;
   if (patch.notificationPrefs !== undefined) {
     values.notificationPrefs = JSON.stringify({
       ...current.notificationPrefs,
