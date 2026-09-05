@@ -1,0 +1,13 @@
+diff --git a/node_modules/@wwdrew/expo-spotify-sdk/plugin/build/ios/withSpotifyIosPod.js b/node_modules/@wwdrew/expo-spotify-sdk/plugin/build/ios/withSpotifyIosPod.js
+index 09bce20..aabcb00 100644
+--- a/node_modules/@wwdrew/expo-spotify-sdk/plugin/build/ios/withSpotifyIosPod.js
++++ b/node_modules/@wwdrew/expo-spotify-sdk/plugin/build/ios/withSpotifyIosPod.js
+@@ -9,7 +9,7 @@ exports.PODFILE_SPOTIFY_IOS_TAG = "expo-spotify-sdk-spotify-ios-pod";
+  * Standard CocoaPods binary pod — SpotifyiOS.podspec uses `source: { http: ... }`
+  * so CocoaPods downloads and runs `prepare_command` (unlike `:path` pods).
+  */
+-exports.PODFILE_SPOTIFY_IOS_POD = `  pod 'SpotifyiOS', :podspec => File.join(__dir__, '../node_modules/@wwdrew/expo-spotify-sdk/spotify-ios/SpotifyiOS.podspec')`;
++exports.PODFILE_SPOTIFY_IOS_POD = `  pod 'SpotifyiOS', :podspec => File.join(File.dirname(File.dirname(\`node --print "require.resolve('@wwdrew/expo-spotify-sdk')"\`)), 'spotify-ios/SpotifyiOS.podspec')`;
+ function applySpotifyIosPod(podfileContents) {
+     const merged = (0, generateCode_1.mergeContents)({
+         tag: exports.PODFILE_SPOTIFY_IOS_TAG,
