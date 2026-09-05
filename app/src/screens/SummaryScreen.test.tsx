@@ -12,11 +12,11 @@
  */
 import React from 'react';
 import { Keyboard, Share } from 'react-native';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import { generate, sessionsRepo, usersRepo } from '@roamfit/store';
+import { completeSession, generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import SummaryScreen from './SummaryScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
@@ -24,7 +24,13 @@ import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
 function mockNavigation() {
-  return { navigate: jest.fn(), replace: jest.fn(), reset: jest.fn(), goBack: jest.fn() };
+  return {
+    navigate: jest.fn(),
+    replace: jest.fn(),
+    reset: jest.fn(),
+    goBack: jest.fn(),
+    setOptions: jest.fn(),
+  };
 }
 
 function Setup({ onReady }: { onReady: (db: ReturnType<typeof useStore>['db']) => void }) {
@@ -113,7 +119,8 @@ async function createSessionWithASkippedFirstSet(
   });
   sessionsRepo.startSession(db, sessionId, utcInstant);
   const session = sessionsRepo.getSession(db, sessionId)!;
-  const entry = session.entries.find((e) => e.entryStatus !== 'removed_at_approval')!;
+  const active = session.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
+  const entry = active[0]!;
   sessionsRepo.logSet(
     db,
     {
@@ -140,6 +147,28 @@ async function createSessionWithASkippedFirstSet(
     },
     utcInstant,
   );
+  // Log every remaining set (this entry's own set 2+, plus every other entry in full) so the
+  // session is fully logged — SummaryScreen only shows FINISH/retrospective once the front edge
+  // is gone, and these tests are about set-line rendering, not partial-completion behavior.
+  for (const e of active) {
+    const startIndex = e.id === entry.id ? 2 : 0;
+    for (let i = startIndex; i < e.sets; i += 1) {
+      sessionsRepo.logSet(
+        db,
+        {
+          entryId: e.id,
+          setIndex: i,
+          status: 'completed',
+          repsPrescribed: e.repTarget ?? undefined,
+          secondsPrescribed: e.durationSec ?? undefined,
+          repsActual: e.repTarget ?? undefined,
+          secondsActual: e.durationSec ?? undefined,
+          restPrescribedSec: e.restSec,
+        },
+        utcInstant,
+      );
+    }
+  }
   return sessionId;
 }
 
@@ -212,6 +241,9 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
 
     const sessionId = await createSessionWithASkippedFirstSet(db);
+    const firstEntry = sessionsRepo
+      .getSession(db, sessionId)!
+      .entries.find((e) => e.entryStatus !== 'removed_at_approval')!;
     render(
       <StoreProvider>
         <NavigationContainer>
@@ -224,12 +256,274 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     );
 
     await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
+    const firstEntryBlock = within(screen.getByTestId(`summary-${firstEntry.exerciseId}`));
     // The skipped set says so. It used to render as "⚠ Set 1: — sec", which reads like a set that
     // was performed and measured nothing.
-    expect(screen.getByText(/Set 1: Skipped/)).toBeTruthy();
-    expect(screen.queryByText(/Set 1: — /)).toBeNull();
+    expect(firstEntryBlock.getByText(/Set 1: Skipped/)).toBeTruthy();
+    expect(firstEntryBlock.queryByText(/Set 1: — /)).toBeNull();
     // The set that was actually trained still reports what was done.
-    expect(screen.getByText(/Set 2: \d+ (reps|sec)/)).toBeTruthy();
+    expect(firstEntryBlock.getByText(/Set 2: \d+ (reps|sec)/)).toBeTruthy();
+  });
+
+  it('a set line is pressable, and jumps back to exactly that bookmark', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const sessionId = await createSessionWithASkippedFirstSet(db);
+    const firstEntry = sessionsRepo
+      .getSession(db, sessionId)!
+      .entries.find((e) => e.entryStatus !== 'removed_at_approval')!;
+    const navigation = mockNavigation();
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={navigation as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
+    const skippedSetLog = sessionsRepo
+      .getSession(db, sessionId)!
+      .entries.find((e) => e.id === firstEntry.id)!.setLogs[0]!;
+    await fireEvent.press(screen.getByTestId(`summary-set-${skippedSetLog.id}`));
+    expect(navigation.replace).toHaveBeenCalledWith('Workout', {
+      sessionId,
+      jumpTo: { entryId: firstEntry.id, setIndex: 0 },
+    });
+  });
+
+  it('mid-workout, FINISH and the retrospective are hidden and a bold line marks where the user currently is', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('summary-live-seed')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    sessionsRepo.startSession(db, sessionId, utcInstant);
+    // Nothing logged at all — a genuinely mid-workout, real-time progress check.
+    const session = sessionsRepo.getSession(db, sessionId)!;
+    const first = session.entries.find((e) => e.entryStatus !== 'removed_at_approval')!;
+    const navigation = mockNavigation();
+
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={navigation as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.queryByTestId('finish-button')).toBeNull();
+    expect(screen.queryByTestId('retrospective-input')).toBeNull();
+    expect(screen.getByTestId(`summary-current-${first.id}`)).toBeTruthy();
+    expect(screen.getByText(/Set 1 — you are here/)).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId(`summary-current-${first.id}`));
+    expect(navigation.replace).toHaveBeenCalledWith('Workout', {
+      sessionId,
+      jumpTo: { entryId: first.id, setIndex: 0 },
+    });
+  });
+
+  it('mid-workout, "Back to workout" resumes at the front edge — no reviewFromSummary', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('summary-live-back-seed')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    sessionsRepo.startSession(db, sessionId, utcInstant);
+    // Nothing logged — a real front edge, so this is the mid-workout case, not the pre-FINISH one.
+    const navigation = mockNavigation();
+
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={navigation as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId('back-to-workout'));
+    expect(navigation.replace).toHaveBeenCalledWith('Workout', { sessionId });
+  });
+
+  it('mid-workout, the header back button (not just the in-page one) returns to the set it arrived from, and the swipe-back gesture is disabled', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('summary-header-back-live-seed')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    sessionsRepo.startSession(db, sessionId, utcInstant);
+    // Nothing logged — a genuine mid-workout front edge, the case the reported bug was about:
+    // Workout is `replace`d out of the stack by the "Progress" button, so the native back chevron
+    // and iOS edge-swipe have nothing correct left to pop to unless this screen overrides them.
+    const navigation = mockNavigation();
+
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={navigation as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(navigation.setOptions).toHaveBeenCalled(), WAIT_OPTS);
+    const lastOptions = navigation.setOptions.mock.calls.at(-1)![0];
+    expect(lastOptions.gestureEnabled).toBe(false);
+    const headerView = await render(lastOptions.headerLeft());
+    fireEvent.press(headerView.getByTestId('summary-back'));
+    // Same target the in-page "Back to workout" button uses for this case: resume at the front
+    // edge, not a forced reviewFromSummary jump to the last set (there is nothing logged yet).
+    expect(navigation.replace).toHaveBeenCalledWith('Workout', { sessionId });
+  }, 20000);
+
+  it('pre-FINISH with everything logged, the header back button lands on the last set, matching "Back to workout"', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const sessionId = await createSessionWithASkippedFirstSet(db);
+    const navigation = mockNavigation();
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={navigation as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(navigation.setOptions).toHaveBeenCalled(), WAIT_OPTS);
+    const lastOptions = navigation.setOptions.mock.calls.at(-1)![0];
+    expect(lastOptions.gestureEnabled).toBe(false);
+    const headerView = await render(lastOptions.headerLeft());
+    fireEvent.press(headerView.getByTestId('summary-back'));
+    expect(navigation.replace).toHaveBeenCalledWith('Workout', {
+      sessionId,
+      reviewFromSummary: true,
+    });
+  });
+
+  it('once FINISH has run, the header back override is lifted — there is nothing active left to return to', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const sessionId = await createSessionWithASkippedFirstSet(db);
+    const navigation = mockNavigation();
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={navigation as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId('finish-button'));
+    await waitFor(
+      () =>
+        expect(navigation.setOptions).toHaveBeenLastCalledWith({
+          gestureEnabled: true,
+          headerLeft: undefined,
+        }),
+      WAIT_OPTS,
+    );
   });
 
   it('the retrospective keyboard has its own Done button, distinct from typing a newline', async () => {
@@ -312,6 +606,27 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
         utcInstant,
       );
     }
+    // Log every other entry in full too — SummaryScreen only shows FINISH once the front edge is
+    // gone, and this test is about per-set band text, not partial-completion behavior.
+    for (const e of started.entries.filter((x) => x.entryStatus !== 'removed_at_approval')) {
+      if (e.id === banded.id) continue;
+      for (let i = 0; i < e.sets; i += 1) {
+        sessionsRepo.logSet(
+          db,
+          {
+            entryId: e.id,
+            setIndex: i,
+            status: 'completed',
+            repsPrescribed: e.repTarget ?? undefined,
+            secondsPrescribed: e.durationSec ?? undefined,
+            repsActual: e.repTarget ?? undefined,
+            secondsActual: e.durationSec ?? undefined,
+            restPrescribedSec: e.restSec,
+          },
+          utcInstant,
+        );
+      }
+    }
 
     render(
       <StoreProvider>
@@ -368,5 +683,62 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     await fireEvent.press(screen.getByTestId('finish-button'));
     await waitFor(() => expect(screen.getByTestId('return-home')).toBeTruthy(), WAIT_OPTS);
     expect(screen.queryByTestId('back-to-workout')).toBeNull();
+  });
+
+  it('the completion screen is a celebration — confetti, a big banner, and the running workout count', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    // Complete one prior workout directly against the store, so the one under test is the
+    // user's 2nd — proves the ordinal reads from real completed-session history, not a stub.
+    const priorId = await createSessionWithASkippedFirstSet(db);
+    completeSession(
+      db,
+      { sessionId: priorId, library: exerciseLibrary, families: familyLibrary },
+      nowUtcInstant(),
+    );
+
+    // The test db is shared across cases in this file, so assert against the real count rather
+    // than assuming this is the user's literal 2nd workout ever.
+    const n = sessionsRepo.countCompletedSessions(db) + 1;
+    const suffix = [11, 12, 13].includes(n % 100)
+      ? 'th'
+      : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
+    const expectedOrdinal = `${n}${suffix}`;
+
+    const sessionId = await createSessionWithASkippedFirstSet(db);
+    const navigation = mockNavigation();
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={navigation as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId('finish-button'));
+
+    // Step through any full-screen level-up/mastery celebrations first — the completion
+    // celebration is the screen underneath those, never stacked on top.
+    for (let guard = 0; guard < 10; guard += 1) {
+      if (screen.queryByTestId('session-complete')) break;
+      if (!screen.queryByTestId('celebration-continue')) break;
+      await fireEvent.press(screen.getByTestId('celebration-continue'));
+    }
+
+    await waitFor(() => expect(screen.getByTestId('session-complete')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByTestId('confetti-burst')).toBeTruthy();
+    expect(screen.getByTestId('workout-count')).toHaveTextContent(
+      `You just finished your ${expectedOrdinal} workout on RoamFit!`,
+    );
   });
 });

@@ -12,9 +12,17 @@
  * formatted text card — a real share action, not a rendered PNG. Recorded as a scope cut in
  * STATUS-5-motivation.md; a future wave can add `react-native-view-shot` for a literal branded
  * image if product wants one.
+ *
+ * The plain completion screen underneath those (no level-up, or every one already stepped
+ * through) is deliberately loud too — confetti, haptics, a big banner, and the user's running
+ * workout count. Finishing a session is the one thing this app should never treat as routine:
+ * invariant 4 ("never punish") has a positive counterpart that isn't written down anywhere else,
+ * which is to actually celebrate the win. `ConfettiBurst` is a plain `Animated`-API component,
+ * not a new dependency — the app has no confetti/lottie/reanimated library installed.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   InputAccessoryView,
   Keyboard,
   Pressable,
@@ -32,13 +40,18 @@ import type { CompleteSessionResult } from '@roamfit/store';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
+import { findCurrentEntry } from '../lib/sessionProgress';
 import { buildCelebrationViewModel, type FullScreenCelebration } from '../lib/celebration';
+import { hapticCompletion } from '../lib/workoutAudio';
+import ConfettiBurst from '../components/ConfettiBurst';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Summary'>;
 
 function statusIcon(status: string): string {
-  if (status === 'completed') return '✓';
-  if (status === 'skipped') return '⚠';
+  if (status === 'completed') return '✅';
+  // A neutral "skip" glyph, not a warning — invariant 4: a skipped set is a choice, not a
+  // problem the icon should read as flagging.
+  if (status === 'skipped') return '⏭';
   return '·';
 }
 
@@ -86,6 +99,22 @@ function celebrationShareText(c: FullScreenCelebration): string {
       }.`;
 }
 
+/** "1st" / "2nd" / "3rd" / "4th"... for the completion banner. */
+function ordinal(n: number): string {
+  const rem100 = n % 100;
+  if (rem100 >= 11 && rem100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
+
 export default function SummaryScreen({ navigation, route }: Props): React.JSX.Element {
   const { sessionId } = route.params;
   const { db, library, families } = useStore();
@@ -97,6 +126,8 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   const [milestones, setMilestones] = useState<milestonesRepo.MilestoneRecord[]>([]);
   const [finished, setFinished] = useState(false);
   const [celebrationIndex, setCelebrationIndex] = useState(0);
+  const [workoutCount, setWorkoutCount] = useState(0);
+  const bannerScale = useRef(new Animated.Value(0)).current;
 
   useFocusEffect(
     useCallback(() => {
@@ -112,7 +143,71 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     [result, milestones, library, families],
   );
 
+  // §10.8 — the workout's own front edge. Non-null here means this screen is being viewed as a
+  // real-time progress check on a still-in-progress workout (reached from the "Progress" button
+  // on every page of the active workout), not the end-of-workout completion screen: FINISH and
+  // the retrospective don't belong on a screen that isn't at the end yet.
+  const frontier = session ? findCurrentEntry(session) : null;
+
+  // This screen is reached from the middle of an active workout (WorkoutScreen's own "Progress"
+  // button `replace`s it, so Workout is no longer under Summary on the stack), so the default
+  // header back chevron and edge-swipe gesture have nothing correct to pop to — without this they
+  // fall through to whatever screen was open *before* the workout started (Home, most of the
+  // time), silently abandoning the session mid-review. Overriding both to run the same logic as
+  // the in-page "Back to workout" button makes every way of leaving this screen land back on the
+  // exact set it was opened from. Turned back off once FINISH has actually run: `completeSession`
+  // has already happened by then, so replaying back into `Workout` would just re-open a completed
+  // session and immediately bounce back here.
+  useEffect(() => {
+    if (finished) {
+      navigation.setOptions({ gestureEnabled: true, headerLeft: undefined });
+      return;
+    }
+    if (!session) return;
+    navigation.setOptions({
+      gestureEnabled: false,
+      headerLeft: () => (
+        <Pressable
+          testID="summary-back"
+          onPress={() =>
+            navigation.replace(
+              'Workout',
+              frontier ? { sessionId } : { sessionId, reviewFromSummary: true },
+            )
+          }
+          style={styles.headerBackButton}
+          hitSlop={8}
+        >
+          <Text style={styles.headerBackButtonText}>‹ Back</Text>
+        </Pressable>
+      ),
+    });
+  }, [navigation, sessionId, session, finished, frontier]);
+
+  // The plain completion screen, after every full-screen level-up/mastery celebration has been
+  // stepped through (or there were none) — invariant 4/§1.1 territory in reverse: this is the one
+  // moment that's allowed, even meant, to be as loud as possible. Haptics + the banner's bounce-in
+  // fire exactly once, when this screen first becomes visible.
+  const showingCompletionScreen =
+    finished && result !== null && celebrationIndex >= celebration.fullScreen.length;
+
+  useEffect(() => {
+    if (!showingCompletionScreen) return;
+    hapticCompletion();
+    bannerScale.setValue(0);
+    Animated.spring(bannerScale, {
+      toValue: 1,
+      friction: 4,
+      tension: 55,
+      useNativeDriver: true,
+    }).start();
+  }, [showingCompletionScreen, bannerScale]);
+
   if (!session) return <View style={styles.centered} />;
+
+  const jumpToSet = (entryId: string, setIndex: number) => {
+    navigation.replace('Workout', { sessionId, jumpTo: { entryId, setIndex } });
+  };
 
   const handleShare = (text: string) => {
     // Fire-and-forget, matches §9.10 "never auto-posts" — this only opens the native share sheet;
@@ -151,28 +246,41 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     }
 
     return (
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.doneTitle}>Session complete</Text>
-        <Text style={styles.doneSubtitle}>{Math.round(result.actualMinutes)} min</Text>
+      <View style={styles.doneScreen} testID="session-complete">
+        <ConfettiBurst />
+        <ScrollView contentContainerStyle={styles.doneContainer}>
+          <Animated.View style={{ transform: [{ scale: bannerScale }] }}>
+            <Text style={styles.doneBannerEmoji}>🎉🙌🎉</Text>
+            <Text style={styles.doneBanner}>CONGRATULATIONS!</Text>
+          </Animated.View>
 
-        {celebration.quiet.length > 0 && (
-          <View testID="quiet-milestones" style={styles.quietMilestones}>
-            {celebration.quiet.map((m, i) => (
-              <Text key={i} style={styles.quietMilestoneText}>
-                · {m.text}
-              </Text>
-            ))}
-          </View>
-        )}
+          <Text style={styles.doneCountText} testID="workout-count">
+            You just finished your {ordinal(workoutCount)} workout on RoamFit!
+          </Text>
 
-        <Pressable
-          testID="return-home"
-          style={styles.finishButton}
-          onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Home' }] })}
-        >
-          <Text style={styles.finishButtonText}>Done</Text>
-        </Pressable>
-      </ScrollView>
+          <Text style={styles.doneSubtitle}>
+            {Math.round(result.actualMinutes)} min · {session.focus}
+          </Text>
+
+          {celebration.quiet.length > 0 && (
+            <View testID="quiet-milestones" style={styles.quietMilestones}>
+              {celebration.quiet.map((m, i) => (
+                <Text key={i} style={styles.quietMilestoneText}>
+                  ⭐ {m.text}
+                </Text>
+              ))}
+            </View>
+          )}
+
+          <Pressable
+            testID="return-home"
+            style={styles.doneFinishButton}
+            onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Home' }] })}
+          >
+            <Text style={styles.doneFinishButtonText}>Heck yes!</Text>
+          </Pressable>
+        </ScrollView>
+      </View>
     );
   }
 
@@ -185,6 +293,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     setResult(completion);
     setMilestones(milestonesRepo.getMilestonesForSession(db, sessionId));
     setCelebrationIndex(0);
+    setWorkoutCount(sessionsRepo.countCompletedSessions(db));
     setFinished(true);
   };
 
@@ -208,55 +317,88 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
               {library.exercises.find((e) => e.id === entry.exerciseId)?.name ?? entry.exerciseId}
             </Text>
             {entry.setLogs.map((log) => (
-              <Text key={log.id} style={styles.setLine} testID={`summary-set-${log.id}`}>
-                {statusIcon(log.status)} Set {log.setIndex + 1}: {setResultText(log)}
-                {setBandText(log, bandTensions)}
-                {entry.difficultyFeedback ? ` · ${entry.difficultyFeedback}` : ''}
-                {entry.enjoymentFeedback ? ` · ${entry.enjoymentFeedback}/5` : ''}
-              </Text>
+              <Pressable
+                key={log.id}
+                testID={`summary-set-${log.id}`}
+                onPress={() => jumpToSet(entry.id, log.setIndex)}
+              >
+                <Text style={styles.setLine}>
+                  {statusIcon(log.status)} Set {log.setIndex + 1}: {setResultText(log)}
+                  {setBandText(log, bandTensions)}
+                  {entry.difficultyFeedback ? ` · ${entry.difficultyFeedback}` : ''}
+                  {entry.enjoymentFeedback ? ` · ${entry.enjoymentFeedback}/5` : ''}
+                </Text>
+              </Pressable>
             ))}
+            {/* §10.8 — a bold "you are here" line for the entry the front edge is currently on,
+                only meaningful while the workout is still in progress (frontier is null once
+                everything is logged). Pressable like every other set line, landing on exactly
+                this bookmark — a no-op if you're already looking at it. */}
+            {frontier && frontier.entry.id === entry.id && (
+              <Pressable
+                testID={`summary-current-${entry.id}`}
+                onPress={() => jumpToSet(entry.id, frontier.setIndex)}
+              >
+                <Text style={styles.currentSetLine}>
+                  ▶ Set {frontier.setIndex + 1} — you are here
+                </Text>
+              </Pressable>
+            )}
           </View>
         ))}
 
-      <Text style={styles.sectionLabel}>Retrospective (optional)</Text>
-      <TextInput
-        testID="retrospective-input"
-        style={styles.retrospectiveInput}
-        value={retrospective}
-        onChangeText={setRetrospective}
-        placeholder="How did that feel?"
-        multiline
-        inputAccessoryViewID={retrospectiveAccessoryId}
-      />
-      {/* `InputAccessoryView` is iOS-only, which is the only platform this app ships on. A plain
-          `returnKeyType="done"` would have to double as "insert newline" on a multiline field, so
-          it can't also mean "dismiss the keyboard" without giving up typing paragraph breaks.
-          This gives the keyboard its own explicit Done button without taking that away. */}
-      <InputAccessoryView nativeID={retrospectiveAccessoryId}>
-        <View style={styles.keyboardAccessory}>
-          <Pressable
-            testID="retrospective-done"
-            onPress={() => Keyboard.dismiss()}
-            style={styles.keyboardAccessoryButton}
-          >
-            <Text style={styles.keyboardAccessoryButtonText}>Done</Text>
-          </Pressable>
-        </View>
-      </InputAccessoryView>
+      {!frontier && (
+        <>
+          <Text style={styles.sectionLabel}>Retrospective (optional)</Text>
+          <TextInput
+            testID="retrospective-input"
+            style={styles.retrospectiveInput}
+            value={retrospective}
+            onChangeText={setRetrospective}
+            placeholder="How did that feel?"
+            multiline
+            inputAccessoryViewID={retrospectiveAccessoryId}
+          />
+          {/* `InputAccessoryView` is iOS-only, which is the only platform this app ships on. A
+              plain `returnKeyType="done"` would have to double as "insert newline" on a multiline
+              field, so it can't also mean "dismiss the keyboard" without giving up typing
+              paragraph breaks. This gives the keyboard its own explicit Done button without
+              taking that away. */}
+          <InputAccessoryView nativeID={retrospectiveAccessoryId}>
+            <View style={styles.keyboardAccessory}>
+              <Pressable
+                testID="retrospective-done"
+                onPress={() => Keyboard.dismiss()}
+                style={styles.keyboardAccessoryButton}
+              >
+                <Text style={styles.keyboardAccessoryButtonText}>Done</Text>
+              </Pressable>
+            </View>
+          </InputAccessoryView>
 
-      <Pressable testID="finish-button" style={styles.finishButton} onPress={handleFinish}>
-        <Text style={styles.finishButtonText}>FINISH</Text>
-      </Pressable>
+          <Pressable testID="finish-button" style={styles.finishButton} onPress={handleFinish}>
+            <Text style={styles.finishButtonText}>FINISH</Text>
+          </Pressable>
+        </>
+      )}
 
       {/* The session is still `active` in the DB at this point — nothing is finalized until
           FINISH is tapped above — so going back to it is genuinely resuming, not reopening
           something already closed. Gone once FINISH is tapped (the `finished` screens below have
           no equivalent button): completeSession has run by then and there is nothing active left
-          to return to. */}
+          to return to. A still-in-progress workout (frontier not null — this is a real-time
+          progress check, not the end-of-workout screen) simply resumes at the front edge; only
+          the fully-logged, pre-FINISH case needs `reviewFromSummary` to land on the last set
+          instead of bouncing straight back here (see WorkoutScreen's review-mode handling). */}
       <Pressable
         testID="back-to-workout"
         style={styles.backButton}
-        onPress={() => navigation.replace('Workout', { sessionId, reviewFromSummary: true })}
+        onPress={() =>
+          navigation.replace(
+            'Workout',
+            frontier ? { sessionId } : { sessionId, reviewFromSummary: true },
+          )
+        }
       >
         <Text style={styles.backButtonText}>Back to workout</Text>
       </Pressable>
@@ -271,6 +413,7 @@ const styles = StyleSheet.create({
   entryBlock: { gap: 2 },
   entryName: { fontSize: 15, fontWeight: '600', color: '#0f172a' },
   setLine: { fontSize: 13, color: '#475569' },
+  currentSetLine: { fontSize: 13, fontWeight: '800', color: '#0f172a' },
   sectionLabel: { fontSize: 13, fontWeight: '700', color: '#64748b', marginTop: 12 },
   retrospectiveInput: {
     backgroundColor: '#f1f5f9',
@@ -295,6 +438,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backButtonText: { color: '#2563eb', fontSize: 15, fontWeight: '700' },
+  headerBackButton: { paddingHorizontal: 8, paddingVertical: 6 },
+  headerBackButtonText: { color: '#2563eb', fontSize: 16, fontWeight: '600' },
   keyboardAccessory: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -305,10 +450,53 @@ const styles = StyleSheet.create({
   },
   keyboardAccessoryButton: { paddingHorizontal: 12, paddingVertical: 6 },
   keyboardAccessoryButtonText: { color: '#2563eb', fontSize: 16, fontWeight: '700' },
-  doneTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
-  doneSubtitle: { fontSize: 14, color: '#64748b', textAlign: 'center' },
-  quietMilestones: { gap: 4, marginTop: 8 },
-  quietMilestoneText: { fontSize: 13, color: '#475569' },
+  // The completion celebration (invariant 4/§1.1 in reverse — the one screen meant to be loud).
+  doneScreen: { flex: 1, backgroundColor: '#7c3aed' },
+  doneContainer: {
+    flexGrow: 1,
+    padding: 24,
+    paddingTop: 64,
+    alignItems: 'center',
+    gap: 14,
+  },
+  doneBannerEmoji: { fontSize: 40, textAlign: 'center' },
+  doneBanner: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#fff',
+    textAlign: 'center',
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0,0,0,0.25)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  doneCountText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fef9c3',
+    textAlign: 'center',
+  },
+  doneSubtitle: { fontSize: 14, color: '#e9d5ff', textAlign: 'center' },
+  quietMilestones: {
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 16,
+    padding: 14,
+    width: '100%',
+  },
+  quietMilestoneText: { fontSize: 13, color: '#fff', fontWeight: '600' },
+  doneFinishButton: {
+    marginTop: 20,
+    backgroundColor: '#facc15',
+    borderRadius: 20,
+    paddingHorizontal: 32,
+    paddingVertical: 20,
+    alignItems: 'center',
+    minHeight: 60,
+    justifyContent: 'center',
+  },
+  doneFinishButtonText: { color: '#713f12', fontSize: 18, fontWeight: '900' },
   // §6.4/§6.7 — full-screen, unmissable, one at a time, before anything else.
   celebrationScreen: {
     flex: 1,

@@ -1,6 +1,7 @@
 import { createTestDb } from './testHarness';
 import { generate } from './generation';
 import {
+  countCompletedSessions,
   createPendingSession,
   getCompletedSessionsForDashboard,
   getPendingSession,
@@ -176,6 +177,21 @@ describe('§14.1.8/§14.1.6 lifetimeTotalMinutes + getCompletedSessionsForDashbo
       expect(sessions[0].actualMinutes).not.toBeNull();
       const total = sessions.reduce((a, s) => a + (s.actualMinutes ?? 0), 0);
       expect(total).toBeCloseTo(stats.lifetimeTotalMinutes, 5);
+    } finally {
+      close();
+    }
+  });
+});
+
+describe('countCompletedSessions', () => {
+  it('counts only completed sessions, growing one per completeSession call', () => {
+    const { db, close } = createTestDb();
+    try {
+      expect(countCompletedSessions(db)).toBe(0);
+      runSession(db, '2026-05-01', 1, 1);
+      expect(countCompletedSessions(db)).toBe(1);
+      runSession(db, '2026-05-03', 2, 1);
+      expect(countCompletedSessions(db)).toBe(2);
     } finally {
       close();
     }
