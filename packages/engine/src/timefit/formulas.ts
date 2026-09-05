@@ -26,12 +26,9 @@ function clamp(n: number, low: number, high: number): number {
 }
 
 /** Real-world time to close out one exercise and get set up for the next: re-reading the next
- *  movement, changing bands/handles, finding the right anchor point and tension. Feedback from
- *  generated sessions showed the old 30s flat buffer badly undercounted this — 30s barely covers
- *  putting one band down, let alone the anchor search. `anchorRebuild` scales the same buffer up
- *  further for exercises that also require moving to a different anchor point entirely. */
-const TRANSITION_BUFFER_SEC = 120;
-const ANCHOR_REBUILD_BUFFER_SEC = 180;
+ *  movement, changing bands/handles, finding the right anchor point and tension. Flat regardless
+ *  of anchor changes — a user who needs more than this can pause the workout timer. */
+const TRANSITION_BUFFER_SEC = 60;
 
 /** Straight-set rep-based exercise. */
 export function repExerciseSec(params: {
@@ -40,14 +37,10 @@ export function repExerciseSec(params: {
   tempoSec: number;
   restSec: number;
   unilateral: boolean;
-  anchorRebuild?: boolean;
 }): number {
   const workSec = params.reps * params.tempoSec * (params.unilateral ? 2 : 1);
   const setSec = workSec + params.restSec;
-  return (
-    params.sets * setSec +
-    (params.anchorRebuild ? ANCHOR_REBUILD_BUFFER_SEC : TRANSITION_BUFFER_SEC)
-  );
+  return params.sets * setSec + TRANSITION_BUFFER_SEC;
 }
 
 /** Timed exercise (§5.6: `sets × (duration_sec + rest_sec) + transition buffer`, ×2 if unilateral). */
@@ -56,11 +49,10 @@ export function timedExerciseSec(params: {
   durationSec: number;
   restSec: number;
   unilateral: boolean;
-  anchorRebuild?: boolean;
 }): number {
   const perSet = params.durationSec + params.restSec;
   const base = params.sets * perSet * (params.unilateral ? 2 : 1);
-  return base + (params.anchorRebuild ? ANCHOR_REBUILD_BUFFER_SEC : TRANSITION_BUFFER_SEC);
+  return base + TRANSITION_BUFFER_SEC;
 }
 
 /**

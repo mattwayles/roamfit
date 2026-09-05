@@ -107,7 +107,6 @@ export function buildSwapReplacementEntry(exercise: Exercise, entry: SessionEntr
         durationSec: durationSec!,
         restSec: entry.restSec,
         unilateral: exercise.unilateral,
-        anchorRebuild: exercise.anchor !== 'none',
       })
     : repExerciseSec({
         sets,
