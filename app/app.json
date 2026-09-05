@@ -3,6 +3,7 @@
     "name": "RoamFit",
     "slug": "roamfit",
     "version": "1.0.0",
+    "scheme": "roamfit",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
