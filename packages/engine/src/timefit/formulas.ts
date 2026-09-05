@@ -44,7 +44,10 @@ export function repExerciseSec(params: {
 }): number {
   const workSec = params.reps * params.tempoSec * (params.unilateral ? 2 : 1);
   const setSec = workSec + params.restSec;
-  return params.sets * setSec + (params.anchorRebuild ? ANCHOR_REBUILD_BUFFER_SEC : TRANSITION_BUFFER_SEC);
+  return (
+    params.sets * setSec +
+    (params.anchorRebuild ? ANCHOR_REBUILD_BUFFER_SEC : TRANSITION_BUFFER_SEC)
+  );
 }
 
 /** Timed exercise (§5.6: `sets × (duration_sec + rest_sec) + transition buffer`, ×2 if unilateral). */

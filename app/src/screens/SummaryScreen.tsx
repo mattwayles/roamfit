@@ -27,7 +27,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { completeSession, milestonesRepo, sessionsRepo } from '@roamfit/store';
+import { completeSession, milestonesRepo, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { CompleteSessionResult } from '@roamfit/store';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
@@ -56,6 +56,22 @@ function setResultText(log: sessionsRepo.SetLogRecord): string {
   return `${actual} ${log.repsActual != null ? 'reps' : 'sec'}`;
 }
 
+/**
+ * The band that set was actually trained with, in the user's own words for it.
+ *
+ * Per-set rather than per-exercise on purpose: `bandActual` is recorded on every set log, and a
+ * user who moves up a band partway through an exercise did two different amounts of work. The
+ * summary is where they check what they actually did, so collapsing that to one band per exercise
+ * would report a set nobody performed. Blank for bodyweight work and for a set that never ran.
+ */
+function setBandText(
+  log: sessionsRepo.SetLogRecord,
+  tensions: Record<string, usersRepo.BandTension>,
+): string {
+  if (log.status !== 'completed' || !log.bandActual) return '';
+  return ` · ${tensions[log.bandActual]?.label ?? log.bandActual}`;
+}
+
 function celebrationHeadline(c: FullScreenCelebration): string {
   return c.kind === 'level_up'
     ? `${c.familyName}: ${c.newExerciseName}`
@@ -73,6 +89,8 @@ function celebrationShareText(c: FullScreenCelebration): string {
 export default function SummaryScreen({ navigation, route }: Props): React.JSX.Element {
   const { sessionId } = route.params;
   const { db, library, families } = useStore();
+  // The user's own names for their bands, so a set line reads "Red" rather than "B2".
+  const bandTensions = usersRepo.ensureUser(db, nowUtcInstant()).bandTensions;
   const [session, setSession] = useState<sessionsRepo.SessionRecord | null>(null);
   const [retrospective, setRetrospective] = useState('');
   const [result, setResult] = useState<CompleteSessionResult | null>(null);
@@ -190,8 +208,9 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
               {library.exercises.find((e) => e.id === entry.exerciseId)?.name ?? entry.exerciseId}
             </Text>
             {entry.setLogs.map((log) => (
-              <Text key={log.id} style={styles.setLine}>
+              <Text key={log.id} style={styles.setLine} testID={`summary-set-${log.id}`}>
                 {statusIcon(log.status)} Set {log.setIndex + 1}: {setResultText(log)}
+                {setBandText(log, bandTensions)}
                 {entry.difficultyFeedback ? ` · ${entry.difficultyFeedback}` : ''}
                 {entry.enjoymentFeedback ? ` · ${entry.enjoymentFeedback}/5` : ''}
               </Text>

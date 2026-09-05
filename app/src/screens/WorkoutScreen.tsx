@@ -389,14 +389,23 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
   const { setIndex } = current;
   /**
-   * Which band this set starts on: whatever the last logged set of this entry actually used, and
-   * failing that the prescription. A user who switches to a heavier band on set 1 is not asked
-   * again on set 2 — but the switch is still recorded per set, and `entry.band` (the plan) is
-   * never rewritten, so planned-vs-actual survives.
+   * Which band this set is on.
+   *
+   * A set that has already been logged shows the band *it* was trained with — stepping back to
+   * set 1 after moving up a band on set 2 has to report what set 1 actually used, not the newest
+   * band on the entry. (This used to take the highest-setIndex logged band regardless of which
+   * set was on screen, so a rewind silently relabelled the earlier set's load.)
+   *
+   * A set that hasn't run yet carries the last logged band forward, falling back to the
+   * prescription: a user who switches to a heavier band on set 1 is not asked again on set 2. The
+   * switch is still recorded per set either way, and `entry.band` (the plan) is never rewritten,
+   * so planned-vs-actual survives.
    */
-  const bandForSet: BandId | null =
-    entry.setLogs.filter((s) => s.bandActual != null).sort((a, b) => b.setIndex - a.setIndex)[0]
-      ?.bandActual ?? entry.band;
+  const loggedBandForThisSet = entry.setLogs.find((s) => s.setIndex === setIndex)?.bandActual;
+  const carriedForwardBand = entry.setLogs
+    .filter((s) => s.bandActual != null && s.setIndex < setIndex)
+    .sort((a, b) => b.setIndex - a.setIndex)[0]?.bandActual;
+  const bandForSet: BandId | null = loggedBandForThisSet ?? carriedForwardBand ?? entry.band;
   const exState = exerciseStateRepo.getExerciseState(db, entry.exerciseId);
   const isFirstEverPerformance = !exState || exState.sessionsPerformed === 0;
   const progression = entry.progressionFamilyId
