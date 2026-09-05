@@ -401,11 +401,32 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    * switch is still recorded per set either way, and `entry.band` (the plan) is never rewritten,
    * so planned-vs-actual survives.
    */
-  const loggedBandForThisSet = entry.setLogs.find((s) => s.setIndex === setIndex)?.bandActual;
+  const loggedSetForThisSet = entry.setLogs.find((s) => s.setIndex === setIndex);
   const carriedForwardBand = entry.setLogs
     .filter((s) => s.bandActual != null && s.setIndex < setIndex)
     .sort((a, b) => b.setIndex - a.setIndex)[0]?.bandActual;
-  const bandForSet: BandId | null = loggedBandForThisSet ?? carriedForwardBand ?? entry.band;
+  const bandForSet: BandId | null =
+    loggedSetForThisSet?.bandActual ?? carriedForwardBand ?? entry.band;
+
+  /**
+   * Reps and hold length get the same treatment as the band, and for the same reason: the hero
+   * components seed their state from the prescription and are remounted per set, so stepping back
+   * to a set the user already logged redisplayed what they were *asked* to do instead of what they
+   * recorded doing. The summary read the logs and so was right, which is how the disagreement
+   * showed up.
+   *
+   * Unlike the band, these deliberately do NOT carry forward onto sets that have not run yet. A
+   * band is equipment — switch to a heavier one on set 1 and you are still holding it on set 2, so
+   * pre-filling saves asking twice. Reps and seconds are performance against a prescription that
+   * has not changed: managing 10 of a prescribed 12 does not make 10 the ask for the next set.
+   */
+  const repsForSet = loggedSetForThisSet?.repsActual ?? entry.repTarget ?? 0;
+  /** `secondsActual` is the whole set — for a unilateral hold that is both sides summed (see
+   *  `TimedExercise`'s `onComplete`), while the timer itself works in per-side seconds. */
+  const secondsForSet =
+    loggedSetForThisSet?.secondsActual != null
+      ? Math.round(loggedSetForThisSet.secondsActual / (entry.unilateral ? 2 : 1))
+      : (entry.durationSec ?? 0);
   const exState = exerciseStateRepo.getExerciseState(db, entry.exerciseId);
   const isFirstEverPerformance = !exState || exState.sessionsPerformed === 0;
   const progression = entry.progressionFamilyId
@@ -896,6 +917,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           <TimedExercise
             key={`${entry.id}-${setIndex}`}
             entry={entry}
+            durationDefault={secondsForSet}
             exerciseName={exercise?.name ?? entry.exerciseId}
             anchor={exercise?.anchor ?? null}
             anchorAlt={exercise?.anchor_alt ?? null}
@@ -916,6 +938,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           <RepsExercise
             key={`${entry.id}-${setIndex}`}
             entry={entry}
+            repsDefault={repsForSet}
             exerciseName={exercise?.name ?? entry.exerciseId}
             anchor={exercise?.anchor ?? null}
             anchorAlt={exercise?.anchor_alt ?? null}
@@ -1002,6 +1025,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
 function RepsExercise({
   entry,
+  repsDefault,
   exerciseName,
   anchor,
   anchorAlt,
@@ -1034,6 +1058,9 @@ function RepsExercise({
    *  stays fully usable, which is the point of not hiding the workout while paused. */
   paused: boolean;
   setIndex: number;
+  /** Reps to show on arrival: this set's own logged count once it has run, else the prescription.
+   *  Never carried forward from an earlier set — see the caller. */
+  repsDefault: number;
   onComplete: (reps: number) => void;
   /** The forward control: skips this set at the front edge, steps forward over an already-logged
    *  one while the user has stepped back. See `SetNavRow`. */
@@ -1043,9 +1070,10 @@ function RepsExercise({
   onRewind: (() => void) | null;
   forwardIsSkip: boolean;
 }): React.JSX.Element {
-  const [reps, setReps] = useState(entry.repTarget ?? 0);
-  // Remounted per set (the caller keys on entry+setIndex), so this resets to the incoming default
-  // each set without any explicit clearing.
+  // Remounted per set (the caller keys on entry+setIndex), so both of these reset to the incoming
+  // default each set without any explicit clearing — which is exactly why the default has to be
+  // the set's own logged value when it has one, not the prescription.
+  const [reps, setReps] = useState(repsDefault);
   const [bandUsed, setBandUsed] = useState(band);
   return (
     // Tinted, not hidden or disabled, while the session clock is stopped: the state is legible at
@@ -1202,6 +1230,7 @@ interface PauseInfo {
 
 function TimedExercise({
   entry,
+  durationDefault,
   exerciseName,
   anchor,
   anchorAlt,
@@ -1226,6 +1255,9 @@ function TimedExercise({
    *  every safe option while they're the one deciding what to rig, not just the first one. */
   anchorAlt: Anchor | null;
   setIndex: number;
+  /** Per-side hold this set starts from: this set's own recorded length once it has run, else the
+   *  prescription. Never carried forward from an earlier set — see the caller. */
+  durationDefault: number;
   /** §10.5 — "actual seconds held are recorded," summed across both sides for unilateral work.
    *  `pauseInfo` is the §8.3 pause signal (`set_logs.pause_count`/`paused_duration_sec`), also
    *  summed across sides. */
@@ -1247,10 +1279,11 @@ function TimedExercise({
   onRewind: (() => void) | null;
   forwardIsSkip: boolean;
 }): React.JSX.Element {
-  // The prescription, fixed for the life of this mounted set. `durationSec` below is the
-  // (possibly user-adjusted) hold length actually used; the two are only ever different between
-  // mount and the moment `handleStart` is pressed, while the ±5s buttons are live.
-  const originalDurationSec = entry.durationSec ?? 0;
+  // The hold this set starts from, fixed for the life of this mounted set: the prescription, or
+  // what the user recorded if this set has already run (`durationDefault`). `durationSec` below is
+  // the (possibly user-adjusted) hold length actually used; the two are only ever different
+  // between mount and the moment `handleStart` is pressed, while the ±5s buttons are live.
+  const originalDurationSec = durationDefault;
   const durationMs = originalDurationSec * 1000;
   // §10.5 — "unilateral timed work runs two sequential timers with a short switch-side interval
   // between them." `sideIndex` is 0 for the only side (bilateral) or the first side
