@@ -113,6 +113,43 @@ describe('DemoMedia', () => {
     expect(webview.props.allowsFullscreenVideo).toBe(false);
   });
 
+  describe('muting the demo video with the workout', () => {
+    const online = () => mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+
+    it('injects a mute of the page’s own media when the workout is muted', async () => {
+      online();
+      const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9', muted: true });
+      const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
+
+      // A watch page takes no player parameters (see the component header), so the only lever is
+      // the page's own media elements. Both hooks matter: before-content so the flag exists for
+      // the first play, and after-load for the player YouTube builds later.
+      for (const script of [
+        webview.props.injectedJavaScriptBeforeContentLoaded,
+        webview.props.injectedJavaScript,
+      ]) {
+        expect(script).toContain('__roamfitMuted = true');
+        expect(script).toContain("querySelectorAll('video, audio')");
+      }
+    });
+
+    it('leaves the video audible by default — a demo the user tapped play on is not a cue tone', async () => {
+      online();
+      const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
+      const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
+      expect(webview.props.injectedJavaScript).toContain('__roamfitMuted = false');
+    });
+
+    it('re-asserts the mixing audio session once the page has loaded', async () => {
+      online();
+      const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
+      const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
+      // This WebView's media plays through the app's shared session, so the session state at load
+      // is what the video inherits — the guard `workoutAudio.ts`'s header calls for.
+      expect(() => webview.props.onLoadEnd()).not.toThrow();
+    });
+  });
+
   it('keeps YouTube in the frame and sends everything else to the browser', async () => {
     mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
     const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });

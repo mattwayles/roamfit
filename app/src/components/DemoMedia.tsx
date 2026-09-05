@@ -31,12 +31,44 @@
  *     calls the screen makes in the `onExpand`/`onReportIssue`/`onPlayerError` callbacks, per
  *     ADR 0003 / issue #13 ("no new persistence logic in app/").
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { buildSearchUrl, buildWatchUrl, isYouTubeUrl, resolveMediaTier } from '../lib/mediaLadder';
 import { getNetworkStatus } from '../lib/networkStatus';
+import { configureWorkoutAudioSession } from '../lib/workoutAudio';
 import { parseYouTubeVideoId } from '../lib/youtubeUrl';
+
+/**
+ * Holds the page's own `<video>`/`<audio>` elements at the app's mute state.
+ *
+ * A watch page is not an embed and takes no player parameters (see the file header), so muting has
+ * to happen in the page itself. Re-applied on every `play` and on any DOM change rather than once
+ * on load, because the player is built after load and YouTube rebuilds it on navigation — a
+ * one-shot mute would hold only until the first video element was replaced.
+ *
+ * Ends in `true;` because WKWebView warns when injected script evaluates to a non-serializable
+ * value.
+ */
+function muteScript(muted: boolean): string {
+  return `
+(function () {
+  window.__roamfitMuted = ${muted ? 'true' : 'false'};
+  var apply = function () {
+    var els = document.querySelectorAll('video, audio');
+    for (var i = 0; i < els.length; i++) { els[i].muted = window.__roamfitMuted; }
+  };
+  apply();
+  if (!window.__roamfitMuteHooked) {
+    window.__roamfitMuteHooked = true;
+    document.addEventListener('play', apply, true);
+    document.addEventListener('loadedmetadata', apply, true);
+    new MutationObserver(apply).observe(document.documentElement, { childList: true, subtree: true });
+  }
+})();
+true;
+`;
+}
 
 export interface DemoMediaProps {
   videoSearchQuery: string;
@@ -65,6 +97,13 @@ export interface DemoMediaProps {
    *  component has no idea where it sits in the scroll view), so it gets told the field took
    *  focus and scrolls the block clear — "components render, screens decide", as above. */
   onInputFocus?: () => void;
+  /**
+   * Silence the video's own audio. Wired to the active workout's mute button, so one control
+   * covers everything the app makes noise with rather than only the cue tones. Defaults to false
+   * for call sites with no workout around them (the exercise detail screen), where a demo video is
+   * simply the thing the user came to watch.
+   */
+  muted?: boolean;
 }
 
 export default function DemoMedia({
@@ -79,7 +118,9 @@ export default function DemoMedia({
   onPlayerError,
   defaultOpen,
   onInputFocus,
+  muted = false,
 }: DemoMediaProps): React.JSX.Element | null {
+  const webviewRef = useRef<WebView>(null);
   const [open, setOpen] = useState(defaultOpen);
   // §11.4 "Player errors fall back silently" — once one fires for this mount, stay off the embed
   // even if the network status re-check would otherwise still favor it, rather than flapping back
@@ -91,6 +132,12 @@ export default function DemoMedia({
     online: false,
     metered: false,
   });
+
+  // Toggling mute mid-video has to reach a page that is already loaded, so the prop drives an
+  // imperative injection as well as the on-load one below.
+  useEffect(() => {
+    webviewRef.current?.injectJavaScript(muteScript(muted));
+  }, [muted]);
 
   useEffect(() => {
     let cancelled = false;
@@ -184,6 +231,7 @@ export default function DemoMedia({
                   configuration error" inside this WebView, while this one has always worked. See
                   `EMBED_BASE_URL` for the whole chain. */}
               <WebView
+                ref={webviewRef}
                 testID="demo-media-webview"
                 source={{ uri: buildWatchUrl(ladder.videoId as string) }}
                 originWhitelist={['https://*']}
@@ -191,12 +239,19 @@ export default function DemoMedia({
                 domStorageEnabled
                 sharedCookiesEnabled
                 // Playback stays inside the frame and still needs a deliberate tap — the two
-                // parts of §11.4's player behaviour a watch page can still be held to. It cannot
-                // be told to start muted, so the workout's own audio session is re-asserted by
-                // `workoutAudio.ts` rather than assumed.
+                // parts of §11.4's player behaviour a watch page can still be held to. A watch
+                // page takes no player parameters, so `muted` is injected into the page instead.
                 allowsInlineMediaPlayback
                 allowsFullscreenVideo={false}
                 mediaPlaybackRequiresUserAction
+                injectedJavaScriptBeforeContentLoaded={muteScript(muted)}
+                injectedJavaScript={muteScript(muted)}
+                // The Wave 6 guard `workoutAudio.ts`'s header describes, finally wired up: this
+                // WebView's media plays through the app's shared audio session, so whatever state
+                // the session is in when the page loads is what the video inherits. Re-asserting
+                // the mixing session here is what keeps a demo video layering over the user's
+                // music instead of interrupting it.
+                onLoadEnd={() => void configureWorkoutAudioSession()}
                 onShouldStartLoadWithRequest={handleFrameNavigation}
                 onError={handlePlayerError}
                 onHttpError={handlePlayerError}

@@ -162,11 +162,14 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const user = usersRepo.ensureUser(db, nowUtcInstant());
   const bandTensions = user.bandTensions;
   /**
-   * §10.8 — mute for *this* workout, on top of the persisted "Timer sounds" setting. Deliberately
-   * not persisted: it answers "not right now, I'm on a call / the baby's asleep", which is a fact
-   * about today's session and not a preference to carry into the next one. Only offered when the
-   * setting is on — with sounds already off globally there is nothing here to mute, and a control
-   * that cannot change anything is worse than no control.
+   * §10.8 — mute everything this workout makes noise with: the cue tones, and the demo video's own
+   * audio (`DemoMedia`'s `muted`). Deliberately not persisted: it answers "not right now, I'm on a
+   * call / the baby's asleep", which is a fact about today's session and not a preference to carry
+   * into the next one.
+   *
+   * Always offered, including when "Timer sounds" is off in Settings — that setting covers the cue
+   * tones only, and a demo video is still audible with it off, so there is always something here
+   * to silence.
    */
   const [mutedThisWorkout, setMutedThisWorkout] = useState(false);
   const soundsAvailable = user.cueSoundsEnabled;
@@ -869,8 +872,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
         </Text>
         <View style={[styles.timerRowSpacer, styles.timerRowActions]}>
-          {soundsAvailable && (
-            <Pressable
+          <Pressable
               testID="mute-workout"
               accessibilityRole="button"
               accessibilityLabel={
@@ -880,8 +882,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               onPress={() => setMutedThisWorkout((m) => !m)}
             >
               <Text style={styles.sessionIconText}>{mutedThisWorkout ? '🔇' : '🔊'}</Text>
-            </Pressable>
-          )}
+          </Pressable>
           <Pressable
             testID="pause-workout"
             accessibilityRole="button"
@@ -1026,6 +1027,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               }}
             >
               <DemoMedia
+                muted={mutedThisWorkout}
                 videoSearchQuery={exercise.video_search}
                 // §11.4 — a synchronous local read of whatever `sync/firestoreSyncWorker.ts` last
                 // pulled into `remote_video_config` (track 6d). Null (never bundled, invariant 8)

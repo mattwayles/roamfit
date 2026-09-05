@@ -103,16 +103,14 @@ describe('§10.8 muting sounds for one workout', () => {
     );
   }, 20000);
 
-  it('the button is not offered at all when timer sounds are already off globally', async () => {
+  it('is still offered when timer sounds are off, because a demo video is not a timer sound', async () => {
     const { db, sessionId } = await startedSession('mute-off-seed');
     usersRepo.updateUser(db, { cueSoundsEnabled: false }, nowUtcInstant());
 
     renderWorkout(sessionId);
-    // The workout itself is up...
     await waitFor(() => expect(screen.getByTestId('workout-elapsed')).toBeTruthy(), WAIT_OPTS);
-    // ...but a mute control that cannot change anything is worse than no control.
-    expect(screen.queryByTestId('mute-workout')).toBeNull();
-    // Pause is still there, so this is a real absence rather than a header that failed to render.
-    expect(screen.getByTestId('pause-workout')).toBeTruthy();
+    // The Settings toggle governs the cue tones only. The demo player is still audible with it
+    // off, so there is always something left for this button to silence.
+    expect(screen.getByTestId('mute-workout')).toBeTruthy();
   }, 20000);
 });
