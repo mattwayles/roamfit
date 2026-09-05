@@ -71,6 +71,7 @@ import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
 import BandPicker from '../components/BandPicker';
 import DemoMedia from '../components/DemoMedia';
+import type { DemoMediaProps } from '../components/DemoMedia';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import SpotifyControls from '../components/SpotifyControls';
 import {
@@ -1003,6 +1004,26 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           nextAnchor={exercise?.anchor ?? null}
           nextAnchorAlt={exercise?.anchor_alt ?? null}
           paused={paused}
+          // Same DemoMedia props the exercise phase passes below (line ~1039) — `exercise` and
+          // `entry` are already the *upcoming* pair during rest, so the video shown here is the
+          // one about to be trained, not the one just finished.
+          demoMedia={
+            exercise
+              ? {
+                  videoSearchQuery: exercise.video_search,
+                  curatedVideoId: remoteConfigRepo.getCuratedVideoId(db, exercise.id),
+                  videoDemoted: videoFlagState.demoted,
+                  userVideoId: exerciseStateRepo.getUserVideoId(db, exercise.id),
+                  onAssignVideo: handleAssignVideo,
+                  onClearVideo: handleClearVideo,
+                  onExpand: handleDemoExpand,
+                  onReportIssue: handleReportVideoIssue,
+                  onPlayerError: handleDemoPlayerError,
+                  onInputFocus: handleDemoInputFocus,
+                  muted: mutedThisWorkout,
+                }
+              : null
+          }
           // §8.1 — warm-up and cool-down are asked about once per stage, on their own page, so
           // their rest pages carry no controls. `main` keeps its per-exercise question: those
           // exercises are individually progressed off exactly this answer.
@@ -1814,6 +1835,7 @@ function RestPhase({
   nextLabel,
   nextAnchor,
   nextAnchorAlt,
+  demoMedia,
   paused,
   showFeedback,
   difficulty,
@@ -1829,6 +1851,13 @@ function RestPhase({
   nextAnchor: Anchor | null;
   /** A second fixed point the next exercise works equally well from (`Exercise.anchor_alt`). */
   nextAnchorAlt: Anchor | null;
+  /** The next exercise's demo video, so rest doubles as prep time — rig the anchor or check form
+   *  before the set starts, rather than only after. Null when there is no upcoming exercise (the
+   *  workout is ending) or nothing to demo (`DemoMedia` already returns null in that case; this is
+   *  the case where there's no exercise at all to build the props from). Same `DemoMedia` props
+   *  the exercise phase passes it, so it is the identical component in a second spot rather than a
+   *  parallel implementation. */
+  demoMedia: Omit<DemoMediaProps, 'defaultOpen'> | null;
   /** Session-level pause. Stops the rest countdown, and — since the background "rest complete"
    *  notification is scheduled against wall-clock time the OS owns, not against this countdown —
    *  cancels that too, rescheduling for whatever is left when the session resumes. */
@@ -1958,6 +1987,15 @@ function RestPhase({
 
       <Text style={styles.nextUp}>Next up: {nextLabel}</Text>
       <AnchorBadge anchor={nextAnchor} anchorAlt={nextAnchorAlt} testID="rest-next-anchor" />
+
+      {/* Open by default here — rest is the moment to look, not a moment to also ask for a tap.
+          The exercise phase's own DemoMedia (below, in the parent) keeps its own independent
+          open/closed state once the set actually starts. */}
+      {demoMedia && (
+        <View testID="rest-demo-media-block">
+          <DemoMedia {...demoMedia} defaultOpen />
+        </View>
+      )}
 
       {showFeedback && (
         <FeedbackControls
