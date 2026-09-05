@@ -7,7 +7,14 @@
  * (§11.1) — nothing here does I/O beyond the local db.
  */
 import type { Exercise, ExerciseLibrary, FamilyLibrary } from '@roamfit/data';
-import { applySessionResult, BAND_ORDER } from '@roamfit/engine';
+import {
+  addDays,
+  applySessionResult,
+  BAND_ORDER,
+  REPEAT_SKIP_THRESHOLD,
+  shouldSuppressForRepeatedSkip,
+  SUPPRESSION_DAYS,
+} from '@roamfit/engine';
 import type { BandId, ProgressionEvent, SessionPerformance } from '@roamfit/engine';
 import type { Db } from './db';
 import { schema } from './db';
@@ -16,7 +23,12 @@ import { activeElapsedSec, getSession } from './repositories/sessions';
 import type { SessionEntryRecord, SessionRecord } from './repositories/sessions';
 import { getAllProgressionStates, upsertProgressionState } from './repositories/progressionState';
 import { getUser, ensureUser, markHasEverCompletedSession } from './repositories/users';
-import { incrementSkipCount, recordExercisePerformed } from './repositories/exerciseState';
+import {
+  getExerciseState,
+  incrementSkipCount,
+  recordExercisePerformed,
+  setSuppressedUntil,
+} from './repositories/exerciseState';
 import { addMilestone } from './repositories/milestones';
 import { recordSessionCompletion } from './repositories/stats';
 import type { MuscleVolumeEntry } from './repositories/stats';
@@ -197,6 +209,23 @@ export function completeSession(
         }
       } else if (summary.anySkippedOrNotReached) {
         incrementSkipCount(txDb, entry.exerciseId, now);
+        // §5.2 REPEATEDLY-SKIPPED, the half the engine can't do for itself: it only ever *reads*
+        // `suppressedUntil`, and completion is the only moment that knows a skip just happened.
+        // Without this the skip counter accumulated forever and nothing ever acted on it.
+        //
+        // Read back after the increment so the count includes this session's skip, and re-set the
+        // window on every further skip past the threshold rather than only on the crossing — an
+        // exercise the user keeps refusing should keep its distance, not quietly return 30 days
+        // after the second refusal.
+        const skipState = getExerciseState(txDb, entry.exerciseId);
+        if (skipState && shouldSuppressForRepeatedSkip(skipState, REPEAT_SKIP_THRESHOLD)) {
+          setSuppressedUntil(
+            txDb,
+            entry.exerciseId,
+            addDays(session.localDate, SUPPRESSION_DAYS),
+            now,
+          );
+        }
       }
 
       muscleVolume.push(...muscleCreditsForEntry(entry, exercise, summary.completedCount));

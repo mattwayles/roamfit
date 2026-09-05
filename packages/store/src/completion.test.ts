@@ -316,3 +316,107 @@ describe('Wave 7 §11.6 adversarial pass — kill during the completion transact
     }
   });
 });
+
+/**
+ * §5.2 REPEATEDLY-SKIPPED, end to end. The engine only ever *reads* `suppressedUntil`; completion
+ * is what sets it, and until this was wired the skip counter climbed forever while nothing acted
+ * on it. Targets a laddered entry, which is the one kind of slot guaranteed to come back in the
+ * next session regardless of the variety/recency rules.
+ */
+function runSessionSkipping(
+  db: ReturnType<typeof createTestDb>['db'],
+  localDate: string,
+  seed: number,
+  shouldSkip: (exerciseId: string) => boolean,
+): string[] {
+  const clock = clockFor(localDate);
+  const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+    library,
+    families,
+    request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
+    clock,
+    rng: rngFor(seed),
+    utcInstant: utcInstantFor(localDate),
+  });
+  const sessionId = createPendingSession(db, {
+    plan,
+    utcInstant: utcInstantFor(localDate),
+    localDate,
+    tzId: clock.tzId,
+    comebackTier,
+    recoveryWeekManual,
+  });
+  startSession(db, sessionId, utcInstantFor(localDate, 9));
+  const session = getPendingSession(db)!;
+  const skipped: string[] = [];
+  for (const entry of session.entries) {
+    const skip = shouldSkip(entry.exerciseId);
+    if (skip) skipped.push(entry.exerciseId);
+    for (let i = 0; i < entry.sets; i++) {
+      logSet(
+        db,
+        {
+          entryId: entry.id,
+          setIndex: i,
+          status: skip ? 'skipped' : 'completed',
+          repsPrescribed: entry.repTarget ?? undefined,
+          secondsPrescribed: entry.durationSec ?? undefined,
+          repsActual: skip ? undefined : (entry.repTarget ?? undefined),
+          secondsActual: skip ? undefined : (entry.durationSec ?? undefined),
+          restPrescribedSec: entry.restSec,
+        },
+        utcInstantFor(localDate, 9, i * 2),
+      );
+    }
+  }
+  completeSession(db, { sessionId, library, families }, utcInstantFor(localDate, 10));
+  return skipped;
+}
+
+describe('§5.2 REPEATEDLY-SKIPPED suppression, set at completion', () => {
+  it('suppresses an exercise for 30 days once it has been skipped twice, not on the first skip', () => {
+    const { db, close } = createTestDb();
+    try {
+      // Whichever laddered exercise the first session programmes is the one we refuse, twice.
+      const clock = clockFor('2026-05-01');
+      const { plan } = generate(db, {
+        library,
+        families,
+        request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
+        clock,
+        rng: rngFor(7),
+        utcInstant: utcInstantFor('2026-05-01'),
+      });
+      const target = plan.main.find((e) => e.progressionFamilyId !== null)!.exerciseId;
+
+      const firstSkipped = runSessionSkipping(db, '2026-05-01', 7, (id) => id === target);
+      expect(firstSkipped).toContain(target);
+      const afterFirst = getAllExerciseStates(db)[target];
+      expect(afterFirst.skipCount).toBe(1);
+      // One refusal is a bad day, not a verdict.
+      expect(afterFirst.suppressedUntil).toBeNull();
+
+      const secondSkipped = runSessionSkipping(db, '2026-05-03', 7, (id) => id === target);
+      expect(secondSkipped).toContain(target);
+      const afterSecond = getAllExerciseStates(db)[target];
+      expect(afterSecond.skipCount).toBe(2);
+      // Threshold crossed: suppressed for 30 days from the session that crossed it.
+      expect(afterSecond.suppressedUntil).toBe('2026-06-02');
+    } finally {
+      close();
+    }
+  });
+
+  it('leaves an exercise the user actually trained alone', () => {
+    const { db, close } = createTestDb();
+    try {
+      runSessionSkipping(db, '2026-05-01', 7, () => false);
+      runSessionSkipping(db, '2026-05-03', 7, () => false);
+      for (const state of Object.values(getAllExerciseStates(db))) {
+        expect(state.suppressedUntil).toBeNull();
+      }
+    } finally {
+      close();
+    }
+  });
+});

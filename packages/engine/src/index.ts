@@ -24,7 +24,15 @@ export type { HardFilterInput } from './filters/hardFilters';
 // The dashboard classifies over an already-aggregated `Record<muscle, number>` (rolled-up stats,
 // §11.3 — no history rescan), so only the threshold constant is shared, not `overWorkedMuscles`
 // itself (which takes raw `SessionHistoryRecord[]`).
-export { OVER_WORKED_MULTIPLIER } from './selection/constants';
+export {
+  OVER_WORKED_MULTIPLIER,
+  REPEAT_SKIP_THRESHOLD,
+  SUPPRESSION_DAYS,
+} from './selection/constants';
+/** §5.2 REPEATEDLY-SKIPPED. The engine only *reads* `ExerciseState.suppressedUntil`; deciding
+ *  when to set it is the caller's, at session completion, which is the only place that knows a
+ *  skip just happened. */
+export { shouldSuppressForRepeatedSkip } from './selection/candidates';
 
 // --------------------------------------------------------------------------------------------
 // Wave 3 wiring surface — completion-time progression updates (§6.3/§6.7) and the comeback /
