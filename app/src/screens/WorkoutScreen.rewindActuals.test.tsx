@@ -27,7 +27,13 @@ import { fastForwardTo } from './timedTestHelpers';
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
 function mockNavigation() {
-  return { navigate: jest.fn(), replace: jest.fn(), reset: jest.fn(), goBack: jest.fn() };
+  return {
+    navigate: jest.fn(),
+    replace: jest.fn(),
+    reset: jest.fn(),
+    goBack: jest.fn(),
+    setOptions: jest.fn(),
+  };
 }
 
 function Setup({ onReady }: { onReady: (db: Db) => void }) {
@@ -151,10 +157,7 @@ describe('◂◂ onto an already-logged set restores what was recorded', () => {
     fireEvent.press(screen.getByTestId('rewind-set'));
 
     // Back on set 1: what was actually done, on the band it was actually done with.
-    await waitFor(
-      () => expect(screen.getByTestId('rep-count').props.value).toBe('9'),
-      WAIT_OPTS,
-    );
+    await waitFor(() => expect(screen.getByTestId('rep-count').props.value).toBe('9'), WAIT_OPTS);
     expect(screen.getByTestId('band-chip-B4')).toBeTruthy();
   }, 20000);
 

@@ -29,6 +29,7 @@ function mockNavigation() {
     replace: jest.fn(),
     reset: jest.fn(),
     goBack: jest.fn(),
+    setOptions: jest.fn(),
   };
 }
 
@@ -131,7 +132,10 @@ describe('Rest page demo media', () => {
     // Rest auto-started, and the next exercise's demo block is already there — no "Demo" tap
     // needed, since rest is exactly the moment to look.
     await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), WAIT_OPTS);
-    await waitFor(() => expect(screen.getByTestId('rest-demo-media-block')).toBeTruthy(), WAIT_OPTS);
+    await waitFor(
+      () => expect(screen.getByTestId('rest-demo-media-block')).toBeTruthy(),
+      WAIT_OPTS,
+    );
     expect(screen.getByTestId('demo-media-body')).toBeTruthy();
     expect(screen.getByTestId('demo-media-search-link')).toBeTruthy();
   });

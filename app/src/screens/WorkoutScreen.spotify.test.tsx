@@ -58,7 +58,13 @@ function player(over: Partial<SpotifyPlayer> = {}): SpotifyPlayer {
 }
 
 function mockNavigation() {
-  return { navigate: jest.fn(), replace: jest.fn(), reset: jest.fn(), goBack: jest.fn() };
+  return {
+    navigate: jest.fn(),
+    replace: jest.fn(),
+    reset: jest.fn(),
+    goBack: jest.fn(),
+    setOptions: jest.fn(),
+  };
 }
 
 function Setup({ onReady }: { onReady: (db: Db) => void }) {

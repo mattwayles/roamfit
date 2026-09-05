@@ -43,6 +43,7 @@ function mockNavigation() {
     replace: jest.fn(),
     reset: jest.fn(),
     goBack: jest.fn(),
+    setOptions: jest.fn(),
   };
 }
 

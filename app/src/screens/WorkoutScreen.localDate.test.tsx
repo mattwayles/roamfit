@@ -22,7 +22,13 @@ import { localDateFromDate } from '../lib/localClock';
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
 function mockNavigation() {
-  return { navigate: jest.fn(), replace: jest.fn(), reset: jest.fn(), goBack: jest.fn() };
+  return {
+    navigate: jest.fn(),
+    replace: jest.fn(),
+    reset: jest.fn(),
+    goBack: jest.fn(),
+    setOptions: jest.fn(),
+  };
 }
 
 function Setup({ onReady }: { onReady: (db: ReturnType<typeof useStore>['db']) => void }) {

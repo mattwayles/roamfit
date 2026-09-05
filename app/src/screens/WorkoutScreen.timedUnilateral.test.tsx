@@ -11,7 +11,13 @@ import { StoreProvider, useStore } from '../state/StoreContext';
 import { setUpTimedEntry } from './timedTestHelpers';
 
 function mockNavigation() {
-  return { navigate: jest.fn(), replace: jest.fn(), reset: jest.fn(), goBack: jest.fn() };
+  return {
+    navigate: jest.fn(),
+    replace: jest.fn(),
+    reset: jest.fn(),
+    goBack: jest.fn(),
+    setOptions: jest.fn(),
+  };
 }
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };

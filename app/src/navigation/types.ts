@@ -1,3 +1,5 @@
+import type { SessionPosition } from '../lib/sessionProgress';
+
 export type RootStackParamList = {
   Home: undefined;
   /** §9.9 — an accepted Recovery Week auto-suggestion (or the manual toggle) pre-fills Generate's
@@ -5,8 +7,10 @@ export type RootStackParamList = {
   Generate: { recoveryWeek?: boolean } | undefined;
   Approval: { sessionId: string };
   /** `reviewFromSummary` — arriving back from Summary before FINISH, to look at or fix something
-   *  in an already-fully-logged session. See WorkoutScreen's review-mode handling. */
-  Workout: { sessionId: string; reviewFromSummary?: boolean };
+   *  in an already-fully-logged session. See WorkoutScreen's review-mode handling.
+   *  `jumpTo` — arriving from a tap on a specific set in Summary's live or pre-FINISH view;
+   *  lands on that exact (entry, set) bookmark instead of the front edge or the last set. */
+  Workout: { sessionId: string; reviewFromSummary?: boolean; jumpTo?: SessionPosition };
   Summary: { sessionId: string };
   Settings: undefined;
   /** The exercise library, browsable — read-only apart from assigning a demo video. */

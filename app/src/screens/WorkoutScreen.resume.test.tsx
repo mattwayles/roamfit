@@ -22,7 +22,13 @@ import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
 function mockNavigation() {
-  return { navigate: jest.fn(), replace: jest.fn(), reset: jest.fn(), goBack: jest.fn() } as never;
+  return {
+    navigate: jest.fn(),
+    replace: jest.fn(),
+    reset: jest.fn(),
+    goBack: jest.fn(),
+    setOptions: jest.fn(),
+  } as never;
 }
 
 /** Mirrors WorkoutScreen's own `findCurrent` — independently, as test assertion logic, not

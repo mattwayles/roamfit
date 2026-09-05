@@ -171,3 +171,141 @@ describe('reviewFromSummary: coming back to a fully-logged, not-yet-FINISHed wor
     );
   }, 20000);
 });
+
+describe('jumpTo: landing on an explicit bookmark from a tap in Summary', () => {
+  it('lands on the given (entry, set) — not the front edge, and not the last set either', async () => {
+    const { db, sessionId } = await fullyLoggedSession('jumpto-land-seed');
+    const session = sessionsRepo.getSession(db, sessionId)!;
+    const active = session.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
+    const first = active[0]!;
+    const firstName =
+      exerciseLibrary.exercises.find((e) => e.id === first.exerciseId)?.name ?? first.exerciseId;
+    const navigation = mockNavigation();
+
+    render(
+      <StoreProvider>
+        <WorkoutScreen
+          navigation={navigation as never}
+          route={
+            {
+              key: 'Workout',
+              name: 'Workout',
+              params: { sessionId, jumpTo: { entryId: first.id, setIndex: 0 } },
+            } as never
+          }
+        />
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('exercise-name')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByTestId('exercise-name').props.children).toBe(firstName);
+    expect(screen.getByText(`Set 1 of ${first.sets}`)).toBeTruthy();
+    // The auto-navigate-to-Summary effect must not have fired — jumpTo suppresses it exactly like
+    // reviewFromSummary does, since the front edge is null (everything is already logged) here too.
+    expect(navigation.replace).not.toHaveBeenCalled();
+  }, 20000);
+
+  it('an invalid bookmark (entry no longer in the plan) is ignored, falling back to ordinary behavior', async () => {
+    const { sessionId } = await fullyLoggedSession('jumpto-invalid-seed');
+    const navigation = mockNavigation();
+
+    render(
+      <StoreProvider>
+        <WorkoutScreen
+          navigation={navigation as never}
+          route={
+            {
+              key: 'Workout',
+              name: 'Workout',
+              params: { sessionId, jumpTo: { entryId: 'no-such-entry', setIndex: 0 } },
+            } as never
+          }
+        />
+      </StoreProvider>,
+    );
+
+    // Falls through to the ordinary "everything logged, nothing to jump to" behavior.
+    await waitFor(
+      () => expect(navigation.replace).toHaveBeenCalledWith('Summary', { sessionId }),
+      WAIT_OPTS,
+    );
+  }, 20000);
+});
+
+describe('the "Progress" header button — a real-time way to view the summary from any page', () => {
+  it('in review mode, only "Done" is offered — a separate "Progress" button would do the same thing', async () => {
+    const { sessionId } = await fullyLoggedSession('progress-button-review-seed');
+    const navigation = mockNavigation();
+
+    render(
+      <StoreProvider>
+        <WorkoutScreen
+          navigation={navigation as never}
+          route={
+            {
+              key: 'Workout',
+              name: 'Workout',
+              params: { sessionId, reviewFromSummary: true },
+            } as never
+          }
+        />
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(navigation.setOptions).toHaveBeenCalled(), WAIT_OPTS);
+    const { headerRight } = navigation.setOptions.mock.calls.at(-1)![0];
+    const headerView = await render(headerRight());
+
+    expect(headerView.queryByTestId('view-progress')).toBeNull();
+    expect(headerView.getByTestId('review-done')).toBeTruthy();
+  }, 20000);
+
+  it('outside review mode, a persistent "Progress" button replaces to Summary — available on any page of the active workout', async () => {
+    let db!: Db;
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    // A freshly started, not-yet-logged session — the ordinary mid-workout state the button
+    // exists to be reachable from.
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('progress-button-live-seed')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    sessionsRepo.startSession(db, sessionId, utcInstant);
+    const navigation = mockNavigation();
+
+    render(
+      <StoreProvider>
+        <WorkoutScreen
+          navigation={navigation as never}
+          route={{ key: 'Workout', name: 'Workout', params: { sessionId } } as never}
+        />
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(navigation.setOptions).toHaveBeenCalled(), WAIT_OPTS);
+    const { headerRight } = navigation.setOptions.mock.calls.at(-1)![0];
+    const headerView = await render(headerRight());
+
+    fireEvent.press(headerView.getByTestId('view-progress'));
+    expect(navigation.replace).toHaveBeenCalledWith('Summary', { sessionId });
+  }, 20000);
+});

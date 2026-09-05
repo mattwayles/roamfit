@@ -133,7 +133,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   // abandonment both unmount this screen.
   useKeepAwake();
 
-  const { sessionId, reviewFromSummary } = route.params;
+  const { sessionId, reviewFromSummary, jumpTo } = route.params;
   const { db, library, families } = useStore();
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [phase, setPhase] = useState<Phase>('exercise');
@@ -240,17 +240,32 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const entry = current?.entry;
   const exercise = entry ? library.exercises.find((e) => e.id === entry.exerciseId) : undefined;
 
-  // Arriving back from Summary (before FINISH) to look at or fix something: land on the last set
-  // rather than the front edge — the front edge is `null` (everything is already logged), which
-  // is exactly the empty state the auto-navigate effect below would otherwise read as "done,
-  // go to Summary" and bounce straight back out of. Runs once per arrival; `rewoundTo` afterwards
-  // is the user's own ◂◂/▸▸ navigation to keep.
+  // Whether `jumpTo` actually names a slot still in the plan — the entry could since have been
+  // swapped or removed. Computed once here rather than inline in each effect below, since both
+  // the landing effect and the auto-navigate guard need the exact same answer: an invalid bookmark
+  // must fall through to ordinary behavior in both places, not just silently suppress one of them.
+  const jumpToValid =
+    !!session &&
+    !!jumpTo &&
+    activeEntries(session).some((e) => e.id === jumpTo.entryId && jumpTo.setIndex < e.sets);
+
+  // Arriving with a valid explicit bookmark (a tap on a set in Summary) lands on exactly that
+  // (entry, set). Otherwise, arriving back from Summary (before FINISH) to look at or fix
+  // something lands on the last set rather than the front edge — the front edge is `null`
+  // (everything is already logged), which is exactly the empty state the auto-navigate effect
+  // below would otherwise read as "done, go to Summary" and bounce straight back out of. Runs
+  // once per arrival; `rewoundTo` afterwards is the user's own ◂◂/▸▸ navigation to keep.
   useEffect(() => {
-    if (!reviewFromSummary || !session || rewoundTo) return;
+    if (!session || rewoundTo) return;
+    if (jumpToValid && jumpTo) {
+      setRewoundTo(jumpTo);
+      return;
+    }
+    if (!reviewFromSummary) return;
     const positions = positionsInOrder(session);
     const last = positions[positions.length - 1];
     if (last) setRewoundTo(last);
-  }, [reviewFromSummary, session]);
+  }, [reviewFromSummary, jumpTo, jumpToValid, session]);
 
   useEffect(() => {
     // Keyed on the front edge, not on what is being viewed: the workout is over when every set is
@@ -258,27 +273,30 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     //
     // The cool-down question is the one thing that stands between the last logged set and the
     // summary: its stage ends where the workout does, so without this guard the screen would
-    // navigate straight past the page it just opened. Reviewing from Summary is the other case
-    // that has to sit this out — the workout was already over when the user asked to come back to
-    // it, and auto-forwarding right past them would make the return trip pointless.
-    if (session && !frontier && phase !== 'stage_feedback' && !reviewFromSummary) {
+    // navigate straight past the page it just opened. Reviewing from Summary and arriving at a
+    // valid explicit bookmark are the other cases that have to sit this out — the workout was
+    // already over when the user asked to come back to it (or to a specific set in it), and
+    // auto-forwarding right past them would make the return trip pointless. An *invalid* bookmark
+    // must NOT suppress this — there is nothing for it to land on, so falling through to Summary
+    // is the only way the screen doesn't get stuck showing nothing.
+    if (session && !frontier && phase !== 'stage_feedback' && !reviewFromSummary && !jumpToValid) {
       navigation.replace('Summary', { sessionId });
     }
-  }, [session, frontier, phase, navigation, sessionId, reviewFromSummary]);
+  }, [session, frontier, phase, navigation, sessionId, reviewFromSummary, jumpToValid]);
 
-  // The one way back out of review mode — ▸▸ dead-ends at the last set since there is no front
-  // edge to walk forward to (see `handleForward` below), so this is the only route to Summary
-  // once here.
+  // §14.1's real-time progress view — a persistent way to check completed/skipped sets and where
+  // you currently are, from any phase of the active workout. "Done" replaces it once reviewing
+  // from Summary (before FINISH): that mode has no front edge for ▸▸ to walk forward to, so this
+  // is the only route back to Summary once there.
   useEffect(() => {
-    if (!reviewFromSummary) return;
     navigation.setOptions({
       headerRight: () => (
         <Pressable
-          testID="review-done"
+          testID={reviewFromSummary ? 'review-done' : 'view-progress'}
           onPress={() => navigation.replace('Summary', { sessionId })}
           style={styles.reviewDoneButton}
         >
-          <Text style={styles.reviewDoneButtonText}>Done</Text>
+          <Text style={styles.reviewDoneButtonText}>{reviewFromSummary ? 'Done' : 'Progress'}</Text>
         </Pressable>
       ),
     });
@@ -1985,18 +2003,6 @@ function RestPhase({
         </Pressable>
       </View>
 
-      <Text style={styles.nextUp}>Next up: {nextLabel}</Text>
-      <AnchorBadge anchor={nextAnchor} anchorAlt={nextAnchorAlt} testID="rest-next-anchor" />
-
-      {/* Open by default here — rest is the moment to look, not a moment to also ask for a tap.
-          The exercise phase's own DemoMedia (below, in the parent) keeps its own independent
-          open/closed state once the set actually starts. */}
-      {demoMedia && (
-        <View testID="rest-demo-media-block">
-          <DemoMedia {...demoMedia} defaultOpen />
-        </View>
-      )}
-
       {showFeedback && (
         <FeedbackControls
           difficulty={difficulty}
@@ -2009,6 +2015,18 @@ function RestPhase({
       <Pressable testID="rest-next" style={styles.completeButton} onPress={handleNext}>
         <Text style={styles.completeButtonText}>NEXT</Text>
       </Pressable>
+
+      <Text style={styles.nextUp}>Next up: {nextLabel}</Text>
+      <AnchorBadge anchor={nextAnchor} anchorAlt={nextAnchorAlt} testID="rest-next-anchor" />
+
+      {/* Open by default here — rest is the moment to look, not a moment to also ask for a tap.
+          The exercise phase's own DemoMedia (below, in the parent) keeps its own independent
+          open/closed state once the set actually starts. */}
+      {demoMedia && (
+        <View testID="rest-demo-media-block">
+          <DemoMedia {...demoMedia} defaultOpen />
+        </View>
+      )}
     </View>
   );
 }
