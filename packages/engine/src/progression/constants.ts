@@ -3,11 +3,16 @@
  * here as explicit decisions (see STATUS-2-engine.md "Ambiguities" for the reasoning), not
  * silently guessed:
  *
- * - The rep/hold range a family's micro-progression climbs through is the §5.4 **`medium`**
- *   difficulty row (sets 3, reps 10-12, rest 45s, tempo 3s/rep) — not `easy` or `hard`. The
- *   session's requested difficulty is "for today," while progression is a property of the level,
- *   so progression needs a difficulty-independent baseline, and `medium`'s numbers are also
- *   exactly the schema's implied micro defaults (rest 45s, tempo 3s, sets 3).
+ * - The rep/hold range a family's micro-progression climbs through takes its rest/tempo/sets
+ *   baseline from the §5.4 **`medium`** difficulty row (rest 45s, tempo 3s/rep, sets 3) — not
+ *   `easy` or `hard`. The session's requested difficulty is "for today," while progression is a
+ *   property of the level, so progression needs a difficulty-independent baseline, and `medium`'s
+ *   numbers are also exactly the schema's implied micro defaults.
+ * - The rep range itself is 8-12, which is deliberately *wider at the bottom* than `medium`'s
+ *   10-12. A freshly-entered level is prescribed the bottom of the range, and the whole point of
+ *   entering a level is that the movement is new and harder than the one below it — starting that
+ *   at 10 asks for the level's hardest honest rep count on day one. 8 gives a level somewhere to
+ *   climb from.
  * - Timed (`metric: 'time'`) exercises use a separate seconds range, since a 10-12 rep window
  *   makes no sense as a hold time. Chosen as a generic 20-45s working hold range.
  * - Bodyweight micro-progression's tempo/rest/sets caps (how far each knob ratchets before the
@@ -17,7 +22,7 @@
  *   knob, not a repeating cycle).
  */
 
-export const PROGRESSION_REP_LOW = 10;
+export const PROGRESSION_REP_LOW = 8;
 export const PROGRESSION_REP_HIGH = 12;
 
 export const PROGRESSION_TIME_LOW_SEC = 20;
@@ -39,8 +44,11 @@ export const CONSECUTIVE_BOTTOM_REGRESSIONS_TO_DROP_LEVEL = 2;
  *  in two or three sessions" — a session that neither advances nor drops still counts toward
  *  this, since nothing else is specified to end it early). */
 export const CALIBRATION_SESSIONS = 3;
-/** §6.5 — "exceeding the rep target by ≥25%" advances a full level during calibration. */
-export const CALIBRATION_OVERSHOOT_RATIO = 0.25;
+/** Deliberately absent: an "exceeded the rep target by ≥25%" calibration jump. Reps are a
+ *  prescription to be met, not a score to beat — the user does the prescribed reps if able and
+ *  fewer if not, so there is no such thing as a session that earned something by going over.
+ *  Calibration advances on `too_easy` alone; the ordinary ladder advances on meeting the
+ *  prescription. */
 /** Retired by ADR 0012 — the cold start is level 1, not a percentile guess. Kept out of the
  *  ladder entirely rather than set to 0, so nothing reintroduces a "start them partway up" seed
  *  without reading the ADR first. */

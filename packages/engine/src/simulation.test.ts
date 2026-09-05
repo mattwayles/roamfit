@@ -53,19 +53,29 @@ function freshUserState(): UserState {
 /** A deterministic "how did it go" outcome generator — mostly hits, occasional miss, so
  *  calibration converges and normal advance/regress logic gets real exercise. */
 function simulatedOutcome(rng: ReturnType<typeof createRng>): {
-  allSetsAtOrAboveTop: boolean;
-  missedBottom: boolean;
+  allSetsMetTarget: boolean;
+  anySetBelowTarget: boolean;
   difficultyFeedback: 'too_easy' | 'just_right' | 'too_hard';
 } {
   const r = rng.next();
   if (r < 0.6)
-    return { allSetsAtOrAboveTop: true, missedBottom: false, difficultyFeedback: 'just_right' };
+    return { allSetsMetTarget: true, anySetBelowTarget: false, difficultyFeedback: 'just_right' };
   if (r < 0.85)
-    return { allSetsAtOrAboveTop: false, missedBottom: false, difficultyFeedback: 'just_right' };
-  return { allSetsAtOrAboveTop: false, missedBottom: true, difficultyFeedback: 'too_hard' };
+    return { allSetsMetTarget: false, anySetBelowTarget: false, difficultyFeedback: 'just_right' };
+  return { allSetsMetTarget: false, anySetBelowTarget: true, difficultyFeedback: 'too_hard' };
 }
 
-describe('30-session simulation', () => {
+/**
+ * How many sessions the simulated user trains for. Sized so a full level-up actually lands
+ * inside the run (see the assertions below) — a level is `PROGRESSION_REP_HIGH -
+ * PROGRESSION_REP_LOW` rep steps plus its band/tempo/rest/sets steps, and this simulated user
+ * only meets the prescription ~60% of the time and regresses on ~15%, so a level takes a while.
+ * Widening the rep range's bottom from 10 to 8 added two more steps per level and pushed the
+ * first level-up past the 30 sessions this used to run for.
+ */
+const SIMULATED_SESSIONS = 40;
+
+describe('multi-session simulation', () => {
   it('produces a sane trajectory: levels rise, variety holds, no pattern starved, no chronic over-work', () => {
     let userState = freshUserState();
     const outcomeRng = createRng(999);
@@ -88,7 +98,7 @@ describe('30-session simulation', () => {
     // muscle is never chosen as the PRIMARY mover of an *accessory* (non-laddered) slot.
     let overWorkedNeverPrimaryAccessoryMover = true;
 
-    for (let session = 0; session < 30; session++) {
+    for (let session = 0; session < SIMULATED_SESSIONS; session++) {
       const focus = foci[session % foci.length];
       const preGenerationOverWorked = overWorkedMuscles(userState.history, library, today);
       const plan = generateSession({

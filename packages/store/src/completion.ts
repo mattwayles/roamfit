@@ -43,7 +43,6 @@ interface WorkingSetSummary {
   allAtOrAboveTarget: boolean;
   anyBelowTarget: boolean;
   bestActual: number | null; // reps or seconds, whichever applies
-  maxExceedRatio: number;
   /** The band on the set that produced `bestActual` — a best set is a load *and* a number, so
    *  storing the prescribed band beside an actual rep count would record a set nobody performed. */
   bestBand: BandId | null;
@@ -83,7 +82,6 @@ function summarizeEntry(entry: SessionEntryRecord): WorkingSetSummary {
   let anyBelowTarget = false;
   let bestActual: number | null = null;
   let bestBand: BandId | null = null;
-  let maxExceedRatio = 0;
 
   for (const s of completed) {
     const actual = s.repsActual ?? s.secondsActual ?? null;
@@ -96,8 +94,6 @@ function summarizeEntry(entry: SessionEntryRecord): WorkingSetSummary {
       anyBelowTarget = true;
       allAtOrAboveTarget = false;
     }
-    const ratio = (actual - prescribed) / prescribed;
-    if (ratio > maxExceedRatio) maxExceedRatio = ratio;
   }
 
   return {
@@ -107,7 +103,6 @@ function summarizeEntry(entry: SessionEntryRecord): WorkingSetSummary {
     allAtOrAboveTarget,
     anyBelowTarget,
     bestActual,
-    maxExceedRatio,
     bestBand,
     observedBand: dominantBand(completed.map((s) => s.bandActual)),
   };
@@ -223,10 +218,9 @@ export function completeSession(
 
       const perf: SessionPerformance = {
         familyId: familyId as SessionPerformance['familyId'],
-        allSetsAtOrAboveTop: summaries.every((s) => s.allAtOrAboveTarget),
-        missedBottom: summaries.some((s) => s.anyBelowTarget),
+        allSetsMetTarget: summaries.every((s) => s.allAtOrAboveTarget),
+        anySetBelowTarget: summaries.some((s) => s.anyBelowTarget),
         difficultyFeedback: entries[0].difficultyFeedback ?? 'just_right',
-        exceededTargetByRatio: Math.max(...summaries.map((s) => s.maxExceedRatio), 0),
         // What the user actually trained with, so the next prescription starts from the band in
         // their hand rather than the one they overrode (see `reconcileMicroToObservedBand`).
         // Undefined — not null — when nothing was reported: null is a meaningful "bodyweight" in

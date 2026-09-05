@@ -1,15 +1,20 @@
 /**
  * §6.5 cold-start calibration — the first `CALIBRATION_SESSIONS` sessions of a family run in
- * calibration mode: `too_easy` or exceeding the rep/hold target by ≥25% jumps a full level
- * immediately; missing the bottom of the range drops a full level immediately. No assessment
- * flow, no questions asked.
+ * calibration mode: `too_easy` jumps a full level immediately; finishing any working set below
+ * the prescription drops a full level immediately. No assessment flow, no questions asked.
+ *
+ * Calibration used to *also* jump a level on exceeding the target by ≥25%. That rule is gone:
+ * reps are a prescription to be met rather than a score to beat, so the only way a calibration
+ * session can say "too light" is the user saying so. `too_easy` is a one-tap answer already on
+ * the screen, and it is a more honest signal than a rep count that only goes over when the user
+ * decided to push.
  */
 import type { ProgressionFamily } from '@roamfit/data';
 import { nextLevel, prevLevel } from './ladder';
 import { defaultMicroForExercise } from './micro';
 import type { Exercise } from '@roamfit/data';
 import type { ProgressionState } from '../types';
-import { CALIBRATION_OVERSHOOT_RATIO, CALIBRATION_SESSIONS } from './constants';
+import { CALIBRATION_SESSIONS } from './constants';
 import type { SessionPerformance } from './rules.types';
 
 export interface CalibrationStepResult {
@@ -24,9 +29,8 @@ export function applyCalibrationStep(
   library: readonly Exercise[],
   perf: SessionPerformance,
 ): CalibrationStepResult {
-  const overshoot = (perf.exceededTargetByRatio ?? 0) >= CALIBRATION_OVERSHOOT_RATIO;
-  const shouldAdvance = perf.difficultyFeedback === 'too_easy' || overshoot;
-  const shouldDrop = perf.missedBottom;
+  const shouldAdvance = perf.difficultyFeedback === 'too_easy';
+  const shouldDrop = perf.anySetBelowTarget;
 
   const sessionsSoFar = state.consecutiveHits + state.consecutiveMisses + 1;
   const stillCalibrating = sessionsSoFar < CALIBRATION_SESSIONS;

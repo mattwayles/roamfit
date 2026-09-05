@@ -1,7 +1,8 @@
 import { familyLibrary, exerciseLibrary } from '@roamfit/data';
 import { applySessionResult, levelUpForTooEasy } from './rules';
 import { findFamily } from './ladder';
-import { defaultMicroForExercise } from './micro';
+import { defaultMicroForExercise, microStepsToNextLevel } from './micro';
+import { PROGRESSION_REP_LOW } from './constants';
 import type { ProgressionState } from '../types';
 import type { SessionPerformance } from './rules.types';
 
@@ -26,23 +27,23 @@ function stateAt(levelId: string, overrides: Partial<ProgressionState> = {}): Pr
 function perf(overrides: Partial<SessionPerformance>): SessionPerformance {
   return {
     familyId: 'horizontal_push',
-    allSetsAtOrAboveTop: false,
-    missedBottom: false,
+    allSetsMetTarget: false,
+    anySetBelowTarget: false,
     difficultyFeedback: 'just_right',
     ...overrides,
   };
 }
 
 describe('§6.3 advance / regress / drop-a-level', () => {
-  it('advances one micro-step when all sets hit the top of the range and feedback is not too_hard', () => {
+  it('advances one micro-step when every set met the prescription and feedback is not too_hard', () => {
     const result = applySessionResult(
       stateAt('horizontal_push.l3'),
       family,
       library,
-      perf({ allSetsAtOrAboveTop: true }),
+      perf({ allSetsMetTarget: true }),
     );
     expect(result.event).toEqual({ kind: 'micro_advance' });
-    expect(result.state.micro.repTarget).toBe(11);
+    expect(result.state.micro.repTarget).toBe(PROGRESSION_REP_LOW + 1);
   });
 
   it('does not advance when top-of-range is hit but feedback was too_hard', () => {
@@ -50,7 +51,7 @@ describe('§6.3 advance / regress / drop-a-level', () => {
       stateAt('horizontal_push.l3'),
       family,
       library,
-      perf({ allSetsAtOrAboveTop: true, difficultyFeedback: 'too_hard' }),
+      perf({ allSetsMetTarget: true, difficultyFeedback: 'too_hard' }),
     );
     expect(result.event.kind).not.toBe('micro_advance');
   });
@@ -61,13 +62,13 @@ describe('§6.3 advance / regress / drop-a-level', () => {
       stateAt('horizontal_push.l3'),
       family,
       library,
-      perf({ allSetsAtOrAboveTop: true }),
+      perf({ allSetsMetTarget: true }),
     ).state;
     const result = applySessionResult(
       advanced,
       family,
       library,
-      perf({ missedBottom: true, difficultyFeedback: 'too_hard' }),
+      perf({ anySetBelowTarget: true, difficultyFeedback: 'too_hard' }),
     );
     expect(result.event.kind).toBe('micro_regress');
   });
@@ -77,7 +78,7 @@ describe('§6.3 advance / regress / drop-a-level', () => {
       stateAt('horizontal_push.l3'),
       family,
       library,
-      perf({ missedBottom: true }),
+      perf({ anySetBelowTarget: true }),
     );
     expect(result.event).toEqual({ kind: 'hold' });
     expect(result.state.consecutiveMisses).toBe(1); // tracked so a second miss can trigger below
@@ -90,11 +91,16 @@ describe('§6.3 advance / regress / drop-a-level', () => {
       stateAt('horizontal_push.l3'),
       family,
       library,
-      perf({ allSetsAtOrAboveTop: true }),
+      perf({ allSetsMetTarget: true }),
     ).state;
-    const first = applySessionResult(advanced, family, library, perf({ missedBottom: true }));
+    const first = applySessionResult(advanced, family, library, perf({ anySetBelowTarget: true }));
     expect(first.event).toEqual({ kind: 'hold' });
-    const second = applySessionResult(first.state, family, library, perf({ missedBottom: true }));
+    const second = applySessionResult(
+      first.state,
+      family,
+      library,
+      perf({ anySetBelowTarget: true }),
+    );
     expect(second.event.kind).toBe('micro_regress');
   });
 
@@ -104,7 +110,7 @@ describe('§6.3 advance / regress / drop-a-level', () => {
       bottomState,
       family,
       library,
-      perf({ missedBottom: true, difficultyFeedback: 'too_hard' }),
+      perf({ anySetBelowTarget: true, difficultyFeedback: 'too_hard' }),
     );
     expect(first.event).toEqual({ kind: 'hold' });
     expect(first.state.consecutiveMisses).toBe(1);
@@ -112,37 +118,42 @@ describe('§6.3 advance / regress / drop-a-level', () => {
       first.state,
       family,
       library,
-      perf({ missedBottom: true, difficultyFeedback: 'too_hard' }),
+      perf({ anySetBelowTarget: true, difficultyFeedback: 'too_hard' }),
     );
     expect(second.event).toEqual({ kind: 'level_down', levelId: 'horizontal_push.l2' });
   });
 
   it('advancing past the max micro-step at a non-max level moves to the next level_id', () => {
-    // l3 = bw-knee-push-up, bodyweight. Walk micro to its cap, then one more advance.
+    // l3 = bw-knee-push-up, bodyweight. Walk micro to its cap, then one more advance. The step
+    // count is derived rather than written out, so this keeps testing "one past the cap is a
+    // level change" rather than a particular rep range's length.
     let state = stateAt('horizontal_push.l3');
-    const advances = [
-      'micro_advance',
-      'micro_advance',
-      'micro_advance',
-      'micro_advance',
-      'micro_advance',
-    ];
-    for (const expected of advances) {
-      const r = applySessionResult(state, family, library, perf({ allSetsAtOrAboveTop: true }));
-      expect(r.event.kind).toBe(expected);
+    const l3Exercise = library.find(
+      (e) =>
+        e.id === family.levels.find((l) => l.level_id === 'horizontal_push.l3')!.anchor_exercise_id,
+    )!;
+    const stepsToCap = microStepsToNextLevel(state.micro, l3Exercise)! - 1;
+    for (let i = 0; i < stepsToCap; i++) {
+      const r = applySessionResult(state, family, library, perf({ allSetsMetTarget: true }));
+      expect(r.event.kind).toBe('micro_advance');
       state = r.state;
     }
-    const levelUp = applySessionResult(state, family, library, perf({ allSetsAtOrAboveTop: true }));
+    const levelUp = applySessionResult(state, family, library, perf({ allSetsMetTarget: true }));
     expect(levelUp.event).toEqual({ kind: 'level_up', levelId: 'horizontal_push.l4' });
   });
 
   it('§6.7 mastery — at the max level, an exhausted micro-progression is a PR check, never a dead end', () => {
     let state = stateAt('horizontal_push.l9'); // max level of a 9-level family
-    for (let i = 0; i < 5; i++) {
-      const r = applySessionResult(state, family, library, perf({ allSetsAtOrAboveTop: true }));
+    const l9Exercise = library.find(
+      (e) =>
+        e.id === family.levels.find((l) => l.level_id === 'horizontal_push.l9')!.anchor_exercise_id,
+    )!;
+    const stepsToCap = microStepsToNextLevel(state.micro, l9Exercise)! - 1;
+    for (let i = 0; i < stepsToCap; i++) {
+      const r = applySessionResult(state, family, library, perf({ allSetsMetTarget: true }));
       state = r.state;
     }
-    const result = applySessionResult(state, family, library, perf({ allSetsAtOrAboveTop: true }));
+    const result = applySessionResult(state, family, library, perf({ allSetsMetTarget: true }));
     expect(result.event).toEqual({ kind: 'mastery_pr_check' });
     expect(result.state.levelId).toBe('horizontal_push.l9'); // never advances past the top
   });
@@ -164,13 +175,13 @@ describe('a band the user actually used, reported back at completion', () => {
       state,
       family,
       library,
-      perf({ allSetsAtOrAboveTop: true, observedBand: 'B2' }),
+      perf({ allSetsMetTarget: true, observedBand: 'B2' }),
     );
     expect(result.event.kind).toBe('micro_advance');
-    // B2 with reps reset to the bottom of the range (10), then the advance takes it to 11 — not
-    // an advance from the abandoned B1 prescription.
+    // B2 with reps reset to the bottom of the range, then the advance takes it one step up —
+    // not an advance from the abandoned B1 prescription.
     expect(result.state.micro.band).toBe('B2');
-    expect(result.state.micro.repTarget).toBe(11);
+    expect(result.state.micro.repTarget).toBe(PROGRESSION_REP_LOW + 1);
   });
 
   it('leaves state alone when the prescription was simply followed', () => {

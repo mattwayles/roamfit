@@ -24,8 +24,8 @@ function baseState(): ProgressionState {
 function perf(overrides: Partial<SessionPerformance>): SessionPerformance {
   return {
     familyId: 'horizontal_push',
-    allSetsAtOrAboveTop: false,
-    missedBottom: false,
+    allSetsMetTarget: false,
+    anySetBelowTarget: false,
     difficultyFeedback: 'just_right',
     ...overrides,
   };
@@ -43,18 +43,28 @@ describe('§6.5 cold-start calibration', () => {
     expect(result.state.levelId).toBe('horizontal_push.l4');
   });
 
-  it('exceeding the target by >=25% advances a full level', () => {
+  // Reps are a prescription to be met, not a score to beat: there is no longer any "exceeded the
+  // target by >=25%" jump, and no field on SessionPerformance that could express one. Simply
+  // doing the work asked for holds the level during calibration — only the user saying `too_easy`
+  // moves it.
+  it('meeting the prescription is not itself a calibration advance — only too_easy is', () => {
     const result = applyCalibrationStep(
       baseState(),
       family,
       library,
-      perf({ exceededTargetByRatio: 0.3 }),
+      perf({ allSetsMetTarget: true }),
     );
-    expect(result.levelChanged).toBe('up');
+    expect(result.levelChanged).toBeNull();
+    expect(result.state.levelId).toBe('horizontal_push.l3');
   });
 
-  it('missing the bottom of the range drops a full level', () => {
-    const result = applyCalibrationStep(baseState(), family, library, perf({ missedBottom: true }));
+  it('finishing a set below the prescription drops a full level', () => {
+    const result = applyCalibrationStep(
+      baseState(),
+      family,
+      library,
+      perf({ anySetBelowTarget: true }),
+    );
     expect(result.levelChanged).toBe('down');
     expect(result.state.levelId).toBe('horizontal_push.l2');
   });

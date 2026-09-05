@@ -77,9 +77,13 @@ export function applySessionResult(
   const exercise = currentExercise(family, state.levelId, library);
   if (!exercise) return { state, event: { kind: 'hold' } };
 
-  const shouldAdvance = perf.allSetsAtOrAboveTop && perf.difficultyFeedback !== 'too_hard';
+  // Meeting the prescription on every working set is the whole advance condition — one
+  // qualifying session moves the ladder one step (reps +1 up to the range top, then band/level).
+  // Exceeding it is not a stronger version of the same thing; it is the same thing.
+  const shouldAdvance = perf.allSetsMetTarget && perf.difficultyFeedback !== 'too_hard';
   const shouldRegress =
-    perf.missedBottom && (state.consecutiveMisses >= 1 || perf.difficultyFeedback === 'too_hard');
+    perf.anySetBelowTarget &&
+    (state.consecutiveMisses >= 1 || perf.difficultyFeedback === 'too_hard');
 
   if (shouldAdvance) {
     const step = microAdvance(state.micro, exercise);
@@ -165,9 +169,9 @@ export function applySessionResult(
     };
   }
 
-  if (perf.missedBottom) {
-    // First miss (not yet two consecutive, and not too_hard): track it so the *next* missed-
-    // bottom session — even without a too_hard rating — triggers the regress above.
+  if (perf.anySetBelowTarget) {
+    // First miss (not yet two consecutive, and not too_hard): track it so the *next* session that
+    // falls short — even without a too_hard rating — triggers the regress above.
     return {
       state: { ...state, consecutiveMisses: state.consecutiveMisses + 1, consecutiveHits: 0 },
       event: { kind: 'hold' },

@@ -7,7 +7,13 @@ import {
   microStepsToNextLevel,
   reconcileMicroToObservedBand,
 } from './micro';
+import { PROGRESSION_REP_HIGH, PROGRESSION_REP_LOW } from './constants';
 import type { ProgressionMicroState } from '../types';
+
+/** How many rep steps a level climbs before the next knob (band, or tempo for bodyweight) moves.
+ *  Derived rather than hardcoded so these tests keep asserting the *shape* of the ladder — climb
+ *  the reps, then the next knob — rather than a particular rep range. */
+const REP_STEPS = PROGRESSION_REP_HIGH - PROGRESSION_REP_LOW;
 
 const library = exerciseLibrary.exercises;
 const bodyweightPush = library.find((e) => e.id === 'bw-wall-push-up')!; // horizontal_push.l1
@@ -16,7 +22,7 @@ const bandedPush = library.find((e) => e.id === 'banded-push-up')!; // horizonta
 describe('§6.2 micro-progression', () => {
   it('starts at the bottom of the rep range with the lightest suggested band', () => {
     expect(defaultMicroForExercise(bandedPush)).toEqual({
-      repTarget: 10,
+      repTarget: PROGRESSION_REP_LOW,
       band: 'B1',
       tempoSec: 3,
       restSec: 45,
@@ -27,23 +33,34 @@ describe('§6.2 micro-progression', () => {
 
   it('band order: reps to top of range, then band +1 with reps reset, then next level', () => {
     let micro = defaultMicroForExercise(bandedPush);
+    // One rep at a time from the bottom of the range to the top.
+    for (let i = 1; i <= REP_STEPS; i++) {
+      const step = microAdvance(micro, bandedPush);
+      expect(step).toEqual({
+        micro: { ...micro, repTarget: PROGRESSION_REP_LOW + i },
+        levelChange: null,
+      });
+      micro = step.micro;
+    }
+    expect(micro.repTarget).toBe(PROGRESSION_REP_HIGH);
+
+    // Top of range at B1 -> band bumps to B2, reps reset to the bottom of the range.
     let step = microAdvance(micro, bandedPush);
-    expect(step).toEqual({ micro: { ...micro, repTarget: 11 }, levelChange: null });
-    micro = step.micro;
-    step = microAdvance(micro, bandedPush);
-    expect(step.micro.repTarget).toBe(12);
-    micro = step.micro;
-
-    // top of range at B1 -> band bumps to B2, reps reset to bottom (10).
-    step = microAdvance(micro, bandedPush);
-    expect(step).toEqual({ micro: { ...micro, band: 'B2', repTarget: 10 }, levelChange: null });
+    expect(step).toEqual({
+      micro: { ...micro, band: 'B2', repTarget: PROGRESSION_REP_LOW },
+      levelChange: null,
+    });
     micro = step.micro;
 
-    step = microAdvance(micro, bandedPush); // 10 -> 11
-    micro = step.micro;
-    step = microAdvance(micro, bandedPush); // 11 -> 12, now at max band + top of range
-    micro = step.micro;
-    expect(micro).toEqual({ repTarget: 12, band: 'B2', tempoSec: 3, restSec: 45, sets: 3 });
+    // Climb the reps again at the (now max) band.
+    for (let i = 0; i < REP_STEPS; i++) micro = microAdvance(micro, bandedPush).micro;
+    expect(micro).toEqual({
+      repTarget: PROGRESSION_REP_HIGH,
+      band: 'B2',
+      tempoSec: 3,
+      restSec: 45,
+      sets: 3,
+    });
 
     step = microAdvance(micro, bandedPush);
     expect(step.levelChange).toBe('up');
@@ -52,9 +69,8 @@ describe('§6.2 micro-progression', () => {
 
   it('bodyweight order: reps to top, then tempo +1s, rest -15s, sets +1, then next level', () => {
     let micro = defaultMicroForExercise(bodyweightPush);
-    micro = microAdvance(micro, bodyweightPush).micro; // 10 -> 11
-    micro = microAdvance(micro, bodyweightPush).micro; // 11 -> 12
-    expect(micro.repTarget).toBe(12);
+    for (let i = 0; i < REP_STEPS; i++) micro = microAdvance(micro, bodyweightPush).micro;
+    expect(micro.repTarget).toBe(PROGRESSION_REP_HIGH);
 
     micro = microAdvance(micro, bodyweightPush).micro;
     expect(micro.tempoSec).toBe(4);
@@ -113,13 +129,21 @@ describe('§6.2 reconcileMicroToObservedBand — the band the user actually used
 
   it('adopts a heavier observed band and resets reps to the bottom of the range', () => {
     const micro = defaultMicroForExercise(wideRange); // B3, reps at the bottom
-    const next = reconcileMicroToObservedBand({ ...micro, repTarget: 12 }, wideRange, 'B4');
+    const next = reconcileMicroToObservedBand(
+      { ...micro, repTarget: PROGRESSION_REP_HIGH },
+      wideRange,
+      'B4',
+    );
     expect(next.band).toBe('B4');
-    expect(next.repTarget).toBe(10);
+    expect(next.repTarget).toBe(PROGRESSION_REP_LOW);
   });
 
   it('adopts a lighter observed band and moves reps to the top of the range', () => {
-    const micro = { ...defaultMicroForExercise(wideRange), band: 'B5' as const, repTarget: 10 };
+    const micro = {
+      ...defaultMicroForExercise(wideRange),
+      band: 'B5' as const,
+      repTarget: PROGRESSION_REP_LOW,
+    };
     const next = reconcileMicroToObservedBand(micro, wideRange, 'B4');
     expect(next.band).toBe('B4');
     expect(next.repTarget).toBe(12);
@@ -158,11 +182,11 @@ describe('§6.2 micro-progression — a null band on a band anchor', () => {
 
   it('climbs the band ladder instead of jumping straight to a level change', () => {
     // banded-push-up is "B1-B2": maxed reps at an implied B1 must bump to B2, not level up.
-    const micro = { ...nullBand(bandedPush), repTarget: 12 };
+    const micro = { ...nullBand(bandedPush), repTarget: PROGRESSION_REP_HIGH };
     const step = microAdvance(micro, bandedPush);
     expect(step.levelChange).toBeNull();
     expect(step.micro.band).toBe('B2');
-    expect(step.micro.repTarget).toBe(10);
+    expect(step.micro.repTarget).toBe(PROGRESSION_REP_LOW);
   });
 
   it('still reports the floor, so it does not drop a level early', () => {
@@ -175,9 +199,13 @@ describe('§6.2 micro-progression — a null band on a band anchor', () => {
     // Observed the implied band: nothing moves, but the null is written back as B3.
     expect(reconcileMicroToObservedBand(nullBand(wide), wide, 'B3').band).toBe('B3');
     // Observed something heavier: adopted, with reps reset as on any band change.
-    const heavier = reconcileMicroToObservedBand({ ...nullBand(wide), repTarget: 12 }, wide, 'B4');
+    const heavier = reconcileMicroToObservedBand(
+      { ...nullBand(wide), repTarget: PROGRESSION_REP_HIGH },
+      wide,
+      'B4',
+    );
     expect(heavier.band).toBe('B4');
-    expect(heavier.repTarget).toBe(10);
+    expect(heavier.repTarget).toBe(PROGRESSION_REP_LOW);
   });
 });
 

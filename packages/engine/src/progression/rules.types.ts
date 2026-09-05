@@ -7,14 +7,18 @@ import type { BandId, DifficultyFeedback } from '../types';
  */
 export interface SessionPerformance {
   familyId: ProgressionFamilyId;
-  /** Every working set completed at or above the top of the prescribed range/hold target. */
-  allSetsAtOrAboveTop: boolean;
-  /** At least one working set finished below the bottom of the prescribed range/hold target. */
-  missedBottom: boolean;
+  /**
+   * Every working set met the prescribed reps/hold — the sole thing that earns an advance.
+   *
+   * The yardstick is the prescription itself, never the top of the rep range: a level is entered
+   * at the bottom of the range and climbs a rep at a time, so "met what I was asked for" is what
+   * moves the ladder. Doing *more* than prescribed earns nothing extra — there is no overshoot
+   * bonus anywhere in this file's consumers, by design.
+   */
+  allSetsMetTarget: boolean;
+  /** At least one working set finished below the prescribed reps/hold. */
+  anySetBelowTarget: boolean;
   difficultyFeedback: DifficultyFeedback;
-  /** §6.5 calibration only — how far actual reps/seconds exceeded the target, e.g. 0.3 for 30%
-   *  over. Undefined/0 when not applicable. */
-  exceededTargetByRatio?: number;
   /** The band the user recorded actually using for this family's working sets, when they told us
    *  (per-set, on the workout screen) and it differs from what was prescribed. Undefined/null means
    *  "no correction reported" — bodyweight work, or the ordinary case where the prescription was
