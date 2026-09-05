@@ -8,20 +8,36 @@ swap between apps during a workout."
 ### Done
 
 - [x] Dependency + `app.config.js` + `scheme` in `app.json` + this file — 7115c04
-- [x] `app/src/lib/spotifyRemote.ts` + both test files (25 cases)
+- [x] `app/src/lib/spotifyRemote.ts` + both test files (25 cases) — 1c6ce26
+- [x] `app/src/components/SpotifyControls.tsx` + tests (11 cases) — 45e5686
+- [x] Wired into `WorkoutScreen.tsx` + `WorkoutScreen.spotify.test.tsx` (4 cases) — e0ade15
+- [x] `docs/SPOTIFY-SETUP.md` + backlog entries
 
 ### In progress
 
-- Increment 3: `app/src/components/SpotifyControls.tsx` — the transport bar, plus its tests.
-  Mocks `../lib/spotifyRemote` (the seam `useSpotifyPlayer` exists to be). Compact single row so
-  it can sit under the timer without pushing the exercise hero down.
+- Nothing. The track is code-complete and `npm run check` is green (1,551 tests).
 
-### Next
+### Next — all of it needs a device, none of it needs code
 
-1. Wire into `WorkoutScreen.tsx` under the timer row, plus a screen test.
-2. `docs/SPOTIFY-SETUP.md` — the one manual step (client ID) the user has to do themselves.
-3. Backlog: park the token-swap-server upgrade and a Settings toggle if the row proves to be
-   clutter for a non-Spotify session.
+1. The user registers a Spotify app, exports `SPOTIFY_CLIENT_ID`, and runs
+   `npx expo prebuild --platform ios --clean` + `npm run ios`. Steps in `docs/SPOTIFY-SETUP.md`.
+2. **Then verify on the phone, because none of it is Jest-provable:** a real auth bounce and
+   return; connecting with Spotify suspended (the `authorizeAndPlay` path — the ordinary one);
+   play/pause/skip actually driving playback; the bar surviving a backgrounded app; and the cue
+   tones still mixing over Spotify rather than pausing it (that is `workoutAudio.ts`'s session,
+   untouched here, but it is the regression this feature is most likely to be blamed for).
+3. If Premium is not on the account, expect connect to succeed and the buttons to report
+   `PREMIUM_REQUIRED`. That is Spotify's restriction, not a bug to chase.
+
+### Gotcha found while testing (worth knowing before writing any new component test)
+
+`render`, `rerender` and `fireEvent.press` are **all async** under React 19 / RNTL 14. Leaving any
+of them un-awaited holds an `act()` scope open past the end of the test, and the failure surfaces
+on the *next* test: cases that pass in isolation fail in sequence, by timeout or by "unable to find
+an element", with the error pointing at a component that is fine. Three un-awaited presses in one
+case cost the four cases after it. The older component suites in `app/src/components` use the
+un-awaited `render(...)` + `await waitFor(...)` shape and get away with it; they are one added
+`fireEvent` away from the same trap.
 
 ### Decisions / gotchas
 
