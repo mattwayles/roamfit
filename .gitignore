@@ -31,6 +31,9 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
+# Cloud Functions v2 `defineString`/`defineSecret` params saved by `firebase deploy`'s interactive
+# prompt land here (e.g. functions/.env.<project-id>) — not matched by the patterns above.
+functions/.env.*
 
 # os
 .DS_Store

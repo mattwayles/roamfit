@@ -61,6 +61,22 @@ const mockModule = {
 
 jest.mock('@wwdrew/expo-spotify-sdk', () => mockModule);
 
+// `connectSpotify()` reads these per call to build the Authorization Code config it now requires
+// (Implicit Grant is dead — see that file's header). Set here so this suite exercises the
+// configured build; `spotifyRemote.tokenSwapUnconfigured.test.ts` covers the sibling case where
+// they're unset. `process.env` is a single object shared by every test file in a Jest worker, so
+// this restores it afterward rather than leaking into whichever suite runs next.
+const previousTokenSwapURL = process.env.EXPO_PUBLIC_SPOTIFY_TOKEN_SWAP_URL;
+const previousTokenRefreshURL = process.env.EXPO_PUBLIC_SPOTIFY_TOKEN_REFRESH_URL;
+process.env.EXPO_PUBLIC_SPOTIFY_TOKEN_SWAP_URL =
+  'https://us-central1-roamfit.cloudfunctions.net/spotifyTokenSwap';
+process.env.EXPO_PUBLIC_SPOTIFY_TOKEN_REFRESH_URL =
+  'https://us-central1-roamfit.cloudfunctions.net/spotifyTokenRefresh';
+afterAll(() => {
+  process.env.EXPO_PUBLIC_SPOTIFY_TOKEN_SWAP_URL = previousTokenSwapURL;
+  process.env.EXPO_PUBLIC_SPOTIFY_TOKEN_REFRESH_URL = previousTokenRefreshURL;
+});
+
 import {
   connectSpotify,
   isSpotifySupported,
@@ -100,6 +116,8 @@ describe('connectSpotify', () => {
 
     expect(mockModule.Auth.authenticate).toHaveBeenCalledWith({
       scopes: ['app-remote-control', 'user-read-playback-state'],
+      tokenSwapURL: 'https://us-central1-roamfit.cloudfunctions.net/spotifyTokenSwap',
+      tokenRefreshURL: 'https://us-central1-roamfit.cloudfunctions.net/spotifyTokenRefresh',
     });
     expect(mockModule.AppRemote.connect).toHaveBeenCalledWith('token-abc');
     expect(mockModule.AppRemote.authorizeAndPlay).not.toHaveBeenCalled();

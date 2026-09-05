@@ -1,6 +1,6 @@
 ## Track: 15-spotify-control — Control Spotify from the active workout screen
 
-Last updated: 2026-09-05
+Last updated: 2026-09-05 (Authorization Code migration)
 
 Request: "I want a component on the active workout screen to control Spotify so I don't have to
 swap between apps during a workout."
@@ -16,11 +16,56 @@ swap between apps during a workout."
 - [x] Fix: `connect()` never recovered from a failed auth bounce — `spotifyRemote.ts`,
   `spotifyRemote.test.ts`
 
+### Bug found on device: "Unable to open URL: about:blank"
+
+Reported after the "connecting forever" fix above shipped: `connect()` now fails cleanly, but the
+underlying auth attempt itself started throwing this on every try.
+
+**Root cause.** Spotify sunset the Implicit Grant OAuth flow on 2025-11-27. This integration used
+that flow deliberately (see the now-stale "Why you reconnect once per app launch" reasoning that
+used to be in `docs/SPOTIFY-SETUP.md`) specifically because it needs no backend. Every
+`Auth.authenticate()` call since the sunset date asks `SPTSessionManager` to run a flow Spotify's
+authorization server now rejects mid-flow; the abandoned auth webview reports back whatever it
+last showed instead of a real `roamfit://` redirect, which is `about:blank`. Confirmed by pulling
+`@wwdrew/expo-spotify-sdk`'s actual source (npm-packed, not from `node_modules` — this environment
+has no native deps installed) and Spotify's own developer-blog OAuth migration post; no
+`Linking.openURL('about:blank')` exists anywhere in our code or the SDK's JS/Swift, ruling out a
+call-site bug on our end.
+
+**Fix.** Migrated to Authorization Code, the only flow Spotify still accepts:
+
+- `functions/src/spotifyTokenSwap.ts` (+ `spotifyTokenSwap.test.ts`, 6 cases) — the token-swap
+  server `@wwdrew/expo-spotify-sdk`'s `tokenSwapURL`/`tokenRefreshURL` need, matching that
+  package's documented server contract exactly (fetched from its GitHub `docs/guides/
+  token-swap-server.md`, not in the npm package). Pure, `fetch`-injected, no `firebase-functions`
+  import — same discipline as `handlers.ts` — so it's Jest-testable without real credentials.
+- `functions/src/index.ts` — wires it in as two plain `onRequest` exports (`spotifyTokenSwap`,
+  `spotifyTokenRefresh`; NOT `onCall` — the native SDK POSTs form-urlencoded directly, no Firebase
+  callable envelope). New `defineSecret('SPOTIFY_CLIENT_SECRET')` and two `defineString` params
+  (`SPOTIFY_CLIENT_ID`, `SPOTIFY_REDIRECT_URI`).
+- `app/src/lib/spotifyRemote.ts` — `connectSpotify()` now reads `EXPO_PUBLIC_SPOTIFY_TOKEN_SWAP_URL`
+  / `EXPO_PUBLIC_SPOTIFY_TOKEN_REFRESH_URL` per call (Metro inlines `EXPO_PUBLIC_` vars at bundle
+  time — no `expo-constants`, no native config plugin needed) and passes them into
+  `Auth.authenticate()`. Fails fast with a sentence if either is unset, rather than ever attempting
+  the dead Implicit Grant flow again.
+- `docs/SPOTIFY-SETUP.md` — added the deploy-the-server steps; `docs/BACKLOG.md` updated to say
+  this is now required, not optional.
+- `.gitignore` — added `functions/.env.*` (the file `firebase deploy` saves `defineString` params
+  to isn't matched by the existing `.env`/`.env.*.local` patterns).
+
+**Not deployed, and not reverifiable on device from this environment** — same limitation as
+everything else in this file: this environment has no Firebase credentials and no physical phone.
+`npm run check` is green (functions: 9 suites/34 tests; app: 63 suites/382 tests), which proves the
+swap/refresh HTTP contract and the JS-side gating, not that a real Spotify auth round-trip works.
+
 ### In progress
 
 - Nothing. `npm run check` is green.
 
-### Next — all of it needs a device, none of it needs code
+### Next — needs the user to deploy `functions/` and rebuild, none of it needs more code
+
+0. Deploy the token-swap server and rebuild per the new steps in `docs/SPOTIFY-SETUP.md` — this is
+   now a hard requirement to connect at all, not an optional nice-to-have.
 
 1. Re-verify on the phone: a real auth bounce and return; connecting with Spotify suspended (the
    `authorizeAndPlay` path — the ordinary one); play/pause/skip actually driving playback; the bar

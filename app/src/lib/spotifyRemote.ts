@@ -121,9 +121,18 @@ function describeError(error: unknown): string {
 /**
  * Authenticate, then attach to the running Spotify app.
  *
- * The `CONNECTION_FAILED` retry is not defensive padding — it is the normal path. `connect()` can
- * only attach to an *already-running* Spotify, and iOS suspends backgrounded apps aggressively, so
- * the common case (phone in a pocket, Spotify not touched today) fails first and succeeds on
+ * **Authorization Code, not Implicit Grant.** Spotify sunset the Implicit Grant flow on
+ * 2025-11-27 (the OAuth migration Spotify announced on its developer blog); asking for it now
+ * gets the auth webview rejected mid-flow, which showed up on device as `Auth.authenticate()`
+ * throwing "Unable to open URL: about:blank" — the abandoned session reporting back whatever it
+ * last showed rather than a real redirect. `tokenSwapURL`/`tokenRefreshURL` switch the SDK to
+ * Authorization Code, which needs the client secret exchanged server-side (`functions/`) since
+ * the app can never hold it — see `docs/SPOTIFY-SETUP.md`. Without both configured, connecting
+ * would only ever retry the dead flow, so this fails fast with a sentence instead.
+ *
+ * The `CONNECTION_FAILED` retry below is not defensive padding — it is the normal path. `connect()`
+ * can only attach to an *already-running* Spotify, and iOS suspends backgrounded apps aggressively,
+ * so the common case (phone in a pocket, Spotify not touched today) fails first and succeeds on
  * `authorizeAndPlay`, which wakes Spotify, starts playback and then connects. That it starts
  * playback is a feature here: someone tapping Connect at the top of a workout wants music.
  *
@@ -134,6 +143,15 @@ function describeError(error: unknown): string {
 export async function connectSpotify(): Promise<SpotifyErrorMessage> {
   const mod = loadModule();
   if (!mod) return 'Spotify isn’t set up in this build.';
+  // Read per call, not at module load: `EXPO_PUBLIC_` vars are inlined by Metro at bundle time in
+  // a real build, but reading them lazily here (rather than into a module-level const) is what
+  // lets tests for the configured and unconfigured cases set `process.env` before calling this,
+  // without fighting ES import hoisting evaluating this module before that assignment runs.
+  const tokenSwapURL = process.env.EXPO_PUBLIC_SPOTIFY_TOKEN_SWAP_URL;
+  const tokenRefreshURL = process.env.EXPO_PUBLIC_SPOTIFY_TOKEN_REFRESH_URL;
+  if (!tokenSwapURL || !tokenRefreshURL) {
+    return 'Spotify sign-in isn’t finished setting up on this build (no token swap server).';
+  }
 
   try {
     if (!mod.Auth.isAvailable()) return 'Spotify isn’t installed on this phone.';
@@ -142,6 +160,8 @@ export async function connectSpotify(): Promise<SpotifyErrorMessage> {
     await mod.Auth.cancelPending();
     const session = await mod.Auth.authenticate({
       scopes: ['app-remote-control', 'user-read-playback-state'],
+      tokenSwapURL,
+      tokenRefreshURL,
     });
     try {
       await mod.AppRemote.connect(session.accessToken);
