@@ -508,6 +508,38 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
         )
       )}
 
+      {/* §14.1.6 calendar heatmap — untrained days are neutral squares, never omitted or red.
+          §9.3 — an untrained travel day gets a plane icon instead of a plain square: reviewing
+          the week, that's what explains why a day has no workout on it. A trained travel day
+          still shows the workout — the more informative fact of the two. */}
+      {stats.lifetimeSessionCount > 0 && (
+        <View testID="calendar-heatmap">
+          <Text style={styles.sectionLabel}>Last {CALENDAR_WINDOW_DAYS} days</Text>
+          <View style={styles.calendarGrid}>
+            {calendarDays.map((day) => {
+              const isTransitDay = day.minutes === null && day.inTransit;
+              return (
+                <View
+                  key={day.localDate}
+                  testID={`calendar-day-${day.localDate}`}
+                  accessibilityLabel={isTransitDay ? 'Travel day' : undefined}
+                  style={[
+                    styles.calendarCell,
+                    day.minutes === null
+                      ? styles.calendarCellUntrained
+                      : day.minutes >= 30
+                        ? styles.calendarCellLong
+                        : styles.calendarCellShort,
+                  ]}
+                >
+                  {isTransitDay && <Text style={styles.calendarCellTransitIcon}>✈</Text>}
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
       <Text style={styles.sectionLabel}>Progression board</Text>
       {isZeroSession && (
         <Text testID="calibration-explanation" style={styles.calibrationNote}>
@@ -686,38 +718,6 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
             </Text>
           </Pressable>
         )
-      )}
-
-      {/* §14.1.6 calendar heatmap — untrained days are neutral squares, never omitted or red.
-          §9.3 — an untrained travel day gets a plane icon instead of a plain square: reviewing
-          the week, that's what explains why a day has no workout on it. A trained travel day
-          still shows the workout — the more informative fact of the two. */}
-      {stats.lifetimeSessionCount > 0 && (
-        <View testID="calendar-heatmap">
-          <Text style={styles.sectionLabel}>Last {CALENDAR_WINDOW_DAYS} days</Text>
-          <View style={styles.calendarGrid}>
-            {calendarDays.map((day) => {
-              const isTransitDay = day.minutes === null && day.inTransit;
-              return (
-                <View
-                  key={day.localDate}
-                  testID={`calendar-day-${day.localDate}`}
-                  accessibilityLabel={isTransitDay ? 'Travel day' : undefined}
-                  style={[
-                    styles.calendarCell,
-                    day.minutes === null
-                      ? styles.calendarCellUntrained
-                      : day.minutes >= 30
-                        ? styles.calendarCellLong
-                        : styles.calendarCellShort,
-                  ]}
-                >
-                  {isTransitDay && <Text style={styles.calendarCellTransitIcon}>✈</Text>}
-                </View>
-              );
-            })}
-          </View>
-        </View>
       )}
 
       {/* §14.1.7 muscle balance — the hero volume metric, hard sets per muscle, trailing 14 days.
