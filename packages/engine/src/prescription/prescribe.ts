@@ -14,7 +14,7 @@ import type { Exercise, ProgressionFamilyId, Role } from '@roamfit/data';
 import { BAND_ORDER } from '../types';
 import type { BandId, Difficulty, SessionEntry } from '../types';
 import { difficultyCapForExercise } from '../filters/hardFilters';
-import { parseBandRange } from '../progression/micro';
+import { projectMicroToExercise } from '../progression/tiers';
 import { DIFFICULTY_TABLE } from './difficultyTable';
 import { repExerciseSec, timedExerciseSec } from '../timefit/formulas';
 
@@ -22,31 +22,6 @@ function dropOneBand(band: BandId | null): BandId | null {
   if (!band) return band;
   const idx = BAND_ORDER.indexOf(band);
   return idx > 0 ? BAND_ORDER[idx - 1] : band;
-}
-
-/**
- * ADR 0010 compatibility rule 3 — `micro.band` is a property of the level, tracked against its
- * *anchor* exercise, but the exercise actually programmed may be any sibling at that level, with
- * its own authored band range. Clamp into the range the exercise was written for:
- *
- * - a bodyweight sibling has no band at all, whatever the anchor's micro says;
- * - a band sibling at a bodyweight anchor's level starts at the lightest band it supports;
- * - otherwise the anchor's band is pulled inside the sibling's own [min, max] window.
- *
- * Without this, a `micro.band` of B3 (legal for an rdl anchor at B3-B4) would be prescribed
- * against a B1-B2 sibling — a band that exercise is not authored for.
- */
-function clampBandToExercise(band: BandId | null, exercise: Exercise): BandId | null {
-  if (exercise.equipment !== 'band') return null;
-  const range = parseBandRange(exercise.band);
-  if (!range) return null;
-  if (!band) return range[0];
-  const [lo, hi] = range;
-  const idx = BAND_ORDER.indexOf(band);
-  const loIdx = BAND_ORDER.indexOf(lo);
-  const hiIdx = BAND_ORDER.indexOf(hi);
-  if (idx < 0 || loIdx < 0 || hiIdx < 0) return range[0];
-  return BAND_ORDER[Math.min(Math.max(idx, loIdx), hiIdx)];
 }
 
 export interface PrescribeLadderedInput {
@@ -60,6 +35,14 @@ export interface PrescribeLadderedInput {
     restSec: number;
     sets: number;
   };
+  /**
+   * The exercise `micro` is tracked against — the level's anchor (ADR 0010). Required because a
+   * stored micro-state is a prescription for the *anchor*, and the exercise being programmed may
+   * be any sibling at that level with entirely different knobs; `projectMicroToExercise` re-spends
+   * the ladder position on whichever one is in front of the user. Pass `exercise` itself when they
+   * are the same, which is the common case.
+   */
+  anchorExercise: Exercise;
   requestedDifficulty: Difficulty;
   /** §5.2 48h recovery — this exercise touches a muscle trained hard in the last 2 days. */
   recoveryTreatment: boolean;
@@ -78,7 +61,6 @@ export function prescribeLaddered(input: PrescribeLadderedInput): SessionEntry {
     exercise,
     familyId,
     levelId,
-    micro,
     requestedDifficulty,
     recoveryTreatment,
     substitutedFor,
@@ -87,8 +69,10 @@ export function prescribeLaddered(input: PrescribeLadderedInput): SessionEntry {
     exercise,
     recoveryTreatment ? capBelowHard(requestedDifficulty) : requestedDifficulty,
   );
-  const levelBand = clampBandToExercise(micro.band, exercise);
-  const band = recoveryTreatment ? dropOneBand(levelBand) : levelBand;
+  // The stored state is the anchor's prescription; this is the same ladder position spent on the
+  // knobs *this* exercise actually has (band size for a band sibling, tempo/rest/sets otherwise).
+  const micro = projectMicroToExercise(input.micro, input.anchorExercise, exercise);
+  const band = recoveryTreatment ? dropOneBand(micro.band) : micro.band;
   const isTimed = exercise.metric === 'time';
   const sets = scaleSets(micro.sets, input.setsMultiplier);
   const estimatedSec = isTimed

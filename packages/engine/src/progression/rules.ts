@@ -55,9 +55,17 @@ export function applySessionResult(
   // with. Doing it first also means a session that both switched band and earned an advance
   // advances from the new band rather than from the abandoned prescription.
   const state: ProgressionState = (() => {
-    const exercise = currentExercise(family, inputState.levelId, library);
-    if (!exercise) return inputState;
-    const micro = reconcileMicroToObservedBand(inputState.micro, exercise, perf.observedBand);
+    const anchor = currentExercise(family, inputState.levelId, library);
+    if (!anchor) return inputState;
+    const programmed =
+      (perf.programmedExerciseId && library.find((e) => e.id === perf.programmedExerciseId)) ||
+      anchor;
+    const micro = reconcileMicroToObservedBand(
+      inputState.micro,
+      anchor,
+      programmed,
+      perf.observedBand,
+    );
     return micro === inputState.micro ? inputState : { ...inputState, micro };
   })();
 

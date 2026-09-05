@@ -30,7 +30,7 @@ import { recentHardMuscles } from './selection/volume';
 import { RECOVERY_WINDOW_DAYS } from './selection/constants';
 import { resolveLadderSlot } from './progression/resolveSlot';
 import type { ResolvedLadderSlot } from './progression/resolveSlot';
-import { levelOrdinal } from './progression/ladder';
+import { exerciseForLevel, levelOrdinal } from './progression/ladder';
 import { assessComeback, applyComebackToProgressionStates } from './progression/comeback';
 import {
   prescribeAccessory,
@@ -283,6 +283,12 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
         slot.id,
         prescribeLaddered({
           exercise: resolved.exercise,
+          // The rung the micro-state belongs to, which is `state.levelId` even when the exercise
+          // itself was drawn from a lower rung for variety (`pulledFromLevelId`) or because the
+          // current rung was hard-filtered out (`substitutedFrom`).
+          anchorExercise:
+            exerciseForLevel(resolved.family, resolved.state.levelId, allExercises) ??
+            resolved.exercise,
           familyId,
           levelId: resolved.state.levelId,
           micro: resolved.state.micro,

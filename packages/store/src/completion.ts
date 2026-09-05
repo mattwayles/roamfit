@@ -255,6 +255,9 @@ export function completeSession(
         // Undefined — not null — when nothing was reported: null is a meaningful "bodyweight" in
         // the engine's own band vocabulary, and this is "no correction", which is different.
         observedBand: dominantBand(summaries.map((s) => s.observedBand)) ?? undefined,
+        // Which sibling the ladder actually handed them, so `observedBand` is read against the
+        // range that exercise is authored for rather than the level anchor's (ADR 0010).
+        programmedExerciseId: entries[0].exerciseId,
       };
 
       const result = applySessionResult(state, family, input.library.exercises, perf);

@@ -18,21 +18,14 @@ import {
   PROGRESSION_TIME_HIGH_SEC,
   PROGRESSION_TIME_LOW_SEC,
 } from './constants';
+import { bandStepsFor, parseBandRange, spendTier, tierCapFor, tierOf } from './tiers';
+
+export { parseBandRange };
 
 function rangeForExercise(exercise: Exercise): { low: number; high: number } {
   return exercise.metric === 'time'
     ? { low: PROGRESSION_TIME_LOW_SEC, high: PROGRESSION_TIME_HIGH_SEC }
     : { low: PROGRESSION_REP_LOW, high: PROGRESSION_REP_HIGH };
-}
-
-/** Parses a suggested band range like "B1-B3" into [min, max]. Single band ("B2") returns
- *  [B2, B2]. `null` (bodyweight) returns null. */
-export function parseBandRange(band: string | null): [BandId, BandId] | null {
-  if (!band) return null;
-  const parts = band.split('-');
-  const lo = parts[0] as BandId;
-  const hi = (parts[1] ?? parts[0]) as BandId;
-  return [lo, hi];
 }
 
 /** The starting micro-state for a freshly-entered level — the §5.4 `normal` baseline, at the
@@ -78,27 +71,14 @@ export interface MicroStepResult {
   levelChange: LevelChangeDirection;
 }
 
-/** One micro-progression step forward, per §6.2's order (band: reps → band+1 (reps reset) →
- *  … → next level; bodyweight: reps → tempo+1s → rest−15s → sets+1 → next level). */
-export function microAdvance(micro: ProgressionMicroState, exercise: Exercise): MicroStepResult {
-  const { high, low } = rangeForExercise(exercise);
-  if (exercise.equipment === 'band') {
-    if (micro.repTarget < high) {
-      return { micro: { ...micro, repTarget: micro.repTarget + 1 }, levelChange: null };
-    }
-    const range = parseBandRange(exercise.band);
-    const band = bandForExercise(micro, exercise);
-    const maxBand = range?.[1] ?? band;
-    if (band && maxBand && BAND_ORDER.indexOf(band) < BAND_ORDER.indexOf(maxBand)) {
-      const nextBand = BAND_ORDER[BAND_ORDER.indexOf(band) + 1];
-      return { micro: { ...micro, band: nextBand, repTarget: low }, levelChange: null };
-    }
-    return { micro, levelChange: 'up' };
-  }
-  // Bodyweight.
-  if (micro.repTarget < high) {
-    return { micro: { ...micro, repTarget: micro.repTarget + 1 }, levelChange: null };
-  }
+/**
+ * The pace knobs — tempo +1s → rest −15s → sets +1 — climbed once the movement-specific knob is
+ * exhausted. Shared by both equipment classes: a slower tempo and a shorter rest are harder with a
+ * band in your hands too, and giving band exercises these tiers is what stops the top of a band
+ * range being a dead end (see `tiers.ts`). The `BODYWEIGHT_*` constant names predate that and are
+ * now read as "the cap", not "the bodyweight cap".
+ */
+function advancePace(micro: ProgressionMicroState): MicroStepResult {
   if (micro.tempoSec < BODYWEIGHT_TEMPO_CAP_SEC) {
     return { micro: { ...micro, tempoSec: micro.tempoSec + 1 }, levelChange: null };
   }
@@ -114,32 +94,48 @@ export function microAdvance(micro: ProgressionMicroState, exercise: Exercise): 
   return { micro, levelChange: 'up' };
 }
 
-/** One micro-progression step backward — the exact reverse order of `microAdvance`. */
-export function microRegress(micro: ProgressionMicroState, exercise: Exercise): MicroStepResult {
-  const { low } = rangeForExercise(exercise);
+/** One micro-progression step forward, per §6.2's order: reps → band+1 (reps reset, band
+ *  exercises only) → tempo+1s → rest−15s → sets+1 → next level. */
+export function microAdvance(micro: ProgressionMicroState, exercise: Exercise): MicroStepResult {
+  const { high, low } = rangeForExercise(exercise);
+  if (micro.repTarget < high) {
+    return { micro: { ...micro, repTarget: micro.repTarget + 1 }, levelChange: null };
+  }
   if (exercise.equipment === 'band') {
-    if (micro.repTarget > low) {
-      return { micro: { ...micro, repTarget: micro.repTarget - 1 }, levelChange: null };
-    }
     const range = parseBandRange(exercise.band);
     const band = bandForExercise(micro, exercise);
-    const minBand = range?.[0] ?? band;
-    if (band && minBand && BAND_ORDER.indexOf(band) > BAND_ORDER.indexOf(minBand)) {
-      const { high } = rangeForExercise(exercise);
-      const prevBand = BAND_ORDER[BAND_ORDER.indexOf(band) - 1];
-      return { micro: { ...micro, band: prevBand, repTarget: high }, levelChange: null };
+    const maxBand = range?.[1] ?? band;
+    if (band && maxBand && BAND_ORDER.indexOf(band) < BAND_ORDER.indexOf(maxBand)) {
+      const nextBand = BAND_ORDER[BAND_ORDER.indexOf(band) + 1];
+      return { micro: { ...micro, band: nextBand, repTarget: low }, levelChange: null };
     }
-    return { micro, levelChange: 'down' };
   }
-  // Bodyweight — reverse of sets+1 → rest-15 → tempo+1 → reps.
+  return advancePace(micro);
+}
+
+/** One micro-progression step backward — the exact reverse order of `microAdvance`. */
+export function microRegress(micro: ProgressionMicroState, exercise: Exercise): MicroStepResult {
+  const { low, high } = rangeForExercise(exercise);
   if (micro.sets > DEFAULT_SETS) {
     return { micro: { ...micro, sets: micro.sets - 1 }, levelChange: null };
   }
   if (micro.restSec < DEFAULT_REST_SEC) {
-    return { micro: { ...micro, restSec: micro.restSec + 15 }, levelChange: null };
+    return {
+      micro: { ...micro, restSec: Math.min(DEFAULT_REST_SEC, micro.restSec + 15) },
+      levelChange: null,
+    };
   }
   if (micro.tempoSec > DEFAULT_TEMPO_SEC) {
     return { micro: { ...micro, tempoSec: micro.tempoSec - 1 }, levelChange: null };
+  }
+  if (exercise.equipment === 'band') {
+    const range = parseBandRange(exercise.band);
+    const band = bandForExercise(micro, exercise);
+    const minBand = range?.[0] ?? band;
+    if (band && minBand && BAND_ORDER.indexOf(band) > BAND_ORDER.indexOf(minBand)) {
+      const prevBand = BAND_ORDER[BAND_ORDER.indexOf(band) - 1];
+      return { micro: { ...micro, band: prevBand, repTarget: high }, levelChange: null };
+    }
   }
   if (micro.repTarget > low) {
     return { micro: { ...micro, repTarget: micro.repTarget - 1 }, levelChange: null };
@@ -148,63 +144,98 @@ export function microRegress(micro: ProgressionMicroState, exercise: Exercise): 
 }
 
 /**
- * §6.2 — pull the micro-state's band into line with the band the user actually trained with.
+ * §6.2 — pull the micro-state into line with the band the user actually trained with.
  *
  * The prescription says B2; the user picks up B3 because that is what is in the bag, or because B2
  * felt like nothing. Their next session should start from the band they *used*, not the one that
  * was suggested and ignored — otherwise the app re-prescribes B2 forever and the user re-corrects
  * it forever.
  *
- * The rep target moves with the band exactly as it does when micro-progression itself changes
- * band (`microAdvance`/`microRegress`): heavier band, back to the bottom of the range; lighter
- * band, up to the top. Band and reps are one prescription, so adopting half of it would leave a
- * pairing the progression rules never produce.
+ * The band the user held is a fact about `programmed`, but the state being repaired belongs to
+ * `anchor`, and at a mixed-equipment level those have different knobs. So the correction is made
+ * in *tiers*: work out how many band steps the observed band represents for the exercise actually
+ * in their hands, compare with how many the current state was spending there, and move the stored
+ * tier by the difference. A bodyweight anchor therefore records "you were a tier further along"
+ * as a pace knob — which is exactly what `projectMicroToExercise` will turn back into a heavier
+ * band next session. Previously this bailed out whenever the *anchor* was bodyweight, silently
+ * discarding the correction at the 9 levels where it matters most.
  *
- * Clamped to the exercise's own suggested range — the library, not the user's grab-bag, decides
- * what is a sane load for a movement (invariant 2), and a band outside it means "as heavy/light as
- * this exercise goes". No-ops for bodyweight work, for an unknown observed band, and when the
- * observed band is the prescribed one, which is the overwhelmingly common case.
+ * The rep target moves with the band exactly as it does when micro-progression itself changes
+ * band (`microAdvance`/`microRegress`): heavier, back to the bottom of the range; lighter, up to
+ * the top. Band and reps are one prescription, so adopting half of it would leave a pairing the
+ * progression rules never produce.
+ *
+ * Clamped to the programmed exercise's own suggested range — the library, not the user's grab-bag,
+ * decides what is a sane load for a movement (invariant 2), and a band outside it means "as
+ * heavy/light as this exercise goes". No-ops for bodyweight work, for an unknown observed band,
+ * and when the observed band is the prescribed one, which is the overwhelmingly common case.
  */
 export function reconcileMicroToObservedBand(
   micro: ProgressionMicroState,
-  exercise: Exercise,
+  anchor: Exercise,
+  programmed: Exercise,
   observedBand: BandId | null | undefined,
 ): ProgressionMicroState {
-  if (exercise.equipment !== 'band' || !observedBand) return micro;
-  const current = bandForExercise(micro, exercise);
-  if (!current) return micro;
-  const range = parseBandRange(exercise.band);
-  let target = observedBand;
-  if (range) {
-    const [lo, hi] = range;
-    if (BAND_ORDER.indexOf(target) < BAND_ORDER.indexOf(lo)) target = lo;
-    if (BAND_ORDER.indexOf(target) > BAND_ORDER.indexOf(hi)) target = hi;
+  if (programmed.equipment !== 'band' || !observedBand) return micro;
+  const range = parseBandRange(programmed.band);
+  if (!range) return micro;
+
+  const [lo, hi] = range;
+  const steps = bandStepsFor(programmed);
+  const clamped = Math.min(
+    Math.max(BAND_ORDER.indexOf(observedBand), BAND_ORDER.indexOf(lo)),
+    BAND_ORDER.indexOf(hi),
+  );
+  const observedBandTier = clamped - BAND_ORDER.indexOf(lo);
+
+  const currentTier = tierOf(micro, anchor);
+  // Only the part of the current tier that this exercise was spending on band size is comparable;
+  // the rest is pace knobs, which the observed band says nothing about and must not be reset.
+  const currentBandTier = Math.min(currentTier, steps);
+  if (observedBandTier === currentBandTier) {
+    // Same position — nothing to correct. A null band against a band anchor is still written back
+    // to the band it resolves to, so state stored before an anchor was re-pointed converges on
+    // what the user was being prescribed all along (see `bandForExercise`).
+    if (!micro.band && anchor.equipment === 'band' && parseBandRange(anchor.band)) {
+      return { ...micro, band: spendTier(currentTier, anchor).band };
+    }
+    return micro;
   }
-  if (target === micro.band) return micro;
-  // A null `micro.band` that resolves to the same band the user trained with still needs writing
-  // back: the state is being repaired to the shape its anchor now has, even though nothing moved.
-  if (target === current) return { ...micro, band: target };
-  const { low, high } = rangeForExercise(exercise);
-  const heavier = BAND_ORDER.indexOf(target) > BAND_ORDER.indexOf(current);
-  return { ...micro, band: target, repTarget: heavier ? low : high };
+
+  const nextTier = Math.min(
+    Math.max(currentTier + (observedBandTier - currentBandTier), 0),
+    tierCapFor(anchor),
+  );
+  const { low, high } = rangeForExercise(anchor);
+  const heavier = observedBandTier > currentBandTier;
+  return {
+    ...micro,
+    ...spendTier(nextTier, anchor),
+    repTarget: heavier ? low : high,
+  };
 }
 
 /** True once every micro knob is at its floor for this level (used to detect the "two
  *  consecutive regressions at the bottom micro-step" drop-a-level trigger, §6.3). */
 export function isAtBottomMicroStep(micro: ProgressionMicroState, exercise: Exercise): boolean {
   const { low } = rangeForExercise(exercise);
+  if (
+    micro.repTarget > low ||
+    micro.tempoSec > DEFAULT_TEMPO_SEC ||
+    micro.restSec < DEFAULT_REST_SEC ||
+    micro.sets > DEFAULT_SETS
+  ) {
+    return false;
+  }
+  // The pace knobs are at their floor either way; a band exercise additionally has to be back on
+  // the lightest band it is authored for before there is nothing left to give back.
   if (exercise.equipment === 'band') {
     const band = bandForExercise(micro, exercise);
     const range = parseBandRange(exercise.band);
     const minBand = range?.[0] ?? band;
-    return micro.repTarget <= low && (!band || !minBand || band === minBand);
+    return !band || !minBand || band === minBand;
   }
-  return (
-    micro.repTarget <= low &&
-    micro.tempoSec <= DEFAULT_TEMPO_SEC &&
-    micro.restSec >= DEFAULT_REST_SEC &&
-    micro.sets <= DEFAULT_SETS
-  );
+  return true;
 }
 
 /**

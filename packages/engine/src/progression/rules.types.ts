@@ -24,4 +24,9 @@ export interface SessionPerformance {
    *  "no correction reported" — bodyweight work, or the ordinary case where the prescription was
    *  simply followed. See `reconcileMicroToObservedBand`. */
   observedBand?: BandId | null;
+  /** The exercise actually programmed for this family this session, which at a mixed-equipment
+   *  level is often not the level's anchor (ADR 0010). `observedBand` is a fact about *this*
+   *  exercise's authored range, so the reconcile needs it to convert a band into a tier. Falls
+   *  back to the anchor when a caller can't supply it. */
+  programmedExerciseId?: string;
 }

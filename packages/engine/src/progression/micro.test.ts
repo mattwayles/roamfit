@@ -62,9 +62,28 @@ describe('§6.2 micro-progression', () => {
       sets: 3,
     });
 
+    // A maxed band is NOT the end of the level any more — the pace knobs are shared with the
+    // bodyweight ladder, so there is still tempo, rest and sets to climb. This is what makes the
+    // top of an authored band range somewhere to progress from rather than a dead end, and it is
+    // what lets a bodyweight sibling at a band-anchored rung express the same tiers (see tiers.ts).
+    micro = microAdvance(micro, bandedPush).micro;
+    expect(micro).toMatchObject({ band: 'B2', tempoSec: 4, restSec: 45, sets: 3 });
+    micro = microAdvance(micro, bandedPush).micro;
+    expect(micro).toMatchObject({ tempoSec: 4, restSec: 30, sets: 3 });
+    micro = microAdvance(micro, bandedPush).micro;
+    expect(micro).toMatchObject({ tempoSec: 4, restSec: 30, sets: 4 });
+
     step = microAdvance(micro, bandedPush);
     expect(step.levelChange).toBe('up');
     expect(step.micro).toEqual(micro); // unchanged; caller decides what the level change means
+  });
+
+  it('a B2-B3 rung is 13 qualifying sessions, a bodyweight one still 8', () => {
+    // The pacing consequence of giving band exercises the pace tiers, stated once so a change to
+    // it is deliberate: 5 reps + 1 band step + 5 reps + tempo + rest + sets.
+    const b2b3 = library.find((e) => e.equipment === 'band' && e.band === 'B2-B3')!;
+    expect(microStepsToNextLevel(defaultMicroForExercise(b2b3), b2b3)).toBe(13);
+    expect(microStepsToNextLevel(defaultMicroForExercise(bodyweightPush), bodyweightPush)).toBe(8);
   });
 
   it('bodyweight order: reps to top, then tempo +1s, rest -15s, sets +1, then next level', () => {
@@ -132,6 +151,7 @@ describe('§6.2 reconcileMicroToObservedBand — the band the user actually used
     const next = reconcileMicroToObservedBand(
       { ...micro, repTarget: PROGRESSION_REP_HIGH },
       wideRange,
+      wideRange,
       'B4',
     );
     expect(next.band).toBe('B4');
@@ -144,27 +164,27 @@ describe('§6.2 reconcileMicroToObservedBand — the band the user actually used
       band: 'B5' as const,
       repTarget: PROGRESSION_REP_LOW,
     };
-    const next = reconcileMicroToObservedBand(micro, wideRange, 'B4');
+    const next = reconcileMicroToObservedBand(micro, wideRange, wideRange, 'B4');
     expect(next.band).toBe('B4');
     expect(next.repTarget).toBe(12);
   });
 
   it('clamps an observed band outside the exercise’s suggested range', () => {
     const micro = defaultMicroForExercise(wideRange); // B3
-    expect(reconcileMicroToObservedBand(micro, wideRange, 'B1').band).toBe('B3');
+    expect(reconcileMicroToObservedBand(micro, wideRange, wideRange, 'B1').band).toBe('B3');
     const heavy = { ...micro, band: 'B4' as const };
     // The user reports the heaviest band they own; the exercise tops out at B5, so that is what
     // is adopted rather than a load the library never suggests for the movement.
-    expect(reconcileMicroToObservedBand(heavy, wideRange, 'B5').band).toBe('B5');
+    expect(reconcileMicroToObservedBand(heavy, wideRange, wideRange, 'B5').band).toBe('B5');
   });
 
   it('is a no-op for the ordinary cases: same band, no report, bodyweight work', () => {
     const micro = defaultMicroForExercise(bandedPush);
-    expect(reconcileMicroToObservedBand(micro, bandedPush, micro.band)).toBe(micro);
-    expect(reconcileMicroToObservedBand(micro, bandedPush, null)).toBe(micro);
-    expect(reconcileMicroToObservedBand(micro, bandedPush, undefined)).toBe(micro);
+    expect(reconcileMicroToObservedBand(micro, bandedPush, bandedPush, micro.band)).toBe(micro);
+    expect(reconcileMicroToObservedBand(micro, bandedPush, bandedPush, null)).toBe(micro);
+    expect(reconcileMicroToObservedBand(micro, bandedPush, bandedPush, undefined)).toBe(micro);
     const bw = defaultMicroForExercise(bodyweightPush);
-    expect(reconcileMicroToObservedBand(bw, bodyweightPush, 'B4')).toBe(bw);
+    expect(reconcileMicroToObservedBand(bw, bodyweightPush, bodyweightPush, 'B4')).toBe(bw);
   });
 });
 
@@ -197,10 +217,11 @@ describe('§6.2 micro-progression — a null band on a band anchor', () => {
   it('repairs the null to a real band when the user logs what they trained with', () => {
     const wide = library.find((e) => e.equipment === 'band' && e.band === 'B3-B5')!;
     // Observed the implied band: nothing moves, but the null is written back as B3.
-    expect(reconcileMicroToObservedBand(nullBand(wide), wide, 'B3').band).toBe('B3');
+    expect(reconcileMicroToObservedBand(nullBand(wide), wide, wide, 'B3').band).toBe('B3');
     // Observed something heavier: adopted, with reps reset as on any band change.
     const heavier = reconcileMicroToObservedBand(
       { ...nullBand(wide), repTarget: PROGRESSION_REP_HIGH },
+      wide,
       wide,
       'B4',
     );
