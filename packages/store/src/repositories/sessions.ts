@@ -1224,6 +1224,9 @@ export interface DashboardSessionSummary {
   localDate: string;
   actualMinutes: number | null;
   estimatedMinutes: number;
+  /** §14.1.6 — which focus area this session trained, so the calendar heatmap can show a
+   *  per-day letter (F/U/A/L) instead of just a trained/untrained square. */
+  focus: Focus;
   /** §9.6 — strings only, never coordinates (invariant 8's passport-adjacent sibling rule).
    *  Null until the §11.3 `passport_geocode` deferred-work queue resolves (or if the user never
    *  opted in). */
@@ -1251,12 +1254,22 @@ export function getCompletedSessionStartTimes(db: Db, limit = 90): SessionStartT
     .filter((r): r is { startedAt: string; tzId: string } => r.startedAt !== null);
 }
 
+/** Total completed workouts ever, for the "your Nth workout" completion celebration. */
+export function countCompletedSessions(db: Db): number {
+  return db
+    .select({ id: schema.sessions.id })
+    .from(schema.sessions)
+    .where(and(eq(schema.sessions.userId, USER_ID), eq(schema.sessions.status, 'completed')))
+    .all().length;
+}
+
 export function getCompletedSessionsForDashboard(db: Db, limit = 365): DashboardSessionSummary[] {
   return db
     .select({
       localDate: schema.sessions.localDate,
       actualMinutes: schema.sessions.actualMinutes,
       estimatedMinutes: schema.sessions.estimatedMinutes,
+      focus: schema.sessions.focus,
       city: schema.sessions.city,
       country: schema.sessions.country,
     })
@@ -1264,5 +1277,6 @@ export function getCompletedSessionsForDashboard(db: Db, limit = 365): Dashboard
     .where(and(eq(schema.sessions.userId, USER_ID), eq(schema.sessions.status, 'completed')))
     .orderBy(desc(schema.sessions.localDate))
     .limit(limit)
-    .all();
+    .all()
+    .map((r) => ({ ...r, focus: r.focus as Focus }));
 }

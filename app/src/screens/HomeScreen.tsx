@@ -22,6 +22,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   Share,
@@ -34,6 +35,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   generate,
   levelUpFamily,
+  manualDayMarkersRepo,
   milestonesRepo,
   progressionStateRepo,
   sessionsRepo,
@@ -41,7 +43,7 @@ import {
   statsRepo,
   usersRepo,
 } from '@roamfit/store';
-import type { ProgressionFamilyId } from '@roamfit/data';
+import type { Focus, ProgressionFamilyId } from '@roamfit/data';
 import { assessComeback, createRng, seedFromString } from '@roamfit/engine';
 import type { ProgressionState } from '@roamfit/engine';
 import type { RootStackParamList } from '../navigation/types';
@@ -58,6 +60,7 @@ import {
   buildProgressionBoard,
   nextUnlockHero,
   type CalendarDay,
+  type DayMarker,
   type FamilyBoardEntry,
   type LifetimeCounters,
   type MuscleBalanceRow,
@@ -73,6 +76,19 @@ import { runOpportunisticSync } from '../lib/opportunisticSync';
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 const CALENDAR_WINDOW_DAYS = 28;
+
+/** §14.1.6 — the one-letter marker for each focus area, shown on a trained calendar day. */
+const FOCUS_LETTER: Record<Focus, string> = { full: 'F', upper: 'U', abs: 'A', legs: 'L' };
+
+/** Options offered by the calendar day-marker edit popup, in the order they're listed. */
+const DAY_MARKER_OPTIONS: { marker: DayMarker; label: string }[] = [
+  { marker: 'none', label: 'No workout' },
+  { marker: 'travel', label: 'Travel day' },
+  { marker: 'full', label: 'Full-body workout' },
+  { marker: 'upper', label: 'Upper-body workout' },
+  { marker: 'abs', label: 'Abs workout' },
+  { marker: 'legs', label: 'Legs workout' },
+];
 
 interface HomeData {
   pending: sessionsRepo.SessionRecord | null;
@@ -102,6 +118,8 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   const [levelUpNotice, setLevelUpNotice] = useState<string | null>(null);
   /** Which family row is showing its "are you sure" step, if any. One at a time. */
   const [confirmingLevelUp, setConfirmingLevelUp] = useState<ProgressionFamilyId | null>(null);
+  /** §14.1.6 — the calendar day currently showing its marker-edit popup, if any (localDate). */
+  const [editingDay, setEditingDay] = useState<string | null>(null);
 
   const load = useCallback(() => {
     const clock = nowEngineClock();
@@ -134,11 +152,13 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     const travelLocalDates = new Set(
       signalsRepo.getSignalEventsByType(db, 'travel_day').map((e) => e.localDate),
     );
+    const manualDayMarkers = manualDayMarkersRepo.getManualDayMarkers(db);
     const calendarDays = buildCalendarDays(
       completedSessions,
       clock.today,
       CALENDAR_WINDOW_DAYS,
       travelLocalDates,
+      manualDayMarkers,
     );
     const muscleBalance = buildMuscleBalanceRows(statsRepo.hardSetsByMuscle14d(db, clock.today));
     const milestones = milestonesRepo.getAllMilestones(db);
@@ -285,6 +305,19 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     statsRepo.recordTravelDay(db, nowUtcInstant(), nowEngineClock().today);
     load();
   }, [db, load]);
+
+  /** §14.1.6 — a hand-set correction to one calendar day's marker: a workout that happened
+   *  outside RoamFit, or a travel day that went unlogged at the time. Purely a display override —
+   *  it never creates or edits a `sessions` row or a `travel_day` signal, so it can't be confused
+   *  with a real logged workout anywhere else in the app. */
+  const handleSetDayMarker = useCallback(
+    (localDate: string, marker: DayMarker) => {
+      manualDayMarkersRepo.setManualDayMarker(db, localDate, marker, nowUtcInstant());
+      setEditingDay(null);
+      load();
+    },
+    [db, load],
+  );
 
   const handleRecoveryWeekAccept = useCallback(() => {
     navigation.navigate('Generate', { recoveryWeek: true });
@@ -509,36 +542,67 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       )}
 
       {/* §14.1.6 calendar heatmap — untrained days are neutral squares, never omitted or red.
-          §9.3 — an untrained travel day gets a plane icon instead of a plain square: reviewing
-          the week, that's what explains why a day has no workout on it. A trained travel day
-          still shows the workout — the more informative fact of the two. */}
+          A trained day shows a letter for the focus it trained (F/U/A/L); a travel day shows a
+          plane icon instead. Every marker is hand-editable (tap to open the popup below) so a
+          workout logged outside RoamFit, or a travel day missed at the time, can still be
+          reflected here. */}
       {stats.lifetimeSessionCount > 0 && (
         <View testID="calendar-heatmap">
           <Text style={styles.sectionLabel}>Last {CALENDAR_WINDOW_DAYS} days</Text>
           <View style={styles.calendarGrid}>
-            {calendarDays.map((day) => {
-              const isTransitDay = day.minutes === null && day.inTransit;
-              return (
-                <View
-                  key={day.localDate}
-                  testID={`calendar-day-${day.localDate}`}
-                  accessibilityLabel={isTransitDay ? 'Travel day' : undefined}
-                  style={[
-                    styles.calendarCell,
-                    day.minutes === null
-                      ? styles.calendarCellUntrained
-                      : day.minutes >= 30
-                        ? styles.calendarCellLong
-                        : styles.calendarCellShort,
-                  ]}
-                >
-                  {isTransitDay && <Text style={styles.calendarCellTransitIcon}>✈</Text>}
-                </View>
-              );
-            })}
+            {calendarDays.map((day) => (
+              <Pressable
+                key={day.localDate}
+                testID={`calendar-day-${day.localDate}`}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  day.marker === 'travel'
+                    ? 'Travel day — tap to edit'
+                    : day.marker === 'none'
+                      ? 'No workout — tap to edit'
+                      : `${day.marker} workout — tap to edit`
+                }
+                style={[
+                  styles.calendarCell,
+                  day.marker === 'none' ? styles.calendarCellUntrained : styles.calendarCellWorkout,
+                ]}
+                onPress={() => setEditingDay(day.localDate)}
+              >
+                {day.marker === 'travel' && <Text style={styles.calendarCellTransitIcon}>✈</Text>}
+                {day.marker !== 'none' && day.marker !== 'travel' && (
+                  <Text style={styles.calendarCellLetter}>{FOCUS_LETTER[day.marker]}</Text>
+                )}
+              </Pressable>
+            ))}
           </View>
         </View>
       )}
+
+      {/* §14.1.6 — the day-marker edit popup. Same modal-overlay pattern as
+          `AbandonSessionButton`'s icon variant: a dismissing backdrop behind a tap-swallowing
+          dialog, since the 16x16 calendar cell has no room to show options in place. */}
+      <Modal
+        visible={editingDay !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditingDay(null)}
+      >
+        <Pressable style={styles.dayMarkerBackdrop} onPress={() => setEditingDay(null)}>
+          <Pressable style={styles.dayMarkerDialog} onPress={() => {}}>
+            <Text style={styles.dayMarkerTitle}>{editingDay}</Text>
+            {DAY_MARKER_OPTIONS.map((option) => (
+              <Pressable
+                key={option.marker}
+                testID={`day-marker-option-${option.marker}`}
+                style={styles.dayMarkerOption}
+                onPress={() => editingDay != null && handleSetDayMarker(editingDay, option.marker)}
+              >
+                <Text style={styles.dayMarkerOptionText}>{option.label}</Text>
+              </Pressable>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Text style={styles.sectionLabel}>Progression board</Text>
       {isZeroSession && (
@@ -953,11 +1017,44 @@ const styles = StyleSheet.create({
   },
   passportOptInText: { fontSize: 13, fontWeight: '600', color: '#334155' },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
-  calendarCell: { width: 16, height: 16, borderRadius: 4, alignItems: 'center' },
+  calendarCell: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   calendarCellUntrained: { backgroundColor: '#e2e8f0' },
-  calendarCellShort: { backgroundColor: '#86efac' },
-  calendarCellLong: { backgroundColor: '#16a34a' },
-  calendarCellTransitIcon: { fontSize: 10, lineHeight: 16, color: '#475569' },
+  calendarCellWorkout: { backgroundColor: '#16a34a' },
+  calendarCellTransitIcon: { fontSize: 11, lineHeight: 14, color: '#475569' },
+  calendarCellLetter: { fontSize: 10, lineHeight: 14, fontWeight: '700', color: '#ffffff' },
+  dayMarkerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  dayMarkerDialog: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  dayMarkerTitle: { fontSize: 13, fontWeight: '700', color: '#334155', marginBottom: 4 },
+  dayMarkerOption: {
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    minHeight: 44,
+    justifyContent: 'center',
+    backgroundColor: '#e2e8f0',
+  },
+  dayMarkerOptionText: { fontSize: 14, fontWeight: '600', color: '#334155' },
   muscleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   muscleLabel: { width: 90, fontSize: 12, color: '#334155', fontWeight: '600' },
   muscleBarTrack: {

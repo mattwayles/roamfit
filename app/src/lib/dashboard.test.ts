@@ -127,6 +127,7 @@ function summary(
     localDate,
     actualMinutes: 30,
     estimatedMinutes: 30,
+    focus: 'full',
     city: null,
     country: null,
     ...opts,
@@ -174,6 +175,62 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
     expect(days.find((d) => d.localDate === '2026-05-01')!.minutes).toBeNull();
   });
 
+  it('marks each trained day with its session focus, and untrained days with a null focus', () => {
+    const days = buildCalendarDays(
+      [summary('2026-05-03', { focus: 'upper' })],
+      '2026-05-05',
+      5,
+      new Set(),
+    );
+    expect(days.find((d) => d.localDate === '2026-05-03')!.focus).toBe('upper');
+    expect(days.find((d) => d.localDate === '2026-05-03')!.marker).toBe('upper');
+    expect(days.find((d) => d.localDate === '2026-05-01')!.focus).toBeNull();
+    expect(days.find((d) => d.localDate === '2026-05-01')!.marker).toBe('none');
+  });
+
+  it('attributes the day to whichever of two same-day sessions took more minutes', () => {
+    const days = buildCalendarDays(
+      [
+        summary('2026-05-05', { focus: 'legs', actualMinutes: 10 }),
+        summary('2026-05-05', { focus: 'abs', actualMinutes: 25 }),
+      ],
+      '2026-05-05',
+      1,
+      new Set(),
+    );
+    expect(days[0].minutes).toBe(35);
+    expect(days[0].focus).toBe('abs');
+  });
+
+  it('a manual marker overrides the derived focus/travel state, and is reported back on the day', () => {
+    const days = buildCalendarDays(
+      [summary('2026-05-03', { focus: 'upper' })],
+      '2026-05-05',
+      5,
+      new Set(['2026-05-01']),
+      new Map([
+        ['2026-05-03', 'legs'],
+        ['2026-05-02', 'none'],
+        ['2026-05-01', 'full'],
+      ]),
+    );
+    // Overrides a trained day's own focus.
+    const overridden = days.find((d) => d.localDate === '2026-05-03')!;
+    expect(overridden.focus).toBe('upper');
+    expect(overridden.manualMarker).toBe('legs');
+    expect(overridden.marker).toBe('legs');
+    // Overrides an otherwise-empty day.
+    const filledIn = days.find((d) => d.localDate === '2026-05-02')!;
+    expect(filledIn.marker).toBe('none');
+    expect(filledIn.manualMarker).toBe('none');
+    // Overrides a travel day.
+    const untravelled = days.find((d) => d.localDate === '2026-05-01')!;
+    expect(untravelled.inTransit).toBe(true);
+    expect(untravelled.marker).toBe('full');
+    // A day with no manual entry falls back to the derived state.
+    expect(days.find((d) => d.localDate === '2026-05-04')!.manualMarker).toBeNull();
+  });
+
   it('falls back to estimatedMinutes when actualMinutes is null (an abandoned-but-logged edge case)', () => {
     const days = buildCalendarDays(
       [summary('2026-05-05', { actualMinutes: null, estimatedMinutes: 20 })],
@@ -196,12 +253,18 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
       localDate: '2026-05-04',
       minutes: 30,
       inTransit: true,
+      focus: 'full',
+      manualMarker: null,
+      marker: 'full',
     });
     // 2026-05-05 was travelled and untrained — this is the case the marker exists for.
     expect(days.find((d) => d.localDate === '2026-05-05')).toEqual({
       localDate: '2026-05-05',
       minutes: null,
       inTransit: true,
+      focus: null,
+      manualMarker: null,
+      marker: 'travel',
     });
   });
 });

@@ -9,6 +9,7 @@
  *                      needs createdAt/expiresAt independent of the user row's updated_at)
  *   exercise_state     §4.4 — per user × exercise, NEVER on the shared library table (invariant 7)
  *   progression_state  §4.5 — per user × family, level_id is a stable id (invariant 5)
+ *   manual_day_markers §14.1.6 — per user × local_date, hand-corrects the calendar heatmap
  *   sessions           §4.6
  *   session_entries    §4.7 Entry — plan is immutable via planned_exercise_id; exercise_id is the
  *                      mutable "what actually ran" field a mid-workout swap updates
@@ -149,6 +150,28 @@ export const progressionState = sqliteTable(
     updatedAt: text('updated_at').notNull(),
   },
   (t) => [uniqueIndex('ux_progression_state_user_family').on(t.userId, t.familyId)],
+);
+
+// ------------------------------------------------------------------------------------------
+// §14.1.6 Manual day marker — per user x local_date (invariant 7's per-user-state shape, keyed
+// by date rather than exercise/family). Lets the calendar heatmap be corrected by hand for a
+// workout RoamFit never saw (done outside the app) or a travel day that went unlogged at the
+// time. Last-write-wins per day — a correction to what the calendar shows, not a history of
+// edits — and deliberately never touches `sessions` or `signal_events`: the marker is
+// display-only and represents no real session or travel-day tap.
+// ------------------------------------------------------------------------------------------
+
+export const manualDayMarkers = sqliteTable(
+  'manual_day_markers',
+  {
+    userId: text('user_id').notNull().default('local'),
+    localDate: text('local_date').notNull(),
+    /** 'none' | 'travel' | Focus ('full' | 'upper' | 'abs' | 'legs') — plain TEXT, no CHECK
+     *  constraint, so the value set can grow without a migration. */
+    marker: text('marker').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [uniqueIndex('ux_manual_day_markers_user_date').on(t.userId, t.localDate)],
 );
 
 // ------------------------------------------------------------------------------------------

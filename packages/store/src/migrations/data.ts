@@ -401,6 +401,22 @@ const MIGRATION_0014_CUE_SOUNDS = `-- 0014_cue_sounds.sql — the 3-2-1 / comple
 ALTER TABLE users ADD COLUMN cue_sounds_enabled INTEGER NOT NULL DEFAULT 1;
 `;
 
+const MIGRATION_0015_MANUAL_DAY_MARKERS = `-- 0015_manual_day_markers.sql — §14.1.6 calendar heatmap: lets the user re-tag one day's marker
+-- by hand (no workout / travel day / a focus letter), for a workout that happened outside
+-- RoamFit or a travel day that went unlogged. Per user x local_date (invariant 7's per-user-state
+-- shape, keyed by date instead of exercise/family), one row per day, last-write-wins on a re-edit
+-- rather than an appended history. Never touches \`sessions\` or \`signal_events\` — the marker is
+-- display-only.
+
+CREATE TABLE manual_day_markers (
+  user_id TEXT NOT NULL DEFAULT 'local',
+  local_date TEXT NOT NULL,
+  marker TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX ux_manual_day_markers_user_date ON manual_day_markers(user_id, local_date);
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -422,4 +438,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0012_exercise_disabled.sql', sql: MIGRATION_0012_EXERCISE_DISABLED },
   { id: '0013_effort_to_difficulty.sql', sql: MIGRATION_0013_EFFORT_TO_DIFFICULTY },
   { id: '0014_cue_sounds.sql', sql: MIGRATION_0014_CUE_SOUNDS },
+  { id: '0015_manual_day_markers.sql', sql: MIGRATION_0015_MANUAL_DAY_MARKERS },
 ];

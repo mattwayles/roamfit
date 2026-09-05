@@ -21,6 +21,7 @@ export { DEFAULT_BAND_TENSIONS } from './repositories/users';
 export * as exerciseStateRepo from './repositories/exerciseState';
 export * as exerciseCatalogRepo from './repositories/exerciseCatalog';
 export * as progressionStateRepo from './repositories/progressionState';
+export * as manualDayMarkersRepo from './repositories/manualDayMarkers';
 export * as sessionsRepo from './repositories/sessions';
 export * as signalsRepo from './repositories/signals';
 export * as milestonesRepo from './repositories/milestones';

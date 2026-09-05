@@ -14,10 +14,11 @@ import {
   OVER_WORKED_MULTIPLIER,
 } from '@roamfit/engine';
 import type { ProgressionState } from '@roamfit/engine';
-import type { ExerciseLibrary, FamilyLibrary, ProgressionFamilyId } from '@roamfit/data';
-import type { sessionsRepo } from '@roamfit/store';
+import type { ExerciseLibrary, FamilyLibrary, Focus, ProgressionFamilyId } from '@roamfit/data';
+import type { manualDayMarkersRepo, sessionsRepo } from '@roamfit/store';
 
 type DashboardSessionSummary = sessionsRepo.DashboardSessionSummary;
+export type DayMarker = manualDayMarkersRepo.DayMarker;
 
 export interface FamilyBoardEntry {
   familyId: ProgressionFamilyId;
@@ -170,6 +171,16 @@ export interface CalendarDay {
    *  that's the more informative fact — this exists to explain an untrained day, not override a
    *  trained one. */
   inTransit: boolean;
+  /** Which focus area was trained this day, if any — the dominant (most-minutes) session's focus
+   *  when more than one landed on the same date. null when untrained. */
+  focus: Focus | null;
+  /** The hand-set override for this day, if the user has re-tagged it from the calendar edit
+   *  popup — null when nothing has been manually set. Kept alongside `marker` (rather than only
+   *  exposing the resolved value) so the edit popup can show which option is currently active. */
+  manualMarker: DayMarker | null;
+  /** What the calendar cell actually shows: `manualMarker` if set, else the day's own derived
+   *  state (a session's focus, else 'travel', else 'none'). */
+  marker: DayMarker;
 }
 
 /** §14.1.6 calendar heatmap — the trailing `days`-day window ending today, one entry per
@@ -177,27 +188,48 @@ export interface CalendarDay {
  *  simply omitting them, which would look like a gap). `travelLocalDates` are the dates §9.3's
  *  "I'm in Transit" was tapped for (`signalsRepo.getSignalEventsByType(db, 'travel_day')`, mapped
  *  to `localDate`), so an untrained travel day can be marked as one rather than looking like any
- *  other empty day. */
+ *  other empty day. `manualMarkers` are the hand-set overrides from `manualDayMarkersRepo`, keyed
+ *  by `localDate` — they take precedence over every derived signal, since re-tagging a day is a
+ *  deliberate correction. */
 export function buildCalendarDays(
   sessions: DashboardSessionSummary[],
   today: string,
   days: number,
   travelLocalDates: ReadonlySet<string>,
+  manualMarkers: ReadonlyMap<string, DayMarker> = new Map(),
 ): CalendarDay[] {
-  const byDate = new Map<string, number>();
+  const byDate = new Map<string, { minutes: number; focus: Focus; dominantMinutes: number }>();
   for (const s of sessions) {
     const minutes = s.actualMinutes ?? s.estimatedMinutes;
-    byDate.set(s.localDate, (byDate.get(s.localDate) ?? 0) + minutes);
+    const existing = byDate.get(s.localDate);
+    if (!existing) {
+      byDate.set(s.localDate, { minutes, focus: s.focus, dominantMinutes: minutes });
+    } else {
+      existing.minutes += minutes;
+      // Two sessions on one day is rare, but if it happens the marker follows whichever session
+      // actually took the most time, not simply the last one read.
+      if (minutes > existing.dominantMinutes) {
+        existing.focus = s.focus;
+        existing.dominantMinutes = minutes;
+      }
+    }
   }
   const [y, m, d] = today.split('-').map(Number);
   const out: CalendarDay[] = [];
   for (let i = days - 1; i >= 0; i -= 1) {
     const date = new Date(Date.UTC(y, m - 1, d - i));
     const localDate = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+    const trained = byDate.get(localDate);
+    const inTransit = travelLocalDates.has(localDate);
+    const manualMarker = manualMarkers.get(localDate) ?? null;
+    const derivedMarker: DayMarker = trained ? trained.focus : inTransit ? 'travel' : 'none';
     out.push({
       localDate,
-      minutes: byDate.get(localDate) ?? null,
-      inTransit: travelLocalDates.has(localDate),
+      minutes: trained?.minutes ?? null,
+      inTransit,
+      focus: trained?.focus ?? null,
+      manualMarker,
+      marker: manualMarker ?? derivedMarker,
     });
   }
   return out;
