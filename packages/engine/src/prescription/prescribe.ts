@@ -208,6 +208,27 @@ const WARMUP_COOLDOWN_TEMPO_SEC = 2;
 const WARMUP_HOLD_CAP_SEC = 45;
 const DEFAULT_HOLD_SEC = 45;
 
+/**
+ * The band to warm up (or cool down) a band exercise with — never the working band, and never
+ * nothing at all: a band row warmed up with no band is a different movement.
+ *
+ * `exercise.band` on a record that also carries `'main'` is a *working-set* range, so borrowing it
+ * whole for the warm-up section prescribes real training tension — a warm-up that is just an
+ * easier-looking main set. Banded Calf Raise and Banded Shrug are authored "B3-B4", and their
+ * warm-up was landing on B3. So drop one band below the exercise's lightest authored band.
+ *
+ * Only for records that are also main work, though. A purpose-authored warm-up drill or cool-down
+ * stretch (`wu-*`, `cd-*`) has its band written for exactly this use: "B2-B3" on a shoulder
+ * distraction *is* the stretch, not a working set, and dropping it would fight the authoring.
+ *
+ * `dropOneBand` floors at B1, so an exercise already authored at the lightest band stays there.
+ */
+function warmupCooldownBand(exercise: Exercise): BandId | null {
+  if (exercise.equipment !== 'band') return null;
+  const lightestAuthored = parseFirstBand(exercise.band);
+  return exercise.roles.includes('main') ? dropOneBand(lightestAuthored) : lightestAuthored;
+}
+
 export function prescribeWarmupCooldown(
   exercise: Exercise,
   role: Extract<Role, 'warmup' | 'cooldown'>,
@@ -215,10 +236,7 @@ export function prescribeWarmupCooldown(
   const authoredHold = exercise.default_seconds ?? DEFAULT_HOLD_SEC;
   const durationSec =
     role === 'warmup' ? Math.min(authoredHold, WARMUP_HOLD_CAP_SEC) : authoredHold;
-  // The lightest band the exercise is authored for, never the working band and never nothing at
-  // all: a band row warmed up with no band is a different movement, and this used to hard-code
-  // `null` because the only exercises that reached here were purpose-built bodyweight drills.
-  const band = exercise.equipment === 'band' ? parseFirstBand(exercise.band) : null;
+  const band = warmupCooldownBand(exercise);
   const estimatedSec =
     exercise.metric === 'time'
       ? timedExerciseSec({ sets: 1, durationSec, restSec: 0, unilateral: exercise.unilateral })

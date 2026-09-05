@@ -103,9 +103,34 @@ describe('§5.4 prescription', () => {
       expect(asWarmup.estimatedSec).toBeLessThan(asMain.estimatedSec);
     });
 
-    it('gives a band exercise its lightest band, never nothing at all', () => {
-      // A band row warmed up with no band is a different movement. bandedPush is authored "B1-B2".
+    it('gives a band exercise a band, never nothing at all', () => {
+      // A band row warmed up with no band is a different movement. bandedPush is authored "B1-B2",
+      // and B1 is already the floor, so there is nothing lighter to drop to.
       expect(prescribeWarmupCooldown(bandedPush, 'warmup').band).toBe('B1');
+    });
+
+    it('warms a main exercise up one band below its lightest *working* band', () => {
+      // Banded Calf Raise is authored "B3-B4" — that range is what it is *trained* at. Warming it
+      // up at B3 is just a main set with fewer reps, which is the whole thing this prevents.
+      const calfRaise = library.find((e) => e.id === 'calf-raise')!;
+      expect(calfRaise.band).toBe('B3-B4');
+      expect(prescribeWarmupCooldown(calfRaise, 'warmup').band).toBe('B2');
+
+      // And it is genuinely lighter than the same exercise programmed as main work.
+      const asMain = prescribeAccessory({
+        exercise: calfRaise,
+        requestedDifficulty: 'medium',
+        recoveryTreatment: false,
+      });
+      expect(asMain.band).toBe('B3');
+    });
+
+    it('leaves a purpose-authored cool-down stretch at its authored band', () => {
+      // "B2-B3" on a shoulder distraction *is* the stretch, not a working set — the record carries
+      // no 'main' role, so there is no working band being borrowed and nothing to discount.
+      const distraction = library.find((e) => e.id === 'cd-shoulder-distraction')!;
+      expect(distraction.roles).not.toContain('main');
+      expect(prescribeWarmupCooldown(distraction, 'cooldown').band).toBe('B2');
     });
 
     it('leaves a bodyweight exercise bandless', () => {
