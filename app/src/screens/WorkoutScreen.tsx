@@ -868,22 +868,23 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           minimum width (two icon buttons) the empty spacer does not, so on a narrow screen a
           wider clock text ate into the spacer's share first and dragged the timer off-center. */}
       <View style={styles.timerRow}>
-        <View style={styles.timerRowSpacer} />
+        <View style={[styles.timerRowSpacer, styles.timerRowLeftActions]}>
+          <Pressable
+            testID="mute-workout"
+            accessibilityRole="button"
+            accessibilityLabel={
+              mutedThisWorkout ? 'Unmute sounds for this workout' : 'Mute sounds for this workout'
+            }
+            style={styles.sessionIconButton}
+            onPress={() => setMutedThisWorkout((m) => !m)}
+          >
+            <Text style={styles.sessionIconText}>{mutedThisWorkout ? '🔇' : '🔊'}</Text>
+          </Pressable>
+        </View>
         <Text style={styles.elapsed} testID="workout-elapsed">
           {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
         </Text>
         <View style={[styles.timerRowSpacer, styles.timerRowActions]}>
-          <Pressable
-              testID="mute-workout"
-              accessibilityRole="button"
-              accessibilityLabel={
-                mutedThisWorkout ? 'Unmute sounds for this workout' : 'Mute sounds for this workout'
-              }
-              style={styles.sessionIconButton}
-              onPress={() => setMutedThisWorkout((m) => !m)}
-            >
-              <Text style={styles.sessionIconText}>{mutedThisWorkout ? '🔇' : '🔊'}</Text>
-          </Pressable>
           <Pressable
             testID="pause-workout"
             accessibilityRole="button"
@@ -2052,13 +2053,14 @@ const styles = StyleSheet.create({
   reviewDoneButtonText: { color: '#2563eb', fontSize: 16, fontWeight: '700' },
   container: { padding: 20, gap: 16 },
   stage: { fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' },
-  // Timer row: a flex-1 spacer, the centered timer, and a flex-1 actions group — equal-width
-  // outer flex areas are what keep the timer text visually centered on the screen even though
-  // the actions group (two icon buttons) is wider than the empty spacer opposite it.
+  // Timer row: mute lives left-justified in the left flex area (its own control, not grouped
+  // with pause/stop), the timer sits centered between the two flex-1 areas, and pause/stop stay
+  // right-justified in the right flex area.
   timerRow: { flexDirection: 'row', alignItems: 'center' },
   timerRowSpacer: { flex: 1 },
+  timerRowLeftActions: { flexDirection: 'row', justifyContent: 'flex-start' },
   timerRowActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
-  elapsed: { fontSize: 34, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
+  elapsed: { fontSize: 44, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
   // Compact rather than the old 76x56: they now share a line with the timer instead of owning a
   // row of their own, so their footprint has to stay small enough not to eat into that line's
   // height or crowd the centered timer.
