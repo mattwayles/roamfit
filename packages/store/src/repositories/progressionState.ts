@@ -3,7 +3,12 @@
  * positional index (invariant 5).
  */
 import { eq, and } from 'drizzle-orm';
-import { calibrationStartLevel, defaultMicroForExercise } from '@roamfit/engine';
+import {
+  calibrationStartLevel,
+  defaultMicroForExercise,
+  findFamily,
+  exerciseForLevel,
+} from '@roamfit/engine';
 import type { ProgressionState as EngineProgressionState } from '@roamfit/engine';
 import type { Exercise, FamilyLibrary, ProgressionFamilyId } from '@roamfit/data';
 import type { Db } from '../db';
@@ -84,6 +89,25 @@ export function ensureProgressionStatesInitialized(
         updatedAt: now,
       })
       .run();
+  }
+}
+
+/** Admin setting: reset every ladder's session counters back to zero without moving its rung.
+ *  `level_id` (and `calibrating`) are left untouched (invariant 5) — only `consecutiveHits`,
+ *  `consecutiveMisses`, and `micro` (re-seeded fresh for the current level's anchor exercise, same
+ *  as entering that level for the first time) are reset. */
+export function resetAllProgressionSessions(
+  db: Db,
+  families: FamilyLibrary,
+  library: readonly Exercise[],
+  now: string,
+): void {
+  const states = getAllProgressionStates(db);
+  for (const state of Object.values(states)) {
+    const family = findFamily(families.families, state.familyId);
+    const exercise = family ? exerciseForLevel(family, state.levelId, library) : undefined;
+    const micro = exercise ? defaultMicroForExercise(exercise) : state.micro;
+    upsertProgressionState(db, { ...state, micro, consecutiveHits: 0, consecutiveMisses: 0 }, now);
   }
 }
 

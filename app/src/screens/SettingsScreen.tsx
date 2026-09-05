@@ -15,9 +15,9 @@
  * diagnostics panel is a straight `instrumentationRepo.computeInstrumentationSnapshot` read.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { instrumentationRepo, usersRepo } from '@roamfit/store';
+import { instrumentationRepo, progressionStateRepo, usersRepo } from '@roamfit/store';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
 
@@ -43,7 +43,7 @@ function Section({
 }
 
 export default function SettingsScreen(): React.JSX.Element {
-  const { db } = useStore();
+  const { db, library, families } = useStore();
   const [user, setUser] = useState<usersRepo.UserRecord>(() =>
     usersRepo.ensureUser(db, nowUtcInstant()),
   );
@@ -96,6 +96,29 @@ export default function SettingsScreen(): React.JSX.Element {
   const loadDiagnostics = useCallback(() => {
     setSnapshot(instrumentationRepo.computeInstrumentationSnapshot(db));
   }, [db]);
+
+  const resetProgressionSessions = useCallback(() => {
+    Alert.alert(
+      'Reset progression ladders?',
+      'Every ladder goes back to 0 sessions at its current level. Your current level on each ' +
+        "ladder is kept — this doesn't move anyone up or down a rung.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: () => {
+            progressionStateRepo.resetAllProgressionSessions(
+              db,
+              families,
+              library.exercises,
+              nowUtcInstant(),
+            );
+          },
+        },
+      ],
+    );
+  }, [db, families, library]);
 
   const quietHoursEnabled = user.notificationPrefs.quietHoursEnabled ?? true;
 
@@ -194,6 +217,20 @@ export default function SettingsScreen(): React.JSX.Element {
           </Text>
         ))}
       </Section>
+
+      <Section title="Advanced">
+        <Text
+          style={[styles.body, styles.destructiveAction]}
+          onPress={resetProgressionSessions}
+          testID="reset-progression-sessions"
+        >
+          Reset progression ladders to 0 sessions
+        </Text>
+        <Text style={styles.body}>
+          Restarts the session count at whatever level each ladder is currently on — it does not
+          move any ladder up or down a rung.
+        </Text>
+      </Section>
     </ScrollView>
   );
 }
@@ -206,4 +243,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   rowLabel: { fontSize: 14, flexShrink: 1, paddingRight: 12 },
   diagnosticsLine: { fontSize: 12, color: '#64748b' },
+  destructiveAction: { color: '#b91c1c', fontWeight: '600' },
 });
