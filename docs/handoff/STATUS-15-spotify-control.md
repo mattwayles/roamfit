@@ -13,21 +13,49 @@ swap between apps during a workout."
 - [x] Wired into `WorkoutScreen.tsx` + `WorkoutScreen.spotify.test.tsx` (4 cases) — e0ade15
 - [x] `docs/SPOTIFY-SETUP.md` + backlog entries
 
+- [x] Fix: `connect()` never recovered from a failed auth bounce — `spotifyRemote.ts`,
+  `spotifyRemote.test.ts`
+
 ### In progress
 
-- Nothing. The track is code-complete and `npm run check` is green (1,551 tests).
+- Nothing. `npm run check` is green.
 
 ### Next — all of it needs a device, none of it needs code
 
-1. The user registers a Spotify app, exports `SPOTIFY_CLIENT_ID`, and runs
-   `npx expo prebuild --platform ios --clean` + `npm run ios`. Steps in `docs/SPOTIFY-SETUP.md`.
-2. **Then verify on the phone, because none of it is Jest-provable:** a real auth bounce and
-   return; connecting with Spotify suspended (the `authorizeAndPlay` path — the ordinary one);
-   play/pause/skip actually driving playback; the bar surviving a backgrounded app; and the cue
-   tones still mixing over Spotify rather than pausing it (that is `workoutAudio.ts`'s session,
-   untouched here, but it is the regression this feature is most likely to be blamed for).
-3. If Premium is not on the account, expect connect to succeed and the buttons to report
+1. Re-verify on the phone: a real auth bounce and return; connecting with Spotify suspended (the
+   `authorizeAndPlay` path — the ordinary one); play/pause/skip actually driving playback; the bar
+   surviving a backgrounded app; and the cue tones still mixing over Spotify rather than pausing it
+   (that is `workoutAudio.ts`'s session, untouched here, but it is the regression this feature is
+   most likely to be blamed for).
+2. If Premium is not on the account, expect connect to succeed and the buttons to report
    `PREMIUM_REQUIRED`. That is Spotify's restriction, not a bug to chase.
+
+### Bug found on device: "Connecting…" never clears
+
+Reported: prebuild + redeploy done, Spotify opens, fails to connect, bounces RoamFit back to the
+foreground, and the connect button is stuck on "Connecting…" permanently.
+
+**Root cause.** `connect()` in `useSpotifyPlayer` optimistically flips `connectionState` to
+`'connecting'`, but until this fix the *only* code path that ever moved it out of `'connecting'`
+was the native `connectionStateChange` listener. When `connectSpotify()` fails outright — auth
+cancelled, or the whole `authenticate` → `connect`/`authorizeAndPlay` sequence never reaches a
+connected state — Spotify never has a connection state to report, so that event never fires, and
+the button is stuck forever. The generic `run()` helper (used by every other transport action)
+only ever set `lastError`; `connect()` needs to also reset `connectionState` itself since it's the
+one caller where a failure has nowhere else to be reported from.
+
+**Fix.** `connect()` now awaits `connectSpotify()` directly (not through `run()`) and, on a
+non-null error, resets `connectionState` from `'connecting'` back to `'disconnected'` — same
+functional-update guard style already used elsewhere in the file, so a connection that *did*
+land via the listener in the meantime isn't clobbered. Added a regression test:
+"drops back to disconnected when the auth bounce fails, instead of sticking on 'connecting'
+forever" in `spotifyRemote.test.ts`.
+
+**Not yet reverified on device** — the fix is Jest-provable (the failure path is exercised) but the
+actual auth-bounce-and-fail sequence on a physical phone is not, per the existing device-only list
+above. Worth also checking *why* the connect is failing at all (Spotify app version, redirect URI
+registration exactly matching `roamfit://spotify-auth`, or an `AUTH_IN_PROGRESS` leak from a prior
+attempt) — this fix makes the failure recoverable, it doesn't address why the first connect fails.
 
 ### Gotcha found while testing (worth knowing before writing any new component test)
 

@@ -280,8 +280,17 @@ export function useSpotifyPlayer(): SpotifyPlayer {
 
   const connect = useCallback(() => {
     setConnectionState((state) => (state === 'disconnected' ? 'connecting' : state));
-    run(connectSpotify);
-  }, [run]);
+    setLastError(null);
+    // Unlike every other action, a failure here has nowhere else to go: the native
+    // `connectionStateChange` event is what normally moves `connectionState` on, but a failed
+    // authenticate/connect never fires it (Spotify never got far enough to have a state to
+    // report). Without this, a cancelled auth or a bounce back to RoamFit with no connection
+    // leaves the button reading "Connecting…" forever — `run()` alone only sets `lastError`.
+    void connectSpotify().then((error) => {
+      setLastError(error);
+      if (error) setConnectionState((state) => (state === 'connecting' ? 'disconnected' : state));
+    });
+  }, []);
 
   const togglePlay = useCallback(() => {
     // Optimistic: Spotify's state event is a round trip through another process, and a play/pause
