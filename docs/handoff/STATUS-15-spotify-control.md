@@ -7,18 +7,21 @@ swap between apps during a workout."
 
 ### Done
 
-- (nothing yet — see In progress)
+- [x] Dependency + `app.config.js` + `scheme` in `app.json` + this file — 7115c04
+- [x] `app/src/lib/spotifyRemote.ts` + both test files (25 cases)
 
 ### In progress
 
-- Increment 1: this status file + the dependency and native config.
+- Increment 3: `app/src/components/SpotifyControls.tsx` — the transport bar, plus its tests.
+  Mocks `../lib/spotifyRemote` (the seam `useSpotifyPlayer` exists to be). Compact single row so
+  it can sit under the timer without pushing the exercise hero down.
 
 ### Next
 
-1. `app/src/lib/spotifyRemote.ts` — the one surface over the native module, plus its tests.
-2. `app/src/components/SpotifyControls.tsx` — the transport bar, plus its tests.
-3. Wire into `WorkoutScreen.tsx` under the timer row, plus a screen test.
-4. `docs/SPOTIFY-SETUP.md` — the one manual step (client ID) the user has to do themselves.
+1. Wire into `WorkoutScreen.tsx` under the timer row, plus a screen test.
+2. `docs/SPOTIFY-SETUP.md` — the one manual step (client ID) the user has to do themselves.
+3. Backlog: park the token-swap-server upgrade and a Settings toggle if the row proves to be
+   clutter for a non-Spotify session.
 
 ### Decisions / gotchas
 
