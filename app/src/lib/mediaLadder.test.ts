@@ -18,12 +18,11 @@ import {
 const BASE: MediaLadderInput = {
   curatedVideoId: null,
   online: true,
-  metered: false,
   videoDemoted: false,
 };
 
 describe('resolveMediaTier', () => {
-  it('picks the curated embed when online, unmetered, a curated id exists, and not demoted', () => {
+  it('picks the curated embed when online, a curated id exists, and not demoted', () => {
     const result = resolveMediaTier({ ...BASE, curatedVideoId: 'abc123XYZ_9' });
     expect(result.tier).toBe('curated_embed');
     expect(result.videoId).toBe('abc123XYZ_9');
@@ -37,11 +36,6 @@ describe('resolveMediaTier', () => {
 
   it('falls back to cues only when there is no curated id, even online', () => {
     const result = resolveMediaTier({ ...BASE, curatedVideoId: null, online: true });
-    expect(result.tier).toBe('cues_only');
-  });
-
-  it('falls back to cues only on a metered connection, even with a curated id', () => {
-    const result = resolveMediaTier({ ...BASE, curatedVideoId: 'abc123XYZ_9', metered: true });
     expect(result.tier).toBe('cues_only');
   });
 
@@ -84,11 +78,6 @@ describe('resolveMediaTier', () => {
       const result = resolveMediaTier({ ...BASE, userVideoId: 'USERvid1234', online: false });
       expect(result.tier).toBe('cues_only');
       expect(result.videoId).toBeNull();
-    });
-
-    it('still obeys the metered-connection rule', () => {
-      const result = resolveMediaTier({ ...BASE, userVideoId: 'USERvid1234', metered: true });
-      expect(result.tier).toBe('cues_only');
     });
 
     it('falls through to the curated id when the assignment is cleared', () => {

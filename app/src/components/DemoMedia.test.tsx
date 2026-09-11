@@ -176,11 +176,31 @@ describe('DemoMedia', () => {
     expect(renderer.root.findByProps({ testID: 'demo-media-search-link' })).toBeTruthy();
   });
 
-  it('metered connection: no embed even with a curated id, search link still offered', async () => {
+  it('metered connection: holds the embed behind a load tap, search link still offered', async () => {
     mockGetNetworkStatus.mockResolvedValue({ online: true, metered: true });
     const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
+    // Resolving to an embed tier on cellular must not itself fetch the watch page.
     expect(renderer.root.findAllByProps({ testID: 'demo-media-webview' })).toHaveLength(0);
+    expect(renderer.root.findByProps({ testID: 'demo-media-load' })).toBeTruthy();
     expect(renderer.root.findByProps({ testID: 'demo-media-search-link' })).toBeTruthy();
+  });
+
+  it('metered connection: tapping the placeholder loads the embed', async () => {
+    mockGetNetworkStatus.mockResolvedValue({ online: true, metered: true });
+    const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
+    const load = renderer.root.findByProps({ testID: 'demo-media-load' });
+    await act(async () => {
+      load.props.onPress();
+    });
+    expect(renderer.root.findByProps({ testID: 'demo-media-webview' })).toBeTruthy();
+    expect(renderer.root.findAllByProps({ testID: 'demo-media-load' })).toHaveLength(0);
+  });
+
+  it('unmetered connection: embed loads directly, no tap needed', async () => {
+    mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+    const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
+    expect(renderer.root.findByProps({ testID: 'demo-media-webview' })).toBeTruthy();
+    expect(renderer.root.findAllByProps({ testID: 'demo-media-load' })).toHaveLength(0);
   });
 
   it('a player error drops the embed silently and calls onPlayerError exactly once', async () => {

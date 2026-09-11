@@ -30,6 +30,14 @@
  *     first-expansion signal (`sessionsRepo.recordDemoMediaExpanded`) — both are `@roamfit/store`
  *     calls the screen makes in the `onExpand`/`onReportIssue`/`onPlayerError` callbacks, per
  *     ADR 0003 / issue #13 ("no new persistence logic in app/").
+ *
+ * **Cellular holds the frame back behind a tap.** `mediaLadder.ts`'s tier selection no longer
+ * skips an embed for being on a metered connection — a video is worth showing on cellular too —
+ * but loading the watch page is a real fetch (YouTube's chrome, thumbnails, related videos, not
+ * just the clip), so it shouldn't happen just because the "Demo" disclosure was opened. On a
+ * metered connection this component swaps the `WebView` for a "Load video" placeholder the same
+ * size as the frame, and only mounts the `WebView` once that's tapped. On an unmetered connection
+ * nothing changes: opening "Demo" still loads the frame directly, same as before.
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -132,6 +140,10 @@ export default function DemoMedia({
     online: false,
     metered: false,
   });
+  // On cellular, resolving to an embed tier is not consent to fetch it — see the file header.
+  // Reset whenever the video itself changes (a new assignment, or this instance getting reused
+  // for a different exercise) so a stale tap doesn't carry over to a video nobody asked to load.
+  const [videoLoadRequested, setVideoLoadRequested] = useState(false);
 
   // Toggling mute mid-video has to reach a page that is already loaded, so the prop drives an
   // imperative injection as well as the on-load one below.
@@ -153,15 +165,23 @@ export default function DemoMedia({
     userVideoId,
     curatedVideoId,
     online: network.online,
-    metered: network.metered,
     videoDemoted,
   });
+  useEffect(() => {
+    setVideoLoadRequested(false);
+  }, [ladder.videoId]);
+
   // Both embed tiers render the same player; only the surrounding controls differ (see the
   // report link below). Keyed off `videoId` too so a tier/id drift can never mount a null src.
   const isEmbedTier = ladder.tier === 'user_embed' || ladder.tier === 'curated_embed';
-  const showEmbed = isEmbedTier && ladder.videoId !== null && !playerErrored;
+  // Whether there's a video to show at all — loaded or still behind the cellular tap below.
+  const hasEmbeddableVideo = isEmbedTier && ladder.videoId !== null && !playerErrored;
+  // On a metered connection the frame is a placeholder until tapped, so nothing is actually
+  // fetched just because "Demo" was opened.
+  const needsLoadTap = hasEmbeddableVideo && network.metered;
+  const showEmbed = hasEmbeddableVideo && (!needsLoadTap || videoLoadRequested);
   const searchUrl = buildSearchUrl(videoSearchQuery, network.online);
-  const hasAnything = showEmbed || searchUrl !== null;
+  const hasAnything = hasEmbeddableVideo || searchUrl !== null;
 
   // Declared before the early return so the hook order is stable across the offline/online
   // transition — `network` starts pessimistic and flips once `getNetworkStatus()` resolves, so
@@ -225,6 +245,17 @@ export default function DemoMedia({
 
       {open && (
         <View style={styles.body} testID="demo-media-body">
+          {needsLoadTap && !showEmbed && (
+            <Pressable
+              testID="demo-media-load"
+              style={[styles.mediaFrame, styles.loadPlaceholder]}
+              onPress={() => setVideoLoadRequested(true)}
+            >
+              <Text style={styles.loadTitle}>▶ Load video</Text>
+              <Text style={styles.loadSubtext}>On cellular — tap to load</Text>
+            </Pressable>
+          )}
+
           {showEmbed && (
             <View style={styles.mediaFrame}>
               {/* The watch page, not an embed: every embedded-player route ends in "Video player
@@ -341,6 +372,9 @@ const styles = StyleSheet.create({
     maxHeight: 220, // §10.4: "never takes more than about a third of the screen"
   },
   media: { flex: 1 },
+  loadPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  loadTitle: { fontSize: 20, fontWeight: '700', color: '#334155' },
+  loadSubtext: { fontSize: 12, color: '#64748b', marginTop: 4 },
   reportLink: { fontSize: 12, color: '#94a3b8', textDecorationLine: 'underline' },
   assignBlock: { gap: 6, marginTop: 4 },
   assignLabel: { fontSize: 12, color: '#64748b', fontWeight: '600' },

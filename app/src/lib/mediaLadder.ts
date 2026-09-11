@@ -11,19 +11,24 @@
  *      id arriving later by sync must not silently replace their choice. Not subject to the
  *      two-flag demotion either — demotion exists to retire a *curated* pick that turned out
  *      wrong, and the user can simply reassign or clear their own.
- *   2. Curated YouTube embed — online, unmetered, a curated id exists, and the exercise hasn't
- *      been locally demoted by two-or-more video flags.
+ *   2. Curated YouTube embed — online, a curated id exists, and the exercise hasn't been locally
+ *      demoted by two-or-more video flags.
  *   3. YouTube search link — a *secondary* affordance shown alongside an embed, or on its own
  *      when online with no video at all. Constructed, so it cannot 404. `resolveMediaTier`
  *      returns only the primary tier; `buildSearchUrl` is called independently whenever `online`.
  *
  * Both video tiers still require connectivity: a user-assigned id is a YouTube id like any other,
- * so it embeds only online and unmetered, exactly as the curated one does.
+ * so it embeds only online, exactly as the curated one does. Neither tier is gated on a metered
+ * (cellular) connection any more — a video is worth showing on cellular too. What changes on a
+ * metered connection is *when* the request actually happens: `DemoMedia` holds the frame back
+ * behind an explicit "load video" tap instead of fetching the watch page the moment the tier
+ * resolves, so resolving to an embed tier never itself spends cellular data. That gate is a
+ * rendering decision, not a selection one, so it lives in the component, not here.
  *
- * With neither available — offline, metered, or demoted with no id — the resolved tier is
- * `cues_only`: the consumer renders no media frame at all, and the exercise's `setup` cue (the
- * "How to" block) carries the demonstration by itself. That cue is bundled and always present,
- * which is what keeps §11.6's airplane-mode gate satisfied without any bundled media.
+ * With neither available — offline, or demoted with no id — the resolved tier is `cues_only`: the
+ * consumer renders no media frame at all, and the exercise's `setup` cue (the "How to" block)
+ * carries the demonstration by itself. That cue is bundled and always present, which is what
+ * keeps §11.6's airplane-mode gate satisfied without any bundled media.
  */
 
 export type MediaTier = 'user_embed' | 'curated_embed' | 'cues_only';
@@ -36,9 +41,6 @@ export interface MediaLadderInput {
    *  bundled; this must come from a synced remote-config read, track 6d's job). */
   curatedVideoId: string | null;
   online: boolean;
-  /** Best-effort "metered connection with data saver on" signal — see `networkStatus.ts` for the
-   *  documented iOS limitation on what this can actually detect. */
-  metered: boolean;
   /** True once this exercise has accumulated 2+ video flags (user reports and/or automatic
    *  player-error flags) locally — see `exerciseStateRepo.reportVideoIssue`. */
   videoDemoted: boolean;
@@ -52,8 +54,9 @@ export interface MediaLadderResult {
 
 export function resolveMediaTier(input: MediaLadderInput): MediaLadderResult {
   // Connectivity gates every embed, whoever chose it. Checked once, before the tier order, so a
-  // user-assigned id can't accidentally bypass the metered/offline rules the curated one obeys.
-  const canEmbed = input.online && !input.metered;
+  // user-assigned id can't accidentally bypass the offline rule the curated one obeys. Metered
+  // (cellular) is deliberately not part of this gate — see the file header.
+  const canEmbed = input.online;
 
   const userVideoId = input.userVideoId ?? null;
   if (canEmbed && userVideoId !== null && userVideoId.length > 0) {
