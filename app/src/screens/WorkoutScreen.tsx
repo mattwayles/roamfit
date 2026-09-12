@@ -60,6 +60,7 @@ import {
   positionsInOrder,
   samePosition,
   sectionHasCompletedSet,
+  sessionCursorPosition,
   stepPosition,
 } from '../lib/sessionProgress';
 import type { Section, SessionPosition } from '../lib/sessionProgress';
@@ -250,7 +251,11 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     activeEntries(session).some((e) => e.id === jumpTo.entryId && jumpTo.setIndex < e.sets);
 
   // Arriving with a valid explicit bookmark (a tap on a set in Summary) lands on exactly that
-  // (entry, set). Otherwise, arriving back from Summary (before FINISH) to look at or fix
+  // (entry, set), and persists it as the "you are here" override (`setSessionCursor`) — a
+  // Summary selection stands regardless of how much of the workout is actually logged, so it has
+  // to survive past this one visit rather than live only in `rewoundTo`. Absent an explicit
+  // bookmark this visit, a previously persisted override (from an earlier Summary tap) is honored
+  // the same way. Otherwise, arriving back from Summary (before FINISH) to look at or fix
   // something lands on the last set rather than the front edge — the front edge is `null`
   // (everything is already logged), which is exactly the empty state the auto-navigate effect
   // below would otherwise read as "done, go to Summary" and bounce straight back out of. Runs
@@ -259,13 +264,18 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     if (!session || rewoundTo) return;
     if (jumpToValid && jumpTo) {
       setRewoundTo(jumpTo);
+      sessionsRepo.setSessionCursor(db, sessionId, jumpTo, nowUtcInstant());
       return;
     }
-    if (!reviewFromSummary) return;
+    if (!reviewFromSummary) {
+      const cursor = sessionCursorPosition(session);
+      if (cursor) setRewoundTo(cursor);
+      return;
+    }
     const positions = positionsInOrder(session);
     const last = positions[positions.length - 1];
     if (last) setRewoundTo(last);
-  }, [reviewFromSummary, jumpTo, jumpToValid, session]);
+  }, [reviewFromSummary, jumpTo, jumpToValid, session, db, sessionId]);
 
   useEffect(() => {
     // Keyed on the front edge, not on what is being viewed: the workout is over when every set is
@@ -558,9 +568,12 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
   /** Puts a different set on screen. Landing back on the front edge drops the override entirely,
    *  so the screen returns to deriving its position from `set_logs` (§10.8) instead of holding a
-   *  stale copy of it. */
+   *  stale copy of it — and the persisted "you are here" cursor is cleared right along with it,
+   *  since there is nothing left to override. */
   const moveTo = (position: SessionPosition) => {
-    setRewoundTo(samePosition(position, frontierPosition) ? null : position);
+    const atFront = samePosition(position, frontierPosition);
+    setRewoundTo(atFront ? null : position);
+    sessionsRepo.setSessionCursor(db, sessionId, atFront ? null : position, nowUtcInstant());
     // This set is being started fresh: neither the elapsed-since-started stamp nor a band picked
     // for the set being left behind belongs to it.
     setStartedAtRef.current = nowUtcInstant();
@@ -602,6 +615,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     // already moved on, so dropping the rewind override lands on the set after this one.
     setStartedAtRef.current = nowUtcInstant();
     setRewoundTo(null);
+    sessionsRepo.setSessionCursor(db, sessionId, null, nowUtcInstant());
     setSwapNotice(null);
     // Skipping the last slot still ends the stage, and the stage question is about the stage, not
     // about this set — so a warm-up that was mostly trained still gets asked about even if its
@@ -710,6 +724,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       // made is already reflected in the log; Summary/Progress is where the user asked to make
       // it from, so that is where landing back makes sense.
       setRewoundTo(null);
+      sessionsRepo.setSessionCursor(db, sessionId, null, nowUtcInstant());
       setPausedCompletion(null);
       reload();
       navigation.replace('Summary', { sessionId });

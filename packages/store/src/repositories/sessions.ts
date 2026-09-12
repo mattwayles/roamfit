@@ -129,6 +129,11 @@ export interface SessionRecord {
   pausedAt: string | null;
   /** Seconds banked from pauses already closed. See `activeElapsedSec`. */
   pausedTotalSec: number;
+  /** The "you are here" override — a set explicitly picked from Summary. Wins over the derived
+   *  front edge (`findCurrentEntry`) for display and for where the workout resumes, regardless of
+   *  how much is actually logged. Null means no override. See `setSessionCursor`. */
+  cursorEntryId: string | null;
+  cursorSetIndex: number | null;
   completedAt: string | null;
   discardedAt: string | null;
   entries: SessionEntryRecord[];
@@ -246,6 +251,8 @@ function rowToSession(
     startedAt: row.startedAt,
     pausedAt: row.pausedAt,
     pausedTotalSec: row.pausedTotalSec,
+    cursorEntryId: row.cursorEntryId,
+    cursorSetIndex: row.cursorSetIndex,
     completedAt: row.completedAt,
     discardedAt: row.discardedAt,
     entries,
@@ -479,6 +486,29 @@ export function resumeSession(db: Db, sessionId: string, now: string): void {
 
 function pauseLengthSec(pausedAt: string, now: string): number {
   return Math.max(0, Math.round((Date.parse(now) - Date.parse(pausedAt)) / 1000));
+}
+
+/**
+ * The "you are here" override. Tapping a set from Summary is a user selection, not the
+ * crash-safety resume `findCurrentEntry` derives from `set_logs` — it needs to survive leaving
+ * the screen, so it is written here rather than held as component state. Pass `null` to drop the
+ * override and fall back to the derived front edge (landing back on it is exactly when the
+ * caller does this — see `WorkoutScreen`'s `moveTo`).
+ */
+export function setSessionCursor(
+  db: Db,
+  sessionId: string,
+  position: { entryId: string; setIndex: number } | null,
+  now: string,
+): void {
+  db.update(schema.sessions)
+    .set({
+      cursorEntryId: position?.entryId ?? null,
+      cursorSetIndex: position?.setIndex ?? null,
+      updatedAt: now,
+    })
+    .where(eq(schema.sessions.id, sessionId))
+    .run();
 }
 
 /**

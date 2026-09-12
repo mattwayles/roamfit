@@ -358,6 +358,63 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     });
   });
 
+  it('a persisted cursor moves the "you are here" marker to the selected set, overriding the derived front edge', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('summary-cursor-seed')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    sessionsRepo.startSession(db, sessionId, utcInstant);
+    const session = sessionsRepo.getSession(db, sessionId)!;
+    const active = session.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
+    const first = active[0]!;
+    const second = active[1]!;
+    // The derived front edge is still `first` set 0 — nothing has been logged. A prior visit to
+    // Workout via a Summary bookmark set the override onto a *different, later* entry, which is
+    // the "regardless of how much of a workout has been completed" case: the override wins even
+    // though the workout has barely started.
+    sessionsRepo.setSessionCursor(db, sessionId, { entryId: second.id, setIndex: 0 }, utcInstant);
+
+    const navigation = mockNavigation();
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={navigation as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
+    // The marker sits on the overridden entry, not on `first` (the derived front edge).
+    expect(screen.queryByTestId(`summary-current-${first.id}`)).toBeNull();
+    expect(screen.getByTestId(`summary-current-${second.id}`)).toBeTruthy();
+    expect(screen.getByText(/Set 1 — you are here/)).toBeTruthy();
+  });
+
   it('mid-workout, "Back to workout" resumes at the front edge — no reviewFromSummary', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(

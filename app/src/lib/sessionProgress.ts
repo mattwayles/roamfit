@@ -105,3 +105,13 @@ export function findCurrentEntry(
   }
   return null;
 }
+
+/** `session.cursorEntryId`/`cursorSetIndex` as a `SessionPosition`, but only if it still names a
+ *  real slot — the entry could since have been swapped or removed out from under it. Null
+ *  otherwise, which is the "no override" state callers fall back to `findCurrentEntry` for. */
+export function sessionCursorPosition(session: SessionRecord): SessionPosition | null {
+  if (session.cursorEntryId == null || session.cursorSetIndex == null) return null;
+  const entry = activeEntries(session).find((e) => e.id === session.cursorEntryId);
+  if (!entry || session.cursorSetIndex >= entry.sets) return null;
+  return { entryId: session.cursorEntryId, setIndex: session.cursorSetIndex };
+}

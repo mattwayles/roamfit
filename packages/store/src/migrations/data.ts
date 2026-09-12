@@ -417,6 +417,19 @@ CREATE TABLE manual_day_markers (
 CREATE UNIQUE INDEX ux_manual_day_markers_user_date ON manual_day_markers(user_id, local_date);
 `;
 
+const MIGRATION_0016_SESSION_CURSOR = `-- 0016_session_cursor.sql — a persisted "you are here" override.
+--
+-- "You are here" used to be purely derived: the first not-yet-logged set, re-walked from
+-- set_logs on every read (see findCurrentEntry). That is still what decides whether the workout
+-- is *done*. But tapping a set from Summary is a user selection, not a crash-safety resume, and
+-- it needs to survive leaving the screen: \`cursor_entry_id\`/\`cursor_set_index\` is where that
+-- selection is now written. NULL means no override — everything falls back to the derived front
+-- edge, exactly as before this column existed.
+
+ALTER TABLE sessions ADD COLUMN cursor_entry_id TEXT;
+ALTER TABLE sessions ADD COLUMN cursor_set_index INTEGER;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -439,4 +452,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0013_effort_to_difficulty.sql', sql: MIGRATION_0013_EFFORT_TO_DIFFICULTY },
   { id: '0014_cue_sounds.sql', sql: MIGRATION_0014_CUE_SOUNDS },
   { id: '0015_manual_day_markers.sql', sql: MIGRATION_0015_MANUAL_DAY_MARKERS },
+  { id: '0016_session_cursor.sql', sql: MIGRATION_0016_SESSION_CURSOR },
 ];

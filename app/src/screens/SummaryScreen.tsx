@@ -40,7 +40,7 @@ import type { CompleteSessionResult } from '@roamfit/store';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
-import { findCurrentEntry } from '../lib/sessionProgress';
+import { activeEntries, findCurrentEntry, sessionCursorPosition } from '../lib/sessionProgress';
 import { buildCelebrationViewModel, type FullScreenCelebration } from '../lib/celebration';
 import { hapticCompletion } from '../lib/workoutAudio';
 import ConfettiBurst from '../components/ConfettiBurst';
@@ -148,6 +148,16 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   // on every page of the active workout), not the end-of-workout completion screen: FINISH and
   // the retrospective don't belong on a screen that isn't at the end yet.
   const frontier = session ? findCurrentEntry(session) : null;
+
+  // The "you are here" marker itself: a set explicitly picked from Summary (or carried over from
+  // an earlier visit — `sessionCursorPosition` reads the persisted override) wins over the
+  // derived front edge, regardless of how much of the workout is actually logged. Falls back to
+  // `frontier` when there is no override, which is the original, purely-derived behavior.
+  const cursor = session ? sessionCursorPosition(session) : null;
+  const cursorEntry =
+    session && cursor ? activeEntries(session).find((e) => e.id === cursor.entryId) : null;
+  const youAreHere =
+    cursor && cursorEntry ? { entry: cursorEntry, setIndex: cursor.setIndex } : frontier;
 
   // This screen is reached from the middle of an active workout (WorkoutScreen's own "Progress"
   // button `replace`s it, so Workout is no longer under Summary on the stack), so the default
@@ -330,17 +340,20 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                 </Text>
               </Pressable>
             ))}
-            {/* §10.8 — a bold "you are here" line for the entry the front edge is currently on,
-                only meaningful while the workout is still in progress (frontier is null once
-                everything is logged). Pressable like every other set line, landing on exactly
-                this bookmark — a no-op if you're already looking at it. */}
-            {frontier && frontier.entry.id === entry.id && (
+            {/* §10.8 — a bold "you are here" line, only meaningful while the workout is still in
+                progress (frontier is null once everything is logged). Position comes from
+                `youAreHere`, not the raw derived front edge: a set explicitly picked from
+                Summary is an override that stands regardless of how much is actually logged, so
+                the marker follows the user's own selection when there is one. Pressable like
+                every other set line, landing on exactly this bookmark — a no-op if you're
+                already looking at it. */}
+            {frontier && youAreHere && youAreHere.entry.id === entry.id && (
               <Pressable
                 testID={`summary-current-${entry.id}`}
-                onPress={() => jumpToSet(entry.id, frontier.setIndex)}
+                onPress={() => jumpToSet(entry.id, youAreHere.setIndex)}
               >
                 <Text style={styles.currentSetLine}>
-                  ▶ Set {frontier.setIndex + 1} — you are here
+                  ▶ Set {youAreHere.setIndex + 1} — you are here
                 </Text>
               </Pressable>
             )}

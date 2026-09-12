@@ -238,6 +238,12 @@ export const sessions = sqliteTable(
     pausedAt: text('paused_at'),
     /** Seconds banked from pauses already closed. See `activeElapsedSec`. */
     pausedTotalSec: integer('paused_total_sec').notNull().default(0),
+    /** The "you are here" override (migration 0016): a set the user explicitly picked from
+     *  Summary, which then wins over the derived front edge everywhere "you are here" is shown or
+     *  landed on, no matter how much of the workout is actually logged. NULL means no override —
+     *  display and resume both fall back to the derived front edge, as before this existed. */
+    cursorEntryId: text('cursor_entry_id'),
+    cursorSetIndex: integer('cursor_set_index'),
     completedAt: text('completed_at'),
     discardedAt: text('discarded_at'),
     createdAt: text('created_at').notNull(),
