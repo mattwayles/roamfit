@@ -6,7 +6,7 @@
     "scheme": "roamfit",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "platforms": ["ios"],
     "ios": {
       "bundleIdentifier": "com.mattwayles.roamfit",
