@@ -358,6 +358,66 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     });
   });
 
+  it('shows every set for an exercise not yet reached, as an empty-space glyph, and lets you jump ahead to any of them', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('summary-jump-ahead-seed')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    sessionsRepo.startSession(db, sessionId, utcInstant);
+    // Nothing logged at all, so every entry after the first is entirely untouched — the case
+    // that used to have no lines at all to tap.
+    const session = sessionsRepo.getSession(db, sessionId)!;
+    const active = session.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
+    const untouched = active.find((e) => e.sets >= 2)!;
+    const navigation = mockNavigation();
+
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={navigation as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
+    const block = within(screen.getByTestId(`summary-${untouched.exerciseId}`));
+    // Every set gets a line — the empty-space glyph, not a "not reached" label.
+    expect(block.getByText(/⬜ Set 1/)).toBeTruthy();
+    expect(block.getByText(/⬜ Set 2/)).toBeTruthy();
+    expect(block.queryByText(/not reached/i)).toBeNull();
+
+    await fireEvent.press(screen.getByTestId(`summary-set-${untouched.id}-1`));
+    expect(navigation.replace).toHaveBeenCalledWith('Workout', {
+      sessionId,
+      jumpTo: { entryId: untouched.id, setIndex: 1 },
+    });
+  });
+
   it('a persisted cursor moves the "you are here" marker to the selected set, overriding the derived front edge', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(

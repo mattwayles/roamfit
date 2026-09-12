@@ -85,6 +85,14 @@ function setBandText(
   return ` · ${tensions[log.bandActual]?.label ?? log.bandActual}`;
 }
 
+/** How many set lines to render for an entry: `entry.sets` normally, but never fewer than
+ *  whatever is actually logged — a real set log always gets a line, even one logged past the
+ *  nominal count. */
+function setLineCount(entry: sessionsRepo.SessionEntryRecord): number {
+  const maxLogged = entry.setLogs.reduce((max, l) => Math.max(max, l.setIndex + 1), 0);
+  return Math.max(entry.sets, maxLogged);
+}
+
 function celebrationHeadline(c: FullScreenCelebration): string {
   return c.kind === 'level_up'
     ? `${c.familyName}: ${c.newExerciseName}`
@@ -326,55 +334,51 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
             <Text style={styles.entryName}>
               {library.exercises.find((e) => e.id === entry.exerciseId)?.name ?? entry.exerciseId}
             </Text>
-            {entry.setLogs.map((log) => {
+            {/* Every set in the plan gets a line, not just the ones with a log — a set nobody
+                has reached yet used to have no line at all, which made it impossible to jump
+                ahead to it from here. `jumpToSet` already accepted any setIndex < entry.sets
+                (WorkoutScreen's jumpTo never restricted itself to sets already reached); the
+                summary just wasn't offering the tap target. An unreached set shows the same
+                empty-space glyph the icon column uses, not a "not reached" label — this is a
+                blank slot, not a status to report on (invariant 4: nothing here should read as
+                a problem). */}
+            {Array.from({ length: setLineCount(entry) }, (_, setIndex) => {
+              const log = entry.setLogs.find((l) => l.setIndex === setIndex);
               // §10.8 — the set line *is* the "you are here" marker when the two coincide,
               // rather than a duplicate bold line underneath repeating the same set number: a
               // set that was skipped (or otherwise already logged) can still be the current
               // position, and showing both said the same thing twice. `youAreHere` wins over the
               // logged result here for exactly the same reason it wins everywhere else — a set
-              // explicitly picked from Summary is an override, regardless of what got recorded.
+              // explicitly picked from Summary is an override, regardless of what got recorded
+              // (or of whether anything has been recorded at all yet).
               const isYouAreHere =
                 !!frontier &&
                 !!youAreHere &&
                 youAreHere.entry.id === entry.id &&
-                youAreHere.setIndex === log.setIndex;
+                youAreHere.setIndex === setIndex;
               return (
                 <Pressable
-                  key={log.id}
-                  testID={`summary-set-${log.id}`}
-                  onPress={() => jumpToSet(entry.id, log.setIndex)}
+                  key={log?.id ?? `${entry.id}-${setIndex}`}
+                  testID={log ? `summary-set-${log.id}` : `summary-set-${entry.id}-${setIndex}`}
+                  onPress={() => jumpToSet(entry.id, setIndex)}
                 >
                   {isYouAreHere ? (
                     <Text style={styles.currentSetLine} testID={`summary-current-${entry.id}`}>
-                      ▶ Set {log.setIndex + 1} — you are here
+                      ▶ Set {setIndex + 1} — you are here
                     </Text>
-                  ) : (
+                  ) : log ? (
                     <Text style={styles.setLine}>
-                      {statusIcon(log.status)} Set {log.setIndex + 1}: {setResultText(log)}
+                      {statusIcon(log.status)} Set {setIndex + 1}: {setResultText(log)}
                       {setBandText(log, bandTensions)}
                       {entry.difficultyFeedback ? ` · ${entry.difficultyFeedback}` : ''}
                       {entry.enjoymentFeedback ? ` · ${entry.enjoymentFeedback}/5` : ''}
                     </Text>
+                  ) : (
+                    <Text style={styles.setLine}>⬜ Set {setIndex + 1}</Text>
                   )}
                 </Pressable>
               );
             })}
-            {/* The frontier can point at a set that hasn't been trained yet at all — no
-                `setLogs` row exists for it to merge into above — so this is the fallback for
-                that one case: a set that has never run, the workout's own untouched front edge. */}
-            {frontier &&
-              youAreHere &&
-              youAreHere.entry.id === entry.id &&
-              !entry.setLogs.some((l) => l.setIndex === youAreHere.setIndex) && (
-                <Pressable
-                  testID={`summary-current-${entry.id}`}
-                  onPress={() => jumpToSet(entry.id, youAreHere.setIndex)}
-                >
-                  <Text style={styles.currentSetLine}>
-                    ▶ Set {youAreHere.setIndex + 1} — you are here
-                  </Text>
-                </Pressable>
-              )}
           </View>
         ))}
 
