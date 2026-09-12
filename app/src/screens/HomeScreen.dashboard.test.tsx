@@ -46,12 +46,5 @@ describe('§14.2 cold start — the dashboard is never empty', () => {
       expect(row).toBeTruthy();
     }
     expect(screen.queryAllByText('Mastery').length).toBe(0);
-
-    // This week's dots render at 0 filled (a brand-new user hasn't trained yet) — present, and
-    // critically not styled as a failure (no red/empty assertion possible in RNTL directly, but
-    // the dots string itself must exist and be non-shaming, i.e. all open circles, not a "0/3
-    // missed" framing).
-    const dots = screen.getByTestId('week-dots');
-    expect(dots.props.children).toContain('○');
   });
 });

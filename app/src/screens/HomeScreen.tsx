@@ -1,9 +1,9 @@
 /**
- * §10.1 Home / §14.1 Dashboard — one screen, spec's own order: resumable session or Today card,
- * Quick Session, This week, Next Unlock, then (scrolling) progression board, passport, calendar,
- * muscle balance, lifetime counters, estimate accuracy. §10.1 and §14.1 give the identical
- * ordering, so this is deliberately not split into a separate "Dashboard" screen — see
- * STATUS-5-motivation.md's "Key findings."
+ * §10.1 Home / §14.1 Dashboard — one screen: resumable session or Today card, Quick Session,
+ * Last 30 days (with the "I'm in transit" button), Next Unlock, then (scrolling) progression
+ * board, passport, calendar, muscle balance, lifetime counters, estimate accuracy. §10.1 and
+ * §14.1 originally gave an identical ordering, so this stayed one screen rather than splitting
+ * into a separate "Dashboard" screen — see STATUS-5-motivation.md's "Key findings."
  *
  * §14.2 zero-session requirement: the progression board, Next Unlock, and the calibration
  * explanation must all render before the user has ever generated a session. `ensureProgressionStatesInitialized`
@@ -67,7 +67,6 @@ import {
   type PassportSummary,
 } from '../lib/dashboard';
 import {
-  buildWeeklySummaryText,
   ensureNotificationPermission,
   scheduleMotivationNotifications,
 } from '../lib/motivationNotifications';
@@ -75,7 +74,8 @@ import { runOpportunisticSync } from '../lib/opportunisticSync';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
-const CALENDAR_WINDOW_DAYS = 28;
+const CALENDAR_WINDOW_DAYS = 30;
+const CALENDAR_ROW_LENGTH = 10;
 
 /** §14.1.6 — the one-letter marker for each focus area, shown on a trained calendar day. */
 const FOCUS_LETTER: Record<Focus, string> = { full: 'F', upper: 'U', abs: 'A', legs: 'L' };
@@ -101,11 +101,6 @@ interface HomeData {
   calendarDays: CalendarDay[];
   muscleBalance: MuscleBalanceRow[];
   lifetimeCounters: LifetimeCounters;
-}
-
-function weekDots(hit: number, denominator: number): string {
-  const filled = Math.min(hit, denominator);
-  return '●'.repeat(filled) + '○'.repeat(Math.max(0, denominator - filled));
 }
 
 export default function HomeScreen({ navigation }: Props): React.JSX.Element {
@@ -323,15 +318,6 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     navigation.navigate('Generate', { recoveryWeek: true });
   }, [navigation]);
 
-  // §9.10 — share is a render step over data already on screen, never a new backend call.
-  const handleShareWeeklySummary = useCallback(() => {
-    if (!data) return;
-    const clock = nowEngineClock();
-    const rolling = statsRepo.rollingSessionCount(data.stats, clock.today);
-    const { body } = buildWeeklySummaryText(data.stats, rolling, data.user.weeklyTarget);
-    void Share.share({ message: `RoamFit — ${body}` });
-  }, [data]);
-
   const handleSharePassport = useCallback(() => {
     if (!data) return;
     const { cities, countries, sessionsAbroad } = data.passport;
@@ -359,13 +345,13 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     muscleBalance,
     lifetimeCounters,
   } = data;
-  const rolling = statsRepo.rollingSessionCount(stats, nowEngineClock().today);
-  const denominator = statsRepo.effectiveWeeklyDenominator(
-    user.weeklyTarget,
-    stats.travelDaysThisWeek,
-  );
   const suggestRecoveryWeek = statsRepo.shouldSuggestRecoveryWeek(stats);
   const isZeroSession = stats.lifetimeSessionCount === 0;
+  // 3 even rows of `CALENDAR_ROW_LENGTH` — `CALENDAR_WINDOW_DAYS` must divide evenly by it.
+  const calendarRows: CalendarDay[][] = [];
+  for (let i = 0; i < calendarDays.length; i += CALENDAR_ROW_LENGTH) {
+    calendarRows.push(calendarDays.slice(i, i + CALENDAR_ROW_LENGTH));
+  }
 
   // §13.3 — the medical disclaimer must be shown on first launch, blocking, before any other
   // screen content. `hasAcknowledgedDisclaimer` is a one-way flag (usersRepo.acknowledgeDisclaimer)
@@ -496,26 +482,60 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
         )}
       </Pressable>
 
-      <View style={styles.weekRow}>
-        <View>
-          <Text style={styles.weekLabel}>This week</Text>
-          <Text testID="week-dots" style={styles.weekDots}>
-            {weekDots(rolling, denominator)}
-          </Text>
-          {stats.weekStreak > 0 && (
-            <Text style={styles.weekStreak}>{stats.weekStreak} week streak</Text>
-          )}
-          {stats.lifetimeSessionCount > 0 && (
-            <Pressable testID="share-weekly-summary" onPress={handleShareWeeklySummary}>
-              <Text style={styles.shareLink}>Share</Text>
+      {/* §14.1.6 calendar heatmap — untrained days are neutral squares, never omitted or red.
+          A trained day shows a letter for the focus it trained (F/U/A/L); a travel day shows a
+          plane icon instead. Every marker is hand-editable (tap to open the popup below) so a
+          workout logged outside RoamFit, or a travel day missed at the time, can still be
+          reflected here. */}
+      {stats.lifetimeSessionCount > 0 && (
+        <View testID="calendar-heatmap">
+          <View style={styles.calendarHeaderRow}>
+            <Text style={styles.sectionLabel}>Last {CALENDAR_WINDOW_DAYS} days</Text>
+            <Pressable
+              testID="travel-day-button"
+              style={styles.travelButton}
+              onPress={handleTravelDay}
+            >
+              <Text style={styles.travelButtonIcon}>✈</Text>
+              <Text style={styles.travelButtonText}>I&apos;m in transit</Text>
             </Pressable>
-          )}
+          </View>
+          <View style={styles.calendarGrid}>
+            {calendarRows.map((row, rowIndex) => (
+              <View key={rowIndex} style={styles.calendarRow}>
+                {row.map((day) => (
+                  <Pressable
+                    key={day.localDate}
+                    testID={`calendar-day-${day.localDate}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      day.marker === 'travel'
+                        ? 'Travel day — tap to edit'
+                        : day.marker === 'none'
+                          ? 'No workout — tap to edit'
+                          : `${day.marker} workout — tap to edit`
+                    }
+                    style={[
+                      styles.calendarCell,
+                      day.marker === 'none'
+                        ? styles.calendarCellUntrained
+                        : styles.calendarCellWorkout,
+                    ]}
+                    onPress={() => setEditingDay(day.localDate)}
+                  >
+                    {day.marker === 'travel' && (
+                      <Text style={styles.calendarCellTransitIcon}>✈</Text>
+                    )}
+                    {day.marker !== 'none' && day.marker !== 'travel' && (
+                      <Text style={styles.calendarCellLetter}>{FOCUS_LETTER[day.marker]}</Text>
+                    )}
+                  </Pressable>
+                ))}
+              </View>
+            ))}
+          </View>
         </View>
-        <Pressable testID="travel-day-button" style={styles.travelButton} onPress={handleTravelDay}>
-          <Text style={styles.travelButtonIcon}>✈</Text>
-          <Text style={styles.travelButtonText}>I&apos;m in transit</Text>
-        </Pressable>
-      </View>
+      )}
 
       {hero ? (
         <View testID="next-unlock-hero" style={styles.heroCard}>
@@ -541,46 +561,9 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
         )
       )}
 
-      {/* §14.1.6 calendar heatmap — untrained days are neutral squares, never omitted or red.
-          A trained day shows a letter for the focus it trained (F/U/A/L); a travel day shows a
-          plane icon instead. Every marker is hand-editable (tap to open the popup below) so a
-          workout logged outside RoamFit, or a travel day missed at the time, can still be
-          reflected here. */}
-      {stats.lifetimeSessionCount > 0 && (
-        <View testID="calendar-heatmap">
-          <Text style={styles.sectionLabel}>Last {CALENDAR_WINDOW_DAYS} days</Text>
-          <View style={styles.calendarGrid}>
-            {calendarDays.map((day) => (
-              <Pressable
-                key={day.localDate}
-                testID={`calendar-day-${day.localDate}`}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  day.marker === 'travel'
-                    ? 'Travel day — tap to edit'
-                    : day.marker === 'none'
-                      ? 'No workout — tap to edit'
-                      : `${day.marker} workout — tap to edit`
-                }
-                style={[
-                  styles.calendarCell,
-                  day.marker === 'none' ? styles.calendarCellUntrained : styles.calendarCellWorkout,
-                ]}
-                onPress={() => setEditingDay(day.localDate)}
-              >
-                {day.marker === 'travel' && <Text style={styles.calendarCellTransitIcon}>✈</Text>}
-                {day.marker !== 'none' && day.marker !== 'travel' && (
-                  <Text style={styles.calendarCellLetter}>{FOCUS_LETTER[day.marker]}</Text>
-                )}
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      )}
-
       {/* §14.1.6 — the day-marker edit popup. Same modal-overlay pattern as
           `AbandonSessionButton`'s icon variant: a dismissing backdrop behind a tap-swallowing
-          dialog, since the 16x16 calendar cell has no room to show options in place. */}
+          dialog, since a calendar cell has no room to show options in place. */}
       <Modal
         visible={editingDay !== null}
         transparent
@@ -876,16 +859,13 @@ const styles = StyleSheet.create({
   },
   quickButtonTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
   quickButtonSubtitle: { color: '#dcfce7', fontSize: 13 },
-  weekRow: {
+  shareLink: { fontSize: 12, color: '#2563eb', fontWeight: '700', marginTop: 4 },
+  calendarHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
   },
-  weekLabel: { fontSize: 13, color: '#64748b', fontWeight: '600' },
-  weekDots: { fontSize: 18, letterSpacing: 2, color: '#0f172a' },
-  weekStreak: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  shareLink: { fontSize: 12, color: '#2563eb', fontWeight: '700', marginTop: 4 },
   travelButton: {
     backgroundColor: '#f1f5f9',
     borderRadius: 12,
@@ -1016,11 +996,12 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   passportOptInText: { fontSize: 13, fontWeight: '600', color: '#334155' },
-  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
+  calendarGrid: { gap: 6, marginTop: 4 },
+  calendarRow: { flexDirection: 'row', gap: 6 },
   calendarCell: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
