@@ -579,6 +579,148 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     expect(screen.getByText('You are here')).toBeTruthy();
   });
 
+  it('shows a chip for recorded difficulty/enjoyment feedback on a main exercise, and editing it from Summary updates the record — before FINISH, not after', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('summary-feedback-edit-seed')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    sessionsRepo.startSession(db, sessionId, utcInstant);
+    const session = sessionsRepo.getSession(db, sessionId)!;
+    const mainEntry = session.entries.find(
+      (e) => e.section === 'main' && e.entryStatus !== 'removed_at_approval',
+    )!;
+    sessionsRepo.recordEntryFeedback(
+      db,
+      mainEntry.id,
+      { difficulty: 'too_hard', enjoyment: 2 },
+      utcInstant,
+    );
+
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={mockNavigation() as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
+    // The chip shows the recorded answer; before FINISH, so this is mid-workout editing, not a
+    // post-completion retrospective feature.
+    expect(screen.queryByTestId('finish-button')).toBeNull();
+    expect(screen.getByText('Too hard')).toBeTruthy();
+    expect(screen.getByText('😞')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId(`summary-feedback-difficulty-${mainEntry.id}`));
+    await waitFor(
+      () => expect(screen.getByTestId('difficulty-just_right')).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    await fireEvent.press(screen.getByTestId('difficulty-just_right'));
+    await fireEvent.press(screen.getByTestId('enjoyment-5'));
+    await fireEvent.press(screen.getByTestId('feedback-edit-done'));
+
+    const updated = sessionsRepo
+      .getSession(db, sessionId)!
+      .entries.find((e) => e.id === mainEntry.id)!;
+    expect(updated.difficultyFeedback).toBe('just_right');
+    expect(updated.enjoymentFeedback).toBe(5);
+    // The chip on screen reflects the edit immediately, without navigating away and back.
+    expect(screen.getByText('Just right')).toBeTruthy();
+    expect(screen.getByText('😄')).toBeTruthy();
+  });
+
+  it('editing a warm-up/cool-down feedback chip updates the whole stage, since that is one answer shared by every entry in it', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('summary-stage-feedback-edit-seed')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    sessionsRepo.startSession(db, sessionId, utcInstant);
+    const session = sessionsRepo.getSession(db, sessionId)!;
+    const warmupEntries = session.entries.filter(
+      (e) => e.section === 'warmup' && e.entryStatus !== 'removed_at_approval',
+    );
+    expect(warmupEntries.length).toBeGreaterThanOrEqual(2);
+    sessionsRepo.recordSectionFeedback(
+      db,
+      sessionId,
+      'warmup',
+      { difficulty: 'too_easy' },
+      utcInstant,
+    );
+
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={mockNavigation() as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
+    // Editing from the *first* warm-up entry's chip...
+    await fireEvent.press(screen.getByTestId(`summary-feedback-difficulty-${warmupEntries[0].id}`));
+    await waitFor(() => expect(screen.getByTestId('difficulty-too_hard')).toBeTruthy(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId('difficulty-too_hard'));
+    await fireEvent.press(screen.getByTestId('feedback-edit-done'));
+
+    // ...updates every entry in the stage, not just the one whose chip was tapped.
+    const reloaded = sessionsRepo.getSession(db, sessionId)!;
+    for (const entry of warmupEntries) {
+      expect(reloaded.entries.find((e) => e.id === entry.id)!.difficultyFeedback).toBe('too_hard');
+    }
+  });
+
   it('mid-workout, "Back to workout" resumes at the front edge — no reviewFromSummary', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(

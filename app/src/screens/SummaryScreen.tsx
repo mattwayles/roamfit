@@ -25,6 +25,7 @@ import {
   Animated,
   InputAccessoryView,
   Keyboard,
+  Modal,
   Pressable,
   ScrollView,
   Share,
@@ -40,10 +41,16 @@ import type { CompleteSessionResult } from '@roamfit/store';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
-import { activeEntries, findCurrentEntry, sessionCursorPosition } from '../lib/sessionProgress';
+import {
+  activeEntries,
+  findCurrentEntry,
+  sessionCursorPosition,
+  type Section,
+} from '../lib/sessionProgress';
 import { buildCelebrationViewModel, type FullScreenCelebration } from '../lib/celebration';
 import { hapticCompletion } from '../lib/workoutAudio';
 import ConfettiBurst from '../components/ConfettiBurst';
+import FeedbackControls, { type Difficulty } from '../components/FeedbackControls';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Summary'>;
 
@@ -82,6 +89,34 @@ const SQUARE_COLORS: Record<SquareStatus, { bg: string; bgCurrent: string; text:
 function setLineCount(entry: sessionsRepo.SessionEntryRecord): number {
   const maxLogged = entry.setLogs.reduce((max, l) => Math.max(max, l.setIndex + 1), 0);
   return Math.max(entry.sets, maxLogged);
+}
+
+const DIFFICULTY_LABEL: Record<Difficulty, string> = {
+  too_easy: 'Too easy',
+  just_right: 'Just right',
+  too_hard: 'Too hard',
+};
+
+/** Same set the rest screen's `FeedbackControls` offers, indexed the same way (1-5), so a chip
+ *  reads as the very same answer the user gave there. */
+const ENJOYMENT_EMOJI = ['😩', '😞', '😕', '🙂', '😄'];
+
+/** §8.1 feedback belongs to one exercise for `main`, but to the whole stage for `warmup`/
+ *  `cooldown` (`recordSectionFeedback` writes the same answer to every entry in it) — so editing
+ *  it from any one entry's chip has to go through the write that keeps the rest of the stage in
+ *  sync, not just that entry's own row. */
+function editFeedback(
+  db: ReturnType<typeof useStore>['db'],
+  sessionId: string,
+  entry: sessionsRepo.SessionEntryRecord,
+  feedback: { difficulty?: Difficulty | null; enjoyment?: number | null },
+  now: string,
+): void {
+  if (entry.section === 'main') {
+    sessionsRepo.recordEntryFeedback(db, entry.id, feedback, now);
+  } else {
+    sessionsRepo.recordSectionFeedback(db, sessionId, entry.section as Section, feedback, now);
+  }
 }
 
 function celebrationHeadline(c: FullScreenCelebration): string {
@@ -124,13 +159,18 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   const [finished, setFinished] = useState(false);
   const [celebrationIndex, setCelebrationIndex] = useState(0);
   const [workoutCount, setWorkoutCount] = useState(0);
+  // Which entry's feedback is open for editing, or null when the popup is closed. Reused across
+  // both feedback shapes (an entry-specific `main` answer, or a stage-wide `warmup`/`cooldown`
+  // one) — `editFeedback` is what tells the two apart, this just remembers which entry's chip was
+  // tapped, which is enough either way (see `editFeedback`'s comment).
+  const [editingFeedbackEntryId, setEditingFeedbackEntryId] = useState<string | null>(null);
   const bannerScale = useRef(new Animated.Value(0)).current;
 
-  useFocusEffect(
-    useCallback(() => {
-      setSession(sessionsRepo.getSession(db, sessionId));
-    }, [db, sessionId]),
-  );
+  const reload = useCallback(() => {
+    setSession(sessionsRepo.getSession(db, sessionId));
+  }, [db, sessionId]);
+
+  useFocusEffect(reload);
 
   const celebration = useMemo(
     () =>
@@ -214,6 +254,24 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
 
   const jumpToSet = (entryId: string, setIndex: number) => {
     navigation.replace('Workout', { sessionId, jumpTo: { entryId, setIndex } });
+  };
+
+  /** The entry the feedback popup is open for, and the value it should show — read fresh off
+   *  `session` on every render rather than snapshotted at the moment the chip was tapped, so an
+   *  edit is reflected immediately without closing and reopening the popup. */
+  const editingFeedbackEntry = editingFeedbackEntryId
+    ? session.entries.find((e) => e.id === editingFeedbackEntryId)
+    : null;
+
+  const handleEditDifficultyChange = (d: Difficulty | undefined) => {
+    if (!editingFeedbackEntry) return;
+    editFeedback(db, sessionId, editingFeedbackEntry, { difficulty: d ?? null }, nowUtcInstant());
+    reload();
+  };
+  const handleEditEnjoymentChange = (e: number | undefined) => {
+    if (!editingFeedbackEntry) return;
+    editFeedback(db, sessionId, editingFeedbackEntry, { enjoyment: e ?? null }, nowUtcInstant());
+    reload();
   };
 
   const handleShare = (text: string) => {
@@ -307,23 +365,24 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   const retrospectiveAccessoryId = 'retrospective-accessory';
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
-      automaticallyAdjustKeyboardInsets
-    >
-      <Text style={styles.heading}>
-        {session.focus} · {session.targetMinutes} min · {session.difficulty}
-      </Text>
+    <>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
+        <Text style={styles.heading}>
+          {session.focus} · {session.targetMinutes} min · {session.difficulty}
+        </Text>
 
-      {session.entries
-        .filter((e) => e.entryStatus !== 'removed_at_approval')
-        .map((entry) => (
-          <View key={entry.id} style={styles.entryBlock} testID={`summary-${entry.exerciseId}`}>
-            <Text style={styles.entryName}>
-              {library.exercises.find((e) => e.id === entry.exerciseId)?.name ?? entry.exerciseId}
-            </Text>
-            {/* One square per set in the plan, not just the ones with a log — a set nobody has
+        {session.entries
+          .filter((e) => e.entryStatus !== 'removed_at_approval')
+          .map((entry) => (
+            <View key={entry.id} style={styles.entryBlock} testID={`summary-${entry.exerciseId}`}>
+              <Text style={styles.entryName}>
+                {library.exercises.find((e) => e.id === entry.exerciseId)?.name ?? entry.exerciseId}
+              </Text>
+              {/* One square per set in the plan, not just the ones with a log — a set nobody has
                 reached yet used to have no line at all, which made it impossible to jump ahead
                 to it from here. `jumpToSet` already accepted any setIndex < entry.sets
                 (WorkoutScreen's jumpTo never restricted itself to sets already reached); this
@@ -331,108 +390,129 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                 heatmap cells (same rounded-square shape, same green/neutral fill logic), scaled
                 up — a set is a much less numerous, much more consequential thing to tap than a
                 calendar day, so it gets a much bigger target. */}
-            <View style={styles.setSquareRow}>
-              {Array.from({ length: setLineCount(entry) }, (_, setIndex) => {
-                const log = entry.setLogs.find((l) => l.setIndex === setIndex);
-                const status = squareStatus(log);
-                const colors = SQUARE_COLORS[status];
-                // §10.8 — the square *is* the "you are here" marker when the two coincide,
-                // rather than a duplicate marker drawn on top of it: a set that was skipped (or
-                // otherwise already logged) can still be the current position. `youAreHere` wins
-                // over the logged status here for exactly the same reason it wins everywhere
-                // else — a set explicitly picked from Summary is an override, regardless of what
-                // got recorded (or of whether anything has been recorded at all yet).
-                const isYouAreHere =
-                  !!frontier &&
-                  !!youAreHere &&
-                  youAreHere.entry.id === entry.id &&
-                  youAreHere.setIndex === setIndex;
-                const textColor = isYouAreHere ? '#ffffff' : colors.text;
-                return (
-                  <Pressable
-                    key={log?.id ?? `${entry.id}-${setIndex}`}
-                    testID={log ? `summary-set-${log.id}` : `summary-set-${entry.id}-${setIndex}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      isYouAreHere
-                        ? `Set ${setIndex + 1} — you are here`
-                        : `Set ${setIndex + 1} — ${status.replace('_', ' ')}`
-                    }
-                    onPress={() => jumpToSet(entry.id, setIndex)}
-                    style={[
-                      styles.setSquare,
-                      { backgroundColor: isYouAreHere ? colors.bgCurrent : colors.bg },
-                      isYouAreHere && styles.setSquareCurrent,
-                    ]}
-                  >
-                    <Text style={[styles.setSquareLabel, { color: textColor }]}>
-                      Set {setIndex + 1}
-                    </Text>
-                    <Text style={styles.setSquareEmoji}>{statusEmoji(status)}</Text>
-                    {isYouAreHere && (
-                      <Text
-                        style={styles.setSquareCurrentLabel}
-                        testID={`summary-current-${entry.id}`}
-                      >
-                        You are here
+              <View style={styles.setSquareRow}>
+                {Array.from({ length: setLineCount(entry) }, (_, setIndex) => {
+                  const log = entry.setLogs.find((l) => l.setIndex === setIndex);
+                  const status = squareStatus(log);
+                  const colors = SQUARE_COLORS[status];
+                  // §10.8 — the square *is* the "you are here" marker when the two coincide,
+                  // rather than a duplicate marker drawn on top of it: a set that was skipped (or
+                  // otherwise already logged) can still be the current position. `youAreHere` wins
+                  // over the logged status here for exactly the same reason it wins everywhere
+                  // else — a set explicitly picked from Summary is an override, regardless of what
+                  // got recorded (or of whether anything has been recorded at all yet).
+                  const isYouAreHere =
+                    !!frontier &&
+                    !!youAreHere &&
+                    youAreHere.entry.id === entry.id &&
+                    youAreHere.setIndex === setIndex;
+                  const textColor = isYouAreHere ? '#ffffff' : colors.text;
+                  return (
+                    <Pressable
+                      key={log?.id ?? `${entry.id}-${setIndex}`}
+                      testID={log ? `summary-set-${log.id}` : `summary-set-${entry.id}-${setIndex}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        isYouAreHere
+                          ? `Set ${setIndex + 1} — you are here`
+                          : `Set ${setIndex + 1} — ${status.replace('_', ' ')}`
+                      }
+                      onPress={() => jumpToSet(entry.id, setIndex)}
+                      style={[
+                        styles.setSquare,
+                        { backgroundColor: isYouAreHere ? colors.bgCurrent : colors.bg },
+                        isYouAreHere && styles.setSquareCurrent,
+                      ]}
+                    >
+                      <Text style={[styles.setSquareLabel, { color: textColor }]}>
+                        Set {setIndex + 1}
                       </Text>
-                    )}
-                  </Pressable>
-                );
-              })}
+                      <Text style={styles.setSquareEmoji}>{statusEmoji(status)}</Text>
+                      {isYouAreHere && (
+                        <Text
+                          style={styles.setSquareCurrentLabel}
+                          testID={`summary-current-${entry.id}`}
+                        >
+                          You are here
+                        </Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {/* Entry-level, not per-set (`difficultyFeedback`/`enjoymentFeedback` are recorded
+                once for the whole exercise, at the rest page — or once per stage for warm-up/
+                cool-down, see `recordSectionFeedback` — never per set), so it is shown once here
+                rather than repeated on every square. Editable from here at any point before
+                FINISH — a chip only appears once there is an answer to edit; pressing it reopens
+                the exact same controls the rest/stage page offered, pre-filled with what is
+                already recorded, so changing your mind about how a set (or the whole warm-up or
+                cool-down) went doesn't require walking back through the workout to do it. */}
+              {(entry.difficultyFeedback || entry.enjoymentFeedback) && (
+                <View style={styles.feedbackChipRow}>
+                  {entry.difficultyFeedback && (
+                    <Pressable
+                      testID={`summary-feedback-difficulty-${entry.id}`}
+                      style={styles.feedbackChip}
+                      onPress={() => setEditingFeedbackEntryId(entry.id)}
+                    >
+                      <Text style={styles.feedbackChipText}>
+                        {DIFFICULTY_LABEL[entry.difficultyFeedback]}
+                      </Text>
+                    </Pressable>
+                  )}
+                  {entry.enjoymentFeedback && (
+                    <Pressable
+                      testID={`summary-feedback-enjoyment-${entry.id}`}
+                      style={styles.feedbackChip}
+                      onPress={() => setEditingFeedbackEntryId(entry.id)}
+                    >
+                      <Text style={styles.feedbackChipText}>
+                        {ENJOYMENT_EMOJI[entry.enjoymentFeedback - 1]}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
             </View>
-            {/* Entry-level, not per-set (`difficultyFeedback`/`enjoymentFeedback` are recorded
-                once for the whole exercise, at the rest page — see `recordEntryFeedback`), so it
-                is shown once here rather than repeated on every square. */}
-            {(entry.difficultyFeedback || entry.enjoymentFeedback) && (
-              <Text style={styles.entryFeedback}>
-                {[
-                  entry.difficultyFeedback,
-                  entry.enjoymentFeedback ? `${entry.enjoymentFeedback}/5` : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Text>
-            )}
-          </View>
-        ))}
+          ))}
 
-      {!frontier && (
-        <>
-          <Text style={styles.sectionLabel}>Retrospective (optional)</Text>
-          <TextInput
-            testID="retrospective-input"
-            style={styles.retrospectiveInput}
-            value={retrospective}
-            onChangeText={setRetrospective}
-            placeholder="How did that feel?"
-            multiline
-            inputAccessoryViewID={retrospectiveAccessoryId}
-          />
-          {/* `InputAccessoryView` is iOS-only, which is the only platform this app ships on. A
+        {!frontier && (
+          <>
+            <Text style={styles.sectionLabel}>Retrospective (optional)</Text>
+            <TextInput
+              testID="retrospective-input"
+              style={styles.retrospectiveInput}
+              value={retrospective}
+              onChangeText={setRetrospective}
+              placeholder="How did that feel?"
+              multiline
+              inputAccessoryViewID={retrospectiveAccessoryId}
+            />
+            {/* `InputAccessoryView` is iOS-only, which is the only platform this app ships on. A
               plain `returnKeyType="done"` would have to double as "insert newline" on a multiline
               field, so it can't also mean "dismiss the keyboard" without giving up typing
               paragraph breaks. This gives the keyboard its own explicit Done button without
               taking that away. */}
-          <InputAccessoryView nativeID={retrospectiveAccessoryId}>
-            <View style={styles.keyboardAccessory}>
-              <Pressable
-                testID="retrospective-done"
-                onPress={() => Keyboard.dismiss()}
-                style={styles.keyboardAccessoryButton}
-              >
-                <Text style={styles.keyboardAccessoryButtonText}>Done</Text>
-              </Pressable>
-            </View>
-          </InputAccessoryView>
+            <InputAccessoryView nativeID={retrospectiveAccessoryId}>
+              <View style={styles.keyboardAccessory}>
+                <Pressable
+                  testID="retrospective-done"
+                  onPress={() => Keyboard.dismiss()}
+                  style={styles.keyboardAccessoryButton}
+                >
+                  <Text style={styles.keyboardAccessoryButtonText}>Done</Text>
+                </Pressable>
+              </View>
+            </InputAccessoryView>
 
-          <Pressable testID="finish-button" style={styles.finishButton} onPress={handleFinish}>
-            <Text style={styles.finishButtonText}>FINISH</Text>
-          </Pressable>
-        </>
-      )}
+            <Pressable testID="finish-button" style={styles.finishButton} onPress={handleFinish}>
+              <Text style={styles.finishButtonText}>FINISH</Text>
+            </Pressable>
+          </>
+        )}
 
-      {/* The session is still `active` in the DB at this point — nothing is finalized until
+        {/* The session is still `active` in the DB at this point — nothing is finalized until
           FINISH is tapped above — so going back to it is genuinely resuming, not reopening
           something already closed. Gone once FINISH is tapped (the `finished` screens below have
           no equivalent button): completeSession has run by then and there is nothing active left
@@ -440,19 +520,61 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
           progress check, not the end-of-workout screen) simply resumes at the front edge; only
           the fully-logged, pre-FINISH case needs `reviewFromSummary` to land on the last set
           instead of bouncing straight back here (see WorkoutScreen's review-mode handling). */}
-      <Pressable
-        testID="back-to-workout"
-        style={styles.backButton}
-        onPress={() =>
-          navigation.replace(
-            'Workout',
-            frontier ? { sessionId } : { sessionId, reviewFromSummary: true },
-          )
-        }
+        <Pressable
+          testID="back-to-workout"
+          style={styles.backButton}
+          onPress={() =>
+            navigation.replace(
+              'Workout',
+              frontier ? { sessionId } : { sessionId, reviewFromSummary: true },
+            )
+          }
+        >
+          <Text style={styles.backButtonText}>Back to workout</Text>
+        </Pressable>
+      </ScrollView>
+
+      {/* Editing an already-recorded feedback answer, at any point before FINISH — same controls
+          the rest/stage page shows, reopened here rather than requiring a walk back through the
+          workout. Same backdrop-dialog shape as Home's day-marker edit popup, for one consistent
+          "edit something in place from a summary view" pattern across the app. */}
+      <Modal
+        visible={editingFeedbackEntry !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditingFeedbackEntryId(null)}
       >
-        <Text style={styles.backButtonText}>Back to workout</Text>
-      </Pressable>
-    </ScrollView>
+        <Pressable style={styles.feedbackBackdrop} onPress={() => setEditingFeedbackEntryId(null)}>
+          <Pressable style={styles.feedbackDialog} onPress={() => {}}>
+            {editingFeedbackEntry && (
+              <>
+                <Text style={styles.feedbackDialogTitle}>
+                  {editingFeedbackEntry.section === 'main'
+                    ? (library.exercises.find((e) => e.id === editingFeedbackEntry.exerciseId)
+                        ?.name ?? editingFeedbackEntry.exerciseId)
+                    : editingFeedbackEntry.section === 'warmup'
+                      ? 'Warm-up'
+                      : 'Cool-down'}
+                </Text>
+                <FeedbackControls
+                  difficulty={editingFeedbackEntry.difficultyFeedback}
+                  enjoyment={editingFeedbackEntry.enjoymentFeedback}
+                  onDifficultyChange={handleEditDifficultyChange}
+                  onEnjoymentChange={handleEditEnjoymentChange}
+                />
+              </>
+            )}
+            <Pressable
+              testID="feedback-edit-done"
+              style={styles.feedbackDialogDone}
+              onPress={() => setEditingFeedbackEntryId(null)}
+            >
+              <Text style={styles.feedbackDialogDoneText}>Done</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
@@ -488,7 +610,38 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'center',
   },
-  entryFeedback: { fontSize: 13, color: '#475569' },
+  feedbackChipRow: { flexDirection: 'row', gap: 8 },
+  feedbackChip: {
+    backgroundColor: '#e2e8f0',
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  feedbackChipText: { fontSize: 13, fontWeight: '600', color: '#334155' },
+  feedbackBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  feedbackDialog: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  feedbackDialogTitle: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
+  feedbackDialogDone: {
+    alignSelf: 'flex-end',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  feedbackDialogDoneText: { fontSize: 14, fontWeight: '700', color: '#1d4ed8' },
   sectionLabel: { fontSize: 13, fontWeight: '700', color: '#64748b', marginTop: 12 },
   retrospectiveInput: {
     backgroundColor: '#f1f5f9',
