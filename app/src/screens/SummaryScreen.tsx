@@ -326,37 +326,55 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
             <Text style={styles.entryName}>
               {library.exercises.find((e) => e.id === entry.exerciseId)?.name ?? entry.exerciseId}
             </Text>
-            {entry.setLogs.map((log) => (
-              <Pressable
-                key={log.id}
-                testID={`summary-set-${log.id}`}
-                onPress={() => jumpToSet(entry.id, log.setIndex)}
-              >
-                <Text style={styles.setLine}>
-                  {statusIcon(log.status)} Set {log.setIndex + 1}: {setResultText(log)}
-                  {setBandText(log, bandTensions)}
-                  {entry.difficultyFeedback ? ` · ${entry.difficultyFeedback}` : ''}
-                  {entry.enjoymentFeedback ? ` · ${entry.enjoymentFeedback}/5` : ''}
-                </Text>
-              </Pressable>
-            ))}
-            {/* §10.8 — a bold "you are here" line, only meaningful while the workout is still in
-                progress (frontier is null once everything is logged). Position comes from
-                `youAreHere`, not the raw derived front edge: a set explicitly picked from
-                Summary is an override that stands regardless of how much is actually logged, so
-                the marker follows the user's own selection when there is one. Pressable like
-                every other set line, landing on exactly this bookmark — a no-op if you're
-                already looking at it. */}
-            {frontier && youAreHere && youAreHere.entry.id === entry.id && (
-              <Pressable
-                testID={`summary-current-${entry.id}`}
-                onPress={() => jumpToSet(entry.id, youAreHere.setIndex)}
-              >
-                <Text style={styles.currentSetLine}>
-                  ▶ Set {youAreHere.setIndex + 1} — you are here
-                </Text>
-              </Pressable>
-            )}
+            {entry.setLogs.map((log) => {
+              // §10.8 — the set line *is* the "you are here" marker when the two coincide,
+              // rather than a duplicate bold line underneath repeating the same set number: a
+              // set that was skipped (or otherwise already logged) can still be the current
+              // position, and showing both said the same thing twice. `youAreHere` wins over the
+              // logged result here for exactly the same reason it wins everywhere else — a set
+              // explicitly picked from Summary is an override, regardless of what got recorded.
+              const isYouAreHere =
+                !!frontier &&
+                !!youAreHere &&
+                youAreHere.entry.id === entry.id &&
+                youAreHere.setIndex === log.setIndex;
+              return (
+                <Pressable
+                  key={log.id}
+                  testID={`summary-set-${log.id}`}
+                  onPress={() => jumpToSet(entry.id, log.setIndex)}
+                >
+                  {isYouAreHere ? (
+                    <Text style={styles.currentSetLine} testID={`summary-current-${entry.id}`}>
+                      ▶ Set {log.setIndex + 1} — you are here
+                    </Text>
+                  ) : (
+                    <Text style={styles.setLine}>
+                      {statusIcon(log.status)} Set {log.setIndex + 1}: {setResultText(log)}
+                      {setBandText(log, bandTensions)}
+                      {entry.difficultyFeedback ? ` · ${entry.difficultyFeedback}` : ''}
+                      {entry.enjoymentFeedback ? ` · ${entry.enjoymentFeedback}/5` : ''}
+                    </Text>
+                  )}
+                </Pressable>
+              );
+            })}
+            {/* The frontier can point at a set that hasn't been trained yet at all — no
+                `setLogs` row exists for it to merge into above — so this is the fallback for
+                that one case: a set that has never run, the workout's own untouched front edge. */}
+            {frontier &&
+              youAreHere &&
+              youAreHere.entry.id === entry.id &&
+              !entry.setLogs.some((l) => l.setIndex === youAreHere.setIndex) && (
+                <Pressable
+                  testID={`summary-current-${entry.id}`}
+                  onPress={() => jumpToSet(entry.id, youAreHere.setIndex)}
+                >
+                  <Text style={styles.currentSetLine}>
+                    ▶ Set {youAreHere.setIndex + 1} — you are here
+                  </Text>
+                </Pressable>
+              )}
           </View>
         ))}
 

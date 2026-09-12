@@ -415,6 +415,94 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     expect(screen.getByText(/Set 1 — you are here/)).toBeTruthy();
   });
 
+  it('when the cursor lands on an already-logged (e.g. skipped) set, its line becomes the "you are here" marker instead of a separate duplicate line', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    // A still-in-progress session (frontier non-null — the marker is only ever shown pre-FINISH):
+    // set 1 skipped, set 2 trained, set 3+ not reached yet. The cursor is pointed back at the
+    // already-skipped set 1, the exact device report — the front edge has moved on to a later
+    // set, but a Summary tap on set 1 still has to win.
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('summary-cursor-on-skip-seed')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    sessionsRepo.startSession(db, sessionId, utcInstant);
+    const session = sessionsRepo.getSession(db, sessionId)!;
+    const active = session.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
+    const firstEntry = active.find((e) => e.sets >= 3)!;
+    sessionsRepo.logSet(
+      db,
+      {
+        entryId: firstEntry.id,
+        setIndex: 0,
+        status: 'skipped',
+        repsPrescribed: firstEntry.repTarget ?? undefined,
+        secondsPrescribed: firstEntry.durationSec ?? undefined,
+        restPrescribedSec: firstEntry.restSec,
+      },
+      utcInstant,
+    );
+    sessionsRepo.logSet(
+      db,
+      {
+        entryId: firstEntry.id,
+        setIndex: 1,
+        status: 'completed',
+        repsPrescribed: firstEntry.repTarget ?? undefined,
+        secondsPrescribed: firstEntry.durationSec ?? undefined,
+        repsActual: firstEntry.repTarget ?? undefined,
+        secondsActual: firstEntry.durationSec ?? undefined,
+        restPrescribedSec: firstEntry.restSec,
+      },
+      utcInstant,
+    );
+    sessionsRepo.setSessionCursor(
+      db,
+      sessionId,
+      { entryId: firstEntry.id, setIndex: 0 },
+      utcInstant,
+    );
+
+    const navigation = mockNavigation();
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={navigation as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
+    // Exactly one marker for this entry, and it replaces the skipped-set line rather than sitting
+    // underneath it.
+    expect(screen.getAllByTestId(`summary-current-${firstEntry.id}`)).toHaveLength(1);
+    expect(screen.getByText(/Set 1 — you are here/)).toBeTruthy();
+    expect(screen.queryByText(/Set 1: Skipped/)).toBeNull();
+  });
+
   it('mid-workout, "Back to workout" resumes at the front edge — no reviewFromSummary', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
