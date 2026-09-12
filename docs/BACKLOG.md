@@ -63,21 +63,16 @@ real connectivity-restored or app-foreground trigger would be better.
 - `progression_state` **/** `users` **/** `limitations` **don't sync.** Cut for scope. Would reuse the exact  
 `resolveLastWriteWins` / `syncRows.ts` pattern already in place.
 - **Spotify controls are built but not switched on yet** — they need a Spotify client ID from your
-own developer dashboard, the `functions/` token-swap server actually deployed, and a dev-client
-rebuild, none of which anybody but you can do. All of it is in `docs/SPOTIFY-SETUP.md`. Until then
-the bar renders nothing and the app is exactly as it was. The device run is genuinely unproven:
-nothing under Jest can exercise a real auth bounce, a real IPC connection, or a real track skip.
-- **Spotify now requires the token-swap server to connect at all — this is not optional anymore.**
-Spotify sunset the Implicit Grant flow on 2025-11-27; the controls used to rely on it (no backend,
-an access token good for about an hour, longer than any workout) but that flow no longer works —
-every `connect()` attempt against it fails on device with "Unable to open URL: about:blank"
-(`spotifyRemote.ts`'s `connectSpotify` header has the full diagnosis). `connectSpotify()` now
-requires `EXPO_PUBLIC_SPOTIFY_TOKEN_SWAP_URL`/`EXPO_PUBLIC_SPOTIFY_TOKEN_REFRESH_URL` and fails
-fast with a sentence if they're unset, rather than retrying the dead flow. The server side
-(`functions/src/spotifyTokenSwap.ts`, wired into `index.ts` as `spotifyTokenSwap`/
-`spotifyTokenRefresh`) is written and unit-tested but **not deployed** — deploying it, setting the
-`SPOTIFY_CLIENT_SECRET` secret, and pointing the two env vars at the deployed URLs is the one part
-nobody but you can do. Steps in `docs/SPOTIFY-SETUP.md`.
+own developer dashboard and a dev-client rebuild, which is the one part nobody but you can do.
+Five minutes, all of it in `docs/SPOTIFY-SETUP.md`. Until then the bar renders nothing and the app
+is exactly as it was. The device run is genuinely unproven: nothing under Jest can exercise a real
+auth bounce, a real IPC connection, or a real track skip.
+- **Spotify: no token swap server, so you reconnect once per app launch.** The controls use iOS's
+implicit flow, which needs no backend and returns an access token good for about an hour — longer
+than a workout, which is the window that matters. The code+swap flow would persist a session across
+launches but needs an endpoint holding the client secret, and `functions/` has never been deployed
+against a real project (see above), so the music controls were deliberately not made to depend on
+it. Revisit if reconnecting turns out to be annoying in practice.
 - **Spotify: no Settings toggle and no per-workout hide.** The bar renders nothing when the native
 module is absent, so a non-Spotify build is unaffected — but a Spotify user who wants a silent
 session has no way to hide it short of not connecting. Add a toggle if the row proves to be
