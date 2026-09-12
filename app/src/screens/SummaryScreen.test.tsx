@@ -11,12 +11,12 @@
  * level during calibration.
  */
 import React from 'react';
-import { Keyboard, Share } from 'react-native';
+import { Keyboard, Share, StyleSheet } from 'react-native';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import { completeSession, generate, sessionsRepo, usersRepo } from '@roamfit/store';
+import { completeSession, generate, sessionsRepo } from '@roamfit/store';
 import SummaryScreen from './SummaryScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
@@ -231,7 +231,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'Home' }] });
   });
 
-  it('lists a skipped set as skipped, not as a set that happened and recorded nothing', async () => {
+  it('a skipped set gets its own light-blue square, distinct from a completed (green) one', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -256,13 +256,17 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     );
 
     await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
-    const firstEntryBlock = within(screen.getByTestId(`summary-${firstEntry.exerciseId}`));
-    // The skipped set says so. It used to render as "⚠ Set 1: — sec", which reads like a set that
-    // was performed and measured nothing.
-    expect(firstEntryBlock.getByText(/Set 1: Skipped/)).toBeTruthy();
-    expect(firstEntryBlock.queryByText(/Set 1: — /)).toBeNull();
-    // The set that was actually trained still reports what was done.
-    expect(firstEntryBlock.getByText(/Set 2: \d+ (reps|sec)/)).toBeTruthy();
+    const set0Log = firstEntry.setLogs.find((l) => l.setIndex === 0)!;
+    const set1Log = firstEntry.setLogs.find((l) => l.setIndex === 1)!;
+    const bg = (testID: string): unknown =>
+      StyleSheet.flatten(screen.getByTestId(testID).props.style)?.backgroundColor;
+    // The skipped square and the completed square are colored differently, and neither reads as
+    // the other — a skipped set is a choice, not a failed attempt at the completed one's color.
+    const skippedBg = bg(`summary-set-${set0Log.id}`);
+    const completedBg = bg(`summary-set-${set1Log.id}`);
+    expect(skippedBg).toBeDefined();
+    expect(completedBg).toBeDefined();
+    expect(skippedBg).not.toBe(completedBg);
   });
 
   it('a set line is pressable, and jumps back to exactly that bookmark', async () => {
@@ -301,7 +305,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     });
   });
 
-  it('mid-workout, FINISH and the retrospective are hidden and a bold line marks where the user currently is', async () => {
+  it('mid-workout, FINISH and the retrospective are hidden and a distinguished square marks where the user currently is', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -349,7 +353,10 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     expect(screen.queryByTestId('finish-button')).toBeNull();
     expect(screen.queryByTestId('retrospective-input')).toBeNull();
     expect(screen.getByTestId(`summary-current-${first.id}`)).toBeTruthy();
-    expect(screen.getByText(/Set 1 — you are here/)).toBeTruthy();
+    expect(screen.getByText('You are here')).toBeTruthy();
+    // The square standing in for set 1 (`first` is entirely untouched) is the one carrying the
+    // "you are here" label — its testID is the plan-level one, since there is no log yet.
+    expect(screen.getByTestId(`summary-set-${first.id}-0`)).toBeTruthy();
 
     await fireEvent.press(screen.getByTestId(`summary-current-${first.id}`));
     expect(navigation.replace).toHaveBeenCalledWith('Workout', {
@@ -406,10 +413,14 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
 
     await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
     const block = within(screen.getByTestId(`summary-${untouched.exerciseId}`));
-    // Every set gets a line — the empty-space glyph, not a "not reached" label.
-    expect(block.getByText(/⬜ Set 1/)).toBeTruthy();
-    expect(block.getByText(/⬜ Set 2/)).toBeTruthy();
+    // Every set gets a square — the empty-space glyph, not a "not reached" label.
+    expect(block.getByText('Set 1')).toBeTruthy();
+    expect(block.getByText('Set 2')).toBeTruthy();
+    expect(block.getAllByText('⬜').length).toBeGreaterThanOrEqual(2);
     expect(block.queryByText(/not reached/i)).toBeNull();
+    const bg = (testID: string): unknown =>
+      StyleSheet.flatten(screen.getByTestId(testID).props.style)?.backgroundColor;
+    expect(bg(`summary-set-${untouched.id}-0`)).toBe(bg(`summary-set-${untouched.id}-1`));
 
     await fireEvent.press(screen.getByTestId(`summary-set-${untouched.id}-1`));
     expect(navigation.replace).toHaveBeenCalledWith('Workout', {
@@ -472,7 +483,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     // The marker sits on the overridden entry, not on `first` (the derived front edge).
     expect(screen.queryByTestId(`summary-current-${first.id}`)).toBeNull();
     expect(screen.getByTestId(`summary-current-${second.id}`)).toBeTruthy();
-    expect(screen.getByText(/Set 1 — you are here/)).toBeTruthy();
+    expect(screen.getByText('You are here')).toBeTruthy();
   });
 
   it('when the cursor lands on an already-logged (e.g. skipped) set, its line becomes the "you are here" marker instead of a separate duplicate line', async () => {
@@ -556,11 +567,16 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     );
 
     await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
-    // Exactly one marker for this entry, and it replaces the skipped-set line rather than sitting
-    // underneath it.
+    // Exactly one marker for this entry, and it replaces the skipped square rather than sitting
+    // underneath it — the square for set 1 carries the "you are here" label directly, on the
+    // set's own logged testID (not a separate plan-level one), since it does have a log.
     expect(screen.getAllByTestId(`summary-current-${firstEntry.id}`)).toHaveLength(1);
-    expect(screen.getByText(/Set 1 — you are here/)).toBeTruthy();
-    expect(screen.queryByText(/Set 1: Skipped/)).toBeNull();
+    const skippedLog = sessionsRepo
+      .getSession(db, sessionId)!
+      .entries.find((e) => e.id === firstEntry.id)!
+      .setLogs.find((l) => l.setIndex === 0)!;
+    expect(screen.getByTestId(`summary-set-${skippedLog.id}`)).toBeTruthy();
+    expect(screen.getByText('You are here')).toBeTruthy();
   });
 
   it('mid-workout, "Back to workout" resumes at the front edge — no reviewFromSummary', async () => {
@@ -757,98 +773,6 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     await fireEvent.press(screen.getByTestId('retrospective-done'));
     expect(dismissSpy).toHaveBeenCalledTimes(1);
     dismissSpy.mockRestore();
-  });
-
-  it('shows the band each set was actually trained with, per set, not one band per exercise', async () => {
-    let db!: ReturnType<typeof useStore>['db'];
-    render(
-      <StoreProvider>
-        <Setup onReady={(d) => (db = d)} />
-      </StoreProvider>,
-    );
-    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
-
-    const clock = nowEngineClock();
-    const utcInstant = nowUtcInstant();
-    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
-      library: exerciseLibrary,
-      families: familyLibrary,
-      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
-      clock,
-      rng: createRng(seedFromString('summary-band-seed')),
-      utcInstant,
-    });
-    const sessionId = sessionsRepo.createPendingSession(db, {
-      plan,
-      utcInstant,
-      localDate: clock.today,
-      tzId: clock.tzId,
-      comebackTier,
-      recoveryWeekManual,
-    });
-    sessionsRepo.startSession(db, sessionId, utcInstant);
-
-    // A banded entry whose sets were NOT all trained with the same band — set 1 on B1, the rest
-    // moved up to B3, which is exactly the case one band per exercise would misreport.
-    const started = sessionsRepo.getSession(db, sessionId)!;
-    const banded = started.entries.find(
-      (e) => e.entryStatus !== 'removed_at_approval' && e.band != null && e.sets >= 2,
-    )!;
-    for (let i = 0; i < banded.sets; i += 1) {
-      sessionsRepo.logSet(
-        db,
-        {
-          entryId: banded.id,
-          setIndex: i,
-          status: 'completed',
-          repsPrescribed: banded.repTarget ?? undefined,
-          secondsPrescribed: banded.durationSec ?? undefined,
-          repsActual: banded.repTarget ?? undefined,
-          secondsActual: banded.durationSec ?? undefined,
-          bandActual: i === 0 ? 'B1' : 'B3',
-          restPrescribedSec: banded.restSec,
-        },
-        utcInstant,
-      );
-    }
-    // Log every other entry in full too — SummaryScreen only shows FINISH once the front edge is
-    // gone, and this test is about per-set band text, not partial-completion behavior.
-    for (const e of started.entries.filter((x) => x.entryStatus !== 'removed_at_approval')) {
-      if (e.id === banded.id) continue;
-      for (let i = 0; i < e.sets; i += 1) {
-        sessionsRepo.logSet(
-          db,
-          {
-            entryId: e.id,
-            setIndex: i,
-            status: 'completed',
-            repsPrescribed: e.repTarget ?? undefined,
-            secondsPrescribed: e.durationSec ?? undefined,
-            repsActual: e.repTarget ?? undefined,
-            secondsActual: e.durationSec ?? undefined,
-            restPrescribedSec: e.restSec,
-          },
-          utcInstant,
-        );
-      }
-    }
-
-    render(
-      <StoreProvider>
-        <NavigationContainer>
-          <SummaryScreen
-            navigation={mockNavigation() as never}
-            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
-          />
-        </NavigationContainer>
-      </StoreProvider>,
-    );
-
-    await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
-    const tensions = usersRepo.ensureUser(db, utcInstant).bandTensions;
-    // Whatever the user calls those bands is what the line says.
-    expect(screen.getByText(new RegExp(`Set 1:.*${tensions.B1.label}`))).toBeTruthy();
-    expect(screen.getByText(new RegExp(`Set 2:.*${tensions.B3.label}`))).toBeTruthy();
   });
 
   it('offers a way back to the still-active workout before FINISH, gone once FINISH is tapped', async () => {

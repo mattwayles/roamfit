@@ -35,7 +35,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { completeSession, milestonesRepo, sessionsRepo, usersRepo } from '@roamfit/store';
+import { completeSession, milestonesRepo, sessionsRepo } from '@roamfit/store';
 import type { CompleteSessionResult } from '@roamfit/store';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
@@ -47,43 +47,34 @@ import ConfettiBurst from '../components/ConfettiBurst';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Summary'>;
 
-function statusIcon(status: string): string {
+/** A set's status, whether it has a real log row or not — a set nobody has reached yet reads the
+ *  same as a `not_reached` log would (that status exists in the schema but nothing currently
+ *  writes it; absence of a row is how "not reached" actually shows up). */
+type SquareStatus = 'completed' | 'skipped' | 'not_reached';
+
+function squareStatus(log: sessionsRepo.SetLogRecord | undefined): SquareStatus {
+  return log?.status ?? 'not_reached';
+}
+
+/** The emoji each set square shows under its "Set N" label — a neutral glyph for every status,
+ *  never a warning (invariant 4: a skipped set is a choice, and a not-yet-reached one hasn't
+ *  happened yet, neither is a problem to flag). */
+function statusEmoji(status: SquareStatus): string {
   if (status === 'completed') return '✅';
-  // A neutral "skip" glyph, not a warning — invariant 4: a skipped set is a choice, not a
-  // problem the icon should read as flagging.
   if (status === 'skipped') return '⏭';
-  return '·';
+  return '⬜';
 }
 
 /**
- * What a set line says it was. A skipped set used to render as its icon plus "— sec", which reads
- * like a set that happened and recorded nothing; it says "Skipped" now, because that is a
- * different fact about the day and the summary is where the user checks what they actually did.
- * Plain and unloaded, not a reprimand (invariant 4) — a skipped set is a choice, not a failure.
+ * The set square's fill, and how much darker it gets when the square is also the "you are here"
+ * override — reusing the app's own palette (the same green/blue/slate tokens Home already uses)
+ * rather than inventing a parallel one for this screen.
  */
-function setResultText(log: sessionsRepo.SetLogRecord): string {
-  if (log.status === 'skipped') return 'Skipped';
-  if (log.status === 'not_reached') return 'Not reached';
-  const actual = log.repsActual ?? log.secondsActual ?? null;
-  if (actual === null) return '—';
-  return `${actual} ${log.repsActual != null ? 'reps' : 'sec'}`;
-}
-
-/**
- * The band that set was actually trained with, in the user's own words for it.
- *
- * Per-set rather than per-exercise on purpose: `bandActual` is recorded on every set log, and a
- * user who moves up a band partway through an exercise did two different amounts of work. The
- * summary is where they check what they actually did, so collapsing that to one band per exercise
- * would report a set nobody performed. Blank for bodyweight work and for a set that never ran.
- */
-function setBandText(
-  log: sessionsRepo.SetLogRecord,
-  tensions: Record<string, usersRepo.BandTension>,
-): string {
-  if (log.status !== 'completed' || !log.bandActual) return '';
-  return ` · ${tensions[log.bandActual]?.label ?? log.bandActual}`;
-}
+const SQUARE_COLORS: Record<SquareStatus, { bg: string; bgCurrent: string; text: string }> = {
+  completed: { bg: '#16a34a', bgCurrent: '#166534', text: '#ffffff' },
+  skipped: { bg: '#dbeafe', bgCurrent: '#1d4ed8', text: '#1e3a8a' },
+  not_reached: { bg: '#e2e8f0', bgCurrent: '#64748b', text: '#334155' },
+};
 
 /** How many set lines to render for an entry: `entry.sets` normally, but never fewer than
  *  whatever is actually logged — a real set log always gets a line, even one logged past the
@@ -126,8 +117,6 @@ function ordinal(n: number): string {
 export default function SummaryScreen({ navigation, route }: Props): React.JSX.Element {
   const { sessionId } = route.params;
   const { db, library, families } = useStore();
-  // The user's own names for their bands, so a set line reads "Red" rather than "B2".
-  const bandTensions = usersRepo.ensureUser(db, nowUtcInstant()).bandTensions;
   const [session, setSession] = useState<sessionsRepo.SessionRecord | null>(null);
   const [retrospective, setRetrospective] = useState('');
   const [result, setResult] = useState<CompleteSessionResult | null>(null);
@@ -334,51 +323,77 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
             <Text style={styles.entryName}>
               {library.exercises.find((e) => e.id === entry.exerciseId)?.name ?? entry.exerciseId}
             </Text>
-            {/* Every set in the plan gets a line, not just the ones with a log — a set nobody
-                has reached yet used to have no line at all, which made it impossible to jump
-                ahead to it from here. `jumpToSet` already accepted any setIndex < entry.sets
-                (WorkoutScreen's jumpTo never restricted itself to sets already reached); the
-                summary just wasn't offering the tap target. An unreached set shows the same
-                empty-space glyph the icon column uses, not a "not reached" label — this is a
-                blank slot, not a status to report on (invariant 4: nothing here should read as
-                a problem). */}
-            {Array.from({ length: setLineCount(entry) }, (_, setIndex) => {
-              const log = entry.setLogs.find((l) => l.setIndex === setIndex);
-              // §10.8 — the set line *is* the "you are here" marker when the two coincide,
-              // rather than a duplicate bold line underneath repeating the same set number: a
-              // set that was skipped (or otherwise already logged) can still be the current
-              // position, and showing both said the same thing twice. `youAreHere` wins over the
-              // logged result here for exactly the same reason it wins everywhere else — a set
-              // explicitly picked from Summary is an override, regardless of what got recorded
-              // (or of whether anything has been recorded at all yet).
-              const isYouAreHere =
-                !!frontier &&
-                !!youAreHere &&
-                youAreHere.entry.id === entry.id &&
-                youAreHere.setIndex === setIndex;
-              return (
-                <Pressable
-                  key={log?.id ?? `${entry.id}-${setIndex}`}
-                  testID={log ? `summary-set-${log.id}` : `summary-set-${entry.id}-${setIndex}`}
-                  onPress={() => jumpToSet(entry.id, setIndex)}
-                >
-                  {isYouAreHere ? (
-                    <Text style={styles.currentSetLine} testID={`summary-current-${entry.id}`}>
-                      ▶ Set {setIndex + 1} — you are here
+            {/* One square per set in the plan, not just the ones with a log — a set nobody has
+                reached yet used to have no line at all, which made it impossible to jump ahead
+                to it from here. `jumpToSet` already accepted any setIndex < entry.sets
+                (WorkoutScreen's jumpTo never restricted itself to sets already reached); this
+                just wasn't offering the tap target. Styled after the Home screen's calendar
+                heatmap cells (same rounded-square shape, same green/neutral fill logic), scaled
+                up — a set is a much less numerous, much more consequential thing to tap than a
+                calendar day, so it gets a much bigger target. */}
+            <View style={styles.setSquareRow}>
+              {Array.from({ length: setLineCount(entry) }, (_, setIndex) => {
+                const log = entry.setLogs.find((l) => l.setIndex === setIndex);
+                const status = squareStatus(log);
+                const colors = SQUARE_COLORS[status];
+                // §10.8 — the square *is* the "you are here" marker when the two coincide,
+                // rather than a duplicate marker drawn on top of it: a set that was skipped (or
+                // otherwise already logged) can still be the current position. `youAreHere` wins
+                // over the logged status here for exactly the same reason it wins everywhere
+                // else — a set explicitly picked from Summary is an override, regardless of what
+                // got recorded (or of whether anything has been recorded at all yet).
+                const isYouAreHere =
+                  !!frontier &&
+                  !!youAreHere &&
+                  youAreHere.entry.id === entry.id &&
+                  youAreHere.setIndex === setIndex;
+                const textColor = isYouAreHere ? '#ffffff' : colors.text;
+                return (
+                  <Pressable
+                    key={log?.id ?? `${entry.id}-${setIndex}`}
+                    testID={log ? `summary-set-${log.id}` : `summary-set-${entry.id}-${setIndex}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      isYouAreHere
+                        ? `Set ${setIndex + 1} — you are here`
+                        : `Set ${setIndex + 1} — ${status.replace('_', ' ')}`
+                    }
+                    onPress={() => jumpToSet(entry.id, setIndex)}
+                    style={[
+                      styles.setSquare,
+                      { backgroundColor: isYouAreHere ? colors.bgCurrent : colors.bg },
+                      isYouAreHere && styles.setSquareCurrent,
+                    ]}
+                  >
+                    <Text style={[styles.setSquareLabel, { color: textColor }]}>
+                      Set {setIndex + 1}
                     </Text>
-                  ) : log ? (
-                    <Text style={styles.setLine}>
-                      {statusIcon(log.status)} Set {setIndex + 1}: {setResultText(log)}
-                      {setBandText(log, bandTensions)}
-                      {entry.difficultyFeedback ? ` · ${entry.difficultyFeedback}` : ''}
-                      {entry.enjoymentFeedback ? ` · ${entry.enjoymentFeedback}/5` : ''}
-                    </Text>
-                  ) : (
-                    <Text style={styles.setLine}>⬜ Set {setIndex + 1}</Text>
-                  )}
-                </Pressable>
-              );
-            })}
+                    <Text style={styles.setSquareEmoji}>{statusEmoji(status)}</Text>
+                    {isYouAreHere && (
+                      <Text
+                        style={styles.setSquareCurrentLabel}
+                        testID={`summary-current-${entry.id}`}
+                      >
+                        You are here
+                      </Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+            {/* Entry-level, not per-set (`difficultyFeedback`/`enjoymentFeedback` are recorded
+                once for the whole exercise, at the rest page — see `recordEntryFeedback`), so it
+                is shown once here rather than repeated on every square. */}
+            {(entry.difficultyFeedback || entry.enjoymentFeedback) && (
+              <Text style={styles.entryFeedback}>
+                {[
+                  entry.difficultyFeedback,
+                  entry.enjoymentFeedback ? `${entry.enjoymentFeedback}/5` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+            )}
           </View>
         ))}
 
@@ -445,10 +460,35 @@ const styles = StyleSheet.create({
   centered: { flex: 1 },
   container: { padding: 20, gap: 12 },
   heading: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
-  entryBlock: { gap: 2 },
+  entryBlock: { gap: 6 },
   entryName: { fontSize: 15, fontWeight: '600', color: '#0f172a' },
-  setLine: { fontSize: 13, color: '#475569' },
-  currentSetLine: { fontSize: 13, fontWeight: '800', color: '#0f172a' },
+  // Sized well past the Home screen's calendar-heatmap cells (§14.1.6's ~40px flex cells) — a
+  // set square is a much rarer, much more deliberate tap than a calendar day, so it earns a much
+  // bigger target and a much bigger label. Same shape language otherwise: rounded square,
+  // color-coded fill, centered content.
+  setSquareRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  setSquare: {
+    width: 76,
+    height: 76,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+  },
+  // The "you are here" override: a bold, dark border on top of whatever the status fill already
+  // darkened to, so the eye lands on it before it reads any of the labels — distinguishing it
+  // from every other square has to work at a glance, not just on close reading.
+  setSquareCurrent: { borderWidth: 3, borderColor: '#0f172a' },
+  setSquareLabel: { fontSize: 13, fontWeight: '700' },
+  setSquareEmoji: { fontSize: 22, marginTop: 2 },
+  setSquareCurrentLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  entryFeedback: { fontSize: 13, color: '#475569' },
   sectionLabel: { fontSize: 13, fontWeight: '700', color: '#64748b', marginTop: 12 },
   retrospectiveInput: {
     backgroundColor: '#f1f5f9',
