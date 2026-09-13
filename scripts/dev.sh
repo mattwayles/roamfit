@@ -15,10 +15,25 @@
 #   ./scripts/dev.sh --prebuild      regenerate app/ios from app.json first
 #
 # Flags combine, e.g.  ./scripts/dev.sh --build --clear
+#
+# Spotify (SPOTIFY_CLIENT_ID, EXPO_PUBLIC_SPOTIFY_TOKEN_SWAP_URL,
+# EXPO_PUBLIC_SPOTIFY_TOKEN_REFRESH_URL — see docs/SPOTIFY-SETUP.md) is picked up from the
+# environment or from a gitignored .env.local at the repo root, so a --build/--prebuild bakes
+# them into every dev-client build instead of only the one where you happened to `export` them
+# by hand.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_DIR="$REPO_ROOT/app"
+
+# --- load local env (Spotify config lives here, never in a tracked file) ----
+
+if [[ -f "$REPO_ROOT/.env.local" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$REPO_ROOT/.env.local"
+  set +a
+fi
 
 HOST_MODE="lan"
 DO_BUILD=0
@@ -54,6 +69,30 @@ command -v node >/dev/null || die "node not found."
 if (( DO_BUILD )); then
   command -v xcodebuild >/dev/null || die "Xcode command line tools not found."
   [[ -d "$APP_DIR/ios/Pods" ]] || log "Pods not installed yet — expo run:ios will run pod install."
+fi
+
+# --- Spotify config check -----------------------------------------------------
+#
+# SPOTIFY_CLIENT_ID is read by app/app.config.js at prebuild time (native config plugin, ends up
+# in Info.plist); the two EXPO_PUBLIC_ vars are inlined into the JS bundle by Metro at build time.
+# Both only take effect on a --prebuild/--build, which is why this lives here and not at the top
+# of the script. Unset is a supported, quiet no-op (app.config.js falls back to plain app.json and
+# the workout screen renders no Spotify UI at all) — so this warns rather than `die`s. A build
+# with SOME but not all three set is the broken state that produces "Spotify sign-in isn't
+# finished setting up on this build" on device, so that combination gets called out specifically.
+if (( DO_BUILD || DO_PREBUILD )); then
+  spotify_vars_set=0
+  [[ -n "${SPOTIFY_CLIENT_ID:-}" ]] && (( spotify_vars_set++ )) || true
+  [[ -n "${EXPO_PUBLIC_SPOTIFY_TOKEN_SWAP_URL:-}" ]] && (( spotify_vars_set++ )) || true
+  [[ -n "${EXPO_PUBLIC_SPOTIFY_TOKEN_REFRESH_URL:-}" ]] && (( spotify_vars_set++ )) || true
+
+  if (( spotify_vars_set == 3 )); then
+    log "Spotify config present — this build will include the token-swap URLs."
+  elif (( spotify_vars_set == 0 )); then
+    log "No Spotify config found — building without Spotify (see docs/SPOTIFY-SETUP.md)."
+  else
+    die "Spotify env is partially set (SPOTIFY_CLIENT_ID, EXPO_PUBLIC_SPOTIFY_TOKEN_SWAP_URL, EXPO_PUBLIC_SPOTIFY_TOKEN_REFRESH_URL must be set together or not at all — see docs/SPOTIFY-SETUP.md). A build like this connects to Spotify but fails auth with 'no token swap server'."
+  fi
 fi
 
 # --- optional prebuild -------------------------------------------------------
