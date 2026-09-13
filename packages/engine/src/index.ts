@@ -46,7 +46,11 @@ export type { ProgressionEvent, ApplySessionResult } from './progression/rules';
 export type { SessionPerformance } from './progression/rules.types';
 export { assessComeback, applyComebackToProgressionStates } from './progression/comeback';
 export type { ComebackAssessment, ComebackTier } from './progression/comeback';
-export { COMEBACK_VOLUME_MULTIPLIER, COMEBACK_WEEK_GAP_DAYS } from './progression/constants';
+export {
+  COMEBACK_VOLUME_MULTIPLIER,
+  COMEBACK_WEEK_GAP_DAYS,
+  CALIBRATION_SESSIONS,
+} from './progression/constants';
 // Cold-start (§6.5): the store needs these to seed a brand-new user's progression_state rows
 // before any generation has ever run — the engine's own pipeline only ever *reads* an existing
 // ProgressionState, it never fabricates the first one.

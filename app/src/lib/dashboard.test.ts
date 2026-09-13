@@ -38,7 +38,7 @@ function seedAllFamilies(): Record<ProgressionFamilyId, ProgressionState> {
 }
 
 describe('§14.2 zero-session dashboard — buildProgressionBoard at starting levels', () => {
-  it('shows every family at its calibration start level, none mastered, all with a next unlock', () => {
+  it('shows every family at its calibration start level, none mastered, all calibrating', () => {
     const states = seedAllFamilies();
     const board = buildProgressionBoard(exerciseLibrary, familyLibrary, states);
 
@@ -50,7 +50,42 @@ describe('§14.2 zero-session dashboard — buildProgressionBoard at starting le
       expect(entry.exerciseName.length).toBeGreaterThan(0);
       expect(entry.sessionsToNextLevel).not.toBeNull();
       expect(entry.sessionsToNextLevel as number).toBeGreaterThan(0);
+      // §6.5 — also calibrating, with its own session-by-session counter that starts at zero
+      // (shown alongside the ladder countdown above, not instead of it — see `isCalibrating`).
+      expect(entry.isCalibrating).toBe(true);
+      expect(entry.calibrationSessionsDone).toBe(0);
+      expect(entry.calibrationSessionsTotal).toBeGreaterThan(0);
     }
+  });
+
+  it('a family past calibration reports no calibration progress at all', () => {
+    const states = seedAllFamilies();
+    const family = familyLibrary.families[0];
+    states[family.id] = { ...states[family.id], calibrating: false };
+    const board = buildProgressionBoard(exerciseLibrary, familyLibrary, states);
+    const entry = board.find((e) => e.familyId === family.id)!;
+
+    expect(entry.isCalibrating).toBe(false);
+    expect(entry.calibrationSessionsDone).toBeNull();
+    expect(entry.calibrationSessionsTotal).toBeNull();
+    expect(entry.sessionsToNextLevel).not.toBeNull();
+    expect(entry.sessionsInLevel).not.toBeNull();
+  });
+
+  it('calibrationSessionsDone advances by exactly one qualifying-but-held session at a time, capped at the total', () => {
+    const states = seedAllFamilies();
+    const family = familyLibrary.families[0];
+    states[family.id] = { ...states[family.id], consecutiveHits: 2, consecutiveMisses: 0 };
+    const board = buildProgressionBoard(exerciseLibrary, familyLibrary, states);
+    const entry = board.find((e) => e.familyId === family.id)!;
+    expect(entry.calibrationSessionsDone).toBe(2);
+
+    // Never reports more than the total even if the counters (which also track ordinary
+    // miss-streaks once calibration ends) happen to exceed it.
+    states[family.id] = { ...states[family.id], consecutiveHits: 99, consecutiveMisses: 0 };
+    const overBoard = buildProgressionBoard(exerciseLibrary, familyLibrary, states);
+    const overEntry = overBoard.find((e) => e.familyId === family.id)!;
+    expect(overEntry.calibrationSessionsDone).toBe(overEntry.calibrationSessionsTotal);
   });
 
   it('a family with no progression_state row is simply omitted, not shown with fabricated data', () => {

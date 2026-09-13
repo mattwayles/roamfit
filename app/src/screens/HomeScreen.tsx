@@ -609,6 +609,21 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
               <View style={styles.boardIdentity}>
                 <Text style={styles.boardFamilyName}>{entry.familyName}</Text>
                 <Text style={styles.boardExerciseName}>{entry.exerciseName}</Text>
+                {/* §6.5 — a held ("just right") session during calibration doesn't move the
+                    ladder countdown to the right at all (`applyCalibrationStep` only reacts to
+                    "too easy" or a miss), so a family here can otherwise look like a completed
+                    session did nothing. This line moves by exactly one on every completed
+                    session regardless of outcome, alongside the (still real, still accurate)
+                    ladder countdown rather than replacing it. */}
+                {entry.isCalibrating && (
+                  <Text
+                    style={styles.boardCalibratingLine}
+                    testID={`board-calibrating-${entry.familyId}`}
+                  >
+                    Calibrating — session {entry.calibrationSessionsDone} of{' '}
+                    {entry.calibrationSessionsTotal}
+                  </Text>
+                )}
               </View>
 
               <View style={styles.boardStatus}>
@@ -927,6 +942,7 @@ const styles = StyleSheet.create({
   },
   masteryBadgeText: { fontSize: 11, fontWeight: '700', color: '#713f12' },
   boardExerciseName: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
+  boardCalibratingLine: { fontSize: 12, color: '#64748b', marginTop: 2 },
   boardUnlockLine: { fontSize: 12, color: '#64748b' },
   boardLevelUpButton: {
     marginTop: 8,
