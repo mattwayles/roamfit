@@ -4,7 +4,7 @@
  * local component state, keyed remounts of the sub-view per set so each gets a fresh wall-clock
  * controller (see `useCountdown`/`wallClockTimer.ts`).
  *
- * Every mutation is a `@roamfit/store` call — `logSet`, `recordEntryFeedback`, `setPinnedNote`.
+ * Every mutation is a `@roamfit/store` call — `logSet`, `recordSetFeedback`, `setPinnedNote`.
  * Nothing here computes a prescription or decides an exercise; §10.4's hierarchy rule (hero =
  * name + "Set N of M" + the rep/hold target, nothing else at that size; body focus/pattern/
  * difficulty never shown) is honored by simply not reading those fields into the hero view. The
@@ -873,13 +873,15 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     null;
 
   /**
-   * One write path for both feedback pages. On the rest page the answer is about the one exercise
-   * just performed; on a stage page it is about the whole warm-up or cool-down, and goes to every
-   * entry in it (see `recordSectionFeedback` for why that is stored per entry rather than as a new
-   * stage-level column).
+   * One write path for both feedback pages. On a stage page the answer is about the whole warm-up
+   * or cool-down, and goes to every entry in it (see `recordSectionFeedback` for why that is
+   * stored per entry rather than as a new stage-level column). On the rest page it is about the
+   * one *set* just performed, not the exercise as a whole — a `main` exercise's sets can feel
+   * different from each other (a band bumped up, fatigue by set 3), so `recordSetFeedback` scopes
+   * the answer to `restingSetIndex`, not the entire entry (migration 0017).
    *
    * `null` here means "the user just cleared it", which is different from omitting the key — see
-   * `recordEntryFeedback`'s contract.
+   * `recordEntryFeedback`'s contract (shared by `recordSetFeedback`).
    */
   const recordFeedback = (feedback: {
     difficulty?: Difficulty | null;
@@ -889,7 +891,13 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       recordStageAnswer(feedback);
       return;
     }
-    sessionsRepo.recordEntryFeedback(db, restingEntryId ?? entry.id, feedback, nowUtcInstant());
+    sessionsRepo.recordSetFeedback(
+      db,
+      restingEntryId ?? entry.id,
+      restingSetIndex ?? setIndex,
+      feedback,
+      nowUtcInstant(),
+    );
   };
 
   const handleDifficultyChange = (d: Difficulty | undefined) => {

@@ -64,6 +64,10 @@ export interface SetLogRecord {
   restExtendedCount: number;
   pauseCount: number;
   pausedDurationSec: number;
+  /** §8.1 — a `main` exercise's feedback for this one set (migration 0017). Null until answered;
+   *  a `warmup`/`cooldown` set never carries this — see `recordSectionFeedback`. */
+  difficultyFeedback: 'too_easy' | 'just_right' | 'too_hard' | null;
+  enjoymentFeedback: number | null;
 }
 
 export interface SessionEntryRecord {
@@ -157,6 +161,8 @@ function rowToSetLog(row: typeof schema.setLogs.$inferSelect): SetLogRecord {
     restExtendedCount: row.restExtendedCount,
     pauseCount: row.pauseCount,
     pausedDurationSec: row.pausedDurationSec,
+    difficultyFeedback: row.difficultyFeedback,
+    enjoymentFeedback: row.enjoymentFeedback,
   };
 }
 
@@ -1067,6 +1073,56 @@ export function recordEntryFeedback(
   }
   if (Object.keys(values).length > 0) {
     db.update(schema.sessionEntries).set(values).where(eq(schema.sessionEntries.id, entryId)).run();
+  }
+}
+
+/**
+ * §8.1 feedback for one set of a `main` exercise (migration 0017) — same three-state contract as
+ * `recordEntryFeedback` (omitted = untouched, explicit `null` = cleared), but scoped to a single
+ * (entryId, setIndex) row rather than the whole entry: a `main` exercise's sets can genuinely feel
+ * different from one another, so lumping them into one shared answer would silently overwrite an
+ * earlier set's opinion with a later one's. No-ops if the set hasn't actually been logged yet —
+ * there is no row here to attach feedback to before that.
+ */
+export function recordSetFeedback(
+  db: Db,
+  entryId: string,
+  setIndex: number,
+  feedback: {
+    difficulty?: 'too_easy' | 'just_right' | 'too_hard' | null;
+    enjoyment?: number | null;
+  },
+  now: string,
+): void {
+  const entry = db
+    .select()
+    .from(schema.sessionEntries)
+    .where(eq(schema.sessionEntries.id, entryId))
+    .all()[0];
+  const log = db
+    .select()
+    .from(schema.setLogs)
+    .where(and(eq(schema.setLogs.entryId, entryId), eq(schema.setLogs.setIndex, setIndex)))
+    .all()[0];
+  if (!entry || !log) return;
+  const values: Record<string, unknown> = {};
+  if (feedback.difficulty !== undefined) {
+    values.difficultyFeedback = feedback.difficulty;
+    if (feedback.difficulty !== null) {
+      recordDifficultyFeedback(db, entry.exerciseId, feedback.difficulty, now);
+    }
+  }
+  if (feedback.enjoyment !== undefined) {
+    values.enjoymentFeedback = feedback.enjoyment;
+    if (feedback.enjoyment !== null) {
+      recordEnjoymentFeedback(db, entry.exerciseId, feedback.enjoyment, now);
+    }
+  }
+  if (Object.keys(values).length > 0) {
+    db.update(schema.setLogs)
+      .set(values)
+      .where(and(eq(schema.setLogs.entryId, entryId), eq(schema.setLogs.setIndex, setIndex)))
+      .run();
   }
 }
 

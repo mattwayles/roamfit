@@ -19,6 +19,7 @@ import {
   recordDemoMediaExpanded,
   recordEntryFeedback,
   recordRegenerateTap,
+  recordSetFeedback,
   startSession,
 } from './repositories/sessions';
 import { consecutiveRegenerateTapCount, getSignalEventsByType } from './repositories/signals';
@@ -307,6 +308,61 @@ describe('§8.1 recordEntryFeedback — three-state omit/set/clear (found via ap
       recordEntryFeedback(db, entryId, { enjoyment: null }, utcInstantFor('2026-03-01'));
       entry = getSession(db, sessionId)!.entries.find((e) => e.id === entryId)!;
       expect(entry.enjoymentFeedback).toBeNull();
+    } finally {
+      close();
+    }
+  });
+});
+
+describe('§8.1 recordSetFeedback — same three-state contract, scoped to one set (migration 0017)', () => {
+  it('an explicit null clears a previously-set value on that set; omitting the key leaves it untouched; a sibling set is never touched', () => {
+    const { db, close } = createTestDb();
+    try {
+      const sessionId = makeSession(db);
+      const entry = getPendingSession(db)!.entries.find((e) => e.section === 'main')!;
+      const now = utcInstantFor('2026-03-01');
+      logSet(
+        db,
+        { entryId: entry.id, setIndex: 0, status: 'completed', restPrescribedSec: entry.restSec },
+        now,
+      );
+      logSet(
+        db,
+        { entryId: entry.id, setIndex: 1, status: 'completed', restPrescribedSec: entry.restSec },
+        now,
+      );
+
+      recordSetFeedback(db, entry.id, 0, { difficulty: 'too_easy', enjoyment: 4 }, now);
+      const setLog = (i: number) =>
+        getSession(db, sessionId)!
+          .entries.find((e) => e.id === entry.id)!
+          .setLogs.find((s) => s.setIndex === i)!;
+      expect(setLog(0).difficultyFeedback).toBe('too_easy');
+      expect(setLog(0).enjoymentFeedback).toBe(4);
+      // The sibling set (set 1) is untouched — this is the whole point of moving feedback here.
+      expect(setLog(1).difficultyFeedback).toBeNull();
+      expect(setLog(1).enjoymentFeedback).toBeNull();
+
+      // Omitting `enjoyment` entirely must not touch it while clearing `difficulty`.
+      recordSetFeedback(db, entry.id, 0, { difficulty: null }, now);
+      expect(setLog(0).difficultyFeedback).toBeNull(); // "tap the same value again clears it"
+      expect(setLog(0).enjoymentFeedback).toBe(4); // untouched
+
+      recordSetFeedback(db, entry.id, 0, { enjoyment: null }, now);
+      expect(setLog(0).enjoymentFeedback).toBeNull();
+    } finally {
+      close();
+    }
+  });
+
+  it('is a no-op when the set has not been logged yet — there is no row to attach feedback to', () => {
+    const { db, close } = createTestDb();
+    try {
+      const sessionId = makeSession(db);
+      const entry = getPendingSession(db)!.entries.find((e) => e.section === 'main')!;
+      recordSetFeedback(db, entry.id, 0, { difficulty: 'too_hard' }, utcInstantFor('2026-03-01'));
+      const setLogs = getSession(db, sessionId)!.entries.find((e) => e.id === entry.id)!.setLogs;
+      expect(setLogs.find((s) => s.setIndex === 0)).toBeUndefined();
     } finally {
       close();
     }

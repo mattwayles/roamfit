@@ -15,7 +15,12 @@ import {
   shouldSuppressForRepeatedSkip,
   SUPPRESSION_DAYS,
 } from '@roamfit/engine';
-import type { BandId, ProgressionEvent, SessionPerformance } from '@roamfit/engine';
+import type {
+  BandId,
+  DifficultyFeedback,
+  ProgressionEvent,
+  SessionPerformance,
+} from '@roamfit/engine';
 import type { Db } from './db';
 import { schema } from './db';
 import { eq } from 'drizzle-orm';
@@ -62,6 +67,19 @@ interface WorkingSetSummary {
    *  the most of them, heaviest winning a tie (the harder claim is the safer one to carry
    *  forward). Null when no set reported a band. */
   observedBand: BandId | null;
+  /** The worst-case answer across the entry's sets (migration 0017 moved feedback from the entry
+   *  to each set) — `too_hard` if any set said so, else `too_easy` if any did, else `just_right`.
+   *  §6.3's calibration/regression rules only ever see one verdict per entry, and erring toward
+   *  the more cautious answer when sets disagreed is the safer read of "how did this one go". */
+  difficultyFeedback: DifficultyFeedback;
+}
+
+/** See `WorkingSetSummary.difficultyFeedback` — `too_hard` beats `too_easy` beats `just_right`,
+ *  a set with no feedback at all (`null`) never overrides one that has an opinion. */
+function worstDifficulty(feedbacks: (DifficultyFeedback | null)[]): DifficultyFeedback {
+  if (feedbacks.includes('too_hard')) return 'too_hard';
+  if (feedbacks.includes('too_easy')) return 'too_easy';
+  return 'just_right';
 }
 
 /** Per-band tally over an entry's completed sets, resolved as documented on `observedBand`. */
@@ -117,6 +135,7 @@ function summarizeEntry(entry: SessionEntryRecord): WorkingSetSummary {
     bestActual,
     bestBand,
     observedBand: dominantBand(completed.map((s) => s.bandActual)),
+    difficultyFeedback: worstDifficulty(entry.setLogs.map((s) => s.difficultyFeedback)),
   };
 }
 
@@ -249,7 +268,10 @@ export function completeSession(
         familyId: familyId as SessionPerformance['familyId'],
         allSetsMetTarget: summaries.every((s) => s.allAtOrAboveTarget),
         anySetBelowTarget: summaries.some((s) => s.anyBelowTarget),
-        difficultyFeedback: entries[0].difficultyFeedback ?? 'just_right',
+        // Migration 0017 — a `main` entry's feedback is per-set now, so this is the worst-case
+        // answer across every entry's every set (`summarizeEntry`/`worstDifficulty`), not
+        // `entries[0]`'s own (now-unused for `main`) column.
+        difficultyFeedback: worstDifficulty(summaries.map((s) => s.difficultyFeedback)),
         // What the user actually trained with, so the next prescription starts from the band in
         // their hand rather than the one they overrode (see `reconcileMicroToObservedBand`).
         // Undefined — not null — when nothing was reported: null is a meaningful "bodyweight" in

@@ -91,29 +91,35 @@ function setLineCount(entry: sessionsRepo.SessionEntryRecord): number {
   return Math.max(entry.sets, maxLogged);
 }
 
-const DIFFICULTY_LABEL: Record<Difficulty, string> = {
-  too_easy: 'Too easy',
-  just_right: 'Just right',
-  too_hard: 'Too hard',
+/** Emoji, not text, for the on-square chip — the square has room for a glyph, not a label. */
+const DIFFICULTY_EMOJI: Record<Difficulty, string> = {
+  too_easy: '😌',
+  just_right: '👍',
+  too_hard: '🥵',
 };
 
 /** Same set the rest screen's `FeedbackControls` offers, indexed the same way (1-5), so a chip
  *  reads as the very same answer the user gave there. */
 const ENJOYMENT_EMOJI = ['😩', '😞', '😕', '🙂', '😄'];
 
-/** §8.1 feedback belongs to one exercise for `main`, but to the whole stage for `warmup`/
- *  `cooldown` (`recordSectionFeedback` writes the same answer to every entry in it) — so editing
- *  it from any one entry's chip has to go through the write that keeps the rest of the stage in
- *  sync, not just that entry's own row. */
+/**
+ * §8.1 feedback: per SET for a `main` exercise (migration 0017) — a set can genuinely feel
+ * different from its siblings (a band bumped up, fatigue by set 3), so a `main` answer is scoped
+ * to one (entryId, setIndex) row in `set_logs`. `warmup`/`cooldown` feedback is still one shared
+ * answer for the whole stage (`recordSectionFeedback` writes it to every entry in it, judged as
+ * one block) — `setIndex: null` is that case, and it is always what a non-`main` entry's chip
+ * passes.
+ */
 function editFeedback(
   db: ReturnType<typeof useStore>['db'],
   sessionId: string,
   entry: sessionsRepo.SessionEntryRecord,
+  setIndex: number | null,
   feedback: { difficulty?: Difficulty | null; enjoyment?: number | null },
   now: string,
 ): void {
-  if (entry.section === 'main') {
-    sessionsRepo.recordEntryFeedback(db, entry.id, feedback, now);
+  if (setIndex !== null) {
+    sessionsRepo.recordSetFeedback(db, entry.id, setIndex, feedback, now);
   } else {
     sessionsRepo.recordSectionFeedback(db, sessionId, entry.section as Section, feedback, now);
   }
@@ -159,11 +165,13 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   const [finished, setFinished] = useState(false);
   const [celebrationIndex, setCelebrationIndex] = useState(0);
   const [workoutCount, setWorkoutCount] = useState(0);
-  // Which entry's feedback is open for editing, or null when the popup is closed. Reused across
-  // both feedback shapes (an entry-specific `main` answer, or a stage-wide `warmup`/`cooldown`
-  // one) — `editFeedback` is what tells the two apart, this just remembers which entry's chip was
-  // tapped, which is enough either way (see `editFeedback`'s comment).
-  const [editingFeedbackEntryId, setEditingFeedbackEntryId] = useState<string | null>(null);
+  // Which feedback is open for editing, or null when the popup is closed. `setIndex` is null for
+  // a `warmup`/`cooldown` chip (the whole-stage answer); a `main` chip always names the one set
+  // it came from — see `editFeedback`.
+  const [editingFeedback, setEditingFeedback] = useState<{
+    entryId: string;
+    setIndex: number | null;
+  } | null>(null);
   const bannerScale = useRef(new Animated.Value(0)).current;
 
   const reload = useCallback(() => {
@@ -256,21 +264,48 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     navigation.replace('Workout', { sessionId, jumpTo: { entryId, setIndex } });
   };
 
-  /** The entry the feedback popup is open for, and the value it should show — read fresh off
-   *  `session` on every render rather than snapshotted at the moment the chip was tapped, so an
-   *  edit is reflected immediately without closing and reopening the popup. */
-  const editingFeedbackEntry = editingFeedbackEntryId
-    ? session.entries.find((e) => e.id === editingFeedbackEntryId)
+  /** The entry (and, for a `main` chip, the specific set) the feedback popup is open for, and the
+   *  value it should show — read fresh off `session` on every render rather than snapshotted at
+   *  the moment the chip was tapped, so an edit is reflected immediately without closing and
+   *  reopening the popup. */
+  const editingFeedbackEntry = editingFeedback
+    ? session.entries.find((e) => e.id === editingFeedback.entryId)
     : null;
+  const editingFeedbackLog =
+    editingFeedbackEntry && editingFeedback && editingFeedback.setIndex !== null
+      ? editingFeedbackEntry.setLogs.find((l) => l.setIndex === editingFeedback.setIndex)
+      : null;
+  const editingFeedbackDifficulty =
+    editingFeedback?.setIndex !== null
+      ? (editingFeedbackLog?.difficultyFeedback ?? null)
+      : (editingFeedbackEntry?.difficultyFeedback ?? null);
+  const editingFeedbackEnjoyment =
+    editingFeedback?.setIndex !== null
+      ? (editingFeedbackLog?.enjoymentFeedback ?? null)
+      : (editingFeedbackEntry?.enjoymentFeedback ?? null);
 
   const handleEditDifficultyChange = (d: Difficulty | undefined) => {
-    if (!editingFeedbackEntry) return;
-    editFeedback(db, sessionId, editingFeedbackEntry, { difficulty: d ?? null }, nowUtcInstant());
+    if (!editingFeedback || !editingFeedbackEntry) return;
+    editFeedback(
+      db,
+      sessionId,
+      editingFeedbackEntry,
+      editingFeedback.setIndex,
+      { difficulty: d ?? null },
+      nowUtcInstant(),
+    );
     reload();
   };
   const handleEditEnjoymentChange = (e: number | undefined) => {
-    if (!editingFeedbackEntry) return;
-    editFeedback(db, sessionId, editingFeedbackEntry, { enjoyment: e ?? null }, nowUtcInstant());
+    if (!editingFeedback || !editingFeedbackEntry) return;
+    editFeedback(
+      db,
+      sessionId,
+      editingFeedbackEntry,
+      editingFeedback.setIndex,
+      { enjoyment: e ?? null },
+      nowUtcInstant(),
+    );
     reload();
   };
 
@@ -389,7 +424,16 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                 just wasn't offering the tap target. Styled after the Home screen's calendar
                 heatmap cells (same rounded-square shape, same green/neutral fill logic), scaled
                 up — a set is a much less numerous, much more consequential thing to tap than a
-                calendar day, so it gets a much bigger target. */}
+                calendar day, and (for `main`) now also carries its own feedback chips, so it needs
+                the extra room.
+                A `main` set's feedback lives on its own set_logs row (migration 0017 — sets of
+                the same exercise can genuinely feel different), so its chip renders *inside* the
+                square, scoped to exactly that set; tapping it opens the editor for that one set
+                rather than the square's own jump-to-this-set press — nested Pressables each with
+                their own `onPress` (the chip's, not just the square's), so a tap on the chip is
+                the chip's alone. A `warmup`/`cooldown` set never carries this — that feedback is
+                still one shared answer for the whole stage, rendered once below all the squares
+                instead. */}
               <View style={styles.setSquareRow}>
                 {Array.from({ length: setLineCount(entry) }, (_, setIndex) => {
                   const log = entry.setLogs.find((l) => l.setIndex === setIndex);
@@ -436,44 +480,75 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                           You are here
                         </Text>
                       )}
+                      {/* A `main` set's own feedback — nested inside the square's own Pressable
+                          rather than a sibling, since a chip has to win over the square's own
+                          jump-to-this-set press when tapped: each chip carries its own `onPress`,
+                          which the touch responder gives priority to over the square underneath
+                          it. */}
+                      {log && (log.difficultyFeedback || log.enjoymentFeedback) && (
+                        <View style={styles.setSquareFeedbackRow}>
+                          {log.difficultyFeedback && (
+                            <Pressable
+                              testID={`summary-feedback-difficulty-${log.id}`}
+                              hitSlop={4}
+                              onPress={() => setEditingFeedback({ entryId: entry.id, setIndex })}
+                            >
+                              <Text style={styles.setSquareFeedbackEmoji}>
+                                {DIFFICULTY_EMOJI[log.difficultyFeedback]}
+                              </Text>
+                            </Pressable>
+                          )}
+                          {log.enjoymentFeedback && (
+                            <Pressable
+                              testID={`summary-feedback-enjoyment-${log.id}`}
+                              hitSlop={4}
+                              onPress={() => setEditingFeedback({ entryId: entry.id, setIndex })}
+                            >
+                              <Text style={styles.setSquareFeedbackEmoji}>
+                                {ENJOYMENT_EMOJI[log.enjoymentFeedback - 1]}
+                              </Text>
+                            </Pressable>
+                          )}
+                        </View>
+                      )}
                     </Pressable>
                   );
                 })}
               </View>
-              {/* Entry-level, not per-set (`difficultyFeedback`/`enjoymentFeedback` are recorded
-                once for the whole exercise, at the rest page — or once per stage for warm-up/
-                cool-down, see `recordSectionFeedback` — never per set), so it is shown once here
-                rather than repeated on every square. Editable from here at any point before
-                FINISH — a chip only appears once there is an answer to edit; pressing it reopens
-                the exact same controls the rest/stage page offered, pre-filled with what is
-                already recorded, so changing your mind about how a set (or the whole warm-up or
-                cool-down) went doesn't require walking back through the workout to do it. */}
-              {(entry.difficultyFeedback || entry.enjoymentFeedback) && (
-                <View style={styles.feedbackChipRow}>
-                  {entry.difficultyFeedback && (
-                    <Pressable
-                      testID={`summary-feedback-difficulty-${entry.id}`}
-                      style={styles.feedbackChip}
-                      onPress={() => setEditingFeedbackEntryId(entry.id)}
-                    >
-                      <Text style={styles.feedbackChipText}>
-                        {DIFFICULTY_LABEL[entry.difficultyFeedback]}
-                      </Text>
-                    </Pressable>
-                  )}
-                  {entry.enjoymentFeedback && (
-                    <Pressable
-                      testID={`summary-feedback-enjoyment-${entry.id}`}
-                      style={styles.feedbackChip}
-                      onPress={() => setEditingFeedbackEntryId(entry.id)}
-                    >
-                      <Text style={styles.feedbackChipText}>
-                        {ENJOYMENT_EMOJI[entry.enjoymentFeedback - 1]}
-                      </Text>
-                    </Pressable>
-                  )}
-                </View>
-              )}
+              {/* Warm-up/cool-down only: one shared answer for the whole stage
+                (`recordSectionFeedback`), so it is shown once here rather than on every square —
+                a `main` entry's feedback is per-set instead (rendered inside each square above)
+                and never reaches this block, since `entry.difficultyFeedback`/`enjoymentFeedback`
+                are only ever written for `warmup`/`cooldown` now. Editable from here at any point
+                before FINISH: pressing the chip reopens the exact controls the stage page offered,
+                pre-filled with what is already recorded. */}
+              {entry.section !== 'main' &&
+                (entry.difficultyFeedback || entry.enjoymentFeedback) && (
+                  <View style={styles.feedbackChipRow}>
+                    {entry.difficultyFeedback && (
+                      <Pressable
+                        testID={`summary-feedback-difficulty-${entry.id}`}
+                        style={styles.feedbackChip}
+                        onPress={() => setEditingFeedback({ entryId: entry.id, setIndex: null })}
+                      >
+                        <Text style={styles.feedbackChipText}>
+                          {DIFFICULTY_EMOJI[entry.difficultyFeedback]}
+                        </Text>
+                      </Pressable>
+                    )}
+                    {entry.enjoymentFeedback && (
+                      <Pressable
+                        testID={`summary-feedback-enjoyment-${entry.id}`}
+                        style={styles.feedbackChip}
+                        onPress={() => setEditingFeedback({ entryId: entry.id, setIndex: null })}
+                      >
+                        <Text style={styles.feedbackChipText}>
+                          {ENJOYMENT_EMOJI[entry.enjoymentFeedback - 1]}
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
+                )}
             </View>
           ))}
 
@@ -542,23 +617,25 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
         visible={editingFeedbackEntry !== null}
         transparent
         animationType="fade"
-        onRequestClose={() => setEditingFeedbackEntryId(null)}
+        onRequestClose={() => setEditingFeedback(null)}
       >
-        <Pressable style={styles.feedbackBackdrop} onPress={() => setEditingFeedbackEntryId(null)}>
+        <Pressable style={styles.feedbackBackdrop} onPress={() => setEditingFeedback(null)}>
           <Pressable style={styles.feedbackDialog} onPress={() => {}}>
             {editingFeedbackEntry && (
               <>
                 <Text style={styles.feedbackDialogTitle}>
-                  {editingFeedbackEntry.section === 'main'
-                    ? (library.exercises.find((e) => e.id === editingFeedbackEntry.exerciseId)
-                        ?.name ?? editingFeedbackEntry.exerciseId)
+                  {editingFeedback?.setIndex !== null
+                    ? `${
+                        library.exercises.find((e) => e.id === editingFeedbackEntry.exerciseId)
+                          ?.name ?? editingFeedbackEntry.exerciseId
+                      } — Set ${(editingFeedback?.setIndex ?? 0) + 1}`
                     : editingFeedbackEntry.section === 'warmup'
                       ? 'Warm-up'
                       : 'Cool-down'}
                 </Text>
                 <FeedbackControls
-                  difficulty={editingFeedbackEntry.difficultyFeedback}
-                  enjoyment={editingFeedbackEntry.enjoymentFeedback}
+                  difficulty={editingFeedbackDifficulty}
+                  enjoyment={editingFeedbackEnjoyment}
                   onDifficultyChange={handleEditDifficultyChange}
                   onEnjoymentChange={handleEditEnjoymentChange}
                 />
@@ -567,7 +644,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
             <Pressable
               testID="feedback-edit-done"
               style={styles.feedbackDialogDone}
-              onPress={() => setEditingFeedbackEntryId(null)}
+              onPress={() => setEditingFeedback(null)}
             >
               <Text style={styles.feedbackDialogDoneText}>Done</Text>
             </Pressable>
@@ -585,14 +662,15 @@ const styles = StyleSheet.create({
   entryBlock: { gap: 6 },
   entryName: { fontSize: 15, fontWeight: '600', color: '#0f172a' },
   // Sized well past the Home screen's calendar-heatmap cells (§14.1.6's ~40px flex cells) — a
-  // set square is a much rarer, much more deliberate tap than a calendar day, so it earns a much
-  // bigger target and a much bigger label. Same shape language otherwise: rounded square,
-  // color-coded fill, centered content.
+  // set square is a much rarer, much more deliberate tap than a calendar day, and (for `main`)
+  // now also has to fit its own feedback chips, so it earns a bigger target still than the plain
+  // label+emoji version did. Same shape language otherwise: rounded square, color-coded fill,
+  // centered content.
   setSquareRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   setSquare: {
-    width: 76,
-    height: 76,
-    borderRadius: 16,
+    width: 92,
+    height: 92,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 4,
@@ -610,6 +688,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'center',
   },
+  // A `main` set's own feedback, inside the square — emoji only (§8.1: room for a glyph, not a
+  // label), so it costs the square almost nothing extra.
+  setSquareFeedbackRow: { flexDirection: 'row', gap: 4, marginTop: 2 },
+  setSquareFeedbackEmoji: { fontSize: 14 },
   feedbackChipRow: { flexDirection: 'row', gap: 8 },
   feedbackChip: {
     backgroundColor: '#e2e8f0',

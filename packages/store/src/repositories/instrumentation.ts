@@ -360,8 +360,22 @@ export interface FeedbackCaptureSnapshot {
 export function computeExplicitFeedbackCaptureRate(db: Db): FeedbackCaptureSnapshot {
   const entries = db.select().from(schema.sessionEntries).all();
   const relevant = entries.filter((e) => e.entryStatus !== 'removed_at_approval');
+  // Migration 0017 — a `warmup`/`cooldown` entry's feedback still lives on the entry row itself;
+  // a `main` entry's moved to its set_logs (any set with an answer counts the whole entry as
+  // captured, same "did this exercise get an opinion at all" question the rate is asking).
+  const entryIdsWithSetFeedback = new Set(
+    db
+      .select()
+      .from(schema.setLogs)
+      .all()
+      .filter((s) => s.difficultyFeedback !== null || s.enjoymentFeedback !== null)
+      .map((s) => s.entryId),
+  );
   const withFeedback = relevant.filter(
-    (e) => e.difficultyFeedback !== null || e.enjoymentFeedback !== null,
+    (e) =>
+      e.difficultyFeedback !== null ||
+      e.enjoymentFeedback !== null ||
+      entryIdsWithSetFeedback.has(e.id),
   );
   return {
     totalEntries: relevant.length,

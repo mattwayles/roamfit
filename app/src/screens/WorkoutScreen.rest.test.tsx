@@ -3,7 +3,7 @@
  * internal RestPhase/FeedbackControls components in isolation, since they aren't exported —
  * this exercises the actual wiring: completing a set really does auto-start the rest timer with
  * the prescribed duration, +15s/-15s/Skip really do call the wall-clock controller, and the
- * feedback controls really do call `recordEntryFeedback` and reflect "tap the same value again
+ * feedback controls really do call `recordSetFeedback` and reflect "tap the same value again
  * clears it."
  *
  * Entries before the first rep-based main entry are logged directly via `sessionsRepo.logSet`
@@ -150,37 +150,33 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
     // (Back down — not asserting an exact value since real wall-clock ms pass between reads;
     // just that it moved, proving the buttons are wired to the controller.)
 
-    // Feedback controls — unset semantics: tap sets it, tap again clears it.
+    // Feedback controls — unset semantics: tap sets it, tap again clears it. Scoped to the one
+    // set just completed (setIndex 0 of `firstRepsEntry`), not the entry as a whole (migration
+    // 0017 — a `main` exercise's feedback is per-set).
+    const setLog0 = () =>
+      sessionsRepo
+        .getSession(db, sessionId)!
+        .entries.find((e) => e.id === firstRepsEntry!.id)!
+        .setLogs.find((s) => s.setIndex === 0)!;
+
     await fireEvent.press(screen.getByTestId('difficulty-too_easy'));
     await waitFor(() => {
       // "selected" styling isn't queryable directly, but the underlying store call is what
       // actually matters — read it back.
-      const entry = sessionsRepo
-        .getSession(db, sessionId)!
-        .entries.find((e) => e.id === firstRepsEntry!.id)!;
-      expect(entry.difficultyFeedback).toBe('too_easy');
+      expect(setLog0().difficultyFeedback).toBe('too_easy');
     }, WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('difficulty-too_easy'));
     await waitFor(() => {
-      const entry = sessionsRepo
-        .getSession(db, sessionId)!
-        .entries.find((e) => e.id === firstRepsEntry!.id)!;
-      expect(entry.difficultyFeedback).toBeNull();
+      expect(setLog0().difficultyFeedback).toBeNull();
     }, WAIT_OPTS);
 
     await fireEvent.press(screen.getByTestId('enjoyment-4'));
     await waitFor(() => {
-      const entry = sessionsRepo
-        .getSession(db, sessionId)!
-        .entries.find((e) => e.id === firstRepsEntry!.id)!;
-      expect(entry.enjoymentFeedback).toBe(4);
+      expect(setLog0().enjoymentFeedback).toBe(4);
     }, WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('enjoyment-4'));
     await waitFor(() => {
-      const entry = sessionsRepo
-        .getSession(db, sessionId)!
-        .entries.find((e) => e.id === firstRepsEntry!.id)!;
-      expect(entry.enjoymentFeedback).toBeNull();
+      expect(setLog0().enjoymentFeedback).toBeNull();
     }, WAIT_OPTS);
 
     // Skip zeroes the remaining time and advances on Next.

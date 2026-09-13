@@ -305,8 +305,11 @@ export const sessionEntries = sqliteTable(
     })
       .notNull()
       .default('planned'),
-    /** §8.1 explicit feedback — per exercise, applies to every set. Unset difficulty means
-     *  just_right; unset enjoyment means neutral 3 (both nullable here, resolved at read time). */
+    /** §8.1 explicit feedback for a `warmup`/`cooldown` entry — one shared answer per stage,
+     *  written identically to every entry in it (`recordSectionFeedback`). A `main` entry's
+     *  feedback is per-set instead (migration 0017 moved it to `set_logs`) and these two columns
+     *  are unused for it. Unset difficulty means just_right; unset enjoyment means neutral 3
+     *  (both nullable here, resolved at read time). */
     difficultyFeedback: text('difficulty_feedback', {
       enum: ['too_easy', 'just_right', 'too_hard'],
     }),
@@ -348,6 +351,15 @@ export const setLogs = sqliteTable(
     restExtendedCount: integer('rest_extended_count').notNull().default(0),
     pauseCount: integer('pause_count').notNull().default(0),
     pausedDurationSec: integer('paused_duration_sec').notNull().default(0),
+    /** §8.1 explicit feedback (migration 0017) — per SET for a `main` exercise: "how did *this*
+     *  set feel" can genuinely differ set to set (band bumped up, fatigue by set 3, ...), so a
+     *  main entry's feedback lives here, not on `session_entries`. Warm-up/cool-down feedback is
+     *  still one shared answer per stage and still lives on `session_entries` (`recordSectionFeedback`)
+     *  — a stage is judged as a block, not set by set, so it was never a fit for this column. */
+    difficultyFeedback: text('difficulty_feedback', {
+      enum: ['too_easy', 'just_right', 'too_hard'],
+    }),
+    enjoymentFeedback: integer('enjoyment_feedback'),
     createdAt: text('created_at').notNull(),
   },
   (t) => [
