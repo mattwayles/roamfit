@@ -110,6 +110,32 @@ describe('completion — best-set PR and milestones', () => {
     }
   });
 
+  it('nth_session.n matches countCompletedSessions on the same session — not one higher', () => {
+    // Regression for a real off-by-one: `recordSessionCompletion` (called just before this
+    // milestone is written) already increments `lifetimeSessionCount` to include *this* session,
+    // so reading it back and adding another +1 double-counted. The completion screen's banner
+    // ("your Nth workout") reads `countCompletedSessions`, and the quiet milestone list reads this
+    // payload — the two must agree.
+    const { db, close } = createTestDb();
+    try {
+      const first = runSession(db, '2026-04-01', 1, 1);
+      const firstMilestone = getAllMilestones(db).find(
+        (m) => m.type === 'nth_session' && m.sessionId === first.sessionId,
+      );
+      expect(firstMilestone?.payload.n).toBe(1);
+      expect(firstMilestone?.payload.n).toBe(countCompletedSessions(db));
+
+      const second = runSession(db, '2026-04-03', 2, 1);
+      const secondMilestone = getAllMilestones(db).find(
+        (m) => m.type === 'nth_session' && m.sessionId === second.sessionId,
+      );
+      expect(secondMilestone?.payload.n).toBe(2);
+      expect(secondMilestone?.payload.n).toBe(countCompletedSessions(db));
+    } finally {
+      close();
+    }
+  });
+
   it('opt-in healthkit/passport queues are only enqueued when the user has enabled them', () => {
     const { db, close } = createTestDb();
     try {

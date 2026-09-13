@@ -316,13 +316,18 @@ export function completeSession(
       now,
     );
 
+    // `recordSessionCompletion` just above already incremented `lifetimeSessionCount` to include
+    // *this* session — reading it back here and adding another +1 double-counted, so the quiet
+    // "Session #N" milestone read one higher than the completion banner's own
+    // `countCompletedSessions(db)` on the same screen. `stats.lifetimeSessionCount` is already
+    // the right N.
     const stats = getStats(txDb);
     milestoneTypes.push('nth_session');
     addMilestone(
       txDb,
       {
         type: 'nth_session',
-        payload: { n: (stats?.lifetimeSessionCount ?? 0) + 1 },
+        payload: { n: stats?.lifetimeSessionCount ?? 1 },
         sessionId: session.id,
         localDate: session.localDate,
       },
