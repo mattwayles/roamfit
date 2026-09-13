@@ -50,6 +50,11 @@ export function fitMainEntries(
   warmupSec: number,
   cooldownSec: number,
   rng?: Rng,
+  /** Track 14 — the exercise-count-sanity range to check `chosen.length` against, when it isn't
+   *  the general `mainExerciseCountRange(targetMinutes)` (a cardio session reads
+   *  `cardioMainExerciseCountRange` instead — see `pipeline.ts`). Optional so every pre-existing
+   *  caller keeps reading the general table exactly as before. */
+  countRange?: readonly [number, number],
 ): FitResult {
   // Use the *actual* prescribed warmup/cooldown time to size the main budget, not
   // `mainBudgetSec`'s clamp-formula estimate of what they'd typically take. The two normally
@@ -160,7 +165,7 @@ export function fitMainEntries(
   }
 
   const estimatedMinutes = Math.round((warmupSec + cooldownSec + total) / 60);
-  const [minCount, maxCount] = mainExerciseCountRange(targetMinutes);
+  const [minCount, maxCount] = countRange ?? mainExerciseCountRange(targetMinutes);
   const withinExerciseCountSanity = chosen.length >= minCount && chosen.length <= maxCount;
   const withinTenPercent =
     estimatedMinutes >= targetMinutes * 0.9 && estimatedMinutes <= targetMinutes * 1.1;

@@ -353,4 +353,43 @@ describe('§10.6 swap — cardio', () => {
     expect(result.durationSec).toBe(45);
     expect(result.restSec).toBe(15);
   });
+
+  // Track 14 gear gating — a jump-rope exercise must never be offered as a swap alternative
+  // unless the user has ticked the anchor, and must be offered once they have.
+  it('excludes a jump-rope alternative when the anchor is unavailable, offers it when available', () => {
+    const jumpRope = ex({
+      id: 'jump-rope-alt',
+      pattern: 'conditioning',
+      equipment: 'bodyweight',
+      anchor: 'jump-rope',
+      anchor_class: 'none',
+      metric: 'time',
+      default_seconds: 30,
+    });
+    const libraryWithRope = [cardioOriginal, jumpRope];
+
+    const without = alternativesForSlot({
+      library: libraryWithRope,
+      entry: cardioEntry,
+      anchorsAvailable: [], // no 'jump-rope'
+      limitations: [],
+      disabledExerciseIds: [],
+      today: '2026-08-31',
+      history: [],
+      exerciseStates: {},
+    });
+    expect(without.some((a) => a.exercise.id === 'jump-rope-alt')).toBe(false);
+
+    const withRope = alternativesForSlot({
+      library: libraryWithRope,
+      entry: cardioEntry,
+      anchorsAvailable: ['jump-rope'],
+      limitations: [],
+      disabledExerciseIds: [],
+      today: '2026-08-31',
+      history: [],
+      exerciseStates: {},
+    });
+    expect(withRope.some((a) => a.exercise.id === 'jump-rope-alt')).toBe(true);
+  });
 });

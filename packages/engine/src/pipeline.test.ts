@@ -1,11 +1,11 @@
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import type { ProgressionFamilyId } from '@roamfit/data';
+import type { Exercise, ExerciseLibrary, ProgressionFamilyId } from '@roamfit/data';
 import { generateSession, generateQuickSession } from './pipeline';
 import { createRng } from './rng';
 import { calibrationStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
 import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
-import type { ProgressionState, UserState } from './types';
+import type { ProgressionState, SessionHistoryRecord, UserState } from './types';
 
 const library = exerciseLibrary.exercises;
 const families = familyLibrary.families;
@@ -323,5 +323,257 @@ describe('generateSession — pipeline wiring', () => {
     });
     const elapsed = performance.now() - start;
     expect(elapsed).toBeLessThan(50);
+  });
+
+  // Track 14 — the full-body finisher slot is dropped for good (user decision). A hard/45min
+  // session used to be exactly the case that added one; confirm no slot or entry ever appears.
+  it('a hard, 45min full session has no finisher slot or entry', () => {
+    const plan = generateSession({
+      library: exerciseLibrary,
+      families: familyLibrary,
+      userState: coldStartUserState({ hasEverCompletedSession: true }),
+      request: { focus: 'full', difficulty: 'hard', targetMinutes: 45 },
+      clock: { today: TODAY, tzId: 'UTC' },
+      rng: createRng(3),
+    });
+    expect(plan.main.some((e) => e.notes === 'AMRAP')).toBe(false);
+    // 5 required full-body slots max out at 8 (§5.6's [7,8] range for 45min) — 3 appended
+    // accessory slots at most, none of them a finisher (there is no such slot type left to add).
+    expect(plan.main.length).toBeLessThanOrEqual(8);
+  });
+});
+
+/**
+ * Track 14 — the real library has only 10 conditioning exercises today (increment 4 adds ~30
+ * more). That's thin enough that a 60+ minute cardio session, or two back-to-back ones, can
+ * legitimately run out of eligible content — which is a real (temporary) library limitation, not
+ * something these tests should be tuned around. A synthetic ~40-exercise fixture pool exercises
+ * the *pipeline's* cardio time-fit and recency logic on their own terms, independent of today's
+ * thin real pool. `cardioMainExerciseCountRange`'s numbers were tuned against this fixture, not
+ * the real 10.
+ *
+ * Built by replacing the real library's conditioning records with synthetic ones and keeping
+ * everything else (warmup/cooldown drills, stretches, every strength exercise) — this exercises
+ * real hard-filter/warmup/cooldown/progression-state behavior around a merely-bigger cardio pool,
+ * rather than a library that only knows about cardio.
+ */
+function buildCardioFixtureLibrary(count = 40): ExerciseLibrary {
+  const nonCardio = exerciseLibrary.exercises.filter((e) => e.pattern !== 'conditioning');
+  const muscles = [
+    'quads',
+    'calves',
+    'hip_flexors',
+    'glutes',
+    'abs',
+    'hamstrings',
+    'chest',
+    'lats',
+  ];
+  const difficulties = ['easy', 'medium', 'hard'] as const;
+  const synthetic: Exercise[] = Array.from({ length: count }, (_, i) => {
+    const isBand = i % 4 === 0;
+    const equipment = isBand ? 'band' : 'bodyweight';
+    return {
+      id: `fixture-cardio-${i}`,
+      name: `Fixture Cardio ${i}`,
+      aliases: [],
+      focus: ['cardio'],
+      pattern: 'conditioning',
+      primary: [muscles[i % muscles.length]],
+      secondary: [],
+      equipment,
+      band: isBand ? 'B1-B2' : null,
+      anchor: isBand ? 'anchor-low' : 'none',
+      anchor_alt: null,
+      anchor_class: isBand ? 'band_tension' : 'none',
+      unilateral: false,
+      metric: 'time',
+      default_seconds: 30,
+      tier: 'fill',
+      roles: ['main'],
+      difficulty: difficulties[i % 3],
+      progression_family: null,
+      progression_level_id: null,
+      // Every 5th fixture is impact-heavy, matching the real library's jump/hop-style records.
+      contraindications: i % 5 === 0 ? ['knee_impact'] : [],
+      setup: 'Fixture cardio movement for engine tests.',
+      video_search: 'https://example.com',
+    };
+  });
+  // One jump-rope-anchored record — gear-gated (Track 14): must never appear unless the user has
+  // ticked the anchor. anchor_class 'none' (nothing to bear or tension against), equipment
+  // 'bodyweight' — matches the plan's real jump-rope records.
+  const jumpRope: Exercise = {
+    id: 'fixture-jump-rope',
+    name: 'Fixture Jump Rope',
+    aliases: [],
+    focus: ['cardio'],
+    pattern: 'conditioning',
+    primary: ['calves'],
+    secondary: [],
+    equipment: 'bodyweight',
+    band: null,
+    anchor: 'jump-rope',
+    anchor_alt: null,
+    anchor_class: 'none',
+    unilateral: false,
+    metric: 'time',
+    default_seconds: 30,
+    tier: 'fill',
+    roles: ['main'],
+    difficulty: 'medium',
+    progression_family: null,
+    progression_level_id: null,
+    contraindications: ['knee_impact', 'ankle'],
+    setup: 'Fixture jump-rope movement for engine tests.',
+    video_search: 'https://example.com',
+  };
+  return { exercises: [...nonCardio, ...synthetic, jumpRope] };
+}
+
+describe('Track 14 — cardio focus, ~40-exercise fixture library', () => {
+  const fixtureLibrary = buildCardioFixtureLibrary();
+
+  function cardioUserState(overrides: Partial<UserState> = {}): UserState {
+    return coldStartUserState({
+      profile: {
+        units: 'lb',
+        weeklyTarget: 3,
+        limitations: [],
+        anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+        disabledExerciseIds: [],
+      },
+      hasEverCompletedSession: true,
+      ...overrides,
+    });
+  }
+
+  // §5.6: "add or drop until within ±10% of target," with `timeBudgetDeviation` as the only
+  // legitimate (and always-named) escape hatch — same requirement the general property sweep
+  // checks, exercised here specifically at the lengths the plan calls out.
+  it.each([15, 30, 60, 120])(
+    'cardio at %imin lands within ±10%% or reports a deviation',
+    (minutes) => {
+      const plan = generateSession({
+        library: fixtureLibrary,
+        families: familyLibrary,
+        userState: cardioUserState(),
+        request: { focus: 'cardio', difficulty: 'medium', targetMinutes: minutes },
+        clock: { today: TODAY, tzId: 'UTC' },
+        rng: createRng(minutes),
+      });
+      expect(plan.main.length).toBeGreaterThan(0);
+      expect(plan.main.every((e) => e.pattern === 'conditioning')).toBe(true);
+      if (plan.timeBudgetDeviation) {
+        expect(plan.timeBudgetDeviation.direction).toBe('under');
+        expect(plan.explanation).toMatch(/min/);
+      } else {
+        expect(plan.estimatedMinutes).toBeGreaterThanOrEqual(plan.targetMinutes * 0.9);
+        expect(plan.estimatedMinutes).toBeLessThanOrEqual(plan.targetMinutes * 1.1);
+      }
+    },
+  );
+
+  // Recency (BLOCKED, 2 sessions) is the main risk of running out of content on a thin pool —
+  // this proves the fixture pool (and the pipeline's fallback levers) still fill under the
+  // hardest simultaneous stack: two prior cardio sessions just used a chunk of it, plus
+  // bodyweight-only, plus a knee_impact limitation, plus easy (the narrowest difficulty tier).
+  it('back-to-back cardio sessions still fill under bodyweight-only / knee_impact / easy', () => {
+    const priorEntries = (sessionIndex: number) =>
+      Array.from({ length: 4 }, (_, i) => ({
+        exerciseId: `fixture-cardio-${(sessionIndex * 4 + i) % 40}`,
+        role: 'main' as const,
+        difficulty: 'easy' as const,
+      }));
+    const history: SessionHistoryRecord[] = [
+      {
+        localDate: '2026-08-26',
+        focus: 'cardio',
+        difficulty: 'easy',
+        status: 'completed',
+        entries: priorEntries(0),
+      },
+      {
+        localDate: '2026-08-28',
+        focus: 'cardio',
+        difficulty: 'easy',
+        status: 'completed',
+        entries: priorEntries(1),
+      },
+    ];
+    const userState = cardioUserState({
+      history,
+      profile: {
+        units: 'lb',
+        weeklyTarget: 3,
+        limitations: [{ tag: 'knee_impact', createdAt: '2026-01-01', source: 'user' }],
+        anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+        disabledExerciseIds: [],
+      },
+    });
+    const plan = generateSession({
+      library: fixtureLibrary,
+      families: familyLibrary,
+      userState,
+      request: {
+        focus: 'cardio',
+        difficulty: 'easy',
+        targetMinutes: 30,
+        equipmentPreference: 'bodyweight',
+      },
+      clock: { today: TODAY, tzId: 'UTC' },
+      rng: createRng(30),
+    });
+    expect(plan.main.length).toBeGreaterThan(0);
+    for (const e of plan.main) {
+      expect(e.pattern).toBe('conditioning');
+      const ex = fixtureLibrary.exercises.find((x) => x.id === e.exerciseId)!;
+      expect(ex.contraindications).not.toContain('knee_impact');
+      expect(ex.equipment).toBe('bodyweight');
+    }
+    // BLOCKED (2-session cooldown) must actually have been respected, not incidentally avoided.
+    const blockedIds = new Set([...priorEntries(1)].map((e) => e.exerciseId));
+    expect(plan.main.some((e) => blockedIds.has(e.exerciseId))).toBe(false);
+  });
+
+  describe('jump rope gating', () => {
+    it('never appears in any role without the jump-rope anchor, across many seeds', () => {
+      for (let seed = 0; seed < 25; seed++) {
+        const plan = generateSession({
+          library: fixtureLibrary,
+          families: familyLibrary,
+          userState: cardioUserState(), // DEFAULT_ANCHORS_AVAILABLE has no 'jump-rope'
+          request: { focus: 'cardio', difficulty: 'medium', targetMinutes: 60 },
+          clock: { today: TODAY, tzId: 'UTC' },
+          rng: createRng(seed),
+        });
+        const allIds = [...plan.warmup, ...plan.main, ...plan.cooldown].map((e) => e.exerciseId);
+        expect(allIds).not.toContain('fixture-jump-rope');
+      }
+    });
+
+    it('can appear once the jump-rope anchor is available', () => {
+      let seenJumpRope = false;
+      for (let seed = 0; seed < 25 && !seenJumpRope; seed++) {
+        const plan = generateSession({
+          library: fixtureLibrary,
+          families: familyLibrary,
+          userState: cardioUserState({
+            profile: {
+              units: 'lb',
+              weeklyTarget: 3,
+              limitations: [],
+              anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE, 'jump-rope'],
+              disabledExerciseIds: [],
+            },
+          }),
+          request: { focus: 'cardio', difficulty: 'medium', targetMinutes: 60 },
+          clock: { today: TODAY, tzId: 'UTC' },
+          rng: createRng(seed),
+        });
+        if (plan.main.some((e) => e.exerciseId === 'fixture-jump-rope')) seenJumpRope = true;
+      }
+      expect(seenJumpRope).toBe(true);
+    });
   });
 });

@@ -42,6 +42,7 @@ import {
 import { fitMainEntries } from './timefit/fitSession';
 import type { FitResult, SlotEntry } from './timefit/fitSession';
 import {
+  cardioMainExerciseCountRange,
   cooldownMinutes,
   MINIMUM_SUPPORTED_TARGET_MINUTES,
   longSessionSetsMultiplier,
@@ -169,6 +170,16 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       ? poolIgnoringEquipment.filter(isCardioExercise)
       : poolIgnoringEquipment.filter((e) => !isCardioExercise(e));
 
+  // Track 14 — cardio's own exercise-count-sanity range (see `cardioMainExerciseCountRange`'s
+  // doc comment): short timed intervals fit more exercises into the same target length than the
+  // general table's ~5min/exercise strength assumption allows for. Used below both to cap
+  // `expandOptionalSlots`' extra supply and to size `fitMainEntries`' own sanity check, so the
+  // two agree on what "enough exercises for this length" means for a cardio session.
+  const mainExerciseCount =
+    focus === 'cardio'
+      ? cardioMainExerciseCountRange(targetMinutes)
+      : mainExerciseCountRange(targetMinutes);
+
   // §5.1 step 2 — template. Non-quick sessions get extra optional accessory slots appended (up
   // to §5.6's exercise-count-sanity max for this target) so time fit (step 6) has enough supply
   // to actually FILL a long budget rather than stopping once the static slot list runs out —
@@ -193,7 +204,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     : expandOptionalSlots(
         baseTemplate,
         focus,
-        mainExerciseCountRange(targetMinutes)[1],
+        mainExerciseCount[1],
         accessoryRotationOffset(userState.history, focus),
       );
 
@@ -464,7 +475,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
             estimatedMinutes >= targetMinutes * 0.9 && estimatedMinutes <= targetMinutes * 1.1,
         };
       })()
-    : fitMainEntries(slotEntries, targetMinutes, warmupSec, cooldownSec, rng);
+    : fitMainEntries(slotEntries, targetMinutes, warmupSec, cooldownSec, rng, mainExerciseCount);
 
   // `withinTenPercent` is §5.6's actual requirement, not a decoration — read it. If the session
   // still falls outside ±10% after the corrective sets-trim above and every optional slot the

@@ -126,4 +126,17 @@ describe('golden: generateSession output is pinned', () => {
     });
     expect(plan).toMatchSnapshot();
   });
+
+  // Track 14 — new Cardio focus, against today's real (thin, 10-exercise) library.
+  it('cardio, 30min, normal, seed 6', () => {
+    const plan = generateSession({
+      library: exerciseLibrary,
+      families: familyLibrary,
+      userState: coldStartUserState({ hasEverCompletedSession: true }),
+      request: { focus: 'cardio', difficulty: 'medium', targetMinutes: 30 },
+      clock: { today: TODAY, tzId: 'America/Chicago' },
+      rng: createRng(6),
+    });
+    expect(plan).toMatchSnapshot();
+  });
 });

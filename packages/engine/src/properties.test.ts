@@ -104,7 +104,7 @@ const userStates: [string, () => UserState][] = [
   ],
 ];
 
-const FOCI: Focus[] = ['upper', 'legs', 'abs', 'full'];
+const FOCI: Focus[] = ['upper', 'legs', 'abs', 'full', 'cardio'];
 const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
 const MINUTES = [15, 20, 30, 45, 60];
 const EQUIPMENT: EquipmentPreference[] = ['any', 'band', 'bodyweight'];
@@ -230,6 +230,18 @@ describe('property: invariants hold across the full request sweep', () => {
                   (g) => g.pattern === 'horizontal_pull' || g.pattern === 'vertical_pull',
                 );
                 expect(hasPullGap).toBe(true);
+              }
+
+              // Track 14 — MAIN-pool scoping invariant. `conditioning` is the Cardio focus's own
+              // pattern: no other focus's template ever asks for it, and the pipeline's
+              // belt-and-braces scoping keeps it out of MAIN work even if one someday did.
+              // Conversely, cardio's own template has no other pattern to draw from.
+              if (focus === 'cardio') {
+                if (plan.main.length > 0) {
+                  expect(plan.main.every((e) => e.pattern === 'conditioning')).toBe(true);
+                }
+              } else {
+                expect(plan.main.every((e) => e.pattern !== 'conditioning')).toBe(true);
               }
             });
           }

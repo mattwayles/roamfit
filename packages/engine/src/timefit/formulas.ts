@@ -76,6 +76,29 @@ export function mainExerciseCountRange(targetMinutes: number): [number, number] 
 }
 
 /**
+ * Track 14 — the Cardio focus's own exercise-count sanity range, used in place of
+ * `mainExerciseCountRange` wherever the pipeline reads it for a cardio session (the
+ * `expandOptionalSlots` ceiling, and `fitMainEntries`' own sanity check). A cardio interval
+ * (`CARDIO_INTERVAL_TABLE`: ~60-90s per set including rest, a few sets) runs well under the ~5min
+ * a strength accessory's 3 sets of 8-12 reps plus rest typically takes, so the general table's
+ * tiers would cap a cardio session's main work far short of its time budget — reported, correctly
+ * but needlessly, as `template_exhausted` every time. Higher at every tier, same shape, same
+ * `EXPANSION_HARD_CAP` outer ceiling; `longSessionSetsMultiplier` still supplies the 90-120min
+ * extra on top, same as it does for a strength focus. Tuned against `pipeline.test.ts`'s
+ * 15/30/60/120min fit tests, not derived from a formula — same footing as the general table's own
+ * ADR 0013 tiers.
+ */
+export function cardioMainExerciseCountRange(targetMinutes: number): [number, number] {
+  if (targetMinutes <= 15) return [3, 5];
+  if (targetMinutes <= 20) return [4, 6];
+  if (targetMinutes <= 30) return [6, 8];
+  if (targetMinutes <= 45) return [8, 11];
+  if (targetMinutes <= 60) return [11, 14];
+  if (targetMinutes <= 90) return [12, 18];
+  return [14, 18];
+}
+
+/**
  * ADR 0013 — extra volume per exercise for a long session, multiplied into every entry's set
  * count (the same `setsMultiplier` lever §9.4's comeback cut uses, in the opposite direction).
  *
