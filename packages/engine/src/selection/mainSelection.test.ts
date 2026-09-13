@@ -398,6 +398,99 @@ describe('§5.2 selection rules', () => {
     expect(result.picks.some((p) => p.exercise.id === 'band-pull')).toBe(true);
   });
 
+  // Track 14 — cardio is exempt from the ≥50% band ratio (user decision). Set up a pool where the
+  // natural, per-slot pick is bodyweight for every slot (the band sibling is only SOFT tier, so
+  // `eligibleForSlot`'s own preferred-beats-soft rule already excludes it there) and ONLY the
+  // whole-session aggregate pass — which tolerates a soft-tier swap target — would push the ratio
+  // up. Run the identical setup at a non-cardio focus too, to show the pass really would have
+  // fired: this isn't just "band never gets picked here" by construction.
+  it('cardio is exempt from the >=50% band ratio (a non-cardio focus with the same pool is not)', () => {
+    const slots = [
+      slot('c1', 'conditioning'),
+      slot('c2', 'conditioning'),
+      slot('c3', 'conditioning'),
+    ];
+    const bwA = ex({
+      id: 'bw-a',
+      pattern: 'conditioning',
+      equipment: 'bodyweight',
+      metric: 'time',
+    });
+    const bwB = ex({
+      id: 'bw-b',
+      pattern: 'conditioning',
+      equipment: 'bodyweight',
+      metric: 'time',
+    });
+    const bwC = ex({
+      id: 'bw-c',
+      pattern: 'conditioning',
+      equipment: 'bodyweight',
+      metric: 'time',
+    });
+    const bandA = ex({ id: 'band-a', pattern: 'conditioning', equipment: 'band', metric: 'time' });
+    const bandB = ex({ id: 'band-b', pattern: 'conditioning', equipment: 'band', metric: 'time' });
+    const bandC = ex({ id: 'band-c', pattern: 'conditioning', equipment: 'band', metric: 'time' });
+    const pool = [bwA, bandA, bwB, bandB, bwC, bandC];
+    // Each band-* exercise appears once, 4 sessions back — soft tier (3..5), not preferred, and
+    // not blocked (1..2) either — matching the "SOFT COOLDOWN" fixture shape above.
+    const history: SessionHistoryRecord[] = [
+      {
+        localDate: '2026-08-22',
+        focus: 'cardio',
+        difficulty: 'medium',
+        status: 'completed',
+        entries: [
+          { exerciseId: 'band-a', role: 'main', difficulty: 'medium' },
+          { exerciseId: 'band-b', role: 'main', difficulty: 'medium' },
+          { exerciseId: 'band-c', role: 'main', difficulty: 'medium' },
+        ],
+      },
+      {
+        localDate: '2026-08-24',
+        focus: 'cardio',
+        difficulty: 'medium',
+        status: 'completed',
+        entries: [{ exerciseId: 'filler-1', role: 'main', difficulty: 'medium' }],
+      },
+      {
+        localDate: '2026-08-26',
+        focus: 'cardio',
+        difficulty: 'medium',
+        status: 'completed',
+        entries: [{ exerciseId: 'filler-2', role: 'main', difficulty: 'medium' }],
+      },
+      {
+        localDate: '2026-08-28',
+        focus: 'cardio',
+        difficulty: 'medium',
+        status: 'completed',
+        entries: [{ exerciseId: 'filler-3', role: 'main', difficulty: 'medium' }],
+      },
+    ];
+    const run = (focus: 'cardio' | 'upper') =>
+      selectMain({
+        slots,
+        pool,
+        poolIgnoringEquipment: pool,
+        userState: userState({ history }),
+        today: TODAY,
+        rng: rng(),
+        focus,
+        equipmentPreference: 'any',
+        requestedDifficulty: 'medium',
+      });
+
+    const cardioResult = run('cardio');
+    expect(cardioResult.picks.every((p) => p.exercise.equipment === 'bodyweight')).toBe(true);
+
+    const upperResult = run('upper');
+    const upperBandRatio =
+      upperResult.picks.filter((p) => p.exercise.equipment === 'band').length /
+      upperResult.picks.length;
+    expect(upperBandRatio).toBeGreaterThanOrEqual(0.5);
+  });
+
   it('PATTERN GAP is never silent — states the imbalance plainly when no band exists either', () => {
     const push = ex({ id: 'bw-push-2', pattern: 'horizontal_push', equipment: 'bodyweight' });
     const result = selectMain({

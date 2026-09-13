@@ -134,10 +134,22 @@ function pickBest(candidates: readonly Candidate[], st: ScoreState, rng: Rng): C
 
 export interface SelectMainInput {
   slots: readonly TemplateSlot[];
-  pool: readonly Exercise[]; // already hard-filtered (§5.1 step 1)
+  pool: readonly Exercise[]; // already hard-filtered (§5.1 step 1) — and, for MAIN work, further
+  // scoped to this focus's eligible patterns by the caller (Track 14: conditioning-only for
+  // cardio, conditioning-excluded otherwise). This is the pool candidates are actually drawn from.
   poolIgnoringEquipment: readonly Exercise[]; // hard-filtered on anchor/injury only — for the
   // §5.2 PATTERN GAP band exception, which may need a band exercise even when the caller asked
   // for bodyweight-only.
+  /**
+   * Track 14 — the UNscoped hard-filtered pool, used only for the §5.2 OVER-WORKED/48h-recovery
+   * volume math (`overWorkedMuscles`/`recentHardMuscles` below). Those functions look up *history*
+   * entries by id to find what muscles they trained; a history entry from a different-focus
+   * session (yesterday's legs day, or last week's cardio day) must still resolve even while
+   * `pool` above is narrowed to this session's own focus. Defaults to `pool` so every call site
+   * that predates this scoping — every non-pipeline caller, every existing test — keeps reading
+   * volume off the same pool it always did.
+   */
+  volumePool?: readonly Exercise[];
   userState: UserState;
   today: LocalDate;
   rng: Rng;
@@ -147,15 +159,17 @@ export interface SelectMainInput {
 }
 
 export function selectMain(input: SelectMainInput): MainSelectionResult {
-  const { slots, pool, poolIgnoringEquipment, userState, today, rng, equipmentPreference } = input;
+  const { slots, pool, poolIgnoringEquipment, userState, today, rng, equipmentPreference, focus } =
+    input;
   const { requestedDifficulty } = input;
   const history = userState.history;
   const ctx = { history, exerciseStates: userState.exerciseStates, today };
 
   // OVER-WORKED / recovery are about which muscles the pool can train, not about difficulty, so
-  // they read the full (difficulty-unfiltered) pool.
-  const overWorked = overWorkedMuscles(history, pool, today);
-  const recoveryMuscles = recentHardMuscles(history, pool, today, RECOVERY_WINDOW_DAYS);
+  // they read the full (difficulty-unfiltered), UNscoped pool — see `volumePool`'s doc comment.
+  const volumePool = input.volumePool ?? pool;
+  const overWorked = overWorkedMuscles(history, volumePool, today);
+  const recoveryMuscles = recentHardMuscles(history, volumePool, today, RECOVERY_WINDOW_DAYS);
 
   const difficultyEligiblePool = pool.filter((e) => isDifficultyEligible(e, requestedDifficulty));
   const difficultyEligiblePoolIgnoringEquipment = poolIgnoringEquipment.filter((e) =>
@@ -234,7 +248,13 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
 
   applyNoveltyPass(picks, candidates, usedIds, overWorked, st);
   applyAggregatePass(picks, candidates, usedIds, overWorked, st, 'preferred');
-  applyAggregatePass(picks, candidates, usedIds, overWorked, st, 'band');
+  // Track 14 — cardio is exempt from the ≥50% band ratio (user decision): a cardio session is
+  // reasonably all-bodyweight (jumping jacks, burpees, sprints in place), and forcing half of it
+  // onto a band would fight the format rather than serve variety the way the ratio does for a
+  // strength focus. The PATTERN GAP band exception a few lines above this function is unaffected
+  // either way — it only ever fires for a `horizontal_pull`/`vertical_pull` slot, which a cardio
+  // template never has.
+  if (focus !== 'cardio') applyAggregatePass(picks, candidates, usedIds, overWorked, st, 'band');
 
   return { picks, patternGaps };
 }

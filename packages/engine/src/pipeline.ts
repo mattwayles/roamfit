@@ -15,6 +15,7 @@ import type {
   Pattern,
   ProgressionFamilyId,
 } from '@roamfit/data';
+import { isCardioExercise } from '@roamfit/data';
 import { applyHardFilters } from './filters/hardFilters';
 import {
   buildFocusTemplate,
@@ -145,6 +146,29 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     today: clock.today,
   });
 
+  // Track 14 — MAIN-work pool scoping, belt-and-braces. `focus === 'cardio'` gets conditioning
+  // exercises only; every other focus gets everything EXCEPT conditioning. No template asks a
+  // non-cardio focus for the `conditioning` pattern today (`eligibleForSlot`'s own
+  // `slot.patterns.includes(...)` check already excludes it structurally), so this changes
+  // nothing observable right now — it exists so a future slot type or a bug in a template can't
+  // quietly hand a strength session a burpee, or a cardio session something that isn't cardio,
+  // without an explicit decision here to relax it.
+  //
+  // Deliberately NOT used for the volume math below (`recentHardMuscles`) or for warmup/cooldown
+  // selection, both of which keep the unscoped `pool`/`poolIgnoringEquipment`:
+  //   - Warmup/cooldown: cardio moves may still open a strength day, and a strength stretch may
+  //     close a cardio day (user decision) — narrowing by pattern here would wrongly exclude them.
+  //   - Volume/recovery: `recentHardMuscles` looks up *history* entries by id to find what they
+  //     trained, and a history entry from a different-focus session must still resolve even while
+  //     this session's own main pool is narrowed to this focus's pattern. Scoping the library it
+  //     searches would silently blind it to yesterday's non-cardio (or non-strength) session.
+  const mainPool =
+    focus === 'cardio' ? pool.filter(isCardioExercise) : pool.filter((e) => !isCardioExercise(e));
+  const mainPoolIgnoringEquipment =
+    focus === 'cardio'
+      ? poolIgnoringEquipment.filter(isCardioExercise)
+      : poolIgnoringEquipment.filter((e) => !isCardioExercise(e));
+
   // §5.1 step 2 — template. Non-quick sessions get extra optional accessory slots appended (up
   // to §5.6's exercise-count-sanity max for this target) so time fit (step 6) has enough supply
   // to actually FILL a long budget rather than stopping once the static slot list runs out —
@@ -180,7 +204,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     RECOVERY_WINDOW_DAYS,
   );
 
-  // Split slots: laddered (§6) vs. accessory (§5.2 selectMain) vs. finisher (accessory, tier=fill).
+  // Split slots: laddered (§6) vs. accessory (§5.2 selectMain, cardio's conditioning slots included).
   const ladderSlots: { slot: TemplateSlot; familyId: ProgressionFamilyId }[] = [];
   const accessorySlots: TemplateSlot[] = [];
   for (const slot of template.slots) {
@@ -197,8 +221,9 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     accessorySlots.length > 0
       ? selectMain({
           slots: accessorySlots,
-          pool,
-          poolIgnoringEquipment,
+          pool: mainPool,
+          poolIgnoringEquipment: mainPoolIgnoringEquipment,
+          volumePool: pool, // unscoped — see SelectMainInput.volumePool
           userState,
           today: clock.today,
           rng,
@@ -238,7 +263,10 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       families: families.families,
       library: allExercises,
       progressionStates: userState.progressionStates,
-      hardFilteredPool: pool,
+      // Scoped is fine here (never observably different): no laddered family's levels contain a
+      // `conditioning`-pattern exercise, so excluding/including cardio moves from this membership
+      // check can't change which sibling a ladder slot resolves to, on any focus.
+      hardFilteredPool: mainPool,
       difficulty,
       rng,
       recentExerciseIds,

@@ -261,6 +261,55 @@ describe('generateSession — pipeline wiring', () => {
     }
   });
 
+  // Track 14 — main-pool scoping (belt-and-braces, since no non-cardio template asks for the
+  // `conditioning` pattern anyway; this confirms it structurally, not just by omission).
+  it('never programs a conditioning-pattern exercise into MAIN work for a non-cardio focus', () => {
+    for (const focus of ['upper', 'legs', 'abs', 'full'] as const) {
+      const plan = generateSession({
+        library: exerciseLibrary,
+        families: familyLibrary,
+        userState: coldStartUserState({ hasEverCompletedSession: true }),
+        request: { focus, difficulty: 'medium', targetMinutes: 30 },
+        clock: { today: TODAY, tzId: 'UTC' },
+        rng: createRng(21),
+      });
+      expect(plan.main.every((e) => e.pattern !== 'conditioning')).toBe(true);
+    }
+  });
+
+  it('every cardio MAIN entry is conditioning-pattern', () => {
+    const plan = generateSession({
+      library: exerciseLibrary,
+      families: familyLibrary,
+      userState: coldStartUserState({ hasEverCompletedSession: true }),
+      request: { focus: 'cardio', difficulty: 'medium', targetMinutes: 30 },
+      clock: { today: TODAY, tzId: 'UTC' },
+      rng: createRng(21),
+    });
+    expect(plan.main.length).toBeGreaterThan(0);
+    expect(plan.main.every((e) => e.pattern === 'conditioning')).toBe(true);
+  });
+
+  it('a cardio move may still open a strength session as a warm-up (scoping is MAIN-only)', () => {
+    // bw-jumping-jack carries focus ['cardio', 'full'] with a warmup role (increment 2's tag
+    // audit) specifically so a 'full' session's warm-up pool isn't scoped away from it. Whether
+    // any *one* seed draws it is an RNG matter — sweep several to show the pool genuinely offers
+    // it, rather than pinning one lucky seed.
+    let sawConditioningWarmup = false;
+    for (let seed = 0; seed < 20 && !sawConditioningWarmup; seed++) {
+      const plan = generateSession({
+        library: exerciseLibrary,
+        families: familyLibrary,
+        userState: coldStartUserState({ hasEverCompletedSession: true }),
+        request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+        clock: { today: TODAY, tzId: 'UTC' },
+        rng: createRng(seed),
+      });
+      if (plan.warmup.some((e) => e.pattern === 'conditioning')) sawConditioningWarmup = true;
+    }
+    expect(sawConditioningWarmup).toBe(true);
+  });
+
   it('completes a full 200-exercise generation in well under 50ms', () => {
     const userState = coldStartUserState();
     const start = performance.now();
