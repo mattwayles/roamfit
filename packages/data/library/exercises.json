@@ -6048,7 +6048,11 @@
     {
       "id": "bw-inverted-row",
       "name": "Inverted Row",
-      "aliases": [],
+      "aliases": [
+        "low bar pull-up",
+        "low bar pull up",
+        "low-bar pull-up"
+      ],
       "focus": [
         "upper",
         "full"
@@ -8245,6 +8249,49 @@
       ],
       "setup": "Anchor the band high, hold both ends and pull down to chest height. Hold that position, shoulders down and back. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Lat+Pull+Hold+proper+form+tutorial"
+    },
+    {
+      "id": "banded-inverted-row",
+      "name": "Banded Low-Bar Pull-Up",
+      "aliases": [
+        "banded inverted row",
+        "assisted inverted row",
+        "banded low bar pull up"
+      ],
+      "focus": [
+        "upper",
+        "full"
+      ],
+      "pattern": "horizontal_pull",
+      "primary": [
+        "upper_back"
+      ],
+      "secondary": [
+        "lats",
+        "biceps",
+        "abs"
+      ],
+      "equipment": "band",
+      "band": "B2-B4",
+      "anchor": "low-bar",
+      "anchor_alt": null,
+      "anchor_class": "bodyweight_bearing",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l5",
+      "contraindications": [
+        "elbow",
+        "shoulder_horizontal"
+      ],
+      "setup": "Loop a band over a waist-height bar and let it hang down. Lie underneath as in an Inverted Row with the band looped under your hips or upper back, then pull your chest to the bar — the band takes some of your bodyweight to make the pull easier. Walk your feet out to add difficulty as you progress.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Low-Bar+Pull-Up+proper+form+tutorial"
     }
   ]
 }
