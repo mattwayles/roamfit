@@ -191,6 +191,11 @@ const WARMUP_COOLDOWN_TEMPO_SEC = 2;
  *  `default_seconds` *is* its cool-down dose. */
 const WARMUP_HOLD_CAP_SEC = 45;
 const DEFAULT_HOLD_SEC = 45;
+/** A warm-up/cool-down set now gets its own timed rest, matching main — no more folding
+ *  warm-up/cool-down feedback into one question asked at the end of the stage. Fixed rather than
+ *  drawn from the difficulty table: these sets are always prescribed at a flat `medium`, so there
+ *  is no per-set difficulty to key a variable rest off of. */
+const WARMUP_COOLDOWN_REST_SEC = 30;
 
 /**
  * The band to warm up (or cool down) a band exercise with — never the working band, and never
@@ -223,12 +228,17 @@ export function prescribeWarmupCooldown(
   const band = warmupCooldownBand(exercise);
   const estimatedSec =
     exercise.metric === 'time'
-      ? timedExerciseSec({ sets: 1, durationSec, restSec: 0, unilateral: exercise.unilateral })
+      ? timedExerciseSec({
+          sets: 1,
+          durationSec,
+          restSec: WARMUP_COOLDOWN_REST_SEC,
+          unilateral: exercise.unilateral,
+        })
       : repExerciseSec({
           sets: 1,
           reps: WARMUP_COOLDOWN_REPS,
           tempoSec: WARMUP_COOLDOWN_TEMPO_SEC,
-          restSec: 0,
+          restSec: WARMUP_COOLDOWN_REST_SEC,
           unilateral: exercise.unilateral,
         });
   return {
@@ -238,7 +248,7 @@ export function prescribeWarmupCooldown(
     sets: 1,
     repTarget: exercise.metric === 'time' ? undefined : WARMUP_COOLDOWN_REPS,
     durationSec: exercise.metric === 'time' ? durationSec : undefined,
-    restSec: 0,
+    restSec: WARMUP_COOLDOWN_REST_SEC,
     tempoSec: exercise.metric === 'time' ? 0 : WARMUP_COOLDOWN_TEMPO_SEC,
     difficulty: 'medium',
     progressionFamilyId: null,

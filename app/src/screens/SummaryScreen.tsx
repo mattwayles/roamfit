@@ -107,12 +107,14 @@ const DIFFICULTY_COLORS: Record<Difficulty, { bg: string; text: string }> = {
 };
 
 /**
- * §8.1 feedback: per SET for a `main` exercise (migration 0017) — a set can genuinely feel
- * different from its siblings (a band bumped up, fatigue by set 3), so a `main` answer is scoped
- * to one (entryId, setIndex) row in `set_logs`. `warmup`/`cooldown` feedback is still one shared
- * answer for the whole stage (`recordSectionFeedback` writes it to every entry in it, judged as
- * one block) — `setIndex: null` is that case, and it is always what a non-`main` entry's chip
- * passes.
+ * §8.1 feedback: per SET, for every section (migration 0017 gave `main` this first; warm-up and
+ * cool-down now get it too, on their own rest timer, instead of one shared question asked at the
+ * end of the stage) — a set can genuinely feel different from its siblings (a band bumped up,
+ * fatigue by set 3), so the answer is scoped to one `(entryId, setIndex)` row in `set_logs`.
+ *
+ * `setIndex: null` only ever shows up now when editing a whole-stage answer left over from a
+ * session recorded before this change — `recordSectionFeedback` still exists to let that legacy
+ * chip be edited, but nothing currently active writes a new one.
  */
 function editFeedback(
   db: ReturnType<typeof useStore>['db'],
@@ -412,16 +414,14 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                 just wasn't offering the tap target. Styled after the Home screen's calendar
                 heatmap cells (same rounded-square shape, same green/neutral fill logic), scaled
                 up — a set is a much less numerous, much more consequential thing to tap than a
-                calendar day, and (for `main`) now also carries its own feedback chips, so it needs
-                the extra room.
-                A `main` set's feedback lives on its own set_logs row (migration 0017 — sets of
-                the same exercise can genuinely feel different), so its chip renders *inside* the
+                calendar day, and it now also carries its own feedback chip, so it needs the extra
+                room.
+                Every set's feedback lives on its own set_logs row (migration 0017 — sets of the
+                same exercise can genuinely feel different), so its chip renders *inside* the
                 square, scoped to exactly that set; tapping it opens the editor for that one set
                 rather than the square's own jump-to-this-set press — nested Pressables each with
                 their own `onPress` (the chip's, not just the square's), so a tap on the chip is
-                the chip's alone. A `warmup`/`cooldown` set never carries this — that feedback is
-                still one shared answer for the whole stage, rendered once below all the squares
-                instead. */}
+                the chip's alone. */}
               <View style={styles.setSquareRow}>
                 {Array.from({ length: setLineCount(entry) }, (_, setIndex) => {
                   const log = entry.setLogs.find((l) => l.setIndex === setIndex);
@@ -499,13 +499,11 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                   );
                 })}
               </View>
-              {/* Warm-up/cool-down only: one shared answer for the whole stage
-                (`recordSectionFeedback`), so it is shown once here rather than on every square —
-                a `main` entry's feedback is per-set instead (rendered inside each square above)
-                and never reaches this block, since `entry.difficultyFeedback` is only ever
-                written for `warmup`/`cooldown` now. Editable from here at any point before
-                FINISH: pressing the chip reopens the exact controls the stage page offered,
-                pre-filled with what is already recorded. */}
+              {/* Legacy only: a whole-stage answer (`recordSectionFeedback`) from a session
+                recorded before warm-up/cool-down got their own per-set rest timer and feedback.
+                Nothing writes a new one — every entry's feedback is per-set now (rendered inside
+                each square above) — but a session that already has one still shows and can still
+                be edited here. */}
               {entry.section !== 'main' && entry.difficultyFeedback && (
                 <View style={styles.feedbackChipRow}>
                   <Pressable

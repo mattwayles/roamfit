@@ -92,7 +92,7 @@ describe('§5.4 prescription', () => {
   });
 
   describe('the same exercise, warmed up rather than trained', () => {
-    it("is one set of light reps with no rest — not the difficulty table's working dose", () => {
+    it('is one set of light reps at a flat, fixed rest — not the difficulty table\'s working dose', () => {
       const asMain = prescribeAccessory({
         exercise: bandedPush,
         requestedDifficulty: 'medium',
@@ -102,7 +102,7 @@ describe('§5.4 prescription', () => {
 
       expect(asWarmup.sets).toBe(1);
       expect(asWarmup.sets).toBeLessThan(asMain.sets);
-      expect(asWarmup.restSec).toBe(0);
+      expect(asWarmup.restSec).toBe(30);
       expect(asWarmup.estimatedSec).toBeLessThan(asMain.estimatedSec);
     });
 

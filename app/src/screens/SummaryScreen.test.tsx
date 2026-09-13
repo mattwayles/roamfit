@@ -678,7 +678,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     expect(screen.getByText('Just right')).toBeTruthy();
   });
 
-  it('editing a warm-up/cool-down feedback chip updates the whole stage, since that is one answer shared by every entry in it', async () => {
+  it('editing a legacy whole-stage feedback chip (from a session recorded before per-set warm-up/cool-down feedback) updates every entry in the stage', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>

@@ -1,8 +1,11 @@
 /**
- * §8.1 stage feedback — one question for the whole warm-up, and one for the whole cool-down,
- * instead of one per exercise inside them. Driven through the real WorkoutScreen against the real
- * store: the point of this file is *where the screen goes* after a set, which is a property of the
- * screen's phase machine and not of any component in isolation.
+ * §8.1 warm-up/cool-down feedback — every set gets its own rest timer and its own difficulty
+ * question, exactly like `main`. This replaced the earlier "one question for the whole stage,
+ * asked once at the end" design (a single `StageFeedbackPhase` page with no countdown and no
+ * rest controls) — that page is gone; a warm-up or cool-down set now runs through the same
+ * `RestPhase` a main set always has. Driven through the real WorkoutScreen against the real
+ * store: the point of this file is *where the screen goes* after a set, which is a property of
+ * the screen's phase machine and not of any component in isolation.
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -104,7 +107,7 @@ async function sessionAtLastSetOf(db: Db, seed: string, section: 'warmup' | 'coo
   }
   for (let i = 0; i < last.sets - 1; i++) logSet(db, last, i);
 
-  return { sessionId, sectionEntryIds: sectionEntries.map((e) => e.id) };
+  return { sessionId, lastEntryId: last.id };
 }
 
 function renderWorkout(sessionId: string, navigation: ReturnType<typeof mockNavigation>) {
@@ -118,8 +121,8 @@ function renderWorkout(sessionId: string, navigation: ReturnType<typeof mockNavi
   );
 }
 
-describe('§8.1 stage feedback: one question per warm-up and per cool-down', () => {
-  it('finishing the warm-up asks once for the whole stage, with no rest timer or rest controls, and writes the answer to every warm-up entry', async () => {
+describe('§8.1 warm-up/cool-down feedback: every set, own rest timer and own question', () => {
+  it('finishing a warm-up set (last one in the stage or not) goes to an ordinary rest page with its own feedback controls', async () => {
     let db!: Db;
     render(
       <StoreProvider>
@@ -128,43 +131,27 @@ describe('§8.1 stage feedback: one question per warm-up and per cool-down', () 
     );
     await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
 
-    const { sessionId, sectionEntryIds } = await sessionAtLastSetOf(
-      db,
-      'stage-warmup-seed',
-      'warmup',
-    );
-    expect(sectionEntryIds.length).toBeGreaterThan(1); // otherwise "per stage" proves nothing
+    const { sessionId, lastEntryId } = await sessionAtLastSetOf(db, 'stage-warmup-seed', 'warmup');
 
     renderWorkout(sessionId, mockNavigation());
     await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('complete-set'));
 
-    // The stage page, not a rest page.
-    await waitFor(() => expect(screen.getByTestId('stage-feedback')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.getByTestId('stage-feedback-title')).toHaveTextContent('How was the warm-up?');
-    expect(screen.queryByTestId('rest-circle')).toBeNull();
-    expect(screen.queryByTestId('rest-plus-15')).toBeNull();
-    expect(screen.queryByTestId('rest-minus-15')).toBeNull();
-    expect(screen.queryByTestId('rest-skip')).toBeNull();
-    expect(screen.queryByTestId('rest-next')).toBeNull();
+    // A rest page, with its own timer and its own feedback question — no separate stage page.
+    await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.queryByTestId('stage-feedback')).toBeNull();
+    expect(screen.getByTestId('difficulty-too_easy')).toBeTruthy();
 
-    // One answer, landing on every entry in the stage — that is what "for the whole warm-up"
-    // means once it reaches the store.
     await fireEvent.press(screen.getByTestId('difficulty-too_easy'));
     await waitFor(() => {
       const after = sessionsRepo.getSession(db, sessionId)!;
-      for (const id of sectionEntryIds) {
-        const entry = after.entries.find((e) => e.id === id)!;
-        expect(entry.difficultyFeedback).toBe('too_easy');
-      }
+      const entry = after.entries.find((e) => e.id === lastEntryId)!;
+      const log = entry.setLogs.find((l) => l.setIndex === entry.sets - 1);
+      expect(log?.difficultyFeedback).toBe('too_easy');
     }, WAIT_OPTS);
-
-    // Continue hands off to the next stage.
-    await fireEvent.press(screen.getByTestId('stage-feedback-done'));
-    await waitFor(() => expect(screen.queryByTestId('stage-feedback')).toBeNull(), WAIT_OPTS);
   }, 20000);
 
-  it('a warm-up set that is not the last one goes to a rest page carrying no feedback controls', async () => {
+  it('a warm-up set that is not the last one in its stage also gets a rest timer and feedback controls', async () => {
     let db!: Db;
     render(
       <StoreProvider>
@@ -201,14 +188,12 @@ describe('§8.1 stage feedback: one question per warm-up and per cool-down', () 
     await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('complete-set'));
 
-    // Still inside the warm-up, so this is an ordinary rest — but the per-exercise question it
-    // used to carry is gone; that is now asked once, at the end of the stage.
     await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.queryByTestId('difficulty-too_easy')).toBeNull();
+    expect(screen.getByTestId('difficulty-too_easy')).toBeTruthy();
     expect(screen.queryByTestId('stage-feedback')).toBeNull();
   }, 20000);
 
-  it('the cool-down question is asked before the summary, and Continue is what ends the workout', async () => {
+  it('the last cool-down set gets its own rest page too, and Next is what ends the workout', async () => {
     let db!: Db;
     render(
       <StoreProvider>
@@ -217,7 +202,7 @@ describe('§8.1 stage feedback: one question per warm-up and per cool-down', () 
     );
     await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
 
-    const { sessionId, sectionEntryIds } = await sessionAtLastSetOf(
+    const { sessionId, lastEntryId } = await sessionAtLastSetOf(
       db,
       'stage-cooldown-seed',
       'cooldown',
@@ -228,28 +213,28 @@ describe('§8.1 stage feedback: one question per warm-up and per cool-down', () 
     await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('complete-set'));
 
-    // Every set in the plan is now logged, so the screen would otherwise have gone straight to
-    // Summary. The cool-down's one question comes first.
-    await waitFor(() => expect(screen.getByTestId('stage-feedback')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.getByTestId('stage-feedback-title')).toHaveTextContent('How was the cool-down?');
+    // Every set in the plan is now logged, but the last set's own rest page is still owed before
+    // the screen moves on to Summary.
+    await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.queryByTestId('stage-feedback')).toBeNull();
     expect(navigation.replace).not.toHaveBeenCalled();
 
     await fireEvent.press(screen.getByTestId('difficulty-too_hard'));
     await waitFor(() => {
       const after = sessionsRepo.getSession(db, sessionId)!;
-      for (const id of sectionEntryIds) {
-        expect(after.entries.find((e) => e.id === id)!.difficultyFeedback).toBe('too_hard');
-      }
+      const entry = after.entries.find((e) => e.id === lastEntryId)!;
+      const log = entry.setLogs.find((l) => l.setIndex === entry.sets - 1);
+      expect(log?.difficultyFeedback).toBe('too_hard');
     }, WAIT_OPTS);
 
-    await fireEvent.press(screen.getByTestId('stage-feedback-done'));
+    await fireEvent.press(screen.getByTestId('rest-next'));
     await waitFor(
       () => expect(navigation.replace).toHaveBeenCalledWith('Summary', { sessionId }),
       WAIT_OPTS,
     );
   }, 20000);
 
-  it('a stage nobody trained is never asked about — skipping every set of it goes straight on', async () => {
+  it('skipping every set of the warm-up carries no feedback and no rest, and there is no stage page to land on', async () => {
     let db!: Db;
     render(
       <StoreProvider>
@@ -293,7 +278,7 @@ describe('§8.1 stage feedback: one question per warm-up and per cool-down', () 
       );
     }
 
-    // Every warm-up slot was waved past, so there is nothing to ask how it felt about.
+    // Every warm-up slot was waved past — a skip never routes through rest, whatever the section.
     await waitFor(() => {
       const logs = sessionsRepo
         .getSession(db, sessionId)!
@@ -303,5 +288,6 @@ describe('§8.1 stage feedback: one question per warm-up and per cool-down', () 
       expect(logs.every((l) => l.status === 'skipped')).toBe(true);
     }, WAIT_OPTS);
     expect(screen.queryByTestId('stage-feedback')).toBeNull();
+    expect(screen.queryByTestId('rest-circle')).toBeNull();
   }, 30000);
 });
