@@ -29,6 +29,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -958,30 +959,40 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
       {/* §10.4 — the gentle nudge, in the two-step-confirm shape this app uses everywhere else
           rather than a system alert. Neither answer is the "wrong" one, and the set is logged
-          whichever is chosen, so nothing here reads as a warning. */}
-      {pausedCompletion != null && (
-        <View style={styles.pausedNudge} testID="paused-completion-nudge">
-          <Text style={styles.pausedNudgeText}>Your timer is still paused. Want to resume it?</Text>
-          <View style={styles.pausedNudgeButtons}>
-            <Pressable
-              testID="paused-completion-stay-paused"
-              accessibilityRole="button"
-              style={styles.pausedNudgeSecondary}
-              onPress={() => handlePausedCompletion(false)}
-            >
-              <Text style={styles.pausedNudgeSecondaryText}>Stay paused</Text>
-            </Pressable>
-            <Pressable
-              testID="paused-completion-resume"
-              accessibilityRole="button"
-              style={styles.pausedNudgePrimary}
-              onPress={() => handlePausedCompletion(true)}
-            >
-              <Text style={styles.pausedNudgePrimaryText}>Resume timer</Text>
-            </Pressable>
+          whichever is chosen, so nothing here reads as a warning. A modal (not an inline banner)
+          because it holds a real decision the rest of the screen is waiting on: no backdrop
+          dismiss and no Android back-button dismiss (`onRequestClose` is a no-op) — one of the
+          two buttons must be pressed. */}
+      <Modal
+        visible={pausedCompletion != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {}}
+      >
+        <View style={styles.pausedNudgeOverlay}>
+          <View style={styles.pausedNudge} testID="paused-completion-nudge">
+            <Text style={styles.pausedNudgeText}>Your timer is still paused. Want to resume it?</Text>
+            <View style={styles.pausedNudgeButtons}>
+              <Pressable
+                testID="paused-completion-stay-paused"
+                accessibilityRole="button"
+                style={styles.pausedNudgeSecondary}
+                onPress={() => handlePausedCompletion(false)}
+              >
+                <Text style={styles.pausedNudgeSecondaryText}>Stay paused</Text>
+              </Pressable>
+              <Pressable
+                testID="paused-completion-resume"
+                accessibilityRole="button"
+                style={styles.pausedNudgePrimary}
+                onPress={() => handlePausedCompletion(true)}
+              >
+                <Text style={styles.pausedNudgePrimaryText}>Resume timer</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
-      )}
+      </Modal>
 
       {/* The user's own note about this exercise, above the exercise itself: it is the thing
           they wrote down *because* they wanted to see it before doing the movement again. */}
@@ -1046,7 +1057,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           // *upcoming* entry here — same post-reload reasoning `nextLabel` relies on.
           nextAnchor={isFinalRest ? null : (exercise?.anchor ?? null)}
           nextAnchorAlt={isFinalRest ? null : (exercise?.anchor_alt ?? null)}
-          paused={paused}
           // Same DemoMedia props the exercise phase passes below (line ~1039) — `exercise` and
           // `entry` are already the *upcoming* pair during rest, so the video shown here is the
           // one about to be trained, not the one just finished.
@@ -1877,7 +1887,6 @@ function RestPhase({
   nextAnchorAlt,
   demoMedia,
   howTo,
-  paused,
   difficulty,
   onDifficultyChange,
   onNext,
@@ -1900,10 +1909,6 @@ function RestPhase({
    *  "How to" disclosure. Null under the same conditions as `demoMedia` (final rest, or no
    *  upcoming exercise to read it from). */
   howTo: string | null;
-  /** Session-level pause. Stops the rest countdown, and — since the background "rest complete"
-   *  notification is scheduled against wall-clock time the OS owns, not against this countdown —
-   *  cancels that too, rescheduling for whatever is left when the session resumes. */
-  paused: boolean;
   difficulty: Difficulty | null;
   onDifficultyChange: (d: Difficulty | undefined) => void;
   onNext: () => void;
@@ -1931,32 +1936,14 @@ function RestPhase({
     };
   }, []);
 
-  // §10.4 — the session pause, applied to the rest clock. The scheduled notification has to go
-  // with it: it is an absolute-time alarm held by the OS, so leaving it in place would announce
-  // "rest complete" while the rest is still frozen. Skipped on the first run (nothing is paused
-  // yet, and the mount effect above owns the initial schedule).
-  const wasPausedRef = useRef(false);
-  useEffect(() => {
-    if (paused === wasPausedRef.current) return;
-    wasPausedRef.current = paused;
-    if (paused) {
-      countdown.controller.pause();
-      void cancelRestNotification(notificationIdRef.current);
-      notificationIdRef.current = null;
-    } else {
-      countdown.controller.resume();
-      const remainingSeconds = Math.max(0, Math.ceil(countdown.controller.remainingMs() / 1000));
-      void scheduleRestZeroNotification(remainingSeconds, nextLabel).then((id) => {
-        notificationIdRef.current = id;
-      });
-    }
-  }, [paused]);
+  // Deliberately independent of the session-level pause: rest is its own clock, isolated from
+  // the workout timer's pause/resume, and keeps counting down (and the background "rest complete"
+  // notification stays scheduled) even while the session elapsed-time clock is frozen.
 
   // §10.7 — "Audio 3-2-1 and a haptic at zero." No deps array: re-checks every render (the same
   // interval tick that drives the visible countdown), guarded by the ref so each second/zero
   // fires exactly once.
   useEffect(() => {
-    if (paused) return; // a frozen clock counts nobody down
     const remainingSeconds = Math.ceil(countdown.remainingMs / 1000);
     if (
       remainingSeconds >= 1 &&
@@ -2113,13 +2100,22 @@ const styles = StyleSheet.create({
   // Paused, not disabled: a cool tint behind the still-live set, so the state reads at a glance
   // without anything looking switched off.
   heroPaused: { backgroundColor: '#f0f9ff', borderRadius: 16, paddingVertical: 12 },
+  pausedNudgeOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
   pausedNudge: {
+    width: '100%',
+    maxWidth: 360,
     backgroundColor: '#f0f9ff',
     borderRadius: 14,
-    padding: 14,
-    gap: 12,
+    padding: 20,
+    gap: 16,
   },
-  pausedNudgeText: { fontSize: 15, color: '#0f172a' },
+  pausedNudgeText: { fontSize: 15, color: '#0f172a', textAlign: 'center' },
   pausedNudgeButtons: { flexDirection: 'row', gap: 10 },
   pausedNudgeSecondary: {
     flex: 1,
