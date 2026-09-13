@@ -50,8 +50,29 @@ orchestrated by a lead agent delegating increments to sub-agents.
   whatever muscle strings appear in `primary`/`secondary` at logging time, so removing the
   `cardio` tag fixes it with zero code changes, exactly as the plan predicted.
 
+- [x] Increment 3, step 1/4 — cardio template + finisher removal (7e1ffdd): real `cardioSlots()`
+  (3 required `conditioning` slots), `ACCESSORY_PATTERNS_BY_FOCUS.cardio = ['conditioning']`,
+  and the full-body finisher slot (plus all `isFinisher` machinery) removed end to end. Golden
+  snapshot reviewed and updated — diff is exactly the `notes: undefined` key disappearing
+  (finisher's AMRAP was its only producer) plus an RNG-cascade reshuffle of sibling/warmup/
+  cooldown picks in the hard/45min full fixture from one fewer slot, same total main count (7)
+  before and after. `npm run check` green.
+
 ### In progress
-- None — increments 1 and 2 are done. Increment 3 (engine) picks up next, on top of f2326f6.
+- Increment 3, step 2/4: `pipeline.ts` main-pool scoping — right after the two `applyHardFilters`
+  calls, narrow the pool passed into `selectMain` (and `resolveLadderSlot`) to conditioning-only
+  for `focus === 'cardio'`, and to conditioning-excluded for every other focus. Warmup/cooldown
+  selection and the `recentHardMuscles`/`overWorkedMuscles` volume lookups keep the *unscoped*
+  pool — cardio moves may still warm up a strength day (user decision), and the volume functions
+  need to resolve history entries from a different-focus session by id regardless of this
+  session's own scoping. This is belt-and-braces (no template asks a non-cardio focus for
+  `conditioning` today, so it's a no-op behaviorally for existing focuses — confirmed no golden
+  snapshot changed). Also: `selection/mainSelection.ts` skips the `'band'` `applyAggregatePass`
+  when `focus === 'cardio'` (user decision — cardio exempt from the ≥50% band ratio), and the
+  PATTERN GAP band exception (only triggers for `horizontal_pull`/`vertical_pull` slots, never
+  reachable for a cardio slot, so no change needed there beyond confirming it). Tests:
+  `pipeline.test.ts` new cases for the pool-scoping exclusion/inclusion and the band-ratio
+  exemption.
 
 ### Next
 3. Engine: cardio template, finisher removal, main-pool scoping, band-ratio exemption for cardio,
