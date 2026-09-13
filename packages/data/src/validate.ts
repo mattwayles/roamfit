@@ -200,19 +200,36 @@ function main() {
       fail(`${id}: progression_family and progression_level_id must both be null or both be set`);
     }
 
-    // Track 14 — classification is a pattern plus a focus, not a muscle: `conditioning` and
-    // `cardio` must always travel together, in both directions, so `isCardioExercise` (pattern
-    // alone) and "does this focus include cardio" never disagree.
-    const isConditioning = ex.pattern === 'conditioning';
-    const hasCardioFocus = ex.focus.includes('cardio');
-    if (isConditioning !== hasCardioFocus) {
+    // Track 14 — `cardio` was previously a pseudo-muscle in primary/secondary. It is gone for
+    // good: left in place it would feed OVER-WORKED volume math (`selection/volume.ts`) and a
+    // cardio-heavy week would mark "cardio" over-worked and empty the Cardio pool, since
+    // over-worked primaries are excluded outright. Classification is `pattern`/`focus` now (see
+    // the pair below), never a muscle tag.
+    if (ex.primary.includes('cardio') || ex.secondary.includes('cardio')) {
       fail(
-        `${id}: pattern "conditioning" and focus including "cardio" must travel together (pattern conditioning: ${isConditioning}, focus has cardio: ${hasCardioFocus})`,
+        `${id}: "cardio" is not a muscle — classification is pattern "conditioning" + focus "cardio"`,
       );
     }
-    // A cardio record may also carry a non-cardio focus, but only via a warm-up or cool-down
-    // role (e.g. jumping jack keeps `full` so strength warm-ups can still pick it) — exclusion
-    // from strength MAIN work is the whole point of the pattern split.
+
+    // Track 14 — every `conditioning`-pattern exercise must carry the `cardio` focus: without
+    // it, `TEMPLATE_PATTERNS.cardio`'s coverage check (`pattern === 'conditioning' && focus
+    // includes 'cardio'`) would find it ineligible and the Cardio focus's main pool would come
+    // up short. This is deliberately one-directional — the converse does NOT hold. A stretch or
+    // dynamic warm-up may carry `cardio` as an extra pool-membership focus (the tag audit does
+    // exactly this for cool-down stretches and a couple of warm-ups, so the Cardio focus has
+    // non-empty warm-up/cool-down pools) without being reclassified as a conditioning exercise:
+    // warm-up/cool-down selection is role+focus only, never pattern-scoped, so it's harmless —
+    // and MAIN selection stays safe regardless, since a cardio template slot only ever asks for
+    // pattern `conditioning` (§5.2), never the stretch's own pattern.
+    const isConditioning = ex.pattern === 'conditioning';
+    const hasCardioFocus = ex.focus.includes('cardio');
+    if (isConditioning && !hasCardioFocus) {
+      fail(`${id}: pattern is "conditioning" but focus does not include "cardio"`);
+    }
+    // A record whose focus includes "cardio" may also carry a non-cardio focus, but only via a
+    // warm-up or cool-down role (e.g. jumping jack keeps `full` so strength warm-ups can still
+    // pick it; a cool-down stretch keeps its existing focuses so strength sessions still find
+    // it) — exclusion from strength MAIN work is the whole point of the pattern split.
     if (hasCardioFocus && ex.focus.some((f) => f !== 'cardio')) {
       if (!ex.roles.includes('warmup') && !ex.roles.includes('cooldown')) {
         fail(
@@ -345,13 +362,12 @@ function main() {
   }
 
   // §5.5 focus templates: every pattern slot needs eligible exercises per focus, and every
-  // focus needs a non-empty warmup and cooldown pool.
-  //
-  // Track 14: deliberately `Partial` rather than `Record<Focus, Pattern[]>`. `cardio` has no
-  // entry yet — its patterns and its warmup/cooldown coverage depend on the library tag audit
-  // (increment 2), so until `TEMPLATE_PATTERNS.cardio = ['conditioning']` lands there, the loop
-  // below skips it rather than failing on a focus increment 1 doesn't populate.
-  const TEMPLATE_PATTERNS: Partial<Record<Focus, Pattern[]>> = {
+  // focus needs a non-empty warmup and cooldown pool. `cardio`'s single slot type is
+  // `conditioning` (track 14) — the library tag audit gave it non-empty warmup/cooldown pools
+  // too (jumping jack/high knees keep a warmup role; calf/hip-flexor/hamstring cooldown
+  // stretches and a couple of dynamic warmups picked up the `cardio` focus), so this is back to
+  // a plain `Record<Focus, Pattern[]>` now that every focus has an entry.
+  const TEMPLATE_PATTERNS: Record<Focus, Pattern[]> = {
     upper: [
       'horizontal_push',
       'horizontal_pull',
@@ -373,11 +389,11 @@ function main() {
     ],
     abs: ['anti_rotation', 'flexion', 'anti_extension', 'lateral_flexion'],
     full: ['squat', 'hinge', 'horizontal_push', 'horizontal_pull', 'anti_extension'],
+    cardio: ['conditioning'],
   };
 
   for (const focus of FOCUS_VALUES) {
     const patterns = TEMPLATE_PATTERNS[focus];
-    if (!patterns) continue;
     for (const pattern of patterns) {
       const eligible = exercises.filter(
         (e) => e.roles.includes('main') && e.pattern === pattern && e.focus.includes(focus),

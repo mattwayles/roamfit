@@ -1994,8 +1994,7 @@
         "glutes"
       ],
       "secondary": [
-        "hamstrings",
-        "cardio"
+        "hamstrings"
       ],
       "equipment": "band",
       "band": "B2-B3",
@@ -2560,8 +2559,7 @@
       ],
       "secondary": [
         "glutes",
-        "calves",
-        "cardio"
+        "calves"
       ],
       "equipment": "band",
       "band": "B2-B3",
@@ -3160,17 +3158,15 @@
         "Mountain Climber"
       ],
       "focus": [
-        "abs",
-        "full"
+        "cardio"
       ],
-      "pattern": "flexion",
+      "pattern": "conditioning",
       "primary": [
         "abs"
       ],
       "secondary": [
         "hip_flexors",
-        "front_delts",
-        "cardio"
+        "front_delts"
       ],
       "equipment": "band",
       "band": "B1",
@@ -3178,8 +3174,8 @@
       "anchor_alt": null,
       "anchor_class": "none",
       "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
+      "metric": "time",
+      "default_seconds": 30,
       "tier": "fill",
       "roles": [
         "main"
@@ -3402,8 +3398,7 @@
       "secondary": [
         "front_delts",
         "glutes",
-        "triceps",
-        "cardio"
+        "triceps"
       ],
       "equipment": "band",
       "band": "B2-B3",
@@ -3486,8 +3481,7 @@
       "secondary": [
         "traps",
         "side_delts",
-        "hamstrings",
-        "cardio"
+        "hamstrings"
       ],
       "equipment": "band",
       "band": "B2-B3",
@@ -3528,8 +3522,7 @@
       "secondary": [
         "front_delts",
         "traps",
-        "quads",
-        "cardio"
+        "quads"
       ],
       "equipment": "band",
       "band": "B2-B3",
@@ -3644,16 +3637,16 @@
         "Burpee"
       ],
       "focus": [
-        "full"
-      ],
-      "pattern": "squat",
-      "primary": [
         "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "quads"
       ],
       "secondary": [
         "chest",
-        "quads",
-        "abs"
+        "abs",
+        "glutes"
       ],
       "equipment": "band",
       "band": "B1",
@@ -3661,8 +3654,8 @@
       "anchor_alt": null,
       "anchor_class": "band_tension",
       "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
+      "metric": "time",
+      "default_seconds": 30,
       "tier": "fill",
       "roles": [
         "main"
@@ -3694,8 +3687,7 @@
       ],
       "secondary": [
         "front_delts",
-        "quads",
-        "cardio"
+        "quads"
       ],
       "equipment": "band",
       "band": "B1",
@@ -3726,17 +3718,15 @@
         "Sprinter Pull"
       ],
       "focus": [
-        "full",
-        "legs"
+        "cardio"
       ],
-      "pattern": "lunge",
+      "pattern": "conditioning",
       "primary": [
         "hip_flexors"
       ],
       "secondary": [
         "glutes",
-        "quads",
-        "cardio"
+        "quads"
       ],
       "equipment": "band",
       "band": "B1-B2",
@@ -3744,8 +3734,8 @@
       "anchor_alt": null,
       "anchor_class": "band_tension",
       "unilateral": true,
-      "metric": "reps",
-      "default_seconds": null,
+      "metric": "time",
+      "default_seconds": 30,
       "tier": "fill",
       "roles": [
         "main"
@@ -3809,7 +3799,8 @@
       ],
       "focus": [
         "legs",
-        "full"
+        "full",
+        "cardio"
       ],
       "pattern": "hinge",
       "primary": [
@@ -4082,7 +4073,8 @@
       ],
       "focus": [
         "legs",
-        "full"
+        "full",
+        "cardio"
       ],
       "pattern": "hinge",
       "primary": [
@@ -4121,7 +4113,8 @@
       "focus": [
         "legs",
         "abs",
-        "full"
+        "full",
+        "cardio"
       ],
       "pattern": "lunge",
       "primary": [
@@ -4316,7 +4309,8 @@
       ],
       "focus": [
         "legs",
-        "full"
+        "full",
+        "cardio"
       ],
       "pattern": "calf",
       "primary": [
@@ -4708,8 +4702,7 @@
       ],
       "secondary": [
         "obliques",
-        "front_delts",
-        "cardio"
+        "front_delts"
       ],
       "equipment": "band",
       "band": "B2",
@@ -4749,8 +4742,7 @@
       ],
       "secondary": [
         "glutes",
-        "obliques",
-        "cardio"
+        "obliques"
       ],
       "equipment": "band",
       "band": "B2",
@@ -6210,7 +6202,8 @@
       ],
       "focus": [
         "legs",
-        "full"
+        "full",
+        "cardio"
       ],
       "pattern": "squat",
       "primary": [
@@ -7027,15 +7020,15 @@
       "name": "Jumping Jack",
       "aliases": [],
       "focus": [
+        "cardio",
         "full"
       ],
-      "pattern": "squat",
+      "pattern": "conditioning",
       "primary": [
-        "cardio"
+        "calves"
       ],
       "secondary": [
-        "side_delts",
-        "calves"
+        "side_delts"
       ],
       "equipment": "bodyweight",
       "band": null,
@@ -7043,8 +7036,8 @@
       "anchor_alt": null,
       "anchor_class": "none",
       "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
+      "metric": "time",
+      "default_seconds": 30,
       "tier": "fill",
       "roles": [
         "main",
@@ -7066,14 +7059,14 @@
       "name": "High Knees",
       "aliases": [],
       "focus": [
+        "cardio",
         "full"
       ],
-      "pattern": "squat",
+      "pattern": "conditioning",
       "primary": [
-        "cardio"
+        "hip_flexors"
       ],
       "secondary": [
-        "hip_flexors",
         "calves"
       ],
       "equipment": "bodyweight",
@@ -7082,8 +7075,8 @@
       "anchor_alt": null,
       "anchor_class": "none",
       "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
+      "metric": "time",
+      "default_seconds": 30,
       "tier": "fill",
       "roles": [
         "main",
@@ -7104,15 +7097,13 @@
       "name": "Mountain Climber",
       "aliases": [],
       "focus": [
-        "full",
-        "abs"
+        "cardio"
       ],
-      "pattern": "flexion",
+      "pattern": "conditioning",
       "primary": [
         "abs"
       ],
       "secondary": [
-        "cardio",
         "front_delts",
         "hip_flexors"
       ],
@@ -7122,8 +7113,8 @@
       "anchor_alt": null,
       "anchor_class": "none",
       "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
+      "metric": "time",
+      "default_seconds": 30,
       "tier": "fill",
       "roles": [
         "main"
@@ -7143,15 +7134,15 @@
       "name": "Squat Thrust",
       "aliases": [],
       "focus": [
-        "full"
-      ],
-      "pattern": "squat",
-      "primary": [
         "cardio"
       ],
+      "pattern": "conditioning",
+      "primary": [
+        "quads"
+      ],
       "secondary": [
-        "quads",
-        "abs"
+        "abs",
+        "glutes"
       ],
       "equipment": "bodyweight",
       "band": null,
@@ -7159,8 +7150,8 @@
       "anchor_alt": null,
       "anchor_class": "none",
       "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
+      "metric": "time",
+      "default_seconds": 30,
       "tier": "fill",
       "roles": [
         "main"
@@ -7181,16 +7172,16 @@
       "name": "Burpee",
       "aliases": [],
       "focus": [
-        "full"
-      ],
-      "pattern": "squat",
-      "primary": [
         "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "quads"
       ],
       "secondary": [
         "chest",
-        "quads",
-        "abs"
+        "abs",
+        "glutes"
       ],
       "equipment": "bodyweight",
       "band": null,
@@ -7198,8 +7189,8 @@
       "anchor_alt": null,
       "anchor_class": "none",
       "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
+      "metric": "time",
+      "default_seconds": 30,
       "tier": "fill",
       "roles": [
         "main"
@@ -7220,11 +7211,11 @@
       "name": "Sprawl",
       "aliases": [],
       "focus": [
-        "full"
-      ],
-      "pattern": "squat",
-      "primary": [
         "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "quads"
       ],
       "secondary": [
         "abs",
@@ -7236,8 +7227,8 @@
       "anchor_alt": null,
       "anchor_class": "none",
       "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
+      "metric": "time",
+      "default_seconds": 30,
       "tier": "fill",
       "roles": [
         "main"
@@ -7267,8 +7258,7 @@
       ],
       "secondary": [
         "front_delts",
-        "quads",
-        "cardio"
+        "quads"
       ],
       "equipment": "bodyweight",
       "band": null,
@@ -7305,8 +7295,7 @@
       ],
       "secondary": [
         "glutes",
-        "abs",
-        "cardio"
+        "abs"
       ],
       "equipment": "bodyweight",
       "band": null,
@@ -7372,17 +7361,15 @@
       "name": "Skater Jump",
       "aliases": [],
       "focus": [
-        "full",
-        "legs"
+        "cardio"
       ],
-      "pattern": "lunge",
+      "pattern": "conditioning",
       "primary": [
         "glutes"
       ],
       "secondary": [
         "quads",
-        "abductors",
-        "cardio"
+        "abductors"
       ],
       "equipment": "bodyweight",
       "band": null,
@@ -7390,8 +7377,8 @@
       "anchor_alt": null,
       "anchor_class": "none",
       "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
+      "metric": "time",
+      "default_seconds": 30,
       "tier": "fill",
       "roles": [
         "main"
