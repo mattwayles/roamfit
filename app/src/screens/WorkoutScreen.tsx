@@ -471,6 +471,16 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     reload();
   };
 
+  /** Leave for Home without discarding anything — distinct from Abandon (which is destructive)
+   *  and from the header back button (which the stack config below turns off entirely, since a
+   *  bare back-gesture had no chance to pause first). The session stays `active`/pending exactly
+   *  as pausing already leaves it (`handlePause` is idempotent), so Home's resume card picks it
+   *  right back up at the same (entry, setIndex) — this is just that same pause plus a nav. */
+  const handleGoHome = () => {
+    sessionsRepo.pauseSession(db, sessionId, nowUtcInstant());
+    navigation.navigate('Home');
+  };
+
   /** §10.10 abandon — discards the session entirely via the existing `discardSession` (never a
    *  parallel path), recording exactly which exercise/set the user was on for the §8.3
    *  "abandoned" signal, then returns to Home. Abandoning is not a request to start another
@@ -860,15 +870,27 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     >
       {/* The elapsed clock is the single biggest thing on this page: it is what a user mid-set,
           at arm's length, glances at most often, so it gets the top line and the largest type
-          rather than sharing space with a label. Pause/stop ride the same line, right-justified,
-          so the whole header costs one row instead of three — real estate the exercise hero
-          below needs more than a caption does. A flex-1 spacer on the left balances the flex-1
-          actions group on the right so the timer stays visually centered — which is also why
-          there is no "Elapsed" prefix on the clock text itself: the actions group has a real
-          minimum width (two icon buttons) the empty spacer does not, so on a narrow screen a
-          wider clock text ate into the spacer's share first and dragged the timer off-center. */}
+          rather than sharing space with a label. Home/mute and pause/stop ride the same line,
+          left- and right-justified, so the whole header costs one row instead of three — real
+          estate the exercise hero below needs more than a caption does. Two icon buttons on each
+          side keeps the timer visually centered without a bespoke width calculation — which is
+          also why there is no "Elapsed" prefix on the clock text itself: the actions groups have
+          a real minimum width the empty spacer does not, so on a narrow screen a wider clock text
+          would eat into the spacer's share first and drag the timer off-center. Home pauses
+          (never discards) and returns to Home's resume card — the header's own back button is
+          off (`headerBackVisible: false` in `RootNavigator`) because a bare back-gesture has no
+          chance to pause first. */}
       <View style={styles.timerRow}>
         <View style={[styles.timerRowSpacer, styles.timerRowLeftActions]}>
+          <Pressable
+            testID="home-workout"
+            accessibilityRole="button"
+            accessibilityLabel="Pause and go to Home"
+            style={styles.sessionIconButton}
+            onPress={handleGoHome}
+          >
+            <Text style={styles.sessionIconText}>🏠</Text>
+          </Pressable>
           <Pressable
             testID="mute-workout"
             accessibilityRole="button"
@@ -2049,7 +2071,7 @@ const styles = StyleSheet.create({
   // right-justified in the right flex area.
   timerRow: { flexDirection: 'row', alignItems: 'center' },
   timerRowSpacer: { flex: 1 },
-  timerRowLeftActions: { flexDirection: 'row', justifyContent: 'flex-start' },
+  timerRowLeftActions: { flexDirection: 'row', justifyContent: 'flex-start', gap: 8 },
   timerRowActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
   elapsed: { fontSize: 44, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
   // Compact rather than the old 76x56: they now share a line with the timer instead of owning a
