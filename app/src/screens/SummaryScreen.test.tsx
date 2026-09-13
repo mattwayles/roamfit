@@ -14,12 +14,14 @@ import React from 'react';
 import { Keyboard, Share, StyleSheet } from 'react-native';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 import { createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import { completeSession, generate, sessionsRepo } from '@roamfit/store';
 import SummaryScreen from './SummaryScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
+import { buildSessionCompletionStats } from '../lib/sessionStats';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
@@ -881,5 +883,130 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     expect(screen.getByTestId('workout-count')).toHaveTextContent(
       `You just finished your ${expectedOrdinal} workout on RoamFit!`,
     );
+  });
+
+  it('the completion screen shows what actually happened, matching the real logged sets', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const sessionId = await createSessionWithASkippedFirstSet(db);
+    // The independent source of truth: fold the same real logged session the same way
+    // sessionStats.ts does, computed here from the store directly rather than from the screen, so
+    // this is a real cross-check and not the screen grading its own homework.
+    const expected = buildSessionCompletionStats(sessionsRepo.getSession(db, sessionId)!);
+
+    const navigation = mockNavigation();
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={navigation as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId('finish-button'));
+
+    for (let guard = 0; guard < 10; guard += 1) {
+      if (screen.queryByTestId('session-complete')) break;
+      if (!screen.queryByTestId('celebration-continue')) break;
+      await fireEvent.press(screen.getByTestId('celebration-continue'));
+    }
+
+    await waitFor(() => expect(screen.getByTestId('completion-stats')).toBeTruthy(), WAIT_OPTS);
+    // Each tile counts up on its own stagger (see the render's `delay={i * 130}`) — wait for each
+    // one to finish landing independently rather than assuming they all settle together.
+    await waitFor(
+      () =>
+        expect(screen.getByTestId('completion-stat-sets-value')).toHaveTextContent(
+          `${expected.setsCompleted}`,
+        ),
+      WAIT_OPTS,
+    );
+    await waitFor(
+      () =>
+        expect(screen.getByTestId('completion-stat-exercises-value')).toHaveTextContent(
+          `${expected.exercisesTrained}`,
+        ),
+      WAIT_OPTS,
+    );
+    // This fixture logs real reps/seconds on every completed set (see the helper above), so at
+    // least one of these dimensions is real and present — assert whichever applies rather than
+    // assuming a specific exercise mix, which is generation-seed-dependent.
+    if (expected.totalReps > 0) {
+      await waitFor(
+        () =>
+          expect(screen.getByTestId('completion-stat-reps-value')).toHaveTextContent(
+            `${expected.totalReps}`,
+          ),
+        WAIT_OPTS,
+      );
+    }
+    if (expected.totalSeconds > 0) {
+      await waitFor(
+        () =>
+          expect(screen.getByTestId('completion-stat-seconds-value')).toHaveTextContent(
+            `${expected.totalSeconds}s`,
+          ),
+        WAIT_OPTS,
+      );
+    }
+  });
+
+  it('fires the fanfare/haptic sequence exactly once when the completion screen appears', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+    const sessionId = await createSessionWithASkippedFirstSet(db);
+
+    const notify = jest.spyOn(Haptics, 'notificationAsync');
+    const impact = jest.spyOn(Haptics, 'impactAsync');
+
+    const navigation = mockNavigation();
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={navigation as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId('finish-button'));
+
+    for (let guard = 0; guard < 10; guard += 1) {
+      if (screen.queryByTestId('session-complete')) break;
+      if (!screen.queryByTestId('celebration-continue')) break;
+      await fireEvent.press(screen.getByTestId('celebration-continue'));
+    }
+    await waitFor(() => expect(screen.getByTestId('session-complete')).toBeTruthy(), WAIT_OPTS);
+
+    // The choreography's last beat (a Success pulse paired with the button fading in) lands at
+    // ~1300ms — wait past it, then assert the escalating sequence actually happened: at least one
+    // Light tick, one Heavy pulse, and Success notifications (the arrival cue plus the final beat).
+    await waitFor(() => expect(impact).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Heavy), {
+      timeout: 5000,
+      interval: 100,
+    });
+    expect(impact).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Light);
+    expect(notify).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Success);
+
+    notify.mockRestore();
+    impact.mockRestore();
   });
 });

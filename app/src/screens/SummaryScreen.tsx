@@ -14,11 +14,14 @@
  * image if product wants one.
  *
  * The plain completion screen underneath those (no level-up, or every one already stepped
- * through) is deliberately loud too — confetti, haptics, a big banner, and the user's running
+ * through) is deliberately loud too — confetti, a fanfare + choreographed haptic sequence, a
+ * staggered entrance, a stat grid that counts up what actually happened, and the user's running
  * workout count. Finishing a session is the one thing this app should never treat as routine:
  * invariant 4 ("never punish") has a positive counterpart that isn't written down anywhere else,
- * which is to actually celebrate the win. `ConfettiBurst` is a plain `Animated`-API component,
- * not a new dependency — the app has no confetti/lottie/reanimated library installed.
+ * which is to actually celebrate the win. `ConfettiBurst`/`AnimatedStatCounter` are plain
+ * `Animated`-API components, not a new dependency — the app has no confetti/lottie/reanimated
+ * library installed. The stat grid (`../lib/sessionStats.ts`) is additive-only, per invariant 4:
+ * counts of what happened, never a comparison against the plan.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -36,16 +39,19 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { completeSession, milestonesRepo, sessionsRepo } from '@roamfit/store';
+import { completeSession, milestonesRepo, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { CompleteSessionResult } from '@roamfit/store';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
 import { findCurrentEntry, type Section } from '../lib/sessionProgress';
 import { buildCelebrationViewModel, type FullScreenCelebration } from '../lib/celebration';
-import { hapticCompletion } from '../lib/workoutAudio';
+import { buildSessionCompletionStats } from '../lib/sessionStats';
+import { cueSessionComplete, hapticCompletion, hapticHeavy, hapticTick } from '../lib/workoutAudio';
 import ConfettiBurst from '../components/ConfettiBurst';
 import FeedbackControls, { type Difficulty } from '../components/FeedbackControls';
+import AnimatedStatCounter from '../components/AnimatedStatCounter';
+import BandChip from '../components/BandChip';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Summary'>;
 
@@ -172,7 +178,14 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     entryId: string;
     setIndex: number | null;
   } | null>(null);
+  // The completion screen's staggered entrance (see the `showingCompletionScreen` effect below):
+  // the hero banner scales in first, the stat block/milestones fade up once the haptic sequence
+  // reaches its "detonation" beat, the exit button arrives last, and `breathScale` keeps the hero
+  // gently pulsing afterward so the screen is never fully still while it's on screen.
   const bannerScale = useRef(new Animated.Value(0)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const buttonOpacity = useRef(new Animated.Value(0)).current;
+  const breathScale = useRef(new Animated.Value(1)).current;
 
   const reload = useCallback(() => {
     setSession(sessionsRepo.getSession(db, sessionId));
@@ -187,6 +200,16 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
         : { fullScreen: [], quiet: [] },
     [result, milestones, library, families],
   );
+
+  // What actually happened this session, for the completion screen's stat grid — see
+  // `sessionStats.ts`'s header for why this is a pure fold rather than a new store query.
+  const completionStats = useMemo(
+    () => (session ? buildSessionCompletionStats(session) : null),
+    [session],
+  );
+  // Read-only — a completed session already implies a user row exists, but this never writes one
+  // (unlike `ensureUser`), since this screen has no other reason to touch the users table.
+  const bandTensions = useMemo(() => usersRepo.getUser(db)?.bandTensions ?? null, [db]);
 
   // §10.8 — the workout's own front edge. Non-null here means this screen is being viewed as a
   // real-time progress check on a still-in-progress workout (reached from the "Progress" button
@@ -229,24 +252,76 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     });
   }, [navigation, sessionId, session, finished, frontier]);
 
+  // §6.4/§6.7 — a level-up/Mastery celebration used to be the *quieter* of the two completion
+  // screens (a static emoji, no confetti, no haptic) despite being the bigger event — earning a
+  // new exercise, not just finishing a session. Firing the same completion haptic here whenever a
+  // new one becomes visible closes that gap without a full redesign of this screen.
+  useEffect(() => {
+    if (!finished || !result) return;
+    if (!celebration.fullScreen[celebrationIndex]) return;
+    hapticCompletion();
+  }, [finished, result, celebration.fullScreen, celebrationIndex]);
+
   // The plain completion screen, after every full-screen level-up/mastery celebration has been
   // stepped through (or there were none) — invariant 4/§1.1 territory in reverse: this is the one
-  // moment that's allowed, even meant, to be as loud as possible. Haptics + the banner's bounce-in
-  // fire exactly once, when this screen first becomes visible.
+  // moment that's allowed, even meant, to be as loud as possible.
   const showingCompletionScreen =
     finished && result !== null && celebrationIndex >= celebration.fullScreen.length;
 
+  // A single choreographed entrance, run once when this screen first becomes visible: the fanfare
+  // (previously the one silent moment in the whole workout loop — every other cue in
+  // `workoutAudio.ts` pairs a tone with a haptic) fires with the banner's spring-in; three light
+  // taps track the spring settling; a heavy pulse lands with the confetti and reveals the stat
+  // block; a final success pulse lands once the counters have finished counting up, alongside the
+  // exit button. `breathScale` keeps the hero gently alive afterward rather than parking dead
+  // still once the sequence ends.
   useEffect(() => {
     if (!showingCompletionScreen) return;
-    hapticCompletion();
+
     bannerScale.setValue(0);
+    contentOpacity.setValue(0);
+    buttonOpacity.setValue(0);
+    breathScale.setValue(1);
+
+    cueSessionComplete();
+
+    let breathLoop: ReturnType<typeof Animated.loop> | null = null;
     Animated.spring(bannerScale, {
       toValue: 1,
       friction: 4,
       tension: 55,
       useNativeDriver: true,
-    }).start();
-  }, [showingCompletionScreen, bannerScale]);
+    }).start(() => {
+      breathLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(breathScale, { toValue: 1.05, duration: 900, useNativeDriver: true }),
+          Animated.timing(breathScale, { toValue: 1, duration: 900, useNativeDriver: true }),
+        ]),
+      );
+      breathLoop.start();
+    });
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
+
+    at(150, hapticTick);
+    at(300, hapticTick);
+    at(450, () => {
+      hapticHeavy();
+      Animated.timing(contentOpacity, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+    });
+    // ~700ms count-up duration + the stat grid's own stagger (see the render below) — timed to
+    // land just after the last tile finishes counting, not before.
+    at(1300, () => {
+      hapticCompletion();
+      Animated.timing(buttonOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+    });
+
+    return () => {
+      timers.forEach(clearTimeout);
+      breathLoop?.stop();
+    };
+  }, [showingCompletionScreen, bannerScale, contentOpacity, buttonOpacity, breathScale]);
 
   if (!session) return <View style={styles.centered} />;
 
@@ -319,40 +394,117 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
       );
     }
 
+    // What the stat grid below shows — additive facts only (invariant 4): a count of something
+    // that happened, never a comparison against the plan. A dimension earns a tile only when it
+    // actually applies this session (no "0 reps" tile on an all-timed session, no "0s" tile on an
+    // all-reps one).
+    const statTiles: { key: string; value: number; label: string; suffix?: string }[] =
+      completionStats
+        ? [
+            { key: 'sets', value: completionStats.setsCompleted, label: 'Sets' },
+            ...(completionStats.totalReps > 0
+              ? [{ key: 'reps', value: completionStats.totalReps, label: 'Total reps' }]
+              : []),
+            ...(completionStats.totalSeconds > 0
+              ? [
+                  {
+                    key: 'seconds',
+                    value: completionStats.totalSeconds,
+                    label: 'Time under tension',
+                    suffix: 's',
+                  },
+                ]
+              : []),
+            { key: 'exercises', value: completionStats.exercisesTrained, label: 'Exercises' },
+          ]
+        : [];
+
     return (
       <View style={styles.doneScreen} testID="session-complete">
         <ConfettiBurst />
         <ScrollView contentContainerStyle={styles.doneContainer}>
-          <Animated.View style={{ transform: [{ scale: bannerScale }] }}>
+          <Animated.View
+            style={{ transform: [{ scale: Animated.multiply(bannerScale, breathScale) }] }}
+          >
             <Text style={styles.doneBannerEmoji}>🎉🙌🎉</Text>
             <Text style={styles.doneBanner}>CONGRATULATIONS!</Text>
           </Animated.View>
 
-          <Text style={styles.doneCountText} testID="workout-count">
-            You just finished your {ordinal(workoutCount)} workout on RoamFit!
-          </Text>
-
-          <Text style={styles.doneSubtitle}>
-            {Math.round(result.actualMinutes)} min · {session.focus}
-          </Text>
-
-          {celebration.quiet.length > 0 && (
-            <View testID="quiet-milestones" style={styles.quietMilestones}>
-              {celebration.quiet.map((m, i) => (
-                <Text key={i} style={styles.quietMilestoneText}>
-                  ⭐ {m.text}
-                </Text>
-              ))}
-            </View>
-          )}
-
-          <Pressable
-            testID="return-home"
-            style={styles.doneFinishButton}
-            onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Home' }] })}
+          <Animated.View
+            style={{
+              opacity: contentOpacity,
+              transform: [
+                {
+                  translateY: contentOpacity.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [12, 0],
+                  }),
+                },
+              ],
+              alignItems: 'center',
+              gap: 14,
+              width: '100%',
+            }}
           >
-            <Text style={styles.doneFinishButtonText}>Heck yes!</Text>
-          </Pressable>
+            <Text style={styles.doneCountText} testID="workout-count">
+              You just finished your {ordinal(workoutCount)} workout on RoamFit!
+            </Text>
+
+            <Text style={styles.doneSubtitle}>
+              {Math.round(result.actualMinutes)} min · {session.focus}
+            </Text>
+
+            {statTiles.length > 0 && (
+              <View testID="completion-stats" style={styles.statGrid}>
+                {statTiles.map((tile, i) => (
+                  <AnimatedStatCounter
+                    key={tile.key}
+                    testID={`completion-stat-${tile.key}`}
+                    value={tile.value}
+                    label={tile.label}
+                    suffix={tile.suffix}
+                    delay={i * 130}
+                  />
+                ))}
+              </View>
+            )}
+
+            {completionStats?.heaviestBand && bandTensions && (
+              <View style={styles.bandRow} testID="completion-band">
+                <Text style={styles.bandRowLabel}>Heaviest band used</Text>
+                <BandChip band={completionStats.heaviestBand} tensions={bandTensions} />
+              </View>
+            )}
+
+            {celebration.quiet.length > 0 && (
+              <View testID="quiet-milestones" style={styles.quietMilestones}>
+                {celebration.quiet.map((m, i) => (
+                  <Text key={i} style={styles.quietMilestoneText}>
+                    ⭐ {m.text}
+                  </Text>
+                ))}
+              </View>
+            )}
+          </Animated.View>
+
+          <Animated.View
+            style={{
+              opacity: buttonOpacity,
+              transform: [
+                {
+                  scale: buttonOpacity.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }),
+                },
+              ],
+            }}
+          >
+            <Pressable
+              testID="return-home"
+              style={styles.doneFinishButton}
+              onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Home' }] })}
+            >
+              <Text style={styles.doneFinishButtonText}>Heck yes!</Text>
+            </Pressable>
+          </Animated.View>
         </ScrollView>
       </View>
     );
@@ -707,6 +859,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   doneSubtitle: { fontSize: 14, color: '#e9d5ff', textAlign: 'center' },
+  statGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 18,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    width: '100%',
+  },
+  bandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  bandRowLabel: { fontSize: 13, color: '#e9d5ff', fontWeight: '600' },
   quietMilestones: {
     gap: 6,
     marginTop: 8,
