@@ -507,6 +507,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     focus,
     difficulty,
     format: 'straight_sets',
+    isQuick,
     targetMinutes,
     estimatedMinutes: fit.estimatedMinutes,
     warmup: warmupEntries,

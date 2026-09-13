@@ -108,6 +108,8 @@ export interface SessionRecord {
   focus: Focus;
   difficulty: Difficulty;
   format: string;
+  /** §9.5/§14.1.6 — this session came from the Quick Session shortcut. */
+  isQuick: boolean;
   targetMinutes: number;
   estimatedMinutes: number;
   actualMinutes: number | null;
@@ -232,6 +234,7 @@ function rowToSession(
     focus: row.focus as Focus,
     difficulty: row.difficulty,
     format: row.format,
+    isQuick: row.isQuick,
     targetMinutes: row.targetMinutes,
     estimatedMinutes: row.estimatedMinutes,
     actualMinutes: row.actualMinutes,
@@ -341,6 +344,7 @@ export function createPendingSession(db: Db, input: CreateSessionInput): string 
       focus: plan.focus,
       difficulty: plan.difficulty,
       format: plan.format,
+      isQuick: plan.isQuick,
       targetMinutes: plan.targetMinutes,
       estimatedMinutes: plan.estimatedMinutes,
       anchorsSnapshot: JSON.stringify(plan.anchorsSnapshot),
@@ -1286,6 +1290,10 @@ export interface DashboardSessionSummary {
   /** §14.1.6 — which focus area this session trained, so the calendar heatmap can show a
    *  per-day letter (F/U/A/L) instead of just a trained/untrained square. */
   focus: Focus;
+  /** §9.5/§14.1.6 — a Quick Session gets its own 'Q' calendar marker instead of its (always
+   *  'full') focus letter, since a 15-minute Quick Session and a full-length full-body session
+   *  are not the same fact about the day. */
+  isQuick: boolean;
   /** §9.6 — strings only, never coordinates (invariant 8's passport-adjacent sibling rule).
    *  Null until the §11.3 `passport_geocode` deferred-work queue resolves (or if the user never
    *  opted in). */
@@ -1329,6 +1337,7 @@ export function getCompletedSessionsForDashboard(db: Db, limit = 365): Dashboard
       actualMinutes: schema.sessions.actualMinutes,
       estimatedMinutes: schema.sessions.estimatedMinutes,
       focus: schema.sessions.focus,
+      isQuick: schema.sessions.isQuick,
       city: schema.sessions.city,
       country: schema.sessions.country,
     })

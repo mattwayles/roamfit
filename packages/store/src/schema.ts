@@ -164,8 +164,8 @@ export const manualDayMarkers = sqliteTable(
   {
     userId: text('user_id').notNull().default('local'),
     localDate: text('local_date').notNull(),
-    /** 'none' | 'travel' | Focus ('full' | 'upper' | 'abs' | 'legs') — plain TEXT, no CHECK
-     *  constraint, so the value set can grow without a migration. */
+    /** 'none' | 'travel' | 'quick' | Focus ('full' | 'upper' | 'abs' | 'legs') — plain TEXT, no
+     *  CHECK constraint, so the value set can grow without a migration. */
     marker: text('marker').notNull(),
     updatedAt: text('updated_at').notNull(),
   },
@@ -197,6 +197,10 @@ export const sessions = sqliteTable(
      *  engine's `GenerationRequest.difficulty`/`SessionPlan.difficulty`. */
     difficulty: text('effort', { enum: ['easy', 'medium', 'hard'] }).notNull(),
     format: text('format').notNull().default('straight_sets'),
+    /** §9.5/§14.1.6 — this session came from the Quick Session shortcut, not a regular
+     *  targetMinutes/difficulty pick. Lets the calendar heatmap mark it distinctly from a
+     *  same-focus regular session. */
+    isQuick: integer('is_quick', { mode: 'boolean' }).notNull().default(false),
     targetMinutes: integer('target_minutes').notNull(),
     estimatedMinutes: integer('estimated_minutes').notNull(),
     actualMinutes: real('actual_minutes'),

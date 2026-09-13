@@ -219,18 +219,22 @@ export function buildCalendarDays(
   travelLocalDates: ReadonlySet<string>,
   manualMarkers: ReadonlyMap<string, DayMarker> = new Map(),
 ): CalendarDay[] {
-  const byDate = new Map<string, { minutes: number; focus: Focus; dominantMinutes: number }>();
+  const byDate = new Map<
+    string,
+    { minutes: number; focus: Focus; isQuick: boolean; dominantMinutes: number }
+  >();
   for (const s of sessions) {
     const minutes = s.actualMinutes ?? s.estimatedMinutes;
     const existing = byDate.get(s.localDate);
     if (!existing) {
-      byDate.set(s.localDate, { minutes, focus: s.focus, dominantMinutes: minutes });
+      byDate.set(s.localDate, { minutes, focus: s.focus, isQuick: s.isQuick, dominantMinutes: minutes });
     } else {
       existing.minutes += minutes;
       // Two sessions on one day is rare, but if it happens the marker follows whichever session
       // actually took the most time, not simply the last one read.
       if (minutes > existing.dominantMinutes) {
         existing.focus = s.focus;
+        existing.isQuick = s.isQuick;
         existing.dominantMinutes = minutes;
       }
     }
@@ -243,7 +247,16 @@ export function buildCalendarDays(
     const trained = byDate.get(localDate);
     const inTransit = travelLocalDates.has(localDate);
     const manualMarker = manualMarkers.get(localDate) ?? null;
-    const derivedMarker: DayMarker = trained ? trained.focus : inTransit ? 'travel' : 'none';
+    // §9.5 — a Quick Session gets its own 'quick' marker rather than its (always 'full') focus
+    // letter: a 15-minute Quick Session and a full-length full-body session aren't the same fact
+    // about the day, even though credit for "did something" is the same green fill either way.
+    const derivedMarker: DayMarker = trained
+      ? trained.isQuick
+        ? 'quick'
+        : trained.focus
+      : inTransit
+        ? 'travel'
+        : 'none';
     out.push({
       localDate,
       minutes: trained?.minutes ?? null,

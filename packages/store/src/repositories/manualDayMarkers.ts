@@ -12,7 +12,7 @@ import { schema } from '../db';
 
 const USER_ID = 'local';
 
-export type DayMarker = 'none' | 'travel' | Focus;
+export type DayMarker = 'none' | 'travel' | 'quick' | Focus;
 
 export function setManualDayMarker(
   db: Db,

@@ -163,6 +163,7 @@ function summary(
     actualMinutes: 30,
     estimatedMinutes: 30,
     focus: 'full',
+    isQuick: false,
     city: null,
     country: null,
     ...opts,
@@ -301,6 +302,31 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
       manualMarker: null,
       marker: 'travel',
     });
+  });
+
+  it('a Quick Session gets its own quick marker, not its (always full) focus letter', () => {
+    const days = buildCalendarDays(
+      [summary('2026-05-03', { focus: 'full', isQuick: true })],
+      '2026-05-05',
+      5,
+      new Set(),
+    );
+    const quickDay = days.find((d) => d.localDate === '2026-05-03')!;
+    expect(quickDay.focus).toBe('full');
+    expect(quickDay.marker).toBe('quick');
+  });
+
+  it('a regular session outweighing a same-day Quick Session keeps the focus marker', () => {
+    const days = buildCalendarDays(
+      [
+        summary('2026-05-05', { focus: 'full', isQuick: true, actualMinutes: 7 }),
+        summary('2026-05-05', { focus: 'upper', isQuick: false, actualMinutes: 30 }),
+      ],
+      '2026-05-05',
+      1,
+      new Set(),
+    );
+    expect(days[0].marker).toBe('upper');
   });
 });
 

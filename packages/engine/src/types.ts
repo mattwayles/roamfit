@@ -244,6 +244,10 @@ export interface SessionPlan {
   focus: Focus;
   difficulty: Difficulty;
   format: SessionFormat;
+  /** §9.5 — this session came from the Quick Session shortcut (fixed ~7min budget, no pickers),
+   *  not a regular targetMinutes/difficulty pick. Carried onto the persisted session so the
+   *  calendar heatmap (§14.1.6) can mark it distinctly from a same-focus regular session. */
+  isQuick: boolean;
   targetMinutes: number;
   estimatedMinutes: number;
   warmup: SessionEntry[];

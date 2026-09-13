@@ -84,6 +84,7 @@ function makeSession(entries: SessionEntryRecord[]): SessionRecord {
     focus: 'full',
     difficulty: 'medium',
     format: 'standard',
+    isQuick: false,
     targetMinutes: 30,
     estimatedMinutes: 30,
     actualMinutes: 28,

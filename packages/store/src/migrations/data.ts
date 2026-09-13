@@ -457,6 +457,15 @@ ALTER TABLE session_entries DROP COLUMN enjoyment_feedback;
 ALTER TABLE set_logs DROP COLUMN enjoyment_feedback;
 `;
 
+const MIGRATION_0019_SESSION_IS_QUICK = `-- 0019_session_is_quick.sql — §9.5/§14.1.6: Quick Session becomes a persisted fact on the
+-- session row, not just a generation-time request flag. The calendar heatmap needs to tell a
+-- Quick Session apart from a regular same-focus session, which \`focus\` alone can't do (Quick
+-- Session always requests 'full'). Defaults false, which is correct for every existing row —
+-- Quick Session didn't exist as a distinct persisted concept before this.
+
+ALTER TABLE sessions ADD COLUMN is_quick INTEGER NOT NULL DEFAULT 0;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -482,4 +491,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0016_session_cursor.sql', sql: MIGRATION_0016_SESSION_CURSOR },
   { id: '0017_set_level_feedback.sql', sql: MIGRATION_0017_SET_LEVEL_FEEDBACK },
   { id: '0018_remove_enjoyment.sql', sql: MIGRATION_0018_REMOVE_ENJOYMENT },
+  { id: '0019_session_is_quick.sql', sql: MIGRATION_0019_SESSION_IS_QUICK },
 ];

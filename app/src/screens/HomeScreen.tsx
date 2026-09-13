@@ -77,13 +77,17 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 const CALENDAR_WINDOW_DAYS = 30;
 const CALENDAR_ROW_LENGTH = 10;
 
-/** §14.1.6 — the one-letter marker for each focus area, shown on a trained calendar day. */
+/** §14.1.6 — the one-letter marker shown on a trained calendar day: a focus letter, or 'Q' for a
+ *  Quick Session (§9.5), which is otherwise indistinguishable from a regular full-body session
+ *  since it always requests 'full'. */
 const FOCUS_LETTER: Record<Focus, string> = { full: 'F', upper: 'U', abs: 'A', legs: 'L' };
+const QUICK_LETTER = 'Q';
 
 /** Options offered by the calendar day-marker edit popup, in the order they're listed. */
 const DAY_MARKER_OPTIONS: { marker: DayMarker; label: string }[] = [
   { marker: 'none', label: 'No workout' },
   { marker: 'travel', label: 'Travel day' },
+  { marker: 'quick', label: 'Quick workout' },
   { marker: 'full', label: 'Full-body workout' },
   { marker: 'upper', label: 'Upper-body workout' },
   { marker: 'abs', label: 'Abs workout' },
@@ -513,7 +517,9 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
                         ? 'Travel day — tap to edit'
                         : day.marker === 'none'
                           ? 'No workout — tap to edit'
-                          : `${day.marker} workout — tap to edit`
+                          : day.marker === 'quick'
+                            ? 'Quick workout — tap to edit'
+                            : `${day.marker} workout — tap to edit`
                     }
                     style={[
                       styles.calendarCell,
@@ -526,7 +532,10 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
                     {day.marker === 'travel' && (
                       <Text style={styles.calendarCellTransitIcon}>✈</Text>
                     )}
-                    {day.marker !== 'none' && day.marker !== 'travel' && (
+                    {day.marker === 'quick' && (
+                      <Text style={styles.calendarCellLetter}>{QUICK_LETTER}</Text>
+                    )}
+                    {day.marker !== 'none' && day.marker !== 'travel' && day.marker !== 'quick' && (
                       <Text style={styles.calendarCellLetter}>{FOCUS_LETTER[day.marker]}</Text>
                     )}
                   </Pressable>
