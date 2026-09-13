@@ -13,7 +13,9 @@ import {
   cueCount,
   cueHalfway,
   cueRestZero,
+  cueSessionComplete,
   cueStart,
+  hapticHeavy,
   setCueSoundsEnabled,
 } from './workoutAudio';
 
@@ -30,6 +32,8 @@ describe('workoutAudio', () => {
     expect(() => cueStart()).not.toThrow();
     expect(() => cueCompletion()).not.toThrow();
     expect(() => cueRestZero()).not.toThrow();
+    expect(() => cueSessionComplete()).not.toThrow();
+    expect(() => hapticHeavy()).not.toThrow();
   });
 
   it('cueCompletion fires a success-notification haptic (the info a muted user still gets)', () => {
@@ -60,5 +64,19 @@ describe('workoutAudio', () => {
     expect(notify).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Success);
     impact.mockRestore();
     notify.mockRestore();
+  });
+
+  it('cueSessionComplete fires the same success-notification haptic as cueCompletion', () => {
+    const spy = jest.spyOn(Haptics, 'notificationAsync');
+    cueSessionComplete();
+    expect(spy).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Success);
+    spy.mockRestore();
+  });
+
+  it('hapticHeavy fires a heavy impact haptic, for the one moment meant to read as bigger', () => {
+    const spy = jest.spyOn(Haptics, 'impactAsync');
+    hapticHeavy();
+    expect(spy).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Heavy);
+    spy.mockRestore();
   });
 });

@@ -72,6 +72,7 @@ const SOUNDS = {
   halfwayChime: require('../../assets/audio/halfway-chime.wav') as AudioSource,
   completionTone: require('../../assets/audio/completion-tone.wav') as AudioSource,
   restZero: require('../../assets/audio/rest-zero.wav') as AudioSource,
+  sessionComplete: require('../../assets/audio/session-complete.wav') as AudioSource,
 };
 /* eslint-enable @typescript-eslint/no-require-imports */
 
@@ -159,6 +160,12 @@ export function hapticCompletion(): void {
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 }
 
+/** Reserved for the one moment that should read as bigger than an ordinary completion —
+ *  see `cueSessionComplete` below. */
+export function hapticHeavy(): void {
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+}
+
 // --------------------------------------------------------------------------------------------
 // Combined cue helpers — one call per meaningful moment, audio + haptic together. Screens call
 // these, never `playSound`/`Haptics.*` directly, so the pairing (§10.8 "haptics carry the same
@@ -192,5 +199,20 @@ export function cueCompletion(): void {
  *  `cueCount()` fired by the caller on each of the last 3 seconds; this is the zero-mark cue. */
 export function cueRestZero(): void {
   playSound('restZero');
+  hapticCompletion();
+}
+
+/** The whole-session completion screen's arrival cue — a short rising fanfare, distinct from
+ *  every in-workout tone, paired with the same Success haptic the screen already fired on its
+ *  own before this existed. Previously this screen was the one silent moment in the entire
+ *  workout loop: every other cue in this file has a sound, this had none. Fired once, when the
+ *  completion screen first becomes visible.
+ *
+ *  The additional escalating haptic pulses timed to that screen's own staggered entrance
+ *  animation (banner ticks, confetti detonation) are the screen's concern, not this one moment's
+ *  — they use the standalone `hapticTick`/`hapticHeavy` exports below, the same way this screen
+ *  already called `hapticCompletion` directly before this function existed. */
+export function cueSessionComplete(): void {
+  playSound('sessionComplete');
   hapticCompletion();
 }
