@@ -202,19 +202,25 @@ it('completing a not-yet-reached set jumped to from Summary shows its own rest p
 }, 20000);
 
 /**
- * Reported from the device: complete a set jumped to from Summary, then complete its rest and
- * feedback — the screen returned to the exact same set instead of progressing.
+ * Reported from the device, in two stages:
  *
- * The landing effect that applies a `jumpTo` bookmark onto `rewoundTo` treated `rewoundTo` itself
- * as the "have I already run" flag: it skipped only while `rewoundTo` was still truthy. Completing
- * the bookmarked set legitimately clears `rewoundTo` back to null so the workout resumes at its
- * own front edge — but `session` gets a new object identity on every `reload()`, which is one of
- * the effect's dependencies, so clearing `rewoundTo` let the very next reload re-run the effect and
- * re-apply the *same* `jumpTo` bookmark, trapping the screen on the set just completed. The fix
- * gates the effect on its own ref instead, so it truly runs once per arrival regardless of how
- * `rewoundTo` is used afterwards.
+ * 1. Complete a set jumped to from Summary, then complete its rest and feedback — the screen
+ *    returned to the exact same set instead of progressing at all. Root cause: the landing effect
+ *    that applies a `jumpTo` bookmark onto `rewoundTo` treated `rewoundTo` itself as its "have I
+ *    already run" flag, skipping only while `rewoundTo` stayed truthy. Completing the bookmarked
+ *    set legitimately cleared `rewoundTo` back to null so the workout could resume — but `session`
+ *    gets a new object identity on every `reload()`, one of the effect's own dependencies, so that
+ *    null re-triggered the effect on the very next reload and re-applied the same bookmark.
+ *
+ * 2. Once (1) was fixed by clearing `rewoundTo` to null (falling back to the derived front edge),
+ *    completing a jumped-ahead set instead snapped back to an *earlier, still-untouched* exercise
+ *    — the true front edge — rather than the set's own next page. The expectation is a book: ◂◂/▸▸
+ *    and Complete always turn one page from wherever the workout currently is; only an explicit
+ *    Summary selection jumps around. The fix computes the *next plan position after the one just
+ *    trained* and holds it as the view override (falling back to null only when that next position
+ *    already agrees with the newly-recomputed front edge, or there is no next position at all).
  */
-it('completing the rest/feedback for a set jumped to from Summary advances past it, not back onto it', async () => {
+it('completing the rest/feedback for a set jumped to from Summary advances to its own next set, not the untouched front edge', async () => {
   const db = await freshDb();
   const clock = nowEngineClock();
   const utcInstant = nowUtcInstant();
@@ -224,8 +230,9 @@ it('completing the rest/feedback for a set jumped to from Summary advances past 
     request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
     clock,
     // Verified for this seed: `active[0]` (the true front edge — §10.8's derived position, not
-    // necessarily the first `main` entry) and `active[2]` are both reps-based, so both can be
-    // driven through `complete-set` below.
+    // necessarily the first `main` entry) is reps-based, and `active[2]` is a reps-based, 3-set
+    // exercise — both can be driven through `complete-set` below, and set 1 of `active[2]` is a
+    // genuine "next page" distinct from both `active[2]` set 0 and the front edge.
     rng: createRng(seedFromString('jump-ahead-rest-advance-seed-2')),
     utcInstant,
   });
@@ -241,9 +248,10 @@ it('completing the rest/feedback for a set jumped to from Summary advances past 
   const session0 = sessionsRepo.getSession(db, sessionId)!;
   const active = session0.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
   // Nothing logged — the front edge is `active[0]` set 0. The bookmark jumps ahead to a later,
-  // untouched entry instead.
+  // untouched entry instead, one with more than one set.
   const frontEdge = active[0]!;
   const target = active[2]!;
+  expect(target.sets).toBeGreaterThanOrEqual(2);
 
   const navigation = mockNavigation();
   render(
@@ -267,19 +275,20 @@ it('completing the rest/feedback for a set jumped to from Summary advances past 
 
   await fireEvent.press(screen.getByTestId('rest-next'));
 
-  // Without the fix, the landing effect re-applies the same `jumpTo` bookmark here, and the
-  // screen shows `target` set 0 all over again instead of the real front edge.
+  // Turning the page from `target` set 0 lands on `target` set 1 — its own next set — not back on
+  // `target` set 0 again (the original bug) and not on the still-untouched `frontEdge` either (the
+  // "snaps back to the front edge" regression this test also guards against).
   await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
   fireEvent.press(screen.getByTestId('complete-set'));
 
   await waitFor(() => {
     const s = sessionsRepo.getSession(db, sessionId)!;
     const targetSetLogs = s.entries.find((e) => e.id === target.id)!.setLogs;
-    // Exactly one log on `target` set 0 — the second press did not re-log the same slot.
-    expect(targetSetLogs.filter((l) => l.setIndex === 0)).toHaveLength(1);
+    expect(targetSetLogs.find((l) => l.setIndex === 0)?.status).toBe('completed');
+    expect(targetSetLogs.find((l) => l.setIndex === 1)?.status).toBe('completed');
     const frontEdgeLog = s.entries
       .find((e) => e.id === frontEdge.id)!
       .setLogs.find((l) => l.setIndex === 0);
-    expect(frontEdgeLog?.status).toBe('completed');
+    expect(frontEdgeLog).toBeUndefined();
   }, WAIT_OPTS);
 }, 20000);

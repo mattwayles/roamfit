@@ -686,10 +686,26 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     setDifficulty(null);
     setPhase('resting');
     setPausedCompletion(null);
-    // A set that has just been trained is done with, whether it was the front edge or one the
-    // user had stepped back to redo: drop the view offset so the workout resumes from its own
-    // front edge rather than replaying the sets after the one just logged.
-    setRewoundTo(null);
+    // The workout turns pages from wherever it was, not back to the derived front edge: a set
+    // completed at the front edge advances one page, exactly as before, but a set completed after
+    // jumping ahead from Summary (an untouched set that isn't the front edge) must also advance
+    // to *its own* next page rather than snapping back to an earlier still-untouched exercise —
+    // that snap-back is what made completing a jumped-to set look like it looped back on itself.
+    // `stepPosition` only reads plan structure (never log status), so it's safe to compute here,
+    // before `reload()`, against the position that was just trained.
+    //
+    // The one case this still clears the override entirely (matching `moveTo`'s own convention)
+    // is landing exactly on the newly-recomputed front edge, or running off the end of the plan
+    // (`nextPosition` null) — nothing left to override the derived position with in either case.
+    const nextPosition = stepPosition(session, currentPosition, 1);
+    const updatedFrontier = findCurrent(sessionsRepo.getSession(db, sessionId)!);
+    const updatedFrontierPosition = updatedFrontier
+      ? { entryId: updatedFrontier.entry.id, setIndex: updatedFrontier.setIndex }
+      : null;
+    const overridePosition =
+      nextPosition && !samePosition(nextPosition, updatedFrontierPosition) ? nextPosition : null;
+    setRewoundTo(overridePosition);
+    sessionsRepo.setSessionCursor(db, sessionId, overridePosition, nowUtcInstant());
     reload();
   };
 
