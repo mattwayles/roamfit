@@ -1,8 +1,7 @@
 /**
- * §8.1 — "Exactly two controls, both optional, both on the rest screen": a 3-position difficulty
- * segment (unset means "just right") and a five-emoji enjoyment row (unset is neutral, tapping
- * the same emoji again clears it). Never required, never blocking, never nagged, never solicited
- * twice — this component only ever renders on the rest screen, its one home per the spec.
+ * §8.1 — "One control, optional, on the rest screen": a 3-position difficulty segment (unset
+ * means "just right"). Never required, never blocking, never nagged, never solicited twice —
+ * this component only ever renders on the rest screen, its one home per the spec.
  */
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -15,18 +14,12 @@ const DIFFICULTY_OPTIONS: { value: Difficulty; label: string }[] = [
   { value: 'too_hard', label: 'Too hard' },
 ];
 
-const EMOJIS = ['😩', '😞', '😕', '🙂', '😄'];
-
 export default function FeedbackControls({
   difficulty,
-  enjoyment,
   onDifficultyChange,
-  onEnjoymentChange,
 }: {
   difficulty: Difficulty | null;
-  enjoyment: number | null;
   onDifficultyChange: (d: Difficulty | undefined) => void;
-  onEnjoymentChange: (e: number | undefined) => void;
 }): React.JSX.Element {
   return (
     <View style={styles.container}>
@@ -46,23 +39,6 @@ export default function FeedbackControls({
           </Pressable>
         ))}
       </View>
-
-      <View style={styles.emojiRow} testID="enjoyment-row">
-        {EMOJIS.map((emoji, i) => {
-          const value = i + 1;
-          const selected = enjoyment === value;
-          return (
-            <Pressable
-              key={emoji}
-              testID={`enjoyment-${value}`}
-              onPress={() => onEnjoymentChange(selected ? undefined : value)}
-              style={[styles.emojiButton, selected && styles.emojiButtonSelected]}
-            >
-              <Text style={styles.emoji}>{emoji}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
     </View>
   );
 }
@@ -81,14 +57,4 @@ const styles = StyleSheet.create({
   segmentItemSelected: { backgroundColor: '#fff' },
   segmentText: { fontSize: 12, fontWeight: '600', color: '#64748b' },
   segmentTextSelected: { color: '#0f172a' },
-  emojiRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  emojiButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emojiButtonSelected: { backgroundColor: '#dbeafe' },
-  emoji: { fontSize: 24 },
 });

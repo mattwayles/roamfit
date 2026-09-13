@@ -289,25 +289,13 @@ describe('§8.1 recordEntryFeedback — three-state omit/set/clear (found via ap
       const sessionId = makeSession(db);
       const entryId = getPendingSession(db)!.entries.find((e) => e.section === 'main')!.id;
 
-      recordEntryFeedback(
-        db,
-        entryId,
-        { difficulty: 'too_easy', enjoyment: 4 },
-        utcInstantFor('2026-03-01'),
-      );
+      recordEntryFeedback(db, entryId, { difficulty: 'too_easy' }, utcInstantFor('2026-03-01'));
       let entry = getSession(db, sessionId)!.entries.find((e) => e.id === entryId)!;
       expect(entry.difficultyFeedback).toBe('too_easy');
-      expect(entry.enjoymentFeedback).toBe(4);
 
-      // Omitting `enjoyment` entirely must not touch it while clearing `difficulty`.
       recordEntryFeedback(db, entryId, { difficulty: null }, utcInstantFor('2026-03-01'));
       entry = getSession(db, sessionId)!.entries.find((e) => e.id === entryId)!;
       expect(entry.difficultyFeedback).toBeNull(); // "tap the same value again clears it"
-      expect(entry.enjoymentFeedback).toBe(4); // untouched
-
-      recordEntryFeedback(db, entryId, { enjoyment: null }, utcInstantFor('2026-03-01'));
-      entry = getSession(db, sessionId)!.entries.find((e) => e.id === entryId)!;
-      expect(entry.enjoymentFeedback).toBeNull();
     } finally {
       close();
     }
@@ -332,24 +320,17 @@ describe('§8.1 recordSetFeedback — same three-state contract, scoped to one s
         now,
       );
 
-      recordSetFeedback(db, entry.id, 0, { difficulty: 'too_easy', enjoyment: 4 }, now);
+      recordSetFeedback(db, entry.id, 0, { difficulty: 'too_easy' }, now);
       const setLog = (i: number) =>
         getSession(db, sessionId)!
           .entries.find((e) => e.id === entry.id)!
           .setLogs.find((s) => s.setIndex === i)!;
       expect(setLog(0).difficultyFeedback).toBe('too_easy');
-      expect(setLog(0).enjoymentFeedback).toBe(4);
       // The sibling set (set 1) is untouched — this is the whole point of moving feedback here.
       expect(setLog(1).difficultyFeedback).toBeNull();
-      expect(setLog(1).enjoymentFeedback).toBeNull();
 
-      // Omitting `enjoyment` entirely must not touch it while clearing `difficulty`.
       recordSetFeedback(db, entry.id, 0, { difficulty: null }, now);
       expect(setLog(0).difficultyFeedback).toBeNull(); // "tap the same value again clears it"
-      expect(setLog(0).enjoymentFeedback).toBe(4); // untouched
-
-      recordSetFeedback(db, entry.id, 0, { enjoyment: null }, now);
-      expect(setLog(0).enjoymentFeedback).toBeNull();
     } finally {
       close();
     }

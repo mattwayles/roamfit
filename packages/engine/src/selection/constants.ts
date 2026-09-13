@@ -22,15 +22,6 @@ export const LOW_VOLUME_THRESHOLD_SETS = 3;
 /** 48h recovery window. */
 export const RECOVERY_WINDOW_DAYS = 2;
 
-/** Enjoyment: avoid anything at or below this rating unless nothing else fills the slot. */
-export const AVOID_ENJOYMENT_MAX = 2;
-/** Neutral default for an exercise never rated. */
-export const NEUTRAL_ENJOYMENT = 3;
-/** "Favorite" = rated at or above this. */
-export const FAVORITE_ENJOYMENT_MIN = 4;
-/** Favorites capped at ~40% of main work. */
-export const FAVORITES_CAP_RATIO = 0.4;
-
 /** REPEATEDLY-SKIPPED: skipped or swapped away this many times → suppressed. */
 export const REPEAT_SKIP_THRESHOLD = 2;
 export const SUPPRESSION_DAYS = 30;

@@ -1,6 +1,6 @@
 /**
  * §5.1 step 1 — HARD FILTERS. Never negotiable, and run first, before anything else (selection,
- * enjoyment, novelty) sees the pool. Invariant 3: safety filters live in code.
+ * novelty) sees the pool. Invariant 3: safety filters live in code.
  *
  * Four filters, all §13.2-style "removed outright, never a prompt hint":
  *  - equipment: caller's `equipmentPreference`, when not `any`.

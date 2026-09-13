@@ -1,8 +1,8 @@
 /**
  * §4.4 User Exercise State repository — per user × exercise, never on the shared library table
- * (invariant 7). Also owns the EMA update formulas for §8.1 explicit feedback, since "how a
- * rating turns into a stored trend" is a storage-layer decision the engine doesn't make (it only
- * ever *reads* `ExerciseState.difficultyEma`/`enjoymentEma`).
+ * (invariant 7). Also owns the EMA update formula for §8.1 explicit difficulty feedback, since
+ * "how a rating turns into a stored trend" is a storage-layer decision the engine doesn't make
+ * (it only ever *reads* `ExerciseState.difficultyEma`).
  */
 import { eq, and, isNotNull } from 'drizzle-orm';
 import type {
@@ -48,7 +48,6 @@ function rowToState(row: typeof schema.exerciseState.$inferSelect): EngineExerci
           }
         : null,
     difficultyEma: row.difficultyEma,
-    enjoymentEma: row.enjoymentEma,
     skipCount: row.skipCount,
     swapAwayCount: row.swapAwayCount,
     removeAtApprovalCount: row.removeAtApprovalCount,
@@ -167,25 +166,6 @@ export function recordDifficultyFeedback(
   const state = getExerciseState(db, exerciseId)!;
   db.update(schema.exerciseState)
     .set({ difficultyEma: ema(state.difficultyEma, DIFFICULTY_VALUE[feedback]), updatedAt: now })
-    .where(
-      and(
-        eq(schema.exerciseState.userId, USER_ID),
-        eq(schema.exerciseState.exerciseId, exerciseId),
-      ),
-    )
-    .run();
-}
-
-export function recordEnjoymentFeedback(
-  db: Db,
-  exerciseId: string,
-  rating: number,
-  now: string,
-): void {
-  ensureRow(db, exerciseId, now);
-  const state = getExerciseState(db, exerciseId)!;
-  db.update(schema.exerciseState)
-    .set({ enjoymentEma: ema(state.enjoymentEma, rating), updatedAt: now })
     .where(
       and(
         eq(schema.exerciseState.userId, USER_ID),

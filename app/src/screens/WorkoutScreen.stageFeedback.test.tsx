@@ -151,13 +151,11 @@ describe('§8.1 stage feedback: one question per warm-up and per cool-down', () 
     // One answer, landing on every entry in the stage — that is what "for the whole warm-up"
     // means once it reaches the store.
     await fireEvent.press(screen.getByTestId('difficulty-too_easy'));
-    await fireEvent.press(screen.getByTestId('enjoyment-4'));
     await waitFor(() => {
       const after = sessionsRepo.getSession(db, sessionId)!;
       for (const id of sectionEntryIds) {
         const entry = after.entries.find((e) => e.id === id)!;
         expect(entry.difficultyFeedback).toBe('too_easy');
-        expect(entry.enjoymentFeedback).toBe(4);
       }
     }, WAIT_OPTS);
 
@@ -207,7 +205,6 @@ describe('§8.1 stage feedback: one question per warm-up and per cool-down', () 
     // used to carry is gone; that is now asked once, at the end of the stage.
     await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), WAIT_OPTS);
     expect(screen.queryByTestId('difficulty-too_easy')).toBeNull();
-    expect(screen.queryByTestId('enjoyment-4')).toBeNull();
     expect(screen.queryByTestId('stage-feedback')).toBeNull();
   }, 20000);
 
@@ -237,11 +234,11 @@ describe('§8.1 stage feedback: one question per warm-up and per cool-down', () 
     expect(screen.getByTestId('stage-feedback-title')).toHaveTextContent('How was the cool-down?');
     expect(navigation.replace).not.toHaveBeenCalled();
 
-    await fireEvent.press(screen.getByTestId('enjoyment-5'));
+    await fireEvent.press(screen.getByTestId('difficulty-too_hard'));
     await waitFor(() => {
       const after = sessionsRepo.getSession(db, sessionId)!;
       for (const id of sectionEntryIds) {
-        expect(after.entries.find((e) => e.id === id)!.enjoymentFeedback).toBe(5);
+        expect(after.entries.find((e) => e.id === id)!.difficultyFeedback).toBe('too_hard');
       }
     }, WAIT_OPTS);
 

@@ -139,7 +139,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [phase, setPhase] = useState<Phase>('exercise');
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
-  const [enjoyment, setEnjoyment] = useState<number | null>(null);
   // §8.1 — which entry the rest screen's feedback controls apply to (the one just performed,
   // not `current`'s post-reload "next up" entry). See the comment in `finishSetAndRest`.
   const [restingEntryId, setRestingEntryId] = useState<string | null>(null);
@@ -375,20 +374,13 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
   /** §8.1 stage feedback — one answer, written to every entry in the stage. `null` is "cleared",
    *  which `recordEntryFeedback`'s contract distinguishes from an omitted key. */
-  const recordStageAnswer = (feedback: {
-    difficulty?: Difficulty | null;
-    enjoyment?: number | null;
-  }) => {
+  const recordStageAnswer = (feedback: { difficulty?: Difficulty | null }) => {
     if (!feedbackSection) return;
     sessionsRepo.recordSectionFeedback(db, sessionId, feedbackSection, feedback, nowUtcInstant());
   };
   const handleStageDifficulty = (d: Difficulty | undefined) => {
     setDifficulty(d ?? null);
     recordStageAnswer({ difficulty: d ?? null });
-  };
-  const handleStageEnjoyment = (e: number | undefined) => {
-    setEnjoyment(e ?? null);
-    recordStageAnswer({ enjoyment: e ?? null });
   };
   /** Leaving a stage page. Disarming `feedbackSection` is what lets the Summary effect through
    *  again, which is how the cool-down page hands off to the end of the workout. */
@@ -417,9 +409,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         <StageFeedbackPhase
           section={feedbackSection}
           difficulty={difficulty}
-          enjoyment={enjoyment}
           onDifficultyChange={handleStageDifficulty}
-          onEnjoymentChange={handleStageEnjoyment}
           onDone={handleStageFeedbackDone}
         />
       </ScrollView>
@@ -527,9 +517,8 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    * about to start. Taking the top-ranked candidate is the same answer without the interruption.
    *
    * `alternativesForSlot` is the same call the sheet was fed by (invariant 2: the engine still
-   * decides), and its results are already sorted best-first — nearest difficulty, then tier, then
-   * the user's own enjoyment. Tapping again simply swaps again, which is the cheap way to reject
-   * a suggestion.
+   * decides), and its results are already sorted best-first — nearest difficulty, then tier.
+   * Tapping again simply swaps again, which is the cheap way to reject a suggestion.
    */
   const handleSwap = () => {
     const best = swapAlternatives[0];
@@ -600,7 +589,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    * §10.5 skip — the set is logged as `skipped` and the screen goes straight to the next set.
    *
    * It deliberately does *not* pass through rest. Rest buys recovery from work that was done, and
-   * the rest screen's difficulty/enjoyment controls ask how the set felt; a skipped set was never
+   * the rest screen's difficulty control asks how the set felt; a skipped set was never
    * performed, so there is nothing to recover from and nothing to rate. Sitting a user in front of
    * a countdown for work they explicitly declined is a delay, not a rest.
    *
@@ -641,7 +630,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     if (status !== 'completed' && !sectionHasCompletedSet(session, section)) return false;
     setFeedbackSection(section);
     setDifficulty(null);
-    setEnjoyment(null);
     return true;
   };
 
@@ -738,7 +726,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     setRestingEntryId(entry.id);
     setRestingSetIndex(setIndex);
     setDifficulty(null);
-    setEnjoyment(null);
     // Finishing a warm-up or cool-down goes to that stage's single question instead of to a rest
     // page — the transition out of the stage is not a rest, and `enterStageFeedback` has already
     // reset the controls for it.
@@ -883,10 +870,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    * `null` here means "the user just cleared it", which is different from omitting the key — see
    * `recordEntryFeedback`'s contract (shared by `recordSetFeedback`).
    */
-  const recordFeedback = (feedback: {
-    difficulty?: Difficulty | null;
-    enjoyment?: number | null;
-  }) => {
+  const recordFeedback = (feedback: { difficulty?: Difficulty | null }) => {
     if (feedbackSection) {
       recordStageAnswer(feedback);
       return;
@@ -903,10 +887,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const handleDifficultyChange = (d: Difficulty | undefined) => {
     setDifficulty(d ?? null);
     recordFeedback({ difficulty: d ?? null });
-  };
-  const handleEnjoymentChange = (e: number | undefined) => {
-    setEnjoyment(e ?? null);
-    recordFeedback({ enjoyment: e ?? null });
   };
 
   return (
@@ -1089,9 +1069,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           // exercises are individually progressed off exactly this answer.
           showFeedback={restingSection === 'main'}
           difficulty={difficulty}
-          enjoyment={enjoyment}
           onDifficultyChange={handleDifficultyChange}
-          onEnjoymentChange={handleEnjoymentChange}
           onNext={handleNextAfterRest}
           onExtend={handleRestExtend}
         />
@@ -1899,9 +1877,7 @@ function RestPhase({
   paused,
   showFeedback,
   difficulty,
-  enjoyment,
   onDifficultyChange,
-  onEnjoymentChange,
   onNext,
   onExtend,
 }: {
@@ -1926,9 +1902,7 @@ function RestPhase({
    *  warm-up and cool-down are asked about once per stage instead, on `StageFeedbackPhase`. */
   showFeedback: boolean;
   difficulty: Difficulty | null;
-  enjoyment: number | null;
   onDifficultyChange: (d: Difficulty | undefined) => void;
-  onEnjoymentChange: (e: number | undefined) => void;
   onNext: () => void;
   /** §10.7 — "+15s taps are recorded as a fatigue signal." Called only for +15 (never −15/Skip). */
   onExtend: () => void;
@@ -2046,12 +2020,7 @@ function RestPhase({
       </View>
 
       {showFeedback && (
-        <FeedbackControls
-          difficulty={difficulty}
-          enjoyment={enjoyment}
-          onDifficultyChange={onDifficultyChange}
-          onEnjoymentChange={onEnjoymentChange}
-        />
+        <FeedbackControls difficulty={difficulty} onDifficultyChange={onDifficultyChange} />
       )}
 
       <Pressable testID="rest-next" style={styles.completeButton} onPress={handleNext}>
@@ -2082,22 +2051,18 @@ function RestPhase({
  * one block, so it is asked about as one block, and the answer lands on every exercise in it.
  *
  * There is no countdown and no −15/+15/Skip row, because this is not a rest — it is the seam
- * between two stages. The one control is the way out, and both questions stay optional: leaving
+ * between two stages. The one control is the way out, and the question stays optional: leaving
  * without answering is a complete, unpunished answer (invariant 4).
  */
 function StageFeedbackPhase({
   section,
   difficulty,
-  enjoyment,
   onDifficultyChange,
-  onEnjoymentChange,
   onDone,
 }: {
   section: Section;
   difficulty: Difficulty | null;
-  enjoyment: number | null;
   onDifficultyChange: (d: Difficulty | undefined) => void;
-  onEnjoymentChange: (e: number | undefined) => void;
   onDone: () => void;
 }): React.JSX.Element {
   const label = section === 'warmup' ? 'warm-up' : 'cool-down';
@@ -2109,12 +2074,7 @@ function StageFeedbackPhase({
       </Text>
       <Text style={styles.stageFeedbackSubtitle}>Optional — one answer for the whole {label}.</Text>
 
-      <FeedbackControls
-        difficulty={difficulty}
-        enjoyment={enjoyment}
-        onDifficultyChange={onDifficultyChange}
-        onEnjoymentChange={onEnjoymentChange}
-      />
+      <FeedbackControls difficulty={difficulty} onDifficultyChange={onDifficultyChange} />
 
       <Pressable testID="stage-feedback-done" style={styles.completeButton} onPress={onDone}>
         <Text style={styles.completeButtonText}>CONTINUE</Text>

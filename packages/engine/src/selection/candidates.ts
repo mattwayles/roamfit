@@ -4,7 +4,7 @@
  */
 import type { Exercise, Role } from '@roamfit/data';
 import { daysBetween } from '../dates';
-import { HARD_COOLDOWN_SESSIONS, NEUTRAL_ENJOYMENT, SOFT_COOLDOWN_SESSIONS } from './constants';
+import { HARD_COOLDOWN_SESSIONS, SOFT_COOLDOWN_SESSIONS } from './constants';
 import type {
   Candidate,
   ExerciseState,
@@ -55,7 +55,6 @@ export function buildCandidate(exercise: Exercise, role: Role, ctx: CandidateCon
     sessionsAgo: ago,
     tier: recencyTier(ago),
     performCount,
-    enjoyment: state?.enjoymentEma ?? NEUTRAL_ENJOYMENT,
     isNovel: performCount === 0,
     isSuppressed: isSuppressed(state, ctx.today),
   };

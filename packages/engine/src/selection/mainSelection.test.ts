@@ -42,7 +42,6 @@ function state(overrides: Partial<ExerciseState> = {}): ExerciseState {
     sessionsPerformed: 1,
     bestSet: null,
     difficultyEma: 0,
-    enjoymentEma: 3,
     skipCount: 0,
     swapAwayCount: 0,
     removeAtApprovalCount: 0,
@@ -104,7 +103,7 @@ describe('§5.2 selection rules', () => {
     expect(result.picks.map((p) => p.exercise.id)).toEqual(['b']);
   });
 
-  it('SOFT COOLDOWN only fills a slot nothing else covers — preferred beats soft even with lower enjoyment', () => {
+  it('SOFT COOLDOWN only fills a slot nothing else covers — preferred beats soft', () => {
     const preferredEx = ex({ id: 'pref', pattern: 'horizontal_push' });
     const softEx = ex({ id: 'soft', pattern: 'horizontal_push' });
     // 4 sessions ago (the 4th-from-most-recent non-discarded session) -> soft tier for 'soft'.
@@ -142,10 +141,7 @@ describe('§5.2 selection rules', () => {
       slots: [slot('s1', 'horizontal_push')],
       pool: [preferredEx, softEx],
       poolIgnoringEquipment: [preferredEx, softEx],
-      userState: userState({
-        history,
-        exerciseStates: { soft: state({ exerciseId: 'soft', enjoymentEma: 5 }) },
-      }),
+      userState: userState({ history }),
       today: TODAY,
       rng: rng(),
       focus: 'upper',
@@ -211,12 +207,8 @@ describe('§5.2 selection rules', () => {
       poolIgnoringEquipment: [performed, novel, performedPull],
       userState: userState({
         exerciseStates: {
-          performed: state({ exerciseId: 'performed', sessionsPerformed: 5, enjoymentEma: 5 }),
-          'performed-pull': state({
-            exerciseId: 'performed-pull',
-            sessionsPerformed: 5,
-            enjoymentEma: 5,
-          }),
+          performed: state({ exerciseId: 'performed', sessionsPerformed: 5 }),
+          'performed-pull': state({ exerciseId: 'performed-pull', sessionsPerformed: 5 }),
         },
       }),
       today: TODAY,
@@ -315,45 +307,6 @@ describe('§5.2 selection rules', () => {
     expect(result.picks.find((p) => p.slotId === 's2')?.exercise.id).toBe('leg-alt');
   });
 
-  it('enjoyment — avoids a rating <=2 exercise when an alternative fills the slot', () => {
-    const disliked = ex({ id: 'disliked', pattern: 'horizontal_push' });
-    const neutral = ex({ id: 'neutral', pattern: 'horizontal_push' });
-    const result = selectMain({
-      slots: [slot('s1', 'horizontal_push')],
-      pool: [disliked, neutral],
-      poolIgnoringEquipment: [disliked, neutral],
-      userState: userState({
-        exerciseStates: { disliked: state({ exerciseId: 'disliked', enjoymentEma: 1 }) },
-      }),
-      today: TODAY,
-      rng: rng(),
-      focus: 'upper',
-      equipmentPreference: 'any',
-      requestedDifficulty: 'medium',
-    });
-    expect(result.picks[0].exercise.id).toBe('neutral');
-  });
-
-  it('enjoyment — a rating <=2 exercise is still used when it is the only thing filling the slot', () => {
-    const disliked = ex({ id: 'disliked-only', pattern: 'horizontal_push' });
-    const result = selectMain({
-      slots: [slot('s1', 'horizontal_push')],
-      pool: [disliked],
-      poolIgnoringEquipment: [disliked],
-      userState: userState({
-        exerciseStates: {
-          'disliked-only': state({ exerciseId: 'disliked-only', enjoymentEma: 1 }),
-        },
-      }),
-      today: TODAY,
-      rng: rng(),
-      focus: 'upper',
-      equipmentPreference: 'any',
-      requestedDifficulty: 'medium',
-    });
-    expect(result.picks[0].exercise.id).toBe('disliked-only');
-  });
-
   it('REPEATEDLY-SKIPPED suppression — an exercise with an active suppressedUntil is never picked', () => {
     const suppressed = ex({ id: 'suppressed', pattern: 'horizontal_push' });
     const other = ex({ id: 'other', pattern: 'horizontal_push' });
@@ -425,41 +378,6 @@ describe('§5.2 selection rules', () => {
     });
     const bandCount = result.picks.filter((p) => p.exercise.equipment === 'band').length;
     expect(bandCount / result.picks.length).toBeGreaterThanOrEqual(0.5);
-  });
-
-  it('favorites are capped at roughly 40% of the session', () => {
-    const slots = [
-      slot('s1', 'horizontal_push'),
-      slot('s2', 'horizontal_pull'),
-      slot('s3', 'vertical_push'),
-    ];
-    const pool = [
-      ex({ id: 'fav1', pattern: 'horizontal_push' }),
-      ex({ id: 'ok1', pattern: 'horizontal_push' }),
-      ex({ id: 'fav2', pattern: 'horizontal_pull' }),
-      ex({ id: 'ok2', pattern: 'horizontal_pull' }),
-      ex({ id: 'fav3', pattern: 'vertical_push' }),
-      ex({ id: 'ok3', pattern: 'vertical_push' }),
-    ];
-    const result = selectMain({
-      slots,
-      pool,
-      poolIgnoringEquipment: pool,
-      userState: userState({
-        exerciseStates: {
-          fav1: state({ exerciseId: 'fav1', enjoymentEma: 5 }),
-          fav2: state({ exerciseId: 'fav2', enjoymentEma: 5 }),
-          fav3: state({ exerciseId: 'fav3', enjoymentEma: 5 }),
-        },
-      }),
-      today: TODAY,
-      rng: rng(),
-      focus: 'upper',
-      equipmentPreference: 'any',
-      requestedDifficulty: 'medium',
-    });
-    const favCount = result.picks.filter((p) => p.candidate.enjoyment >= 4).length;
-    expect(favCount / result.picks.length).toBeLessThanOrEqual(0.5); // ~40% cap, generous bound for a 3-slot session
   });
 
   it('PATTERN GAP is never silent — bodyweight-only upper uses a band for pulling when one is available', () => {

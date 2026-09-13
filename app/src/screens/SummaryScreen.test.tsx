@@ -635,13 +635,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
       },
       utcInstant,
     );
-    sessionsRepo.recordSetFeedback(
-      db,
-      mainEntry.id,
-      0,
-      { difficulty: 'too_hard', enjoyment: 2 },
-      utcInstant,
-    );
+    sessionsRepo.recordSetFeedback(db, mainEntry.id, 0, { difficulty: 'too_hard' }, utcInstant);
     sessionsRepo.recordSetFeedback(db, mainEntry.id, 1, { difficulty: 'too_easy' }, utcInstant);
 
     render(
@@ -663,11 +657,8 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     const freshEntry = () =>
       sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === mainEntry.id)!;
     const set0Log = freshEntry().setLogs.find((l) => l.setIndex === 0)!;
-    const set1Log = freshEntry().setLogs.find((l) => l.setIndex === 1)!;
     expect(screen.getByText('🥵')).toBeTruthy(); // set 0: too_hard
-    expect(screen.getByText('😞')).toBeTruthy(); // set 0: enjoyment 2
     expect(screen.getByText('😌')).toBeTruthy(); // set 1: too_easy
-    expect(screen.queryByTestId(`summary-feedback-enjoyment-${set1Log.id}`)).toBeNull(); // no enjoyment on set 1
 
     // Editing set 0's chip touches only set 0.
     await fireEvent.press(screen.getByTestId(`summary-feedback-difficulty-${set0Log.id}`));
@@ -676,18 +667,15 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
       WAIT_OPTS,
     );
     await fireEvent.press(screen.getByTestId('difficulty-just_right'));
-    await fireEvent.press(screen.getByTestId('enjoyment-5'));
     await fireEvent.press(screen.getByTestId('feedback-edit-done'));
 
     const updatedSet0 = freshEntry().setLogs.find((l) => l.setIndex === 0)!;
     const updatedSet1 = freshEntry().setLogs.find((l) => l.setIndex === 1)!;
     expect(updatedSet0.difficultyFeedback).toBe('just_right');
-    expect(updatedSet0.enjoymentFeedback).toBe(5);
     // Set 1's own answer is untouched — this is the whole point of the change.
     expect(updatedSet1.difficultyFeedback).toBe('too_easy');
     // The chip on screen reflects the edit immediately, without navigating away and back.
     expect(screen.getByText('👍')).toBeTruthy();
-    expect(screen.getByText('😄')).toBeTruthy();
   });
 
   it('editing a warm-up/cool-down feedback chip updates the whole stage, since that is one answer shared by every entry in it', async () => {

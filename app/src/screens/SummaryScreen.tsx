@@ -98,10 +98,6 @@ const DIFFICULTY_EMOJI: Record<Difficulty, string> = {
   too_hard: '🥵',
 };
 
-/** Same set the rest screen's `FeedbackControls` offers, indexed the same way (1-5), so a chip
- *  reads as the very same answer the user gave there. */
-const ENJOYMENT_EMOJI = ['😩', '😞', '😕', '🙂', '😄'];
-
 /**
  * §8.1 feedback: per SET for a `main` exercise (migration 0017) — a set can genuinely feel
  * different from its siblings (a band bumped up, fatigue by set 3), so a `main` answer is scoped
@@ -115,7 +111,7 @@ function editFeedback(
   sessionId: string,
   entry: sessionsRepo.SessionEntryRecord,
   setIndex: number | null,
-  feedback: { difficulty?: Difficulty | null; enjoyment?: number | null },
+  feedback: { difficulty?: Difficulty | null },
   now: string,
 ): void {
   if (setIndex !== null) {
@@ -279,10 +275,6 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     editingFeedback?.setIndex !== null
       ? (editingFeedbackLog?.difficultyFeedback ?? null)
       : (editingFeedbackEntry?.difficultyFeedback ?? null);
-  const editingFeedbackEnjoyment =
-    editingFeedback?.setIndex !== null
-      ? (editingFeedbackLog?.enjoymentFeedback ?? null)
-      : (editingFeedbackEntry?.enjoymentFeedback ?? null);
 
   const handleEditDifficultyChange = (d: Difficulty | undefined) => {
     if (!editingFeedback || !editingFeedbackEntry) return;
@@ -292,18 +284,6 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
       editingFeedbackEntry,
       editingFeedback.setIndex,
       { difficulty: d ?? null },
-      nowUtcInstant(),
-    );
-    reload();
-  };
-  const handleEditEnjoymentChange = (e: number | undefined) => {
-    if (!editingFeedback || !editingFeedbackEntry) return;
-    editFeedback(
-      db,
-      sessionId,
-      editingFeedbackEntry,
-      editingFeedback.setIndex,
-      { enjoyment: e ?? null },
       nowUtcInstant(),
     );
     reload();
@@ -485,30 +465,17 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                           jump-to-this-set press when tapped: each chip carries its own `onPress`,
                           which the touch responder gives priority to over the square underneath
                           it. */}
-                      {log && (log.difficultyFeedback || log.enjoymentFeedback) && (
+                      {log && log.difficultyFeedback && (
                         <View style={styles.setSquareFeedbackRow}>
-                          {log.difficultyFeedback && (
-                            <Pressable
-                              testID={`summary-feedback-difficulty-${log.id}`}
-                              hitSlop={4}
-                              onPress={() => setEditingFeedback({ entryId: entry.id, setIndex })}
-                            >
-                              <Text style={styles.setSquareFeedbackEmoji}>
-                                {DIFFICULTY_EMOJI[log.difficultyFeedback]}
-                              </Text>
-                            </Pressable>
-                          )}
-                          {log.enjoymentFeedback && (
-                            <Pressable
-                              testID={`summary-feedback-enjoyment-${log.id}`}
-                              hitSlop={4}
-                              onPress={() => setEditingFeedback({ entryId: entry.id, setIndex })}
-                            >
-                              <Text style={styles.setSquareFeedbackEmoji}>
-                                {ENJOYMENT_EMOJI[log.enjoymentFeedback - 1]}
-                              </Text>
-                            </Pressable>
-                          )}
+                          <Pressable
+                            testID={`summary-feedback-difficulty-${log.id}`}
+                            hitSlop={4}
+                            onPress={() => setEditingFeedback({ entryId: entry.id, setIndex })}
+                          >
+                            <Text style={styles.setSquareFeedbackEmoji}>
+                              {DIFFICULTY_EMOJI[log.difficultyFeedback]}
+                            </Text>
+                          </Pressable>
                         </View>
                       )}
                     </Pressable>
@@ -518,37 +485,23 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
               {/* Warm-up/cool-down only: one shared answer for the whole stage
                 (`recordSectionFeedback`), so it is shown once here rather than on every square —
                 a `main` entry's feedback is per-set instead (rendered inside each square above)
-                and never reaches this block, since `entry.difficultyFeedback`/`enjoymentFeedback`
-                are only ever written for `warmup`/`cooldown` now. Editable from here at any point
-                before FINISH: pressing the chip reopens the exact controls the stage page offered,
+                and never reaches this block, since `entry.difficultyFeedback` is only ever
+                written for `warmup`/`cooldown` now. Editable from here at any point before
+                FINISH: pressing the chip reopens the exact controls the stage page offered,
                 pre-filled with what is already recorded. */}
-              {entry.section !== 'main' &&
-                (entry.difficultyFeedback || entry.enjoymentFeedback) && (
-                  <View style={styles.feedbackChipRow}>
-                    {entry.difficultyFeedback && (
-                      <Pressable
-                        testID={`summary-feedback-difficulty-${entry.id}`}
-                        style={styles.feedbackChip}
-                        onPress={() => setEditingFeedback({ entryId: entry.id, setIndex: null })}
-                      >
-                        <Text style={styles.feedbackChipText}>
-                          {DIFFICULTY_EMOJI[entry.difficultyFeedback]}
-                        </Text>
-                      </Pressable>
-                    )}
-                    {entry.enjoymentFeedback && (
-                      <Pressable
-                        testID={`summary-feedback-enjoyment-${entry.id}`}
-                        style={styles.feedbackChip}
-                        onPress={() => setEditingFeedback({ entryId: entry.id, setIndex: null })}
-                      >
-                        <Text style={styles.feedbackChipText}>
-                          {ENJOYMENT_EMOJI[entry.enjoymentFeedback - 1]}
-                        </Text>
-                      </Pressable>
-                    )}
-                  </View>
-                )}
+              {entry.section !== 'main' && entry.difficultyFeedback && (
+                <View style={styles.feedbackChipRow}>
+                  <Pressable
+                    testID={`summary-feedback-difficulty-${entry.id}`}
+                    style={styles.feedbackChip}
+                    onPress={() => setEditingFeedback({ entryId: entry.id, setIndex: null })}
+                  >
+                    <Text style={styles.feedbackChipText}>
+                      {DIFFICULTY_EMOJI[entry.difficultyFeedback]}
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
           ))}
 
@@ -635,9 +588,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                 </Text>
                 <FeedbackControls
                   difficulty={editingFeedbackDifficulty}
-                  enjoyment={editingFeedbackEnjoyment}
                   onDifficultyChange={handleEditDifficultyChange}
-                  onEnjoymentChange={handleEditEnjoymentChange}
                 />
               </>
             )}

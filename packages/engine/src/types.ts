@@ -77,8 +77,6 @@ export interface ExerciseState {
   bestSet: { reps?: number; seconds?: number; band?: BandId; at: LocalDate } | null;
   /** -1..+1, too_hard .. too_easy. */
   difficultyEma: number;
-  /** 1..5. Unset/neutral defaults to 3. */
-  enjoymentEma: number;
   skipCount: number;
   swapAwayCount: number;
   removeAtApprovalCount: number;
@@ -271,7 +269,6 @@ export interface Candidate {
   sessionsAgo: number | null;
   tier: RecencyTier;
   performCount: number;
-  enjoyment: number;
   isNovel: boolean;
   isSuppressed: boolean;
 }

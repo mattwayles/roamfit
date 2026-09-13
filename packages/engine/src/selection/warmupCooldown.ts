@@ -1,14 +1,13 @@
 /**
  * Warmup/cooldown selection — light rotation per docs/decisions/0001-blocked-scope.md, not the
  * full BLOCKED/PREFERRED machinery (the 9-warmup/12-cooldown pool would exhaust it). Still
- * respects enjoyment-avoidance (≤2) and REPEATEDLY-SKIPPED suppression, since both are
- * per-exercise-state facts independent of pool size.
+ * respects REPEATEDLY-SKIPPED suppression, a per-exercise-state fact independent of pool size.
  */
 import type { Exercise, Focus, Role } from '@roamfit/data';
 import type { Rng, UserState, LocalDate } from '../types';
 import { buildCandidates } from './candidates';
 import { rngIndex } from '../rng';
-import { AVOID_ENJOYMENT_MAX, WARMUP_COOLDOWN_ROTATION_SESSIONS } from './constants';
+import { WARMUP_COOLDOWN_ROTATION_SESSIONS } from './constants';
 import { prescribeWarmupCooldown } from '../prescription/prescribe';
 
 export interface SelectWarmupCooldownInput {
@@ -53,11 +52,7 @@ export function selectWarmupCooldown(input: SelectWarmupCooldownInput): Exercise
   );
   const pickFrom = rotated.length > 0 ? rotated : candidates;
 
-  // Avoid ≤2 enjoyment unless it's the only option.
-  const liked = pickFrom.filter((c) => c.enjoyment > AVOID_ENJOYMENT_MAX);
-  const finalPool = liked.length > 0 ? liked : pickFrom;
-
-  return finalPool[rngIndex(rng, finalPool.length)].exercise;
+  return pickFrom[rngIndex(rng, pickFrom.length)].exercise;
 }
 
 /**

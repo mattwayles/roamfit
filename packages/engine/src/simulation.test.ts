@@ -161,7 +161,6 @@ describe('multi-session simulation', () => {
           sessionsPerformed: (prev?.sessionsPerformed ?? 0) + 1,
           bestSet: prev?.bestSet ?? null,
           difficultyEma: 0,
-          enjoymentEma: prev?.enjoymentEma ?? 3,
           skipCount: prev?.skipCount ?? 0,
           swapAwayCount: prev?.swapAwayCount ?? 0,
           removeAtApprovalCount: prev?.removeAtApprovalCount ?? 0,

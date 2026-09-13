@@ -368,14 +368,11 @@ export function computeExplicitFeedbackCaptureRate(db: Db): FeedbackCaptureSnaps
       .select()
       .from(schema.setLogs)
       .all()
-      .filter((s) => s.difficultyFeedback !== null || s.enjoymentFeedback !== null)
+      .filter((s) => s.difficultyFeedback !== null)
       .map((s) => s.entryId),
   );
   const withFeedback = relevant.filter(
-    (e) =>
-      e.difficultyFeedback !== null ||
-      e.enjoymentFeedback !== null ||
-      entryIdsWithSetFeedback.has(e.id),
+    (e) => e.difficultyFeedback !== null || entryIdsWithSetFeedback.has(e.id),
   );
   return {
     totalEntries: relevant.length,

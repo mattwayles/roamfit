@@ -4,15 +4,14 @@
  *
  *   BLOCKED (never) → suppressed/REPEATEDLY-SKIPPED (never, while active) → OVER-WORKED muscles
  *   never as primary mover, ≤1 exercise touching one at all → 48h recovery muscles ≤1 exercise →
- *   UNTRAINED/LOW prioritized → novelty preferred → enjoyment tie-break (avoid ≤2 unless
- *   nothing else fills the slot) → PATTERN GAP handling for an unfillable required slot →
- *   aggregate passes: ≥1 novelty, ≥70% PREFERRED, ≥50% band, ≤~40% favorites.
+ *   UNTRAINED/LOW prioritized → novelty preferred → PATTERN GAP handling for an unfillable
+ *   required slot → aggregate passes: ≥1 novelty, ≥70% PREFERRED, ≥50% band.
  *
  * Resolution order when these can't all be satisfied on a thin pool (recorded in
  * STATUS-2-engine.md as a judgment call, not stated in spec.md): hard filters and BLOCKED first
  * (never relaxed) → PATTERN GAP avoidance (a band exception for an otherwise-empty pull slot) →
- * band ratio → PREFERRED ratio → favorites cap → novelty is opportunistic throughout, not a
- * final override, since forcing it late can undo an already-satisfied aggregate.
+ * band ratio → PREFERRED ratio → novelty is opportunistic throughout, not a final override,
+ * since forcing it late can undo an already-satisfied aggregate.
  *
  * Difficulty gates this file's pool before anything else does: `selectMain` narrows `pool` and
  * `poolIgnoringEquipment` to the requested difficulty's eligible tiers (`isDifficultyEligible` in
@@ -40,11 +39,8 @@ import type { Rng } from '../types';
 import { buildCandidates, sessionsAgo, recencyTier } from './candidates';
 import { overWorkedMuscles, recentHardMuscles } from './volume';
 import {
-  AVOID_ENJOYMENT_MAX,
   BAND_MIN_RATIO,
   DIFFICULTY_PREFERENCE_BONUS,
-  FAVORITE_ENJOYMENT_MIN,
-  FAVORITES_CAP_RATIO,
   PREFERRED_MIN_RATIO,
   RECOVERY_WINDOW_DAYS,
 } from './constants';
@@ -99,8 +95,6 @@ interface ScoreState {
   overWorked: ReadonlySet<string>;
   recoveryMuscles: ReadonlySet<string>;
   recoveryUsed: boolean;
-  favoritesCount: number;
-  favoritesCap: number;
   noveltyUsed: boolean;
   preferredDifficulty: Difficulty | null;
 }
@@ -112,14 +106,6 @@ function score(c: Candidate, st: ScoreState, rng: Rng): number {
     s += DIFFICULTY_PREFERENCE_BONUS;
   }
   if (c.isNovel && !st.noveltyUsed) s += 400;
-  if (c.enjoyment <= AVOID_ENJOYMENT_MAX) {
-    s -= 3000; // avoid ≤2, but still selectable if it's the only candidate
-  } else {
-    s += c.enjoyment * 10;
-  }
-  if (st.favoritesCount >= st.favoritesCap && c.enjoyment >= FAVORITE_ENJOYMENT_MIN) {
-    s -= 500; // discourage tipping the favorites cap further, but don't forbid outright
-  }
   if (
     overlaps(c.exercise.secondary, st.overWorked) &&
     !overlaps(c.exercise.primary, st.overWorked)
@@ -186,16 +172,11 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
     overWorked,
     recoveryMuscles,
     recoveryUsed: false,
-    favoritesCount: 0,
-    favoritesCap: Infinity, // set once mainCount is known-ish; approximated below per slot
     noveltyUsed: false,
     preferredDifficulty: preferredDifficulty(input.requestedDifficulty),
   };
 
-  const requiredCount = slots.filter((s) => s.required).length;
-
   for (const slot of slots) {
-    st.favoritesCap = Math.floor(Math.max(requiredCount, slots.length) * FAVORITES_CAP_RATIO);
     let eligible = eligibleForSlot(candidates, slot, usedIds, overWorked);
     // SOFT COOLDOWN only to fill an otherwise-uncoverable slot: if any preferred candidate
     // exists, drop soft-tier ones from contention; only fall back to soft when preferred is empty.
@@ -217,7 +198,6 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
           const chosen = pickBest(relaxedEligible, st, rng);
           usedIds.add(chosen.exercise.id);
           if (chosen.isNovel) st.noveltyUsed = true;
-          if (chosen.enjoyment >= FAVORITE_ENJOYMENT_MIN) st.favoritesCount++;
           if (overlaps(chosen.exercise.primary, recoveryMuscles)) st.recoveryUsed = true;
           picks.push({
             slotId: slot.id,
@@ -241,7 +221,6 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
     const chosen = pickBest(eligible, st, rng);
     usedIds.add(chosen.exercise.id);
     if (chosen.isNovel) st.noveltyUsed = true;
-    if (chosen.enjoyment >= FAVORITE_ENJOYMENT_MIN) st.favoritesCount++;
     const touchesRecovery = overlaps(chosen.exercise.primary, recoveryMuscles);
     if (touchesRecovery) st.recoveryUsed = true;
     picks.push({
@@ -257,7 +236,6 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
   applyNoveltyPass(picks, candidates, usedIds, overWorked, st);
   applyAggregatePass(picks, candidates, usedIds, overWorked, st, 'preferred');
   applyAggregatePass(picks, candidates, usedIds, overWorked, st, 'band');
-  applyFavoritesCapPass(picks, candidates, usedIds, overWorked);
 
   return { picks, patternGaps };
 }
@@ -326,39 +304,6 @@ function applyAggregatePass(
         !overlaps(c.exercise.primary, overWorked) &&
         victim.slotPatterns.includes(c.exercise.pattern) &&
         (kind === 'preferred' ? c.tier === 'preferred' : c.exercise.equipment === 'band'),
-    );
-    if (!alt) break;
-    usedIds.delete(victim.exercise.id);
-    usedIds.add(alt.exercise.id);
-    victim.exercise = alt.exercise;
-    victim.candidate = alt;
-  }
-}
-
-/** Favorites capped at ~40% of the session so enjoyment never quietly undoes variety. */
-function applyFavoritesCapPass(
-  picks: SelectedMain[],
-  candidates: readonly Candidate[],
-  usedIds: Set<string>,
-  overWorked: ReadonlySet<string>,
-): void {
-  if (picks.length === 0) return;
-  const cap = Math.ceil(picks.length * FAVORITES_CAP_RATIO);
-  let guard = picks.length;
-  while (
-    picks.filter((p) => p.candidate.enjoyment >= FAVORITE_ENJOYMENT_MIN).length > cap &&
-    guard-- > 0
-  ) {
-    const victim = picks.find((p) => p.candidate.enjoyment >= FAVORITE_ENJOYMENT_MIN);
-    if (!victim) break;
-    const alt = candidates.find(
-      (c) =>
-        !usedIds.has(c.exercise.id) &&
-        c.tier !== 'blocked' &&
-        !c.isSuppressed &&
-        c.enjoyment < FAVORITE_ENJOYMENT_MIN &&
-        !overlaps(c.exercise.primary, overWorked) &&
-        victim.slotPatterns.includes(c.exercise.pattern),
     );
     if (!alt) break;
     usedIds.delete(victim.exercise.id);

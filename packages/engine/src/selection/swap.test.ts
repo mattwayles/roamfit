@@ -60,7 +60,6 @@ function exState(overrides: Partial<ExerciseState> = {}): ExerciseState {
     sessionsPerformed: 1,
     bestSet: null,
     difficultyEma: 0,
-    enjoymentEma: 3,
     skipCount: 0,
     swapAwayCount: 0,
     removeAtApprovalCount: 0,

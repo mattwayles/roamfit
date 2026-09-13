@@ -170,15 +170,6 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
       expect(setLog0().difficultyFeedback).toBeNull();
     }, WAIT_OPTS);
 
-    await fireEvent.press(screen.getByTestId('enjoyment-4'));
-    await waitFor(() => {
-      expect(setLog0().enjoymentFeedback).toBe(4);
-    }, WAIT_OPTS);
-    await fireEvent.press(screen.getByTestId('enjoyment-4'));
-    await waitFor(() => {
-      expect(setLog0().enjoymentFeedback).toBeNull();
-    }, WAIT_OPTS);
-
     // Skip zeroes the remaining time and advances on Next.
     await fireEvent.press(screen.getByTestId('rest-skip'));
     await waitFor(() => expect(restDisplay()).toBe(0), WAIT_OPTS);

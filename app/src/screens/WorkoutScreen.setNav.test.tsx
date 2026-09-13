@@ -179,10 +179,8 @@ describe('stepping back and forward through an active workout', () => {
     expect(log.repsActual).toBeNull();
     // No feedback was solicited or written for the set that was skipped past.
     expect(log.difficultyFeedback).toBeNull();
-    expect(log.enjoymentFeedback).toBeNull();
     const afterEntry = after.entries.find((e) => e.id === firstEntry.id)!;
     expect(afterEntry.difficultyFeedback).toBeNull();
-    expect(afterEntry.enjoymentFeedback).toBeNull();
   }, 20000);
 
   it('names its two jobs: skip at the front edge, step forward once stepped back', async () => {

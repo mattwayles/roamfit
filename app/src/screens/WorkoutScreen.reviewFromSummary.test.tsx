@@ -94,7 +94,13 @@ async function fullyLoggedSession(
     exerciseLibrary.exercises.find((e) => e.id === last.exerciseId)?.name ?? last.exerciseId;
   // The cool-down stage question is what actually ends the workout — answer it so the session
   // is genuinely at the "everything logged, nothing left to ask" state Summary itself would see.
-  sessionsRepo.recordSectionFeedback(db, sessionId, 'cooldown', { enjoyment: 4 }, utcInstant);
+  sessionsRepo.recordSectionFeedback(
+    db,
+    sessionId,
+    'cooldown',
+    { difficulty: 'just_right' },
+    utcInstant,
+  );
   return { db, sessionId, lastName };
 }
 

@@ -1,6 +1,6 @@
 import type { Exercise } from '@roamfit/data';
 import { createRng } from '../rng';
-import type { ExerciseState, SessionHistoryRecord, UserState } from '../types';
+import type { SessionHistoryRecord, UserState } from '../types';
 import { selectWarmupCooldown, selectWarmupCooldownGroup } from './warmupCooldown';
 import { prescribeWarmupCooldown } from '../prescription/prescribe';
 
@@ -98,38 +98,6 @@ describe('warmup/cooldown light rotation (ADR 0001)', () => {
       rng: createRng(1),
     });
     expect(picked?.id).toBe('wu-only');
-  });
-
-  it('avoids a <=2 enjoyment pick when an alternative exists, even for warmup/cooldown', () => {
-    const disliked = ex('wu-disliked');
-    const fine = ex('wu-fine');
-    const states: Record<string, ExerciseState> = {
-      'wu-disliked': {
-        exerciseId: 'wu-disliked',
-        lastPerformedAt: null,
-        sessionsPerformed: 1,
-        bestSet: null,
-        difficultyEma: 0,
-        enjoymentEma: 1,
-        skipCount: 0,
-        swapAwayCount: 0,
-        removeAtApprovalCount: 0,
-        pinnedNote: null,
-        suppressedUntil: null,
-        disabledAt: null,
-      },
-    };
-    for (let seed = 0; seed < 20; seed++) {
-      const picked = selectWarmupCooldown({
-        role: 'warmup',
-        pool: [disliked, fine],
-        focus: 'abs',
-        userState: userState({ exerciseStates: states }),
-        today: TODAY,
-        rng: createRng(seed),
-      });
-      expect(picked?.id).toBe('wu-fine');
-    }
   });
 
   it('returns null only when the role pool is genuinely empty', () => {

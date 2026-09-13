@@ -146,9 +146,9 @@ export function buildSwapReplacementEntry(exercise: Exercise, entry: SessionEntr
 /**
  * §10.6 — 3-5 alternatives filling `req.entry`'s pattern slot, all hard filters respected, ranked
  * closest-to-original-difficulty first (the "same progression level" approximation, see file
- * header), then by recency tier (never-suppressed, least-recently-used first) and enjoyment.
- * Deterministic — no rng — because a swap is a direct response to "this specific one didn't
- * work," not a fresh randomized pick.
+ * header), then by recency tier (never-suppressed, least-recently-used first). Deterministic —
+ * no rng — because a swap is a direct response to "this specific one didn't work," not a fresh
+ * randomized pick.
  */
 export function alternativesForSlot(req: SwapSlotRequest): SwapAlternative[] {
   const maxResults = req.maxResults ?? 5;
@@ -188,7 +188,6 @@ export function alternativesForSlot(req: SwapSlotRequest): SwapAlternative[] {
     const diffB = Math.abs(DIFFICULTY_RANK[b.exercise.difficulty] - targetDifficultyRank);
     if (diffA !== diffB) return diffA - diffB;
     if (TIER_RANK[a.tier] !== TIER_RANK[b.tier]) return TIER_RANK[a.tier] - TIER_RANK[b.tier];
-    if (b.enjoyment !== a.enjoyment) return b.enjoyment - a.enjoyment;
     return a.exercise.id.localeCompare(b.exercise.id);
   });
 

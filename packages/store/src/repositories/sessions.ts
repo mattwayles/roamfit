@@ -26,7 +26,6 @@ import {
   incrementRemoveAtApprovalCount,
   incrementSwapAwayCount,
   recordDifficultyFeedback,
-  recordEnjoymentFeedback,
 } from './exerciseState';
 import { logSignalEvent } from './signals';
 import { enqueueDeferredWork } from './queues';
@@ -67,7 +66,6 @@ export interface SetLogRecord {
   /** §8.1 — a `main` exercise's feedback for this one set (migration 0017). Null until answered;
    *  a `warmup`/`cooldown` set never carries this — see `recordSectionFeedback`. */
   difficultyFeedback: 'too_easy' | 'just_right' | 'too_hard' | null;
-  enjoymentFeedback: number | null;
 }
 
 export interface SessionEntryRecord {
@@ -97,7 +95,6 @@ export interface SessionEntryRecord {
   unplanned: boolean;
   entryStatus: 'planned' | 'removed_at_approval' | 'unplanned_added';
   difficultyFeedback: 'too_easy' | 'just_right' | 'too_hard' | null;
-  enjoymentFeedback: number | null;
   demoMediaExpanded: boolean;
   setLogs: SetLogRecord[];
 }
@@ -162,7 +159,6 @@ function rowToSetLog(row: typeof schema.setLogs.$inferSelect): SetLogRecord {
     pauseCount: row.pauseCount,
     pausedDurationSec: row.pausedDurationSec,
     difficultyFeedback: row.difficultyFeedback,
-    enjoymentFeedback: row.enjoymentFeedback,
   };
 }
 
@@ -197,7 +193,6 @@ function rowToEntry(
     unplanned: row.unplanned,
     entryStatus: row.entryStatus,
     difficultyFeedback: row.difficultyFeedback,
-    enjoymentFeedback: row.enjoymentFeedback,
     demoMediaExpanded: row.demoMediaExpanded,
     setLogs,
   };
@@ -1036,20 +1031,17 @@ export function recordSwap(
 // ------------------------------------------------------------------------------------------
 
 /**
- * §8.1 — "Tapping the same [value] again clears it." The `difficulty`/`enjoyment` keys are
- * three-state, not two: an **omitted** key means "this call doesn't touch that field" (the rest
- * screen calls this once per control, independently), while an explicit `null` means "the user
- * just cleared it" — set the column back to unset. Only a real value feeds the exercise's EMA;
- * clearing intentionally does not attempt to "un-feed" a prior contribution (the EMA is a
- * decayed running signal, not a reversible ledger — nothing in §6/§8 asks for that).
+ * §8.1 — "Tapping the same value again clears it." `difficulty` is three-state, not two: an
+ * **omitted** key means "this call doesn't touch this field" (unused today — the rest screen's
+ * one control always passes it), while an explicit `null` means "the user just cleared it" — set
+ * the column back to unset. Only a real value feeds the exercise's EMA; clearing intentionally
+ * does not attempt to "un-feed" a prior contribution (the EMA is a decayed running signal, not a
+ * reversible ledger — nothing in §6/§8 asks for that).
  */
 export function recordEntryFeedback(
   db: Db,
   entryId: string,
-  feedback: {
-    difficulty?: 'too_easy' | 'just_right' | 'too_hard' | null;
-    enjoyment?: number | null;
-  },
+  feedback: { difficulty?: 'too_easy' | 'just_right' | 'too_hard' | null },
   now: string,
 ): void {
   const entry = db
@@ -1063,12 +1055,6 @@ export function recordEntryFeedback(
     values.difficultyFeedback = feedback.difficulty;
     if (feedback.difficulty !== null) {
       recordDifficultyFeedback(db, entry.exerciseId, feedback.difficulty, now);
-    }
-  }
-  if (feedback.enjoyment !== undefined) {
-    values.enjoymentFeedback = feedback.enjoyment;
-    if (feedback.enjoyment !== null) {
-      recordEnjoymentFeedback(db, entry.exerciseId, feedback.enjoyment, now);
     }
   }
   if (Object.keys(values).length > 0) {
@@ -1088,10 +1074,7 @@ export function recordSetFeedback(
   db: Db,
   entryId: string,
   setIndex: number,
-  feedback: {
-    difficulty?: 'too_easy' | 'just_right' | 'too_hard' | null;
-    enjoyment?: number | null;
-  },
+  feedback: { difficulty?: 'too_easy' | 'just_right' | 'too_hard' | null },
   now: string,
 ): void {
   const entry = db
@@ -1112,12 +1095,6 @@ export function recordSetFeedback(
       recordDifficultyFeedback(db, entry.exerciseId, feedback.difficulty, now);
     }
   }
-  if (feedback.enjoyment !== undefined) {
-    values.enjoymentFeedback = feedback.enjoyment;
-    if (feedback.enjoyment !== null) {
-      recordEnjoymentFeedback(db, entry.exerciseId, feedback.enjoyment, now);
-    }
-  }
   if (Object.keys(values).length > 0) {
     db.update(schema.setLogs)
       .set(values)
@@ -1134,19 +1111,15 @@ export function recordSetFeedback(
  * asks once, when the stage ends, and that single answer is written to every entry the stage owns.
  *
  * Deliberately not a new column. Storing it per entry means the exercise-level consumers keep
- * working untouched — `enjoymentEma` still steers `warmupCooldown.ts`'s selection away from the
- * ones the user dislikes, and the summary still shows a value against each line — which is exactly
- * what "the warm-up was rough" means about the exercises that made it up. Entries removed at
- * approval are skipped: they were not part of the stage the user is answering about.
+ * working untouched, and the summary still shows a value against each line — which is exactly what
+ * "the warm-up was rough" means about the exercises that made it up. Entries removed at approval
+ * are skipped: they were not part of the stage the user is answering about.
  */
 export function recordSectionFeedback(
   db: Db,
   sessionId: string,
   section: 'warmup' | 'main' | 'cooldown',
-  feedback: {
-    difficulty?: 'too_easy' | 'just_right' | 'too_hard' | null;
-    enjoyment?: number | null;
-  },
+  feedback: { difficulty?: 'too_easy' | 'just_right' | 'too_hard' | null },
   now: string,
 ): void {
   const entries = db

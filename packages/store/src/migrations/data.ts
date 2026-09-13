@@ -443,6 +443,20 @@ ALTER TABLE set_logs ADD COLUMN difficulty_feedback TEXT;
 ALTER TABLE set_logs ADD COLUMN enjoyment_feedback INTEGER;
 `;
 
+const MIGRATION_0018_REMOVE_ENJOYMENT = `-- 0018_remove_enjoyment.sql — the enjoyment dimension of feedback is gone, not just unused.
+--
+-- Set feedback is difficulty only now (too_easy / just_right / too_hard) — enjoyment (the 1-5
+-- rating) never earned its keep as a second axis and its removal reaches further than the UI: it
+-- also drove exercise-selection behavior (avoiding disliked exercises, capping how often
+-- "favorites" got picked, breaking swap-alternative ties), all removed from the engine in the
+-- same change. Nothing reads or writes these three columns any more, so they are dropped rather
+-- than left as permanent dead weight.
+
+ALTER TABLE exercise_state DROP COLUMN enjoyment_ema;
+ALTER TABLE session_entries DROP COLUMN enjoyment_feedback;
+ALTER TABLE set_logs DROP COLUMN enjoyment_feedback;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -467,4 +481,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0015_manual_day_markers.sql', sql: MIGRATION_0015_MANUAL_DAY_MARKERS },
   { id: '0016_session_cursor.sql', sql: MIGRATION_0016_SESSION_CURSOR },
   { id: '0017_set_level_feedback.sql', sql: MIGRATION_0017_SET_LEVEL_FEEDBACK },
+  { id: '0018_remove_enjoyment.sql', sql: MIGRATION_0018_REMOVE_ENJOYMENT },
 ];
