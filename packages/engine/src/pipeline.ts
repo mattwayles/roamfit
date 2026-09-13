@@ -76,7 +76,7 @@ const LADDERED_PATTERN_TO_FAMILY: Partial<Record<Pattern, ProgressionFamilyId>> 
 };
 
 function isLadderedSlot(slot: TemplateSlot): ProgressionFamilyId | undefined {
-  if (slot.isFinisher || slot.patterns.length !== 1) return undefined;
+  if (slot.patterns.length !== 1) return undefined;
   return LADDERED_PATTERN_TO_FAMILY[slot.patterns[0]];
 }
 
@@ -304,14 +304,12 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       );
     }
     for (const pick of mainSelection.picks as SelectedMain[]) {
-      const slot = accessorySlots.find((s) => s.id === pick.slotId)!;
       map.set(
         pick.slotId,
         prescribeAccessory({
           exercise: pick.exercise,
           requestedDifficulty: difficulty,
           recoveryTreatment: pick.recoveryTreatment,
-          isFinisherAmrap: Boolean(slot.isFinisher),
           bandRelaxedForPatternGap: pick.bandRelaxedForPatternGap,
           setsMultiplier: multiplier,
         }),

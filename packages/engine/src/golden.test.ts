@@ -74,7 +74,9 @@ describe('golden: generateSession output is pinned', () => {
     expect(plan).toMatchSnapshot();
   });
 
-  it('mid-progression full, 45min, hard (with a finisher slot), seed 3', () => {
+  // Track 14 dropped the full-body finisher slot this fixture used to pin ("(with a finisher
+  // slot)") — title updated, seed/fixture otherwise unchanged.
+  it('mid-progression full, 45min, hard, seed 3', () => {
     const userState = coldStartUserState({ hasEverCompletedSession: true });
     // Move a couple of families off their calibration start so this fixture isn't identical in
     // shape to the cold-start ones above.

@@ -86,7 +86,6 @@ function eligibleForSlot(
     // OVER-WORKED: never as primary mover — a candidate whose *primary* muscle is over-worked
     // is excluded outright, not merely deprioritized.
     if (overlaps(c.exercise.primary, overWorked)) return false;
-    if (slot.isFinisher) return c.exercise.tier === 'fill';
     return slot.patterns.includes(c.exercise.pattern);
   });
 }

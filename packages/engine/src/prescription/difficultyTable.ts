@@ -8,11 +8,11 @@
  *   - sets: rounded up from the midpoint of the range (easy 2-3 → 3, hard 3-4 → 4).
  *   - reps: the *top* of the range — consistent with §6.3's "top of the prescribed range" being
  *     the advance signal elsewhere in the engine, so a rep target always means the same thing.
- *   - `hard`'s "8-12 or AMRAP" — AMRAP is reserved for the `full` template's conditioning
- *     finisher slot (§5.5: "supersets + one finisher" at `hard`); every other `hard`-difficulty
- *     rep-metric exercise gets the numeric top (12), not AMRAP, since applying AMRAP everywhere
- *     would make every hard session's estimated time wildly unpredictable (§5.6 depends on a
- *     concrete number per exercise).
+ *   - `hard`'s "8-12 or AMRAP" — every `hard`-difficulty rep-metric exercise gets the numeric top
+ *     (12), not AMRAP, since applying AMRAP everywhere would make every hard session's estimated
+ *     time wildly unpredictable (§5.6 depends on a concrete number per exercise). The `full`
+ *     template's conditioning finisher slot, the one place AMRAP used to apply, is gone (track
+ *     14 — dropped by user decision, not replaced).
  */
 import type { Difficulty } from '../types';
 

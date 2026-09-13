@@ -13,9 +13,6 @@ export interface TemplateSlot {
   /** Candidate patterns for this slot, in preference order. Selection tries them in order. */
   patterns: Pattern[];
   required: boolean;
-  /** A conditioning finisher slot draws from `tier: fill` regardless of pattern match quality
-   *  (carried-forward issue #5 — finishers are tagged `fill` with a primary-mover pattern). */
-  isFinisher?: boolean;
 }
 
 export interface FocusTemplateResult {
@@ -120,8 +117,6 @@ function absSlots(
 }
 
 function fullSlots(
-  targetMinutes: number,
-  difficulty: Difficulty,
   history: readonly SessionHistoryRecord[],
   library: readonly Exercise[],
 ): TemplateSlot[] {
@@ -135,17 +130,32 @@ function fullSlots(
   const upperPush = alternate(history, library, 'full', ['horizontal_push', 'vertical_push']);
   const upperPull = alternate(history, library, 'full', ['horizontal_pull', 'vertical_pull']);
   const core = alternate(history, library, 'full', ['anti_extension', 'flexion', 'anti_rotation']);
-  const slots: TemplateSlot[] = [
+  // Track 14: the hard/>=40min conditioning finisher slot that used to live here is dropped —
+  // user decision, not replaced by anything. `isFinisher` had exactly one producer (this slot),
+  // so its whole machinery (the `TemplateSlot` field, the `eligibleForSlot`/`isLadderedSlot`/
+  // `isFinisherAmrap` branches downstream) is removed with it rather than left dead. `difficulty`
+  // and `targetMinutes` were only ever read to decide whether to push that slot, so both params
+  // are gone too — nothing else in this function needed them.
+  return [
     { id: 'full.lower_knee', patterns: [lowerKnee], required: true },
     { id: 'full.lower_hinge', patterns: ['hinge'], required: true },
     { id: 'full.upper_push', patterns: [upperPush], required: true },
     { id: 'full.upper_pull', patterns: [upperPull], required: true },
     { id: 'full.core', patterns: [core], required: true },
   ];
-  if (difficulty === 'hard' || targetMinutes >= 40) {
-    slots.push({ id: 'full.finisher', patterns: [], required: false, isFinisher: true });
-  }
-  return slots;
+}
+
+/** Track 14 — the Cardio focus's base template: three required `conditioning` slots, no pattern
+ *  variety to balance (unlike every other focus, cardio has exactly one pattern). `expandOptionalSlots`
+ *  below draws on `ACCESSORY_PATTERNS_BY_FOCUS.cardio` to add more of the same when a longer
+ *  target needs them — short timed sets mean a cardio session wants more *exercises*, not more
+ *  sets per exercise, to fill its budget (see `timefit/formulas.ts`'s cardio count range). */
+function cardioSlots(): TemplateSlot[] {
+  return [
+    { id: 'cardio.1', patterns: ['conditioning'], required: true },
+    { id: 'cardio.2', patterns: ['conditioning'], required: true },
+    { id: 'cardio.3', patterns: ['conditioning'], required: true },
+  ];
 }
 
 /**
@@ -171,10 +181,10 @@ const ACCESSORY_PATTERNS_BY_FOCUS: Record<Focus, Pattern[]> = {
     'flexion',
     'lateral_flexion',
   ],
-  // Track 14 increment 3 replaces this with ['conditioning'] once cardioSlots() lands — empty
-  // for now (no expansion; expandOptionalSlots no-ops on an empty pattern list) since this
-  // increment does not touch template/selection behavior.
-  cardio: [],
+  // Track 14 — cardio has exactly one pattern, so its "accessory" filler is just more of the
+  // same slot type. This is what lets a 60-minute cardio session fill with 11-14 conditioning
+  // exercises instead of stopping at the base template's 3.
+  cardio: ['conditioning'],
 };
 
 /**
@@ -238,7 +248,11 @@ export interface BuildTemplateInput {
 }
 
 export function buildFocusTemplate(input: BuildTemplateInput): FocusTemplateResult {
-  const { focus, targetMinutes, difficulty, library, history } = input;
+  // `difficulty` is part of every caller's request shape but, since the full-body finisher slot
+  // (the one thing that read it) was dropped, no focus's template needs it any more — kept on
+  // the interface rather than threaded through, since callers build this alongside the rest of
+  // the request and a template-only shape would be its own kind of noise.
+  const { focus, targetMinutes, library, history } = input;
   switch (focus) {
     case 'upper':
       return { slots: upperSlots(targetMinutes, history, library) };
@@ -249,12 +263,9 @@ export function buildFocusTemplate(input: BuildTemplateInput): FocusTemplateResu
       return { slots, leadPattern };
     }
     case 'full':
-      return { slots: fullSlots(targetMinutes, difficulty, history, library) };
+      return { slots: fullSlots(history, library) };
     case 'cardio':
-      // Track 14 increment 3 replaces this — cardioSlots() (3 required `conditioning` slots)
-      // lands in the next increment. Returning `full`'s slots is a compile-time stopgap only;
-      // nothing exercises the `cardio` focus end-to-end until then.
-      return { slots: fullSlots(targetMinutes, difficulty, history, library) };
+      return { slots: cardioSlots() };
   }
 }
 

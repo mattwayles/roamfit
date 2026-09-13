@@ -73,17 +73,6 @@ describe('§5.4 prescription', () => {
     expect(hard).toMatchObject({ sets: 4, repTarget: 12, restSec: 30, tempoSec: 4 });
   });
 
-  it('the finisher slot at hard difficulty is prescribed AMRAP', () => {
-    const entry = prescribeAccessory({
-      exercise: bwPush,
-      requestedDifficulty: 'hard',
-      recoveryTreatment: false,
-      isFinisherAmrap: true,
-    });
-    expect(entry.repTarget).toBeUndefined();
-    expect(entry.notes).toBe('AMRAP');
-  });
-
   it('warmup/cooldown entries carry no progression, whatever the exercise is', () => {
     const entry = prescribeWarmupCooldown(warmupEx, 'warmup');
     expect(entry.progressionFamilyId).toBeNull();

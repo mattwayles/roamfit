@@ -118,9 +118,6 @@ export interface PrescribeAccessoryInput {
   exercise: Exercise;
   requestedDifficulty: Difficulty;
   recoveryTreatment: boolean;
-  /** The `full` template's finisher slot, at `hard` difficulty, gets an AMRAP-style
-   *  prescription (§5.4/§5.5). */
-  isFinisherAmrap?: boolean;
   bandRelaxedForPatternGap?: boolean;
   /** §9.4/§9.9 comeback/Recovery Week volume cut (~0.8), applied to sets. 1 = no cut. */
   setsMultiplier?: number;
@@ -142,7 +139,6 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
       : null;
   const isTimed = exercise.metric === 'time';
   const durationSec = isTimed ? (exercise.default_seconds ?? 30) : undefined;
-  const amrap = Boolean(input.isFinisherAmrap) && !isTimed && difficulty === 'hard';
   const sets = scaleSets(row.sets, input.setsMultiplier);
 
   const estimatedSec = isTimed
@@ -165,11 +161,10 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
     role: 'main',
     band,
     sets,
-    repTarget: isTimed || amrap ? undefined : row.reps,
+    repTarget: isTimed ? undefined : row.reps,
     durationSec: isTimed ? durationSec : undefined,
     restSec: row.restSec,
     tempoSec: row.tempoSec,
-    notes: amrap ? 'AMRAP' : undefined,
     difficulty,
     progressionFamilyId: null,
     progressionLevelIdAtTime: null,

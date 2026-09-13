@@ -84,7 +84,10 @@ describe('§5.5 focus templates', () => {
     expect(second.leadPattern).not.toBe(first.leadPattern);
   });
 
-  it('full template adds a finisher slot when hard or >=40 minutes, not otherwise', () => {
+  // Track 14 — the full-body finisher slot (previously pushed at hard difficulty or >=40min) is
+  // dropped for good, user decision. `full` now has the same 5 required slots regardless of
+  // difficulty or length; there is no `isFinisher` field left on `TemplateSlot` to even ask for.
+  it('full template never adds a finisher slot, at any difficulty or length', () => {
     const easy = buildFocusTemplate({
       focus: 'full',
       targetMinutes: 30,
@@ -102,13 +105,14 @@ describe('§5.5 focus templates', () => {
     const long = buildFocusTemplate({
       focus: 'full',
       targetMinutes: 45,
-      difficulty: 'medium',
+      difficulty: 'hard',
       library: lib,
       history: noHistory,
     });
-    expect(easy.slots.some((s) => s.isFinisher)).toBe(false);
-    expect(hard.slots.some((s) => s.isFinisher)).toBe(true);
-    expect(long.slots.some((s) => s.isFinisher)).toBe(true);
+    for (const { slots } of [easy, hard, long]) {
+      expect(slots).toHaveLength(5);
+      expect(slots.every((s) => s.required)).toBe(true);
+    }
   });
 
   it('legs template requires squat and hinge (knee/hip-dominant balance)', () => {
@@ -121,6 +125,40 @@ describe('§5.5 focus templates', () => {
     });
     expect(slots.find((s) => s.id === 'legs.squat')?.required).toBe(true);
     expect(slots.find((s) => s.id === 'legs.hinge')?.required).toBe(true);
+  });
+
+  // Track 14 — cardio's base template: 3 required `conditioning` slots, nothing else. Unlike
+  // every other focus there is exactly one pattern to balance, so there is no leadPattern/
+  // alternation machinery to exercise here.
+  it('cardio template is 3 required conditioning slots', () => {
+    const { slots, leadPattern } = buildFocusTemplate({
+      focus: 'cardio',
+      targetMinutes: 30,
+      difficulty: 'medium',
+      library: lib,
+      history: noHistory,
+    });
+    expect(slots).toHaveLength(3);
+    expect(slots.every((s) => s.required)).toBe(true);
+    expect(slots.every((s) => s.patterns.length === 1 && s.patterns[0] === 'conditioning')).toBe(
+      true,
+    );
+    expect(leadPattern).toBeUndefined();
+  });
+
+  it('cardio expands with more conditioning slots, never a different pattern', () => {
+    const base = buildFocusTemplate({
+      focus: 'cardio',
+      targetMinutes: 60,
+      difficulty: 'medium',
+      library: lib,
+      history: noHistory,
+    });
+    const expanded = expandOptionalSlots(base, 'cardio', 8, 0);
+    expect(expanded.slots.length).toBe(8);
+    expect(expanded.slots.every((s) => s.patterns[0] === 'conditioning')).toBe(true);
+    // The 3 base slots stay required; every appended slot is optional (time-fit can trim it).
+    expect(expanded.slots.filter((s) => s.required)).toHaveLength(3);
   });
 
   it('Quick Session template has at most 3 slots (§9.5)', () => {
