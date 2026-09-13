@@ -504,7 +504,13 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    *  parallel path), recording exactly which exercise/set the user was on for the §8.3
    *  "abandoned" signal, then returns to Home. Abandoning is not a request to start another
    *  workout (invariant 4 — never punish, never nag): Home is the neutral landing spot, and
-   *  generating again is one tap away from there if that is what the user wants. */
+   *  generating again is one tap away from there if that is what the user wants.
+   *
+   * `reset`, not `navigate` — the discarded session's Workout (and whatever Generate/Approval/
+   * Summary sits under it from however this screen was reached) must not survive underneath Home
+   * as a back destination; a header back button leading to a discarded session is exactly the
+   * stray reference this is guarding against. Same call SummaryScreen's FINISH button already
+   * uses to land cleanly on Home. */
   const handleAbandon = () => {
     sessionsRepo.discardSession(
       db,
@@ -512,7 +518,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       { abandonedEntryId: entry.id, abandonedSetIndex: setIndex },
       nowUtcInstant(),
     );
-    navigation.navigate('Home');
+    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
   };
 
   /**

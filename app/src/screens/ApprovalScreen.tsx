@@ -398,10 +398,14 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
    *  in-progress exercise/set to attribute the §8.3 "abandoned" signal to; `discardSession` is
    *  called with no entry context, same as every other call site, never a parallel path. Returns
    *  to Home rather than bouncing the user straight back into the generator (invariant 4 —
-   *  never punish, never nag). */
+   *  never punish, never nag).
+   *
+   * `reset`, not `navigate` — a discarded session must not survive underneath Home as a back
+   * destination (whatever this screen was reached through: Generate, or another Approval).
+   * Same call `WorkoutScreen`'s in-workout abandon and `SummaryScreen`'s FINISH already use. */
   const handleAbandon = () => {
     sessionsRepo.discardSession(db, sessionId, {}, nowUtcInstant());
-    navigation.navigate('Home');
+    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
   };
 
   return (

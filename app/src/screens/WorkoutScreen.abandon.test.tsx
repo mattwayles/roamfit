@@ -66,7 +66,10 @@ describe('§10.10 abandon a pending workout, driven from Workout', () => {
 
     await fireEvent.press(screen.getByTestId('abandon-confirm-yes'));
 
-    await waitFor(() => expect(navigation.navigate).toHaveBeenCalledWith('Home'), WAIT_OPTS);
+    await waitFor(
+      () => expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'Home' }] }),
+      WAIT_OPTS,
+    );
 
     const after = sessionsRepo.getSession(db, sessionId)!;
     expect(after.status).toBe('discarded');
