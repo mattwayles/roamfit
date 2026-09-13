@@ -41,12 +41,7 @@ import type { CompleteSessionResult } from '@roamfit/store';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
-import {
-  activeEntries,
-  findCurrentEntry,
-  sessionCursorPosition,
-  type Section,
-} from '../lib/sessionProgress';
+import { findCurrentEntry, type Section } from '../lib/sessionProgress';
 import { buildCelebrationViewModel, type FullScreenCelebration } from '../lib/celebration';
 import { hapticCompletion } from '../lib/workoutAudio';
 import ConfettiBurst from '../components/ConfettiBurst';
@@ -73,14 +68,13 @@ function statusEmoji(status: SquareStatus): string {
 }
 
 /**
- * The set square's fill, and how much darker it gets when the square is also the "you are here"
- * override — reusing the app's own palette (the same green/blue/slate tokens Home already uses)
- * rather than inventing a parallel one for this screen.
+ * The set square's fill — reusing the app's own palette (the same green/blue/slate tokens Home
+ * already uses) rather than inventing a parallel one for this screen.
  */
-const SQUARE_COLORS: Record<SquareStatus, { bg: string; bgCurrent: string; text: string }> = {
-  completed: { bg: '#16a34a', bgCurrent: '#166534', text: '#ffffff' },
-  skipped: { bg: '#dbeafe', bgCurrent: '#1d4ed8', text: '#1e3a8a' },
-  not_reached: { bg: '#e2e8f0', bgCurrent: '#64748b', text: '#334155' },
+const SQUARE_COLORS: Record<SquareStatus, { bg: string; text: string }> = {
+  completed: { bg: '#16a34a', text: '#ffffff' },
+  skipped: { bg: '#dbeafe', text: '#1e3a8a' },
+  not_reached: { bg: '#e2e8f0', text: '#334155' },
 };
 
 /** How many set lines to render for an entry: `entry.sets` normally, but never fewer than
@@ -199,16 +193,6 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   // on every page of the active workout), not the end-of-workout completion screen: FINISH and
   // the retrospective don't belong on a screen that isn't at the end yet.
   const frontier = session ? findCurrentEntry(session) : null;
-
-  // The "you are here" marker itself: a set explicitly picked from Summary (or carried over from
-  // an earlier visit — `sessionCursorPosition` reads the persisted override) wins over the
-  // derived front edge, regardless of how much of the workout is actually logged. Falls back to
-  // `frontier` when there is no override, which is the original, purely-derived behavior.
-  const cursor = session ? sessionCursorPosition(session) : null;
-  const cursorEntry =
-    session && cursor ? activeEntries(session).find((e) => e.id === cursor.entryId) : null;
-  const youAreHere =
-    cursor && cursorEntry ? { entry: cursorEntry, setIndex: cursor.setIndex } : frontier;
 
   // This screen is reached from the middle of an active workout (WorkoutScreen's own "Progress"
   // button `replace`s it, so Workout is no longer under Summary on the stack), so the default
@@ -427,47 +411,19 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                   const log = entry.setLogs.find((l) => l.setIndex === setIndex);
                   const status = squareStatus(log);
                   const colors = SQUARE_COLORS[status];
-                  // §10.8 — the square *is* the "you are here" marker when the two coincide,
-                  // rather than a duplicate marker drawn on top of it: a set that was skipped (or
-                  // otherwise already logged) can still be the current position. `youAreHere` wins
-                  // over the logged status here for exactly the same reason it wins everywhere
-                  // else — a set explicitly picked from Summary is an override, regardless of what
-                  // got recorded (or of whether anything has been recorded at all yet).
-                  const isYouAreHere =
-                    !!frontier &&
-                    !!youAreHere &&
-                    youAreHere.entry.id === entry.id &&
-                    youAreHere.setIndex === setIndex;
-                  const textColor = isYouAreHere ? '#ffffff' : colors.text;
                   return (
                     <Pressable
                       key={log?.id ?? `${entry.id}-${setIndex}`}
                       testID={log ? `summary-set-${log.id}` : `summary-set-${entry.id}-${setIndex}`}
                       accessibilityRole="button"
-                      accessibilityLabel={
-                        isYouAreHere
-                          ? `Set ${setIndex + 1} — you are here`
-                          : `Set ${setIndex + 1} — ${status.replace('_', ' ')}`
-                      }
+                      accessibilityLabel={`Set ${setIndex + 1} — ${status.replace('_', ' ')}`}
                       onPress={() => jumpToSet(entry.id, setIndex)}
-                      style={[
-                        styles.setSquare,
-                        { backgroundColor: isYouAreHere ? colors.bgCurrent : colors.bg },
-                        isYouAreHere && styles.setSquareCurrent,
-                      ]}
+                      style={[styles.setSquare, { backgroundColor: colors.bg }]}
                     >
-                      <Text style={[styles.setSquareLabel, { color: textColor }]}>
+                      <Text style={[styles.setSquareLabel, { color: colors.text }]}>
                         Set {setIndex + 1}
                       </Text>
                       <Text style={styles.setSquareEmoji}>{statusEmoji(status)}</Text>
-                      {isYouAreHere && (
-                        <Text
-                          style={styles.setSquareCurrentLabel}
-                          testID={`summary-current-${entry.id}`}
-                        >
-                          You are here
-                        </Text>
-                      )}
                       {/* A `main` set's own feedback — nested inside the square's own Pressable
                           rather than a sibling, since a chip has to win over the square's own
                           jump-to-this-set press when tapped: each chip carries its own `onPress`,
@@ -649,19 +605,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 4,
   },
-  // The "you are here" override: a bold, dark border on top of whatever the status fill already
-  // darkened to, so the eye lands on it before it reads any of the labels — distinguishing it
-  // from every other square has to work at a glance, not just on close reading.
-  setSquareCurrent: { borderWidth: 3, borderColor: '#0f172a' },
   setSquareLabel: { fontSize: 13, fontWeight: '700' },
   setSquareEmoji: { fontSize: 22, marginTop: 2 },
-  setSquareCurrentLabel: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#ffffff',
-    marginTop: 2,
-    textAlign: 'center',
-  },
   // A `main` set's own feedback, inside the square — a small colored chip (color carries the
   // answer at a glance, same as the square's own status fill), so it costs the square only a
   // little extra room even with a real label instead of a bare glyph.
