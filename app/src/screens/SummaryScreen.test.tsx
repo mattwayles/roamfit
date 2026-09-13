@@ -657,8 +657,8 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     const freshEntry = () =>
       sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === mainEntry.id)!;
     const set0Log = freshEntry().setLogs.find((l) => l.setIndex === 0)!;
-    expect(screen.getByText('🥵')).toBeTruthy(); // set 0: too_hard
-    expect(screen.getByText('😌')).toBeTruthy(); // set 1: too_easy
+    expect(screen.getByText('Too hard')).toBeTruthy(); // set 0
+    expect(screen.getByText('Too easy')).toBeTruthy(); // set 1
 
     // Editing set 0's chip touches only set 0.
     await fireEvent.press(screen.getByTestId(`summary-feedback-difficulty-${set0Log.id}`));
@@ -675,7 +675,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     // Set 1's own answer is untouched — this is the whole point of the change.
     expect(updatedSet1.difficultyFeedback).toBe('too_easy');
     // The chip on screen reflects the edit immediately, without navigating away and back.
-    expect(screen.getByText('👍')).toBeTruthy();
+    expect(screen.getByText('Just right')).toBeTruthy();
   });
 
   it('editing a warm-up/cool-down feedback chip updates the whole stage, since that is one answer shared by every entry in it', async () => {

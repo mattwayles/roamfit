@@ -91,11 +91,19 @@ function setLineCount(entry: sessionsRepo.SessionEntryRecord): number {
   return Math.max(entry.sets, maxLogged);
 }
 
-/** Emoji, not text, for the on-square chip — the square has room for a glyph, not a label. */
-const DIFFICULTY_EMOJI: Record<Difficulty, string> = {
-  too_easy: '😌',
-  just_right: '👍',
-  too_hard: '🥵',
+const DIFFICULTY_LABEL: Record<Difficulty, string> = {
+  too_easy: 'Too easy',
+  just_right: 'Just right',
+  too_hard: 'Too hard',
+};
+
+/** A color per answer, not a neutral chip for all three — amber/green/red reads at a glance,
+ *  the same way the set squares' own status fill does. Light background + a dark same-hue text,
+ *  matching the app's other badges/chips (e.g. Home's mastery badge, the skipped square). */
+const DIFFICULTY_COLORS: Record<Difficulty, { bg: string; text: string }> = {
+  too_easy: { bg: '#fde68a', text: '#713f12' },
+  just_right: { bg: '#dcfce7', text: '#166534' },
+  too_hard: { bg: '#fee2e2', text: '#991b1b' },
 };
 
 /**
@@ -471,9 +479,18 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                             testID={`summary-feedback-difficulty-${log.id}`}
                             hitSlop={4}
                             onPress={() => setEditingFeedback({ entryId: entry.id, setIndex })}
+                            style={[
+                              styles.setSquareFeedbackChip,
+                              { backgroundColor: DIFFICULTY_COLORS[log.difficultyFeedback].bg },
+                            ]}
                           >
-                            <Text style={styles.setSquareFeedbackEmoji}>
-                              {DIFFICULTY_EMOJI[log.difficultyFeedback]}
+                            <Text
+                              style={[
+                                styles.setSquareFeedbackChipText,
+                                { color: DIFFICULTY_COLORS[log.difficultyFeedback].text },
+                              ]}
+                            >
+                              {DIFFICULTY_LABEL[log.difficultyFeedback]}
                             </Text>
                           </Pressable>
                         </View>
@@ -493,11 +510,19 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                 <View style={styles.feedbackChipRow}>
                   <Pressable
                     testID={`summary-feedback-difficulty-${entry.id}`}
-                    style={styles.feedbackChip}
+                    style={[
+                      styles.feedbackChip,
+                      { backgroundColor: DIFFICULTY_COLORS[entry.difficultyFeedback].bg },
+                    ]}
                     onPress={() => setEditingFeedback({ entryId: entry.id, setIndex: null })}
                   >
-                    <Text style={styles.feedbackChipText}>
-                      {DIFFICULTY_EMOJI[entry.difficultyFeedback]}
+                    <Text
+                      style={[
+                        styles.feedbackChipText,
+                        { color: DIFFICULTY_COLORS[entry.difficultyFeedback].text },
+                      ]}
+                    >
+                      {DIFFICULTY_LABEL[entry.difficultyFeedback]}
                     </Text>
                   </Pressable>
                 </View>
@@ -639,18 +664,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'center',
   },
-  // A `main` set's own feedback, inside the square — emoji only (§8.1: room for a glyph, not a
-  // label), so it costs the square almost nothing extra.
+  // A `main` set's own feedback, inside the square — a small colored chip (color carries the
+  // answer at a glance, same as the square's own status fill), so it costs the square only a
+  // little extra room even with a real label instead of a bare glyph.
   setSquareFeedbackRow: { flexDirection: 'row', gap: 4, marginTop: 2 },
-  setSquareFeedbackEmoji: { fontSize: 14 },
+  setSquareFeedbackChip: { borderRadius: 999, paddingVertical: 2, paddingHorizontal: 6 },
+  setSquareFeedbackChipText: { fontSize: 8, fontWeight: '700', textAlign: 'center' },
   feedbackChipRow: { flexDirection: 'row', gap: 8 },
   feedbackChip: {
-    backgroundColor: '#e2e8f0',
     borderRadius: 999,
     paddingVertical: 6,
     paddingHorizontal: 12,
   },
-  feedbackChipText: { fontSize: 13, fontWeight: '600', color: '#334155' },
+  feedbackChipText: { fontSize: 13, fontWeight: '600' },
   feedbackBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
