@@ -72,22 +72,45 @@ orchestrated by a lead agent delegating increments to sub-agents.
   band for a non-cardio focus, so the exemption is proven, not just untriggered by construction.
   `npm run check` green.
 
+- [x] Increment 3, step 3/4 — cardio interval prescription (79eb748):
+  `prescription/difficultyTable.ts` gets `CARDIO_INTERVAL_TABLE` (easy 3x30s/30s rest, medium
+  3x40s/20s, hard 4x45s/15s); `prescribeAccessory` branches on `isCardioExercise(exercise)` to
+  read sets/duration/rest/tempo from it instead of `DIFFICULTY_TABLE`, never from the record's
+  own `default_seconds` (authored 30s on every record regardless of difficulty — the table's
+  `workSec` is what actually varies). §13.1's cap and the 48h recovery band-drop are computed
+  once, before the cardio/strength branch, so both still apply to cardio exactly as before. Band
+  cardio still takes its band from the record. Found and fixed a real bug while checking
+  `swap.ts`'s `buildSwapReplacementEntry`: it re-derived a swapped-in timed exercise's duration
+  from *that exercise's own* `default_seconds`, which for cardio is always 30s regardless of the
+  slot's actual difficulty — a medium (40s) or hard (45s) cardio swap would have silently reset
+  to the easy interval length. Fixed with a `isCardioExercise` branch reading
+  `CARDIO_INTERVAL_TABLE[difficulty].workSec` instead; sets/restSec/tempoSec still carry over
+  from the replaced entry unchanged, since a conditioning-pattern entry can only have come from
+  an already-cardio-prescribed slot (same-pattern-only swap). Tests: `prescribe.test.ts` (table
+  values at all three difficulties, no `repTarget`, band cardio band handling, 48h recovery
+  interaction, `setsMultiplier` scaling, confirms `default_seconds` is never read), `swap.test.ts`
+  (alternatives are conditioning-only, a swapped-in cardio exercise keeps the interval duration
+  for its difficulty rather than its own `default_seconds`, verified at both medium and hard).
+  `npm run check` green.
+
 ### In progress
-- Increment 3, step 3/4: prescription — add `CARDIO_INTERVAL_TABLE` to
-  `prescription/difficultyTable.ts` (easy 3x30s/30s rest, medium 3x40s/20s, hard 4x45s/15s) and
-  use it in `prescribeAccessory` when `isCardioExercise(exercise)`: durationSec from the table
-  (not `default_seconds`), restSec from the table, `tempoSec: 0`, sets scaled by
-  `setsMultiplier` as usual; band cardio still reads its band from the record; §13.1's cap and
-  the 48h recovery band-drop still apply, applied before the cardio-vs-strength branch since
-  both act on `difficulty`/`band` the same way regardless of table. `swap.ts`'s
-  `buildSwapReplacementEntry` — check whether a swapped-in cardio exercise needs its own branch
-  or whether reusing `prescribeAccessory`-shaped logic already covers it (currently it does its
-  own re-prescription inline, matching the *replaced* entry's shape rather than a fresh
-  difficulty-table lookup, so a cardio-to-cardio swap already inherits the interval numbers from
-  the entry being replaced — needs confirming with a test, not assuming). Tests:
-  `prescribe.test.ts` (interval table values, band cardio, recovery/hard-cap interaction),
-  `swap.test.ts` (cardio swap alternatives are conditioning-only and carry interval-shaped
-  prescriptions).
+- Increment 3, step 4/4: `timefit/formulas.ts` — add a cardio-specific
+  `mainExerciseCountRange`-equivalent (short timed sets mean more exercises per minute than the
+  ~5min/exercise strength assumption the existing table is tuned for) and wire it into
+  `pipeline.ts` everywhere `mainExerciseCountRange` is currently read for a cardio session
+  (`expandOptionalSlots`'s ceiling, and `fitMainEntries`' internal exercise-count-sanity check —
+  needs a way to pass the range in rather than have `fitSession.ts` re-derive it itself).
+  `EXPANSION_HARD_CAP` stays the outer ceiling regardless; `longSessionSetsMultiplier` still
+  supplies the 90-120min extra, unchanged. Starting point (to tune against tests at
+  15/30/60/120min): ≤15→[3,5], ≤20→[4,6], ≤30→[6,8], ≤45→[8,11], ≤60→[11,14], ≤90→[12,18],
+  else→[14,18]. Then the full test sweep this increment still owes: properties.test.ts (cardio
+  MAIN-entry pattern invariant across the existing seed sweep), a jump-rope fixture-library test
+  (never appears without the anchor, generation and swap both), a full/hard/45min-has-no-finisher
+  regression test, cardio time-fit at 15/30/60/120min against a ~40-exercise fixture library, a
+  back-to-back-cardio-sessions fill test under bodyweight-only/knee_impact/easy against the same
+  fixture, a golden snapshot review+update (`-u`, read the diff first) plus a new cardio golden
+  case, and `npm run validate:library`. Then the final STATUS-14 write-up with the real-library
+  cardio generation check (30min medium today, ~10 exercises — does it deviate) for the report.
 
 ### Next
 3. Engine: cardio template, finisher removal, main-pool scoping, band-ratio exemption for cardio,
