@@ -641,14 +641,19 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     secondsActual?: number,
     pauseInfo?: { pauseCount: number; pausedDurationSec: number },
   ) => {
-    // Captured before the log write: retroactively correcting a set behind the front edge (a
-    // bookmark tapped from Summary/Progress, or a set walked back to with ◂◂) must not be
-    // confused, after `reload()` below moves `current` on, with having just trained the actual
-    // front edge.
+    // Captured before the log write: retroactively correcting a set that already has a log (one
+    // reached via a Summary/Progress bookmark, or walked back to with ◂◂ — both only ever land on
+    // sets that were already trained/skipped) must not be confused, after `reload()` below moves
+    // `current` on, with having just trained the actual front edge. A bookmark onto a set that has
+    // *no* log yet — jumping ahead to something not yet reached — is a real, first-time completion
+    // of that set even though it isn't the derived front edge, so it still earns its own rest and
+    // proceeds normally; only a genuine redo of an already-recorded set skips straight back to
+    // Summary.
     const wasAtFrontier = atFrontier;
+    const wasAlreadyLogged = loggedSetForThisSet != null;
     logCurrentSet(status, repsActual, secondsActual, pauseInfo);
 
-    if (!wasAtFrontier) {
+    if (!wasAtFrontier && wasAlreadyLogged) {
       // There is no rest to take and no coherent "next" to preview here — `nextLabel`/`exercise`
       // below is the *real* front edge, an unrelated exercise the user wasn't just training, so
       // routing through the rest page would rest them in front of the wrong thing. The fix just

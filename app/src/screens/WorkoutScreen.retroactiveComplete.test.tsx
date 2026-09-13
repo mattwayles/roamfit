@@ -128,3 +128,75 @@ it('completing a previously-skipped set reached via a Summary bookmark writes it
     WAIT_OPTS,
   );
 }, 20000);
+
+/**
+ * Reported from the device: selecting any set from Summary and completing it bounced straight
+ * back to Summary instead of showing that set's own rest page and continuing the workout.
+ *
+ * The `!wasAtFrontier` check above was too broad — it fired for *every* bookmark that wasn't the
+ * literal derived front edge, including a bookmark onto a set nobody has reached yet (jumping
+ * ahead). That set has no existing log to "correct"; completing it is a real, first-time
+ * completion and deserves the same rest page any other completion gets. Only a bookmark onto a
+ * set that already has a log (an actual redo/correction, covered above) should skip rest and land
+ * back on Summary.
+ */
+it('completing a not-yet-reached set jumped to from Summary shows its own rest page rather than bouncing back to Summary', async () => {
+  const db = await freshDb();
+  const clock = nowEngineClock();
+  const utcInstant = nowUtcInstant();
+  const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+    library: exerciseLibrary,
+    families: familyLibrary,
+    request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+    clock,
+    rng: createRng(seedFromString('jump-ahead-complete-seed')),
+    utcInstant,
+  });
+  const sessionId = sessionsRepo.createPendingSession(db, {
+    plan,
+    utcInstant,
+    localDate: clock.today,
+    tzId: clock.tzId,
+    comebackTier,
+    recoveryWeekManual,
+  });
+  sessionsRepo.startSession(db, sessionId, utcInstant);
+  const session0 = sessionsRepo.getSession(db, sessionId)!;
+  const mains = session0.entries.filter(
+    (e) => e.section === 'main' && e.entryStatus !== 'removed_at_approval',
+  );
+  // Nothing logged at all — the front edge is `mains[0]` set 0. The bookmark below jumps ahead to
+  // an entirely untouched later entry, not the derived front edge, but also not a redo of
+  // anything already recorded.
+  const target = mains[1]!;
+
+  const navigation = mockNavigation();
+  render(
+    <StoreProvider>
+      <WorkoutScreen
+        navigation={navigation as never}
+        route={
+          {
+            key: 'Workout',
+            name: 'Workout',
+            params: { sessionId, jumpTo: { entryId: target.id, setIndex: 0 } },
+          } as never
+        }
+      />
+    </StoreProvider>,
+  );
+
+  await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
+  fireEvent.press(screen.getByTestId('complete-set'));
+
+  // The jumped-to set really was logged as completed.
+  await waitFor(() => {
+    const s = sessionsRepo.getSession(db, sessionId)!;
+    const log0 = s.entries.find((e) => e.id === target.id)!.setLogs.find((l) => l.setIndex === 0);
+    expect(log0?.status).toBe('completed');
+  }, WAIT_OPTS);
+
+  // Its own rest page shows — no bounce back to Summary.
+  await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), WAIT_OPTS);
+  expect(navigation.replace).not.toHaveBeenCalledWith('Summary', { sessionId });
+}, 20000);
