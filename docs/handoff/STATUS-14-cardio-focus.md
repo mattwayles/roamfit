@@ -58,21 +58,36 @@ orchestrated by a lead agent delegating increments to sub-agents.
   cooldown picks in the hard/45min full fixture from one fewer slot, same total main count (7)
   before and after. `npm run check` green.
 
+- [x] Increment 3, step 2/4 — main-pool scoping + band-ratio exemption (28f1aa6):
+  `pipeline.ts` scopes the pool passed to `selectMain`/`resolveLadderSlot` to conditioning-only
+  for cardio and conditioning-excluded otherwise, right after the two `applyHardFilters` calls;
+  warmup/cooldown selection and `mainSelection.ts`'s internal `overWorkedMuscles`/
+  `recentHardMuscles` calls keep the *unscoped* pool on purpose (new `SelectMainInput.volumePool`
+  field, defaulting to `pool` for every pre-existing caller) — a history entry from a
+  different-focus session must still resolve by id for volume math, and a cardio move must still
+  be eligible to warm up a strength day. Confirmed a behavioral no-op for every pre-existing
+  focus (zero golden snapshot change, full existing suite unchanged). `mainSelection.ts` also
+  skips the `'band'` aggregate pass when `focus === 'cardio'` (≥50% band ratio exemption).
+  Verified with a same-pool-different-focus test that the pass really would have forced ≥50%
+  band for a non-cardio focus, so the exemption is proven, not just untriggered by construction.
+  `npm run check` green.
+
 ### In progress
-- Increment 3, step 2/4: `pipeline.ts` main-pool scoping — right after the two `applyHardFilters`
-  calls, narrow the pool passed into `selectMain` (and `resolveLadderSlot`) to conditioning-only
-  for `focus === 'cardio'`, and to conditioning-excluded for every other focus. Warmup/cooldown
-  selection and the `recentHardMuscles`/`overWorkedMuscles` volume lookups keep the *unscoped*
-  pool — cardio moves may still warm up a strength day (user decision), and the volume functions
-  need to resolve history entries from a different-focus session by id regardless of this
-  session's own scoping. This is belt-and-braces (no template asks a non-cardio focus for
-  `conditioning` today, so it's a no-op behaviorally for existing focuses — confirmed no golden
-  snapshot changed). Also: `selection/mainSelection.ts` skips the `'band'` `applyAggregatePass`
-  when `focus === 'cardio'` (user decision — cardio exempt from the ≥50% band ratio), and the
-  PATTERN GAP band exception (only triggers for `horizontal_pull`/`vertical_pull` slots, never
-  reachable for a cardio slot, so no change needed there beyond confirming it). Tests:
-  `pipeline.test.ts` new cases for the pool-scoping exclusion/inclusion and the band-ratio
-  exemption.
+- Increment 3, step 3/4: prescription — add `CARDIO_INTERVAL_TABLE` to
+  `prescription/difficultyTable.ts` (easy 3x30s/30s rest, medium 3x40s/20s, hard 4x45s/15s) and
+  use it in `prescribeAccessory` when `isCardioExercise(exercise)`: durationSec from the table
+  (not `default_seconds`), restSec from the table, `tempoSec: 0`, sets scaled by
+  `setsMultiplier` as usual; band cardio still reads its band from the record; §13.1's cap and
+  the 48h recovery band-drop still apply, applied before the cardio-vs-strength branch since
+  both act on `difficulty`/`band` the same way regardless of table. `swap.ts`'s
+  `buildSwapReplacementEntry` — check whether a swapped-in cardio exercise needs its own branch
+  or whether reusing `prescribeAccessory`-shaped logic already covers it (currently it does its
+  own re-prescription inline, matching the *replaced* entry's shape rather than a fresh
+  difficulty-table lookup, so a cardio-to-cardio swap already inherits the interval numbers from
+  the entry being replaced — needs confirming with a test, not assuming). Tests:
+  `prescribe.test.ts` (interval table values, band cardio, recovery/hard-cap interaction),
+  `swap.test.ts` (cardio swap alternatives are conditioning-only and carry interval-shaped
+  prescriptions).
 
 ### Next
 3. Engine: cardio template, finisher removal, main-pool scoping, band-ratio exemption for cardio,
