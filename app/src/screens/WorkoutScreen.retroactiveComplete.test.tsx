@@ -200,3 +200,86 @@ it('completing a not-yet-reached set jumped to from Summary shows its own rest p
   await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), WAIT_OPTS);
   expect(navigation.replace).not.toHaveBeenCalledWith('Summary', { sessionId });
 }, 20000);
+
+/**
+ * Reported from the device: complete a set jumped to from Summary, then complete its rest and
+ * feedback — the screen returned to the exact same set instead of progressing.
+ *
+ * The landing effect that applies a `jumpTo` bookmark onto `rewoundTo` treated `rewoundTo` itself
+ * as the "have I already run" flag: it skipped only while `rewoundTo` was still truthy. Completing
+ * the bookmarked set legitimately clears `rewoundTo` back to null so the workout resumes at its
+ * own front edge — but `session` gets a new object identity on every `reload()`, which is one of
+ * the effect's dependencies, so clearing `rewoundTo` let the very next reload re-run the effect and
+ * re-apply the *same* `jumpTo` bookmark, trapping the screen on the set just completed. The fix
+ * gates the effect on its own ref instead, so it truly runs once per arrival regardless of how
+ * `rewoundTo` is used afterwards.
+ */
+it('completing the rest/feedback for a set jumped to from Summary advances past it, not back onto it', async () => {
+  const db = await freshDb();
+  const clock = nowEngineClock();
+  const utcInstant = nowUtcInstant();
+  const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+    library: exerciseLibrary,
+    families: familyLibrary,
+    request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+    clock,
+    // Verified for this seed: `active[0]` (the true front edge — §10.8's derived position, not
+    // necessarily the first `main` entry) and `active[2]` are both reps-based, so both can be
+    // driven through `complete-set` below.
+    rng: createRng(seedFromString('jump-ahead-rest-advance-seed-2')),
+    utcInstant,
+  });
+  const sessionId = sessionsRepo.createPendingSession(db, {
+    plan,
+    utcInstant,
+    localDate: clock.today,
+    tzId: clock.tzId,
+    comebackTier,
+    recoveryWeekManual,
+  });
+  sessionsRepo.startSession(db, sessionId, utcInstant);
+  const session0 = sessionsRepo.getSession(db, sessionId)!;
+  const active = session0.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
+  // Nothing logged — the front edge is `active[0]` set 0. The bookmark jumps ahead to a later,
+  // untouched entry instead.
+  const frontEdge = active[0]!;
+  const target = active[2]!;
+
+  const navigation = mockNavigation();
+  render(
+    <StoreProvider>
+      <WorkoutScreen
+        navigation={navigation as never}
+        route={
+          {
+            key: 'Workout',
+            name: 'Workout',
+            params: { sessionId, jumpTo: { entryId: target.id, setIndex: 0 } },
+          } as never
+        }
+      />
+    </StoreProvider>,
+  );
+
+  await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
+  fireEvent.press(screen.getByTestId('complete-set'));
+  await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), WAIT_OPTS);
+
+  await fireEvent.press(screen.getByTestId('rest-next'));
+
+  // Without the fix, the landing effect re-applies the same `jumpTo` bookmark here, and the
+  // screen shows `target` set 0 all over again instead of the real front edge.
+  await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
+  fireEvent.press(screen.getByTestId('complete-set'));
+
+  await waitFor(() => {
+    const s = sessionsRepo.getSession(db, sessionId)!;
+    const targetSetLogs = s.entries.find((e) => e.id === target.id)!.setLogs;
+    // Exactly one log on `target` set 0 — the second press did not re-log the same slot.
+    expect(targetSetLogs.filter((l) => l.setIndex === 0)).toHaveLength(1);
+    const frontEdgeLog = s.entries
+      .find((e) => e.id === frontEdge.id)!
+      .setLogs.find((l) => l.setIndex === 0);
+    expect(frontEdgeLog?.status).toBe('completed');
+  }, WAIT_OPTS);
+}, 20000);

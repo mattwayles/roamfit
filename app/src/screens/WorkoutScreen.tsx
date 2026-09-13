@@ -196,6 +196,14 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    * resumes at the real front edge rather than somewhere the user only looked at.
    */
   const [rewoundTo, setRewoundTo] = useState<SessionPosition | null>(null);
+  /** Whether the landing effect below has already placed this screen instance onto its arrival
+   *  bookmark/cursor. Keyed on its own ref rather than on `rewoundTo` being non-null: completing a
+   *  set legitimately clears `rewoundTo` back to null (so the workout resumes at its own front
+   *  edge) even when it was reached via `jumpTo`, and `session` gets a new object identity on
+   *  every `reload()` — without this ref, that combination re-ran the landing effect on every
+   *  subsequent reload and re-applied the same `jumpTo` bookmark forever, trapping the screen on
+   *  the set just completed instead of letting it move on. */
+  const arrivalHandledRef = useRef(false);
 
   const reload = useCallback(
     () => setSession(sessionsRepo.getSession(db, sessionId)),
@@ -266,9 +274,11 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   // something lands on the last set rather than the front edge — the front edge is `null`
   // (everything is already logged), which is exactly the empty state the auto-navigate effect
   // below would otherwise read as "done, go to Summary" and bounce straight back out of. Runs
-  // once per arrival; `rewoundTo` afterwards is the user's own ◂◂/▸▸ navigation to keep.
+  // once per arrival, gated on `arrivalHandledRef` rather than `rewoundTo` — see that ref's own
+  // comment for why `rewoundTo` alone can't be trusted to stay "handled".
   useEffect(() => {
-    if (!session || rewoundTo) return;
+    if (!session || arrivalHandledRef.current) return;
+    arrivalHandledRef.current = true;
     if (jumpToValid && jumpTo) {
       setRewoundTo(jumpTo);
       sessionsRepo.setSessionCursor(db, sessionId, jumpTo, nowUtcInstant());
