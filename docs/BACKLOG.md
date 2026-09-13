@@ -12,6 +12,8 @@ the record of what was completed and why.
 
 ---
 
+
+
 ## Desired Fixes
 
 - **Ladder rungs with no sibling exercises**, so they repeat every session at that level: `horizontal_push` l7–l9, `horizontal_pull` l4–l8, `anti_extension` l4 and l6. All are high rungs nobody currently occupies — fill them when someone gets there.
@@ -31,6 +33,8 @@ sibling got drawn, which is exactly what anchoring avoids, so it needs a design 
 
 ---
 
+
+
 ## Problems with Individual Exercises
 
 *Use this section to backlog changes to individual exercise details*
@@ -39,14 +43,28 @@ sibling got drawn, which is exactly what anchoring avoids, so it needs a design 
 
 ---
 
+
+
 ## Requested Exercises
 
 *List exercises that you'd like to incldue in the library here. Any exercise you want to remove should be disabled through the Exercise Details page*
 
 ---
 
+
+
 ## Future Features
 
+- **Completion screen — the particle/gradient/SVG/gesture tier.** The "no new dependency" pass
+  landed (fanfare + choreographed haptics, staggered entrance, a real stat grid — see
+  `SummaryScreen.tsx`, `sessionStats.ts`, `AnimatedStatCounter.tsx`). Still open, all needing a
+  native dep + Expo dev-client rebuild: a real multi-directional confetti burst and moving gradient
+  background (`react-native-reanimated`), a muscle-worked visualization or progress ring toward the
+  next unlock (`react-native-svg`), tap-to-reburst/hold-to-charge interactions
+  (`react-native-gesture-handler`), and a rendered branded share-card image instead of text
+  (`react-native-view-shot`, already noted below as a §9.10 scope cut). Also open: give the
+  level-up/Mastery celebration screen its own full redesign (a badge/reveal treatment) rather than
+  just the completion-haptic parity fix it got.
 - **Passport Feature** - What do we want to use it for? What should it look like? What's its primary purpose?
 - **User Accounts** - **Anonymous Firebase Auth session isn't persisted.** No RN AsyncStorage backing, so cross-device continuity silently doesn't work. Zero impact on the core loop — nothing reads it on the critical path.
 - **A native iOS wheel picker** (`@react-native-picker/picker`) instead of the hand-rolled drop-down. Costs two native dependencies and an Expo dev-client rebuild; the component interface wouldn't change, so it's a clean swap if wanted.
