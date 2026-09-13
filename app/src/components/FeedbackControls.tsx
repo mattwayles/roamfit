@@ -44,7 +44,11 @@ export default function FeedbackControls({
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 12 },
+  // `width: '100%'` is load-bearing: every caller renders this inside an `alignItems: 'center'`
+  // hero (a shrink-wrap context), so without an explicit width `segment`'s `flex: 1` children
+  // have nothing to divide and collapse toward zero — invisible to RNTL (it never runs real
+  // Yoga layout), only caught by actually running the app.
+  container: { gap: 12, width: '100%' },
   segment: { flexDirection: 'row', backgroundColor: '#e2e8f0', borderRadius: 12, padding: 4 },
   segmentItem: {
     flex: 1,
