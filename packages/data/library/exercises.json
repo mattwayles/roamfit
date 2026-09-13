@@ -6932,7 +6932,8 @@
       "default_seconds": null,
       "tier": "fill",
       "roles": [
-        "main"
+        "warmup",
+        "cooldown"
       ],
       "difficulty": "medium",
       "progression_family": null,
