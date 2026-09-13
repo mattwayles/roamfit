@@ -20,8 +20,17 @@ const ALL_FOCI: readonly Focus[] = ['full', 'upper', 'abs', 'legs'];
 export function pickQuickSessionFocus(history: readonly SessionHistoryRecord[]): Focus {
   if (history.length === 0) return 'full';
 
-  const counts: Record<Focus, number> = { full: 0, upper: 0, abs: 0, legs: 0 };
-  const lastSeenIndex: Record<Focus, number> = { full: -1, upper: -1, abs: -1, legs: -1 };
+  // 'cardio' isn't in ALL_FOCI yet — track 14 increment 5 adds it to the rotation. Present here
+  // only to keep these Records exhaustive; a count of 0 / lastSeenIndex of -1 is inert until
+  // ALL_FOCI actually includes it.
+  const counts: Record<Focus, number> = { full: 0, upper: 0, abs: 0, legs: 0, cardio: 0 };
+  const lastSeenIndex: Record<Focus, number> = {
+    full: -1,
+    upper: -1,
+    abs: -1,
+    legs: -1,
+    cardio: -1,
+  };
   history.forEach((session, i) => {
     counts[session.focus] += 1;
     lastSeenIndex[session.focus] = i;

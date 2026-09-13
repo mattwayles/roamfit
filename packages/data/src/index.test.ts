@@ -1,4 +1,5 @@
-import { exerciseLibrary, familyLibrary } from './index';
+import { exerciseLibrary, familyLibrary, isCardioExercise } from './index';
+import type { Exercise } from './schema';
 
 describe('@roamfit/data wiring', () => {
   it('loads the bundled exercise library', () => {
@@ -7,6 +8,48 @@ describe('@roamfit/data wiring', () => {
 
   it('loads the bundled family library', () => {
     expect(Array.isArray(familyLibrary.families)).toBe(true);
+  });
+});
+
+describe('isCardioExercise (track 14 — pattern, not muscle, is the classifier)', () => {
+  function fakeExercise(overrides: Partial<Exercise>): Exercise {
+    return {
+      id: 'fake',
+      name: 'Fake',
+      aliases: [],
+      focus: ['full'],
+      pattern: 'squat',
+      primary: ['quads'],
+      secondary: [],
+      equipment: 'bodyweight',
+      band: null,
+      anchor: 'none',
+      anchor_alt: null,
+      anchor_class: 'none',
+      unilateral: false,
+      metric: 'reps',
+      default_seconds: null,
+      tier: 'fill',
+      roles: ['main'],
+      difficulty: 'easy',
+      progression_family: null,
+      progression_level_id: null,
+      contraindications: [],
+      setup: 'A placeholder setup cue at least twenty characters long.',
+      video_search: 'fake exercise',
+      ...overrides,
+    };
+  }
+
+  it('is true iff pattern is "conditioning"', () => {
+    expect(isCardioExercise(fakeExercise({ pattern: 'conditioning' }))).toBe(true);
+    expect(isCardioExercise(fakeExercise({ pattern: 'squat' }))).toBe(false);
+  });
+
+  it('is true for every conditioning record in the bundled library, and only those', () => {
+    for (const e of exerciseLibrary.exercises) {
+      expect(isCardioExercise(e)).toBe(e.pattern === 'conditioning');
+    }
   });
 });
 

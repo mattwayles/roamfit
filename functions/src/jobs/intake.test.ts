@@ -77,7 +77,7 @@ describe('runIntakeJob', () => {
   it('falls back to null after a second failed validation (repair does not help)', async () => {
     const { parse, calls } = fakeParse(
       {
-        parsedOutput: { focus: 'cardio', difficulty: 'medium', targetMinutes: 25 },
+        parsedOutput: { focus: 'not-a-focus', difficulty: 'medium', targetMinutes: 25 },
         cacheReadInputTokens: 0,
       },
       {

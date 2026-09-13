@@ -26,7 +26,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const LIB_DIR = path.join(__dirname, '..', 'library');
 
-const FOCUS_VALUES: Focus[] = ['upper', 'abs', 'legs', 'full'];
+const FOCUS_VALUES: Focus[] = ['upper', 'abs', 'legs', 'full', 'cardio'];
 const PATTERN_VALUES: Pattern[] = [
   'horizontal_push',
   'vertical_push',
@@ -47,6 +47,7 @@ const PATTERN_VALUES: Pattern[] = [
   'elbow_flexion',
   'elbow_extension',
   'shoulder_isolation',
+  'conditioning',
 ];
 const EQUIPMENT_VALUES: Equipment[] = ['band', 'bodyweight'];
 const ANCHOR_VALUES: Anchor[] = [
@@ -61,6 +62,7 @@ const ANCHOR_VALUES: Anchor[] = [
   'anchor-high',
   'pullup-bar',
   'low-bar',
+  'jump-rope',
 ];
 const ANCHOR_CLASS_VALUES: AnchorClass[] = ['none', 'band_tension', 'bodyweight_bearing'];
 const METRIC_VALUES: Metric[] = ['reps', 'time', 'amrap'];
@@ -96,7 +98,9 @@ const BODYWEIGHT_BEARING_ANCHORS: Anchor[] = ['pullup-bar', 'body-support', 'low
 
 function anchorClassFor(anchor: Anchor): AnchorClass {
   if (BODYWEIGHT_BEARING_ANCHORS.includes(anchor)) return 'bodyweight_bearing';
-  if (anchor === 'none') return 'none';
+  // 'jump-rope' is gear, not a fixed point — nothing is borne or tensioned against, same as
+  // 'none' (track 14).
+  if (anchor === 'none' || anchor === 'jump-rope') return 'none';
   return 'band_tension';
 }
 
@@ -194,6 +198,27 @@ function main() {
     // progression_family / progression_level_id must be both-or-neither
     if ((ex.progression_family === null) !== (ex.progression_level_id === null)) {
       fail(`${id}: progression_family and progression_level_id must both be null or both be set`);
+    }
+
+    // Track 14 — classification is a pattern plus a focus, not a muscle: `conditioning` and
+    // `cardio` must always travel together, in both directions, so `isCardioExercise` (pattern
+    // alone) and "does this focus include cardio" never disagree.
+    const isConditioning = ex.pattern === 'conditioning';
+    const hasCardioFocus = ex.focus.includes('cardio');
+    if (isConditioning !== hasCardioFocus) {
+      fail(
+        `${id}: pattern "conditioning" and focus including "cardio" must travel together (pattern conditioning: ${isConditioning}, focus has cardio: ${hasCardioFocus})`,
+      );
+    }
+    // A cardio record may also carry a non-cardio focus, but only via a warm-up or cool-down
+    // role (e.g. jumping jack keeps `full` so strength warm-ups can still pick it) — exclusion
+    // from strength MAIN work is the whole point of the pattern split.
+    if (hasCardioFocus && ex.focus.some((f) => f !== 'cardio')) {
+      if (!ex.roles.includes('warmup') && !ex.roles.includes('cooldown')) {
+        fail(
+          `${id}: focus includes "cardio" plus another focus, but roles has neither "warmup" nor "cooldown" — a cardio record may only carry an extra focus via a warm-up/cool-down role`,
+        );
+      }
     }
 
     // `setup` is the offline floor. Since ADR 0008 removed the bundled figures, this cue is the
@@ -321,7 +346,12 @@ function main() {
 
   // §5.5 focus templates: every pattern slot needs eligible exercises per focus, and every
   // focus needs a non-empty warmup and cooldown pool.
-  const TEMPLATE_PATTERNS: Record<Focus, Pattern[]> = {
+  //
+  // Track 14: deliberately `Partial` rather than `Record<Focus, Pattern[]>`. `cardio` has no
+  // entry yet — its patterns and its warmup/cooldown coverage depend on the library tag audit
+  // (increment 2), so until `TEMPLATE_PATTERNS.cardio = ['conditioning']` lands there, the loop
+  // below skips it rather than failing on a focus increment 1 doesn't populate.
+  const TEMPLATE_PATTERNS: Partial<Record<Focus, Pattern[]>> = {
     upper: [
       'horizontal_push',
       'horizontal_pull',
@@ -347,6 +377,7 @@ function main() {
 
   for (const focus of FOCUS_VALUES) {
     const patterns = TEMPLATE_PATTERNS[focus];
+    if (!patterns) continue;
     for (const pattern of patterns) {
       const eligible = exercises.filter(
         (e) => e.roles.includes('main') && e.pattern === pattern && e.focus.includes(focus),

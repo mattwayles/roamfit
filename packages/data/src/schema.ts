@@ -7,7 +7,7 @@
  * validator (`validate.ts`) rejects any library record carrying `video_id`.
  */
 
-export type Focus = 'upper' | 'abs' | 'legs' | 'full';
+export type Focus = 'upper' | 'abs' | 'legs' | 'full' | 'cardio';
 
 export type Pattern =
   | 'horizontal_push'
@@ -30,7 +30,10 @@ export type Pattern =
   | 'lateral_flexion'
   | 'elbow_flexion'
   | 'elbow_extension'
-  | 'shoulder_isolation';
+  | 'shoulder_isolation'
+  // Cardio/heart-rate work — the classifier for the Cardio focus (track 14). An exercise is
+  // "cardio" iff its pattern is `conditioning`; see `isCardioExercise`.
+  | 'conditioning';
 
 export type Equipment = 'band' | 'bodyweight';
 
@@ -48,7 +51,11 @@ export type Anchor =
   // A waist-height fixed bar (RV ladder rung, picnic table edge, low branch). Distinct from
   // 'pullup-bar' because it is far more widely available and is partial-support, not a full
   // dynamic hang. Still bodyweight_bearing, so the §13.1 effort cap applies. See ADR 0007.
-  | 'low-bar';
+  | 'low-bar'
+  // Gear, not a fixed point (track 14). anchor_class 'none' — nothing to bear or tension
+  // against. Gated by the Available Equipment picker like any other anchor, but deliberately
+  // never always-available: a rope exercise must never be programmed unless the user has it.
+  | 'jump-rope';
 
 /** Derived mechanically from `anchor` (§13.1). Drives the anchor-safety hard filter. */
 export type AnchorClass = 'none' | 'band_tension' | 'bodyweight_bearing';

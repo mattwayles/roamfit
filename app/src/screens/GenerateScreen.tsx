@@ -32,6 +32,9 @@ const FOCUS_LABELS: Record<Focus, string> = {
   abs: 'Core',
   legs: 'Legs',
   full: 'Full body',
+  // Not yet offered in FOCUS_OPTIONS — track 14 increment 5 adds the picker option and the
+  // "Cardio gear" anchor group together. Present here only to keep this Record exhaustive.
+  cardio: 'Cardio',
 };
 const DIFFICULTY_OPTIONS: Difficulty[] = ['easy', 'medium', 'hard'];
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {

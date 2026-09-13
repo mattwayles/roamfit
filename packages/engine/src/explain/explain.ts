@@ -25,6 +25,7 @@ const PATTERN_LABELS: Record<Pattern, string> = {
   elbow_flexion: 'biceps work',
   elbow_extension: 'triceps work',
   shoulder_isolation: 'shoulder work',
+  conditioning: 'cardio work',
 };
 
 export interface LevelUpFact {

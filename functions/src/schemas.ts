@@ -18,7 +18,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 // nominally distinct `ZodType`s). Importing `zod/v4` is what keeps `zodOutputFormat` type-checking.
 import { z } from 'zod/v4';
 
-const FOCUS = z.enum(['upper', 'abs', 'legs', 'full']);
+const FOCUS = z.enum(['upper', 'abs', 'legs', 'full', 'cardio']);
 const DIFFICULTY = z.enum(['easy', 'medium', 'hard']);
 const EQUIPMENT_PREFERENCE = z.enum(['any', 'band', 'bodyweight']);
 const CONTRAINDICATION = z.enum([

@@ -221,6 +221,9 @@ describe('multi-session simulation', () => {
       legs: ['squat', 'hinge', 'lunge'],
       abs: ['anti_rotation', 'flexion', 'anti_extension', 'lateral_flexion'],
       full: ['squat', 'hinge'],
+      // `foci` above doesn't simulate cardio (track 14 increment 3), so this is never checked —
+      // present only so the Record<Focus, ...> literal stays exhaustive.
+      cardio: [],
     };
     for (const [focus, required] of Object.entries(REQUIRED_PATTERNS) as [Focus, string[]][]) {
       const seen = patternsSeenByFocus.get(focus);

@@ -19,7 +19,7 @@ import { IntakeOutputFormat } from '../schemas';
 const INTAKE_SYSTEM_PROMPT = `You translate a user's freeform description of what they want out of
 a workout today into structured parameters. You do not choose exercises, sets, reps, or bands —
 that is decided entirely by a separate deterministic engine after you respond. Return only:
-focus (upper/abs/legs/full), difficulty (easy/medium/hard), targetMinutes (15-90), and optionally
+focus (upper/abs/legs/full/cardio), difficulty (easy/medium/hard), targetMinutes (15-90), and optionally
 equipmentPreference (any/band/bodyweight) and a suggestedLimitationTag if the text clearly implies
 a physical limitation (e.g. "shoulder's cranky" -> shoulder_overhead). If the text is ambiguous,
 make a reasonable default choice rather than refusing.`;

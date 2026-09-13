@@ -171,6 +171,10 @@ const ACCESSORY_PATTERNS_BY_FOCUS: Record<Focus, Pattern[]> = {
     'flexion',
     'lateral_flexion',
   ],
+  // Track 14 increment 3 replaces this with ['conditioning'] once cardioSlots() lands — empty
+  // for now (no expansion; expandOptionalSlots no-ops on an empty pattern list) since this
+  // increment does not touch template/selection behavior.
+  cardio: [],
 };
 
 /**
@@ -245,6 +249,11 @@ export function buildFocusTemplate(input: BuildTemplateInput): FocusTemplateResu
       return { slots, leadPattern };
     }
     case 'full':
+      return { slots: fullSlots(targetMinutes, difficulty, history, library) };
+    case 'cardio':
+      // Track 14 increment 3 replaces this — cardioSlots() (3 required `conditioning` slots)
+      // lands in the next increment. Returning `full`'s slots is a compile-time stopgap only;
+      // nothing exercises the `cardio` focus end-to-end until then.
       return { slots: fullSlots(targetMinutes, difficulty, history, library) };
   }
 }

@@ -37,7 +37,7 @@ function fail(...errors: string[]): ValidationResult {
   return { valid: false, errors };
 }
 
-const FOCUS_VALUES: readonly Focus[] = ['upper', 'abs', 'legs', 'full'];
+const FOCUS_VALUES: readonly Focus[] = ['upper', 'abs', 'legs', 'full', 'cardio'];
 const DIFFICULTY_VALUES: readonly Difficulty[] = ['easy', 'medium', 'hard'];
 const EQUIPMENT_VALUES: readonly EquipmentPreference[] = ['any', 'band', 'bodyweight'];
 

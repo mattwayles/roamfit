@@ -13,9 +13,14 @@ describe('§7.3 "validate anyway" — LLM output validation', () => {
     });
 
     it('rejects an invalid focus enum value', () => {
-      const result = validateIntakeOutput({ ...good, focus: 'cardio' });
+      const result = validateIntakeOutput({ ...good, focus: 'arms' });
       expect(result.valid).toBe(false);
       expect(result.errors.join()).toMatch(/focus/);
+    });
+
+    it('accepts "cardio" as a valid focus (track 14)', () => {
+      const result = validateIntakeOutput({ ...good, focus: 'cardio' });
+      expect(result.valid).toBe(true);
     });
 
     it('rejects an invalid difficulty enum value', () => {

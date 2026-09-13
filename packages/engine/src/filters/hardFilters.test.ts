@@ -1,3 +1,4 @@
+import type { Exercise } from '@roamfit/data';
 import { exerciseLibrary } from '@roamfit/data';
 import {
   ALWAYS_AVAILABLE_ANCHORS,
@@ -7,6 +8,37 @@ import {
 } from './hardFilters';
 
 const lib = exerciseLibrary.exercises;
+
+/** A minimal jump-rope exercise fixture. The library itself gains real rope records in
+ *  increment 4 — this test only needs one to exist to prove the anchor gate, so it builds its
+ *  own rather than depending on library content that isn't there yet. */
+function jumpRopeExercise(): Exercise {
+  return {
+    id: 'fake-jump-rope',
+    name: 'Fake Jump Rope Move',
+    aliases: [],
+    focus: ['cardio'],
+    pattern: 'conditioning',
+    primary: ['calves'],
+    secondary: [],
+    equipment: 'bodyweight',
+    band: null,
+    anchor: 'jump-rope',
+    anchor_alt: null,
+    anchor_class: 'none',
+    unilateral: false,
+    metric: 'time',
+    default_seconds: 30,
+    tier: 'fill',
+    roles: ['main'],
+    difficulty: 'easy',
+    progression_family: null,
+    progression_level_id: null,
+    contraindications: [],
+    setup: 'A placeholder setup cue at least twenty characters long.',
+    video_search: 'fake jump rope move',
+  };
+}
 
 describe('hard filters (§5.1 step 1 / §13.2)', () => {
   it('never returns an exercise whose anchor is not enabled', () => {
@@ -150,6 +182,37 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
       today: '2026-08-30',
     });
     expect(out.some((e) => e.id === target.id)).toBe(false);
+  });
+
+  it('never enables jump-rope by default (track 14: gear, not always-available)', () => {
+    expect(DEFAULT_ANCHORS_AVAILABLE).not.toContain('jump-rope');
+    expect(ALWAYS_AVAILABLE_ANCHORS).not.toContain('jump-rope');
+  });
+
+  it('excludes a jump-rope exercise when the user has not enabled jump-rope', () => {
+    const rope = jumpRopeExercise();
+    const out = applyHardFilters({
+      library: [rope],
+      request: {},
+      anchorsAvailable: DEFAULT_ANCHORS_AVAILABLE,
+      limitations: [],
+      disabledExerciseIds: new Set(),
+      today: '2026-08-30',
+    });
+    expect(out).toHaveLength(0);
+  });
+
+  it('includes a jump-rope exercise once the user has enabled jump-rope', () => {
+    const rope = jumpRopeExercise();
+    const out = applyHardFilters({
+      library: [rope],
+      request: {},
+      anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE, 'jump-rope'],
+      limitations: [],
+      disabledExerciseIds: new Set(),
+      today: '2026-08-30',
+    });
+    expect(out).toHaveLength(1);
   });
 
   it('re-includes a disabled exercise once its id is no longer in the set', () => {

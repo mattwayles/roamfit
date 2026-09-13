@@ -8,7 +8,10 @@ orchestrated by a lead agent delegating increments to sub-agents.
 - [x] Step 0 — pending Quick Session work committed (9db6d3a)
 
 ### In progress
-- Increments 1+2 (schema/validator/enums + library tag audit) — delegated
+- Increment 2 (library tag audit): about to strip `cardio` from primary/secondary on every
+  record, recast the 10 moved records, tag cooldown stretches + a couple of warmups with the
+  `cardio` focus, then land the deferred validator rules (`TEMPLATE_PATTERNS.cardio`, no `cardio`
+  muscle). `npm run check` + `npm run validate:library` green before starting.
 
 ### Next
 3. Engine: cardio template, finisher removal, main-pool scoping, band-ratio exemption for cardio,

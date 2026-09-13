@@ -81,7 +81,16 @@ const CALENDAR_ROW_LENGTH = 10;
 /** §14.1.6 — the one-letter marker shown on a trained calendar day: a focus letter, or 'Q' for a
  *  Quick Session (§9.5), which is otherwise indistinguishable from a regular full-body session
  *  since it always requests 'full'. */
-const FOCUS_LETTER: Record<Focus, string> = { full: 'F', upper: 'U', abs: 'A', legs: 'L' };
+// 'cardio' isn't offered by DAY_MARKER_OPTIONS yet — track 14 increment 5 adds the "Cardio
+// workout" marker option alongside the heatmap letter and day marker together. Present here
+// only to keep this Record exhaustive.
+const FOCUS_LETTER: Record<Focus, string> = {
+  full: 'F',
+  upper: 'U',
+  abs: 'A',
+  legs: 'L',
+  cardio: 'C',
+};
 const QUICK_LETTER = 'Q';
 
 /** Options offered by the calendar day-marker edit popup, in the order they're listed. */
