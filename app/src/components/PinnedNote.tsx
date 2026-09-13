@@ -4,7 +4,17 @@
  * persisting instantly. It must be obvious that it is editable."
  */
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  InputAccessoryView,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+
+const ACCESSORY_ID = 'pinned-note-accessory';
 
 export default function PinnedNote({
   note,
@@ -27,11 +37,23 @@ export default function PinnedNote({
         placeholder="e.g. row to the hips, not the chest"
         placeholderTextColor="#a16207"
         multiline
+        inputAccessoryViewID={ACCESSORY_ID}
         onChangeText={setDraft}
         onBlur={() => {
           if (draft !== (note ?? '')) onChange(draft);
         }}
       />
+      <InputAccessoryView nativeID={ACCESSORY_ID}>
+        <View style={styles.accessoryBar}>
+          <Pressable
+            testID="pinned-note-done"
+            onPress={() => Keyboard.dismiss()}
+            hitSlop={8}
+          >
+            <Text style={styles.accessoryDone}>Done</Text>
+          </Pressable>
+        </View>
+      </InputAccessoryView>
     </View>
   );
 }
@@ -46,4 +68,14 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 11, fontWeight: '700', color: '#854d0e' },
   input: { fontSize: 14, color: '#422006', minHeight: 20 },
+  accessoryBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    backgroundColor: '#f9fafb',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#d1d5db',
+  },
+  accessoryDone: { fontSize: 16, fontWeight: '600', color: '#2563eb' },
 });
