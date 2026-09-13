@@ -1,14 +1,17 @@
 /**
- * §10.4/§10.8/§10.10 — "return to Home from an active workout" (real device-testing request).
+ * Top-left nav item — "return to Home from an active workout" (real device-testing request).
  *
- * Distinct from Abandon (`AbandonSessionButton`, destructive, discards the session) and from the
- * header's own back button (off entirely in `RootNavigator` — `headerBackVisible: false` — since
- * a bare back-gesture never gets a chance to pause first). Home is reached by pausing the session
- * (the same `pauseSession` the workout-level Pause button already uses) and navigating, so the
- * session stays `active`/pending and Home's resume card picks it back up at the same set.
+ * Same convention as `SummaryScreen`'s own `headerLeft` override: a native chevron+label button
+ * set via `navigation.setOptions`, not a text link buried in the page body. Distinct from Abandon
+ * (`AbandonSessionButton`, destructive, discards the session) and from the default header back
+ * button — off entirely in `RootNavigator` (`headerBackVisible: false`) because it would pop to
+ * whatever is underneath on the stack (Generate, Summary, or Home, depending on how Workout was
+ * reached) without pausing first. This button always pauses (the same `pauseSession` the
+ * workout-level Pause button already uses) and always goes to Home, so Home's resume card picks
+ * the session back up at the same set.
  */
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { sessionsRepo } from '@roamfit/store';
 import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
@@ -34,7 +37,7 @@ function Setup({ onReady }: { onReady: (db: ReturnType<typeof useStore>['db']) =
   return null;
 }
 
-describe('return to Home from an active workout', () => {
+describe('top-left Home nav item on an active workout', () => {
   it('pauses the session and navigates Home, leaving the session active and resumable', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
@@ -59,10 +62,16 @@ describe('return to Home from an active workout', () => {
       </StoreProvider>,
     );
 
-    await waitFor(() => expect(screen.getByTestId('home-workout')).toBeTruthy(), WAIT_OPTS);
+    await waitFor(() => expect(navigation.setOptions).toHaveBeenCalled(), WAIT_OPTS);
+    const headerLeftCall = navigation.setOptions.mock.calls
+      .filter(([opts]) => opts.headerLeft != null)
+      .at(-1);
+    expect(headerLeftCall).toBeTruthy();
+    const headerView = await render(headerLeftCall![0].headerLeft());
+
     expect(sessionsRepo.getSession(db, sessionId)!.pausedAt).toBeNull();
 
-    await fireEvent.press(screen.getByTestId('home-workout'));
+    fireEvent.press(headerView.getByTestId('workout-home'));
 
     expect(navigation.navigate).toHaveBeenCalledWith('Home');
     // Paused, not discarded — the session is still the app's pending session and still active.

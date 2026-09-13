@@ -142,7 +142,10 @@ describe('reviewFromSummary: coming back to a fully-logged, not-yet-FINISHed wor
     );
 
     await waitFor(() => expect(navigation.setOptions).toHaveBeenCalled(), WAIT_OPTS);
-    const { headerRight } = navigation.setOptions.mock.calls.at(-1)![0];
+    const headerRightCall = navigation.setOptions.mock.calls
+      .filter(([opts]) => opts.headerRight != null)
+      .at(-1);
+    const { headerRight } = headerRightCall![0];
     const headerView = await render(headerRight());
 
     fireEvent.press(headerView.getByTestId('review-done'));
@@ -250,7 +253,10 @@ describe('the "Progress" header button — a real-time way to view the summary f
     );
 
     await waitFor(() => expect(navigation.setOptions).toHaveBeenCalled(), WAIT_OPTS);
-    const { headerRight } = navigation.setOptions.mock.calls.at(-1)![0];
+    const headerRightCall = navigation.setOptions.mock.calls
+      .filter(([opts]) => opts.headerRight != null)
+      .at(-1);
+    const { headerRight } = headerRightCall![0];
     const headerView = await render(headerRight());
 
     expect(headerView.queryByTestId('view-progress')).toBeNull();
@@ -299,7 +305,10 @@ describe('the "Progress" header button — a real-time way to view the summary f
     );
 
     await waitFor(() => expect(navigation.setOptions).toHaveBeenCalled(), WAIT_OPTS);
-    const { headerRight } = navigation.setOptions.mock.calls.at(-1)![0];
+    const headerRightCall = navigation.setOptions.mock.calls
+      .filter(([opts]) => opts.headerRight != null)
+      .at(-1);
+    const { headerRight } = headerRightCall![0];
     const headerView = await render(headerRight());
 
     fireEvent.press(headerView.getByTestId('view-progress'));
