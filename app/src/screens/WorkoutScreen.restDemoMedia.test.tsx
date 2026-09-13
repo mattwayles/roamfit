@@ -1,6 +1,7 @@
 /**
  * The rest page now carries the *next* exercise's demo video alongside "Next up" — asked for
- * directly: rest is when a user preps the next anchor or checks their form, not only after.
+ * directly: rest is when a user preps the next anchor or checks their form, not only after. It
+ * also carries the same exercise's "How to" setup text, for the same reason.
  *
  * `networkStatus` is mocked online for the same reason `ExerciseDetailScreen.test.tsx` mocks it:
  * `DemoMedia` renders nothing at all offline (ADR 0008 — the "How to" cue is the offline demo).
@@ -138,5 +139,10 @@ describe('Rest page demo media', () => {
     );
     expect(screen.getByTestId('demo-media-body')).toBeTruthy();
     expect(screen.getByTestId('demo-media-search-link')).toBeTruthy();
+
+    // Same setup text the exercise phase's own "How to" disclosure shows, read here for the
+    // upcoming exercise — also already expanded, no tap needed.
+    expect(screen.getByTestId('rest-how-to-block')).toBeTruthy();
+    expect(screen.getByText(/How to/)).toBeTruthy();
   });
 });

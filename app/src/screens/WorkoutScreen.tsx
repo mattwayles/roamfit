@@ -999,6 +999,9 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
                 }
               : null
           }
+          // Same source and gating as `demoMedia` above — `exercise` is already the *upcoming*
+          // exercise during rest.
+          howTo={!isFinalRest && exercise ? exercise.setup : null}
           difficulty={difficulty}
           onDifficultyChange={handleDifficultyChange}
           onNext={handleNextAfterRest}
@@ -1805,6 +1808,7 @@ function RestPhase({
   nextAnchor,
   nextAnchorAlt,
   demoMedia,
+  howTo,
   paused,
   difficulty,
   onDifficultyChange,
@@ -1824,6 +1828,10 @@ function RestPhase({
    *  the exercise phase passes it, so it is the identical component in a second spot rather than a
    *  parallel implementation. */
   demoMedia: Omit<DemoMediaProps, 'defaultOpen'> | null;
+  /** The next exercise's setup text — same source (`Exercise.setup`) as the exercise phase's own
+   *  "How to" disclosure. Null under the same conditions as `demoMedia` (final rest, or no
+   *  upcoming exercise to read it from). */
+  howTo: string | null;
   /** Session-level pause. Stops the rest countdown, and — since the background "rest complete"
    *  notification is scheduled against wall-clock time the OS owns, not against this countdown —
    *  cancels that too, rescheduling for whatever is left when the session resumes. */
@@ -1955,11 +1963,21 @@ function RestPhase({
       <Text style={styles.nextUp}>Next up: {nextLabel}</Text>
       <AnchorBadge anchor={nextAnchor} anchorAlt={nextAnchorAlt} testID="rest-next-anchor" />
 
+      {/* Same "How to" cue the exercise phase shows, read here for the *upcoming* exercise — rest
+          is prep time, so the setup text is exactly as useful here as the demo below. `hero`
+          centers its children, so this needs its own full-width stretch to match the exercise
+          phase's page-width layout rather than shrinking to its content. */}
+      {howTo && (
+        <View style={styles.restFullWidth} testID="rest-how-to-block">
+          <Disclosure title="How to" defaultOpen body={howTo} />
+        </View>
+      )}
+
       {/* Open by default here — rest is the moment to look, not a moment to also ask for a tap.
           The exercise phase's own DemoMedia (below, in the parent) keeps its own independent
           open/closed state once the set actually starts. */}
       {demoMedia && (
-        <View testID="rest-demo-media-block">
+        <View style={styles.restFullWidth} testID="rest-demo-media-block">
           <DemoMedia {...demoMedia} defaultOpen />
         </View>
       )}
@@ -2018,6 +2036,10 @@ const styles = StyleSheet.create({
   pausedBanner: { textAlign: 'center', fontSize: 14, color: '#0369a1', paddingVertical: 4 },
   swapNotice: { textAlign: 'center', fontSize: 13, color: '#1d4ed8', paddingVertical: 2 },
   hero: { alignItems: 'center', gap: 12 },
+  // `hero` centers its children, which would otherwise shrink the How-To/Demo blocks to their
+  // content width instead of the page-width layout the exercise phase uses. Stretching overrides
+  // just those two children; the 20px `container` padding above still supplies the page gutter.
+  restFullWidth: { alignSelf: 'stretch' },
   // Paused, not disabled: a cool tint behind the still-live set, so the state reads at a glance
   // without anything looking switched off.
   heroPaused: { backgroundColor: '#f0f9ff', borderRadius: 16, paddingVertical: 12 },
