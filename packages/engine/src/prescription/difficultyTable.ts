@@ -34,3 +34,24 @@ export const DIFFICULTY_TABLE: Record<Difficulty, DifficultyRow> = {
 export function difficultyRowFor(difficulty: Difficulty): DifficultyRow {
   return DIFFICULTY_TABLE[difficulty];
 }
+
+export interface CardioIntervalRow {
+  sets: number;
+  workSec: number;
+  restSec: number;
+}
+
+/**
+ * Track 14 — work-for-time-then-short-rest intervals for the Cardio focus, used by
+ * `prescribeAccessory` in place of `DIFFICULTY_TABLE` whenever `isCardioExercise(exercise)`.
+ * A cardio record's `default_seconds` (authored 30s across the library) is deliberately NOT read
+ * here — the whole point of a difficulty dial for a fixed-format timed exercise is to vary how
+ * long the interval runs and how much rest follows it, not to leave both fixed and vary
+ * something else. Rest shortens and duration lengthens as difficulty rises, the same shape as
+ * the strength table's rest column but applied to work, not just recovery.
+ */
+export const CARDIO_INTERVAL_TABLE: Record<Difficulty, CardioIntervalRow> = {
+  easy: { sets: 3, workSec: 30, restSec: 30 },
+  medium: { sets: 3, workSec: 40, restSec: 20 },
+  hard: { sets: 4, workSec: 45, restSec: 15 },
+};

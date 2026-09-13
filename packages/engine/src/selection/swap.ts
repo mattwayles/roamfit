@@ -17,9 +17,10 @@
  * or rank candidates itself.
  */
 import type { Anchor, Exercise, Pattern } from '@roamfit/data';
+import { isCardioExercise } from '@roamfit/data';
 import { applyHardFilters, difficultyCapForExercise } from '../filters/hardFilters';
 import { repExerciseSec, timedExerciseSec } from '../timefit/formulas';
-import { DIFFICULTY_TABLE } from '../prescription/difficultyTable';
+import { CARDIO_INTERVAL_TABLE, DIFFICULTY_TABLE } from '../prescription/difficultyTable';
 import { buildCandidates, type CandidateContext } from './candidates';
 import { BAND_ORDER } from '../types';
 import type {
@@ -91,15 +92,30 @@ function bandForExercise(exercise: Exercise, target: BandId | null): BandId | nu
  * bodyweight). `substitutedFor` is set to the id of the exercise the swap replaced — session-only,
  * mirrors how the engine already records an in-generation substitution (§4.7), does not persist a
  * level change.
+ *
+ * Track 14 — since `alternativesForSlot` only ever offers a same-`pattern` replacement, a
+ * `conditioning`-pattern `entry` can only be replaced by another cardio exercise, which means
+ * `entry` was already cardio-prescribed (§5.1's `prescribeAccessory`, off `CARDIO_INTERVAL_TABLE`)
+ * at the same difficulty this swap keeps — so `entry.sets`/`restSec`/`tempoSec` already ARE the
+ * right table values and carry over unchanged below, same as any other swap. `durationSec` is the
+ * one field that needs its own branch: reusing the generic `exercise.default_seconds` path would
+ * read the *new* exercise's own authored length (always 30s in the library) instead of the
+ * difficulty-driven interval duration (30/40/45s), silently resetting a medium or hard cardio
+ * swap back to the easy interval length.
  */
 export function buildSwapReplacementEntry(exercise: Exercise, entry: SessionEntry): SessionEntry {
   const difficulty = difficultyCapForExercise(exercise, entry.difficulty);
   const row = DIFFICULTY_TABLE[difficulty];
-  const isTimed = exercise.metric === 'time';
+  const isCardio = isCardioExercise(exercise);
+  const isTimed = isCardio || exercise.metric === 'time';
   const band = bandForExercise(exercise, entry.band);
   const sets = entry.sets;
   const repTarget = isTimed ? undefined : (entry.repTarget ?? row.reps);
-  const durationSec = isTimed ? (exercise.default_seconds ?? entry.durationSec ?? 30) : undefined;
+  const durationSec = isCardio
+    ? CARDIO_INTERVAL_TABLE[difficulty].workSec
+    : isTimed
+      ? (exercise.default_seconds ?? entry.durationSec ?? 30)
+      : undefined;
 
   const estimatedSec = isTimed
     ? timedExerciseSec({

@@ -11,11 +11,12 @@
  * count, see STATUS-2-engine.md).
  */
 import type { Exercise, ProgressionFamilyId, Role } from '@roamfit/data';
+import { isCardioExercise } from '@roamfit/data';
 import { BAND_ORDER } from '../types';
 import type { BandId, Difficulty, SessionEntry } from '../types';
 import { difficultyCapForExercise } from '../filters/hardFilters';
 import { projectMicroToExercise } from '../progression/tiers';
-import { DIFFICULTY_TABLE } from './difficultyTable';
+import { CARDIO_INTERVAL_TABLE, DIFFICULTY_TABLE } from './difficultyTable';
 import { repExerciseSec, timedExerciseSec } from '../timefit/formulas';
 
 function dropOneBand(band: BandId | null): BandId | null {
@@ -129,7 +130,9 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
     exercise,
     recoveryTreatment ? capBelowHard(requestedDifficulty) : requestedDifficulty,
   );
-  const row = DIFFICULTY_TABLE[difficulty];
+  // §13.1's cap and the 48h recovery band-drop are decided above, once, before either table is
+  // consulted — cardio is subject to both exactly like any other main exercise; only which table
+  // supplies sets/duration-or-reps/rest/tempo differs below.
   const suggestedBand = parseFirstBand(exercise.band);
   const band =
     exercise.equipment === 'band'
@@ -137,22 +140,41 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
         ? dropOneBand(suggestedBand)
         : suggestedBand
       : null;
-  const isTimed = exercise.metric === 'time';
-  const durationSec = isTimed ? (exercise.default_seconds ?? 30) : undefined;
-  const sets = scaleSets(row.sets, input.setsMultiplier);
+
+  // Track 14 — a cardio exercise (`pattern: 'conditioning'`) is prescribed from
+  // CARDIO_INTERVAL_TABLE instead of the strength DIFFICULTY_TABLE: the difficulty dial should
+  // change how long the work interval runs and how much rest follows it, not a rep count a timed
+  // movement doesn't have. `exercise.default_seconds` (authored 30s across the library) is
+  // deliberately not read here — the interval table's `workSec` is the actual per-difficulty
+  // duration, same as `DIFFICULTY_TABLE`'s reps column is for a rep-metric exercise. Every cardio
+  // record is itself `metric: 'time'`, so this only ever adds a timed path, never replaces one.
+  const isCardio = isCardioExercise(exercise);
+  const isTimed = isCardio || exercise.metric === 'time';
+  const row = isCardio ? undefined : DIFFICULTY_TABLE[difficulty];
+  const cardioRow = isCardio ? CARDIO_INTERVAL_TABLE[difficulty] : undefined;
+
+  const sets = scaleSets(isCardio ? cardioRow!.sets : row!.sets, input.setsMultiplier);
+  const durationSec = isCardio
+    ? cardioRow!.workSec
+    : isTimed
+      ? (exercise.default_seconds ?? 30)
+      : undefined;
+  const restSec = isCardio ? cardioRow!.restSec : row!.restSec;
+  const tempoSec = isCardio ? 0 : row!.tempoSec;
+  const repTarget = isTimed ? undefined : row!.reps;
 
   const estimatedSec = isTimed
     ? timedExerciseSec({
         sets,
         durationSec: durationSec!,
-        restSec: row.restSec,
+        restSec,
         unilateral: exercise.unilateral,
       })
     : repExerciseSec({
         sets,
-        reps: row.reps,
-        tempoSec: row.tempoSec,
-        restSec: row.restSec,
+        reps: repTarget!,
+        tempoSec,
+        restSec,
         unilateral: exercise.unilateral,
       });
 
@@ -161,10 +183,10 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
     role: 'main',
     band,
     sets,
-    repTarget: isTimed ? undefined : row.reps,
+    repTarget,
     durationSec: isTimed ? durationSec : undefined,
-    restSec: row.restSec,
-    tempoSec: row.tempoSec,
+    restSec,
+    tempoSec,
     difficulty,
     progressionFamilyId: null,
     progressionLevelIdAtTime: null,

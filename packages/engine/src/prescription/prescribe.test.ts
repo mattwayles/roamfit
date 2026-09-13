@@ -11,6 +11,8 @@ const bandedPush = library.find((e) => e.id === 'banded-push-up')!; // band, "B1
 const bwPush = library.find((e) => e.id === 'bw-push-up')!; // bodyweight
 const bwBearing = library.find((e) => e.anchor_class === 'bodyweight_bearing')!;
 const warmupEx = library.find((e) => e.roles.includes('warmup'))!;
+const bwCardio = library.find((e) => e.pattern === 'conditioning' && e.equipment === 'bodyweight')!;
+const bandCardio = library.find((e) => e.pattern === 'conditioning' && e.equipment === 'band')!; // mountain-climber, "B1"
 
 describe('§5.4 prescription', () => {
   it('a laddered exercise is prescribed directly from ProgressionState.micro, not the difficulty table', () => {
@@ -73,6 +75,92 @@ describe('§5.4 prescription', () => {
     expect(hard).toMatchObject({ sets: 4, repTarget: 12, restSec: 30, tempoSec: 4 });
   });
 
+  // Track 14 — CARDIO_INTERVAL_TABLE, not DIFFICULTY_TABLE, prescribes a conditioning exercise.
+  describe('cardio interval prescription', () => {
+    it('uses the interval table values: easy 3x30s/30s, medium 3x40s/20s, hard 4x45s/15s', () => {
+      const easy = prescribeAccessory({
+        exercise: bwCardio,
+        requestedDifficulty: 'easy',
+        recoveryTreatment: false,
+      });
+      expect(easy).toMatchObject({ sets: 3, durationSec: 30, restSec: 30, tempoSec: 0 });
+      const medium = prescribeAccessory({
+        exercise: bwCardio,
+        requestedDifficulty: 'medium',
+        recoveryTreatment: false,
+      });
+      expect(medium).toMatchObject({ sets: 3, durationSec: 40, restSec: 20, tempoSec: 0 });
+      const hard = prescribeAccessory({
+        exercise: bwCardio,
+        requestedDifficulty: 'hard',
+        recoveryTreatment: false,
+      });
+      expect(hard).toMatchObject({ sets: 4, durationSec: 45, restSec: 15, tempoSec: 0 });
+    });
+
+    it("never reads the exercise record's own default_seconds for duration", () => {
+      // Every cardio record is authored default_seconds: 30 regardless of the exercise's own
+      // difficulty tag — the interval table's workSec is what actually varies by difficulty.
+      expect(bwCardio.default_seconds).toBe(30);
+      const hard = prescribeAccessory({
+        exercise: bwCardio,
+        requestedDifficulty: 'hard',
+        recoveryTreatment: false,
+      });
+      expect(hard.durationSec).toBe(45); // not 30
+    });
+
+    it('has no repTarget — a timed interval, not a rep count', () => {
+      const entry = prescribeAccessory({
+        exercise: bwCardio,
+        requestedDifficulty: 'medium',
+        recoveryTreatment: false,
+      });
+      expect(entry.repTarget).toBeUndefined();
+    });
+
+    it('band cardio still gets its band from the record, capped/dropped like any band exercise', () => {
+      expect(bandCardio.band).toBe('B1'); // already the floor — nothing lighter to drop to
+      const entry = prescribeAccessory({
+        exercise: bandCardio,
+        requestedDifficulty: 'medium',
+        recoveryTreatment: false,
+      });
+      expect(entry.band).toBe('B1');
+    });
+
+    it('a bodyweight cardio exercise carries no band', () => {
+      const entry = prescribeAccessory({
+        exercise: bwCardio,
+        requestedDifficulty: 'medium',
+        recoveryTreatment: false,
+      });
+      expect(entry.band).toBeNull();
+    });
+
+    it('48h recovery still applies: drops a band cardio exercise one band and caps below hard', () => {
+      const entry = prescribeAccessory({
+        exercise: bandCardio, // authored hard, B1 (already the floor)
+        requestedDifficulty: 'hard',
+        recoveryTreatment: true,
+      });
+      expect(entry.difficulty).not.toBe('hard');
+      expect(entry.band).toBe('B1'); // floored, but the drop was still attempted
+      // Recovery-capped difficulty still drives the interval row, same as any other exercise.
+      expect(entry).toMatchObject({ sets: 3, durationSec: 40, restSec: 20 });
+    });
+
+    it('sets scale with setsMultiplier exactly as a strength accessory does', () => {
+      const entry = prescribeAccessory({
+        exercise: bwCardio,
+        requestedDifficulty: 'medium',
+        recoveryTreatment: false,
+        setsMultiplier: 0.8,
+      });
+      expect(entry.sets).toBe(Math.max(1, Math.round(3 * 0.8)));
+    });
+  });
+
   it('warmup/cooldown entries carry no progression, whatever the exercise is', () => {
     const entry = prescribeWarmupCooldown(warmupEx, 'warmup');
     expect(entry.progressionFamilyId).toBeNull();
@@ -81,7 +169,7 @@ describe('§5.4 prescription', () => {
   });
 
   describe('the same exercise, warmed up rather than trained', () => {
-    it('is one set of light reps at a flat, fixed rest — not the difficulty table\'s working dose', () => {
+    it("is one set of light reps at a flat, fixed rest — not the difficulty table's working dose", () => {
       const asMain = prescribeAccessory({
         exercise: bandedPush,
         requestedDifficulty: 'medium',

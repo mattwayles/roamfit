@@ -246,3 +246,111 @@ describe('§10.6 buildSwapReplacementEntry', () => {
     expect(result.band).toBe('B2');
   });
 });
+
+// Track 14 — a cardio (`conditioning`-pattern) entry can only ever be replaced by another cardio
+// exercise, since `alternativesForSlot` restricts to the same pattern and no strength template
+// has a `conditioning` slot to have produced the original entry from anything else.
+describe('§10.6 swap — cardio', () => {
+  const cardioOriginal = ex({
+    id: 'cardio-original',
+    pattern: 'conditioning',
+    equipment: 'bodyweight',
+    anchor: 'none',
+    anchor_class: 'none',
+    metric: 'time',
+    default_seconds: 30,
+  });
+  const cardioAltBw = ex({
+    id: 'cardio-alt-bw',
+    pattern: 'conditioning',
+    equipment: 'bodyweight',
+    anchor: 'none',
+    anchor_class: 'none',
+    metric: 'time',
+    default_seconds: 30,
+  });
+  const cardioAltBand = ex({
+    id: 'cardio-alt-band',
+    pattern: 'conditioning',
+    equipment: 'band',
+    band: 'B1',
+    anchor: 'none',
+    anchor_class: 'none',
+    metric: 'time',
+    default_seconds: 30,
+  });
+  const strengthSquat = ex({ id: 'strength-squat', pattern: 'squat', metric: 'reps' });
+
+  const library = [cardioOriginal, cardioAltBw, cardioAltBand, strengthSquat];
+
+  // Shaped exactly as `prescribeAccessory` would have prescribed the original entry at `medium`
+  // (CARDIO_INTERVAL_TABLE.medium: 3 sets, 40s work, 20s rest, tempo 0) — this is what a real
+  // generated cardio entry looks like going into a swap.
+  const cardioEntry = entry({
+    exerciseId: 'cardio-original',
+    pattern: 'conditioning',
+    band: null,
+    sets: 3,
+    repTarget: undefined,
+    durationSec: 40,
+    restSec: 20,
+    tempoSec: 0,
+    difficulty: 'medium',
+    anchorClass: 'none',
+  });
+
+  it('alternativesForSlot offers only conditioning-pattern exercises for a cardio entry', () => {
+    const alts = alternativesForSlot({
+      library,
+      entry: cardioEntry,
+      anchorsAvailable: [],
+      limitations: [],
+      disabledExerciseIds: [],
+      today: '2026-08-31',
+      history: [],
+      exerciseStates: {},
+    });
+    expect(alts.length).toBeGreaterThan(0);
+    expect(alts.every((a) => a.exercise.pattern === 'conditioning')).toBe(true);
+    expect(alts.some((a) => a.exercise.id === 'strength-squat')).toBe(false);
+  });
+
+  it('a swapped-in cardio exercise is re-prescribed from the interval table, not its own default_seconds', () => {
+    const result = buildSwapReplacementEntry(cardioAltBw, cardioEntry);
+    // Same difficulty (medium) as the replaced entry -> same interval row: 40s work, 20s rest,
+    // sets/tempo carried over unchanged, exactly as they already were.
+    expect(result).toMatchObject({
+      exerciseId: 'cardio-alt-bw',
+      sets: 3,
+      durationSec: 40,
+      restSec: 20,
+      tempoSec: 0,
+      repTarget: undefined,
+      band: null,
+    });
+  });
+
+  it('a swapped-in band cardio exercise keeps the interval duration and takes its own band', () => {
+    const result = buildSwapReplacementEntry(cardioAltBand, cardioEntry);
+    expect(result.durationSec).toBe(40); // interval table, not cardioAltBand's own 30s
+    expect(result.band).toBe('B1');
+  });
+
+  it('a hard-difficulty cardio swap uses the hard interval duration, not the easy/medium one', () => {
+    const hardEntry = entry({
+      exerciseId: 'cardio-original',
+      pattern: 'conditioning',
+      band: null,
+      sets: 4,
+      repTarget: undefined,
+      durationSec: 45,
+      restSec: 15,
+      tempoSec: 0,
+      difficulty: 'hard',
+      anchorClass: 'none',
+    });
+    const result = buildSwapReplacementEntry(cardioAltBw, hardEntry);
+    expect(result.durationSec).toBe(45);
+    expect(result.restSec).toBe(15);
+  });
+});
