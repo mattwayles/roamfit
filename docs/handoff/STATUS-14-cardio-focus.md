@@ -17,8 +17,7 @@ orchestrated by a lead agent delegating increments to sub-agents.
   or `Record<Pattern,...>` needed a key (each commented with which increment replaces it) —
   none of them touch a UI option list or the Quick Session rotation.
 
-- [x] Increment 2 — library tag audit (pending — sha recorded in the next tiny commit): stripped
-  `cardio` from primary/secondary on
+- [x] Increment 2 — library tag audit (f2326f6): stripped `cardio` from primary/secondary on
   every record (20 touched); 6 of them (bw-burpee, banded-burpee, bw-sprawl, bw-squat-thrust,
   bw-jumping-jack, bw-high-knees) had `cardio` as their only `primary` and got real substitute
   muscles — quads for the 4 squat-thrust-family moves (secondary padded with chest/abs/glutes as
@@ -52,7 +51,7 @@ orchestrated by a lead agent delegating increments to sub-agents.
   `cardio` tag fixes it with zero code changes, exactly as the plan predicted.
 
 ### In progress
-- None — increments 1 and 2 are done. Increment 3 (engine) picks up next, on top of this commit.
+- None — increments 1 and 2 are done. Increment 3 (engine) picks up next, on top of f2326f6.
 
 ### Next
 3. Engine: cardio template, finisher removal, main-pool scoping, band-ratio exemption for cardio,
