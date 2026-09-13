@@ -96,6 +96,7 @@ export function generate(db: Db, input: GenerateInput): GenerateResult {
         families: input.families,
         userState,
         focus: input.request.focus,
+        difficulty: input.request.difficulty,
         clock: input.clock,
         rng: input.rng,
       })

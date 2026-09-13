@@ -45,6 +45,7 @@ import {
 } from '@roamfit/store';
 import type { Focus, ProgressionFamilyId } from '@roamfit/data';
 import { assessComeback, createRng, seedFromString } from '@roamfit/engine';
+import { pickQuickSessionDifficulty, pickQuickSessionFocus } from '../lib/quickSession';
 import type { ProgressionState } from '@roamfit/engine';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
@@ -259,10 +260,13 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     try {
       const clock = nowEngineClock();
       const utcInstant = nowUtcInstant();
+      const history = sessionsRepo.getHistoryForGeneration(db);
+      const focus = pickQuickSessionFocus(history);
+      const difficulty = pickQuickSessionDifficulty(history, focus);
       const { plan, comebackTier, recoveryWeekManual } = generate(db, {
         library,
         families,
-        request: { focus: 'full', difficulty: 'medium', targetMinutes: 15, quickSession: true },
+        request: { focus, difficulty, targetMinutes: 15, quickSession: true },
         clock,
         rng: createRng(seedFromString(utcInstant)),
         utcInstant,

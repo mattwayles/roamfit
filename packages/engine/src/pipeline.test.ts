@@ -128,7 +128,7 @@ describe('generateSession — pipeline wiring', () => {
     }
   });
 
-  it('§9.5 Quick Session runs the same pipeline: ~7min, normal difficulty, 1 warmup + <=3 main + 1 cooldown', () => {
+  it('§9.5 Quick Session runs the same pipeline: ~7min, normal difficulty, 1 warmup + 3 distinct main + 1 cooldown, all pinned to 1 set', () => {
     const plan = generateQuickSession({
       library: exerciseLibrary,
       families: familyLibrary,
@@ -139,9 +139,13 @@ describe('generateSession — pipeline wiring', () => {
     });
     expect(plan.difficulty).toBe('medium');
     expect(plan.targetMinutes).toBe(7);
-    expect(plan.main.length).toBeLessThanOrEqual(3);
+    expect(plan.main.length).toBe(3);
+    expect(new Set(plan.main.map((e) => e.exerciseId)).size).toBe(3);
     expect(plan.warmup.length).toBe(1);
     expect(plan.cooldown.length).toBe(1);
+    for (const entry of [...plan.warmup, ...plan.main, ...plan.cooldown]) {
+      expect(entry.sets).toBe(1);
+    }
   });
 
   it('§9.4 comeback: a 10-day gap shows the welcome-back notice and cuts volume', () => {

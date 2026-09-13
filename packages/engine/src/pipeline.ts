@@ -33,12 +33,13 @@ import type { ResolvedLadderSlot } from './progression/resolveSlot';
 import { exerciseForLevel, levelOrdinal } from './progression/ladder';
 import { assessComeback, applyComebackToProgressionStates } from './progression/comeback';
 import {
+  estimateEntrySec,
   prescribeAccessory,
   prescribeLaddered,
   prescribeWarmupCooldown,
 } from './prescription/prescribe';
 import { fitMainEntries } from './timefit/fitSession';
-import type { SlotEntry } from './timefit/fitSession';
+import type { FitResult, SlotEntry } from './timefit/fitSession';
 import {
   cooldownMinutes,
   MINIMUM_SUPPORTED_TARGET_MINUTES,
@@ -50,6 +51,7 @@ import { composeExplanation } from './explain/explain';
 import type { LevelUpFact, PatternGapFact, SubstitutionFact } from './explain/explain';
 import { ENGINE_VERSION } from './version';
 import type {
+  Difficulty,
   EngineClock,
   GenerationRequest,
   PatternGapNote,
@@ -320,6 +322,23 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
 
   const entriesBySlotId = prescribeEntries(setsMultiplier);
 
+  // §9.5 Quick Session is a fixed shape — one warmup, exactly three different main exercises,
+  // one cooldown, every one of them a single set — not a shrunken version of a regular session's
+  // sets-and-time-budget prescription. Clamp every main entry to its 1-set floor here, after the
+  // normal difficulty-table/ladder prescription above has already picked band/reps/tempo/rest, so
+  // Quick Session still trains at the day's real working difficulty — it just does one set of it.
+  if (isQuick) {
+    for (const [slotId, entry] of entriesBySlotId) {
+      if (entry.sets > 1) {
+        entriesBySlotId.set(slotId, {
+          ...entry,
+          sets: 1,
+          estimatedSec: estimateEntrySec({ ...entry, sets: 1 }),
+        });
+      }
+    }
+  }
+
   // Warmup + cooldown. §9.5 Quick Session is explicitly "one warmup ... one cooldown" — keep it
   // to exactly one each. Every other session's §5.6 budget allocates several *minutes* to each
   // (`clamp(round(0.12xT),3,8)` / `clamp(round(0.10xT),3,7)`), which one ~45-90s movement can't
@@ -401,7 +420,25 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     const entry = entriesBySlotId.get(slot.id);
     if (entry) slotEntries.push({ required: slot.required, entry });
   }
-  const fit = fitMainEntries(slotEntries, targetMinutes, warmupSec, cooldownSec, rng);
+  // §9.5 Quick Session skips §5.6 time-fit entirely rather than letting it drop a required slot
+  // under a tight budget (fitMainEntries' documented "required is priority, not a guarantee").
+  // Quick Session's whole point is a fixed, predictable shape — every entry is already at its
+  // 1-set floor above, so there is nothing left for time-fit to trim; running it here would only
+  // let a tight 7-minute budget sacrifice one of the three main exercises at random.
+  const fit: FitResult = isQuick
+    ? (() => {
+        const main = slotEntries.map((s) => s.entry);
+        const mainSec = main.reduce((a, e) => a + e.estimatedSec, 0);
+        const estimatedMinutes = Math.round((warmupSec + cooldownSec + mainSec) / 60);
+        return {
+          main,
+          estimatedMinutes,
+          withinExerciseCountSanity: true,
+          withinTenPercent:
+            estimatedMinutes >= targetMinutes * 0.9 && estimatedMinutes <= targetMinutes * 1.1,
+        };
+      })()
+    : fitMainEntries(slotEntries, targetMinutes, warmupSec, cooldownSec, rng);
 
   // `withinTenPercent` is §5.6's actual requirement, not a decoration — read it. If the session
   // still falls outside ±10% after the corrective sets-trim above and every optional slot the
@@ -522,13 +559,21 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   };
 }
 
-/** §9.5 — same pipeline, minimal template + fixed ~7min budget + `medium` difficulty. */
+/** §9.5 — same pipeline, minimal template + fixed ~7min budget. `difficulty` defaults to
+ *  `medium` — the caller may instead pass whatever it derived from recent history (e.g. "last
+ *  time you did this focus, you finished at Hard"); the engine itself makes no history-based
+ *  difficulty pick of its own, that's a caller-side convenience, not a generation rule. */
 export function generateQuickSession(
-  input: Omit<GenerateSessionInput, 'request'> & { focus: Focus },
+  input: Omit<GenerateSessionInput, 'request'> & { focus: Focus; difficulty?: Difficulty },
 ): SessionPlan {
   return generateSession({
     ...input,
-    request: { focus: input.focus, difficulty: 'medium', targetMinutes: 7, quickSession: true },
+    request: {
+      focus: input.focus,
+      difficulty: input.difficulty ?? 'medium',
+      targetMinutes: 7,
+      quickSession: true,
+    },
   });
 }
 
