@@ -16,6 +16,24 @@ import {
 
 const ACCESSORY_ID = 'pinned-note-accessory';
 
+/**
+ * Rendered as its own memoized component, not inline in PinnedNote's JSX. InputAccessoryView
+ * portals to a native layer above the keyboard; if it's inline it gets torn down and rebuilt on
+ * every re-render of its parent (here, every keystroke via setDraft), which reads as the keyboard
+ * background jittering while typing.
+ */
+const NoteAccessoryBar = React.memo(function NoteAccessoryBar(): React.JSX.Element {
+  return (
+    <InputAccessoryView nativeID={ACCESSORY_ID}>
+      <View style={styles.accessoryBar}>
+        <Pressable testID="pinned-note-done" onPress={() => Keyboard.dismiss()} hitSlop={8}>
+          <Text style={styles.accessoryDone}>Done</Text>
+        </Pressable>
+      </View>
+    </InputAccessoryView>
+  );
+});
+
 export default function PinnedNote({
   note,
   onChange,
@@ -43,17 +61,7 @@ export default function PinnedNote({
           if (draft !== (note ?? '')) onChange(draft);
         }}
       />
-      <InputAccessoryView nativeID={ACCESSORY_ID}>
-        <View style={styles.accessoryBar}>
-          <Pressable
-            testID="pinned-note-done"
-            onPress={() => Keyboard.dismiss()}
-            hitSlop={8}
-          >
-            <Text style={styles.accessoryDone}>Done</Text>
-          </Pressable>
-        </View>
-      </InputAccessoryView>
+      <NoteAccessoryBar />
     </View>
   );
 }
