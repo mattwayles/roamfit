@@ -7,9 +7,14 @@
  * `commitSetAndRest` unconditionally routed through the rest page using `entry`/`exercise`
  * recomputed *after* `reload()`, which is the real front edge, not the set that was just fixed.
  * For a bookmark far from the front edge that meant a rest screen previewing a completely
- * unrelated exercise, with no way to tell the correction had taken. The fix: a set completed
- * while behind the front edge skips rest/stage-feedback entirely and returns to Summary, where
- * the correction is visible.
+ * unrelated exercise, with no way to tell the correction had taken.
+ *
+ * That was fixed (an earlier version of this file) by skipping rest entirely and bouncing back to
+ * Summary for any redo of an already-logged set. That overcorrected: pressing Complete on an
+ * already-completed set is expected to reopen its own rest page like any other completion, not
+ * dead-end at Summary. `restingEntryId`/`restingSetIndex` — captured right after the log write,
+ * before `reload()` moves `entry` on — already point at the set just (re)completed regardless of
+ * frontier position, so the unrelated-exercise problem above doesn't recur.
  */
 import React from 'react';
 import { eq } from 'drizzle-orm';
@@ -53,7 +58,7 @@ async function freshDb(): Promise<Db> {
   return db;
 }
 
-it('completing a previously-skipped set reached via a Summary bookmark writes it as completed and returns to Summary, not a rest page for the real front edge', async () => {
+it('completing a previously-skipped set reached via a Summary bookmark writes it as completed and reopens its own rest page', async () => {
   const db = await freshDb();
   const clock = nowEngineClock();
   const utcInstant = nowUtcInstant();
@@ -122,11 +127,9 @@ it('completing a previously-skipped set reached via a Summary bookmark writes it
     expect(log0?.status).toBe('completed');
   }, WAIT_OPTS);
 
-  // No rest page for an unrelated front-edge exercise — straight back to Summary instead.
-  await waitFor(
-    () => expect(navigation.replace).toHaveBeenCalledWith('Summary', { sessionId }),
-    WAIT_OPTS,
-  );
+  // Its own rest page shows — no bounce back to Summary.
+  await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), WAIT_OPTS);
+  expect(navigation.replace).not.toHaveBeenCalledWith('Summary', { sessionId });
 }, 20000);
 
 /**
