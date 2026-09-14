@@ -38,6 +38,7 @@ describe('pickQuickSessionFocus', () => {
       record({ focus: 'full', localDate: '2026-08-02' }),
       record({ focus: 'legs', localDate: '2026-08-03' }),
       record({ focus: 'abs', localDate: '2026-08-04' }),
+      record({ focus: 'cardio', localDate: '2026-08-05' }),
     ];
     // Every focus trained exactly once; 'upper' is the oldest, so it's next up.
     expect(pickQuickSessionFocus(history)).toBe('upper');
@@ -51,6 +52,29 @@ describe('pickQuickSessionFocus', () => {
       record({ focus: 'legs', status: 'completed' }),
     ];
     expect(pickQuickSessionFocus(history)).toBe('abs');
+  });
+
+  // Track 14: Quick Session's rotation includes Cardio, same as every other focus.
+  it('picks cardio when it is the only focus never trained', () => {
+    const history = [
+      record({ focus: 'full' }),
+      record({ focus: 'upper' }),
+      record({ focus: 'abs' }),
+      record({ focus: 'legs' }),
+    ];
+    expect(pickQuickSessionFocus(history)).toBe('cardio');
+  });
+
+  it('breaks a tie against cardio the same way as any other focus — oldest untouched wins', () => {
+    const history = [
+      record({ focus: 'cardio', localDate: '2026-08-01' }), // oldest untouched-since
+      record({ focus: 'full', localDate: '2026-08-02' }),
+      record({ focus: 'upper', localDate: '2026-08-03' }),
+      record({ focus: 'abs', localDate: '2026-08-04' }),
+      record({ focus: 'legs', localDate: '2026-08-05' }),
+    ];
+    // Every focus trained exactly once; 'cardio' is the oldest, so it's next up.
+    expect(pickQuickSessionFocus(history)).toBe('cardio');
   });
 });
 
@@ -79,5 +103,13 @@ describe('pickQuickSessionDifficulty', () => {
   it('defaults to medium when every session at this focus is non-completed', () => {
     const history = [record({ focus: 'abs', difficulty: 'hard', status: 'partial' })];
     expect(pickQuickSessionDifficulty(history, 'abs')).toBe('medium');
+  });
+
+  it('works the same way for cardio as any other focus', () => {
+    const history = [
+      record({ focus: 'cardio', difficulty: 'easy', status: 'completed', localDate: '2026-08-01' }),
+      record({ focus: 'cardio', difficulty: 'hard', status: 'completed', localDate: '2026-08-10' }),
+    ];
+    expect(pickQuickSessionDifficulty(history, 'cardio')).toBe('hard');
   });
 });
