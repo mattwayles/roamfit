@@ -127,9 +127,13 @@ orchestrated by a lead agent delegating increments to sub-agents.
   `npm run validate:library`: 0 errors. `npm run check` green (repo-wide).
 
 ### In progress
-- None — increment 3 (engine) is fully done. Increment 4 (library additions) picks up next, on
-  top of 97e1056; increment 5 (app) can run in parallel with it (worktree), per the plan's
-  orchestration section.
+- Increment 4 (library additions), running in the main tree while increment 5 (app) runs in a
+  parallel worktree. Plan: 4 commits — (1) low-impact bodyweight batch (9 records, `bw-` prefix),
+  (2) impact bodyweight batch (12 records), (3) band batch (5, `banded-` prefix) + jump rope batch
+  (6, `rope-` prefix, new `Anchor` value already lands as `jump-rope` from increment 1), (4)
+  coverage validator rules (conditioning ⇒ metric time; ≥8 easy; ≥8 no knee_impact; ≥5 band;
+  cardio counts in the report) + data tests + the `explain.ts` cardio copy fix + golden update.
+  Starting commit 1 now, on top of 97e1056.
 
 ### Next
 4. Library additions (~30 cardio records) + coverage validator rules.
