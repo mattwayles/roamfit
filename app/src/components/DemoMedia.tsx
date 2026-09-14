@@ -106,10 +106,11 @@ export interface DemoMediaProps {
    *  focus and scrolls the block clear — "components render, screens decide", as above. */
   onInputFocus?: () => void;
   /**
-   * Silence the video's own audio. Wired to the active workout's mute button, so one control
-   * covers everything the app makes noise with rather than only the cue tones. Defaults to false
-   * for call sites with no workout around them (the exercise detail screen), where a demo video is
-   * simply the thing the user came to watch.
+   * Silence the video's own audio. The active workout screen sets this whenever Spotify is
+   * connected — the video and Spotify fight for the same iOS audio session (see
+   * `spotifyRemote.ts`'s header), so playing music and hearing the demo are mutually exclusive by
+   * construction. Defaults to false for call sites with no workout around them (the exercise
+   * detail screen), where a demo video is simply the thing the user came to watch.
    */
   muted?: boolean;
 }
