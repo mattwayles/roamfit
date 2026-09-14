@@ -111,6 +111,38 @@ describe('warmup/cooldown light rotation (ADR 0001)', () => {
     });
     expect(picked).toBeNull();
   });
+
+  it('never hands a legs session an upper-only warmup, even when the legs pool is empty', () => {
+    // A legs day's warmup pool can run dry (rotation exclusion, suppression, a restrictive
+    // equipment preference) — falling back to *any* role exercise used to be able to warm up
+    // shoulders on a leg day. A generalist ('full') record should be preferred over that.
+    const upperOnly = ex('wu-shoulder', ['upper']);
+    const generalist = ex('wu-general', ['full']);
+    for (let seed = 0; seed < 20; seed++) {
+      const picked = selectWarmupCooldown({
+        role: 'warmup',
+        pool: [upperOnly, generalist],
+        focus: 'legs',
+        userState: userState(),
+        today: TODAY,
+        rng: createRng(seed),
+      });
+      expect(picked?.id).toBe('wu-general');
+    }
+  });
+
+  it('falls back to the fully unfiltered pool only when no generalist exists either', () => {
+    const upperOnly = ex('wu-shoulder', ['upper']);
+    const picked = selectWarmupCooldown({
+      role: 'warmup',
+      pool: [upperOnly],
+      focus: 'legs',
+      userState: userState(),
+      today: TODAY,
+      rng: createRng(1),
+    });
+    expect(picked?.id).toBe('wu-shoulder');
+  });
 });
 
 describe('selectWarmupCooldownGroup — §5.6 fills the budgeted minutes, not a fixed count', () => {

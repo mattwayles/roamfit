@@ -39,7 +39,17 @@ export function selectWarmupCooldown(input: SelectWarmupCooldownInput): Exercise
   const rolePool = pool.filter((e) => e.roles.includes(role));
   const available = excludeIds ? rolePool.filter((e) => !excludeIds.has(e.id)) : rolePool;
   const focusPool = available.filter((e) => e.focus.includes(focus));
-  const basePool = focusPool.length > 0 ? focusPool : available;
+  // A leg day must not warm up shoulders, and an upper day must not stretch quads — falling all
+  // the way back to the unfiltered role pool (as this used to) can hand a legs session an
+  // upper-only movement the moment the legs pool is thin (rotation exclusion, REPEATEDLY-SKIPPED
+  // suppression, or a restrictive equipment/anchor preference). `focus: ['full']` records are the
+  // library's actual generalists — tagged as appropriate prep for every focus, not just the ones
+  // that happen to overlap today's — so they're the correct middle tier: prefer an exact match,
+  // fall back to a genuine generalist, and only use the fully unfiltered pool as the last resort
+  // that keeps this from ever returning nothing (still the highest priority per ADR 0001 above).
+  const generalPool = available.filter((e) => e.focus.includes('full'));
+  const basePool =
+    focusPool.length > 0 ? focusPool : generalPool.length > 0 ? generalPool : available;
   if (basePool.length === 0) return null;
 
   const candidates = buildCandidates(basePool, role, ctx).filter((c) => !c.isSuppressed);
