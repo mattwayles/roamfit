@@ -26,14 +26,15 @@ import OptionPicker from '../components/OptionPicker';
 type Props = NativeStackScreenProps<RootStackParamList, 'Generate'>;
 
 const TIME_OPTIONS = [15, 20, 30, 45, 60, 90, 120]; // ADR 0002 floor, ADR 0013 ceiling
-const FOCUS_OPTIONS: Focus[] = ['upper', 'abs', 'legs', 'full'];
+// Cardio last: it's the newest, least-habitual choice, and putting it after the four
+// muscle-group focuses keeps their relative order (and therefore existing muscle memory for
+// where a focus sits in the picker) unchanged.
+const FOCUS_OPTIONS: Focus[] = ['upper', 'abs', 'legs', 'full', 'cardio'];
 const FOCUS_LABELS: Record<Focus, string> = {
   upper: 'Upper',
   abs: 'Core',
   legs: 'Legs',
   full: 'Full body',
-  // Not yet offered in FOCUS_OPTIONS — track 14 increment 5 adds the picker option and the
-  // "Cardio gear" anchor group together. Present here only to keep this Record exhaustive.
   cardio: 'Cardio',
 };
 const DIFFICULTY_OPTIONS: Difficulty[] = ['easy', 'medium', 'hard'];
@@ -56,6 +57,11 @@ const DIFFICULTY_LABELS: Record<Difficulty, string> = {
  *  - multi-select chips looked identical to the single-select Time/Focus/Difficulty controls above,
  *    so nothing signalled that these behave differently (those are now scrolling pickers, which
  *    separates the two kinds of choice further still).
+ *
+ * Track 14 adds a second group, "Cardio gear", for gear that isn't a fixed point at all (a jump
+ * rope). The list is no longer only anchors in the literal sense, so each group carries its own
+ * title rather than the checklist having one; "Needs something to anchor to" still describes the
+ * first group correctly on its own.
  */
 const ANCHOR_GROUPS: {
   title: string;
@@ -79,6 +85,10 @@ const ANCHOR_GROUPS: {
       { value: 'pullup-bar', label: 'Pull-up bar', hint: 'takes your full hanging weight' },
       { value: 'body-support', label: 'Bench or step', hint: 'something to dip or press off' },
     ],
+  },
+  {
+    title: 'Cardio gear',
+    anchors: [{ value: 'jump-rope', label: 'Jump rope', hint: 'for rope skipping moves' }],
   },
 ];
 

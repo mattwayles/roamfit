@@ -6,10 +6,11 @@
  * transitions the already-created pending session to 'active' via `startSession`).
  *
  * §10.3 "Add exercise": candidates come from `@roamfit/engine`'s `applyHardFilters` — the exact
- * same §13.1/§13.2/§5.3 filters generation itself uses — plus the engine's own
- * `prescribeAccessory`/`prescribeWarmupCooldown` for the actual sets/reps/band. This screen never
- * invents a prescription; it only lists what the engine says is eligible and persists what the
- * engine prescribes.
+ * same §13.1/§13.2/§5.3 filters generation itself uses — plus (MAIN section only) the same cardio
+ * focus-scoping the generation pipeline applies to its own MAIN pool (Track 14; see
+ * `scopeMainCandidatesToFocus`), plus the engine's own `prescribeAccessory`/`prescribeWarmupCooldown`
+ * for the actual sets/reps/band. This screen never invents a prescription; it only lists what the
+ * engine says is eligible and persists what the engine prescribes.
  *
  * Not implemented in this pass: "Regenerate with a note" needs the online LLM-intake path (§7.1),
  * out of scope for the offline-first loop this wave proves out.
@@ -36,7 +37,15 @@ import {
 } from '@roamfit/engine';
 import { exerciseStateRepo, generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
-import type { AnchorClass, Exercise, Pattern, ProgressionFamilyId, Role } from '@roamfit/data';
+import { isCardioExercise } from '@roamfit/data';
+import type {
+  AnchorClass,
+  Exercise,
+  Focus,
+  Pattern,
+  ProgressionFamilyId,
+  Role,
+} from '@roamfit/data';
 import type { BandId } from '@roamfit/engine';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
@@ -80,6 +89,29 @@ const SECTION_ROLE: Record<Section, Role> = {
   main: 'main',
   cooldown: 'cooldown',
 };
+
+/**
+ * Track 14 — §10.3 "Add exercise" MAIN-section cardio scoping, mirroring the engine pipeline's own
+ * MAIN-pool scoping exactly (`pipeline.ts`'s `mainPool`/`mainPoolIgnoringEquipment`): a cardio
+ * session's MAIN candidates are conditioning exercises only, and every other focus's MAIN
+ * candidates exclude conditioning exercises, so a burpee can't be hand-added to a Legs session and
+ * a squat can't be hand-added to a Cardio one.
+ *
+ * Deliberately a no-op outside `'main'`, for the same reason the pipeline leaves warmup/cooldown
+ * selection unscoped: a cardio move may still open a strength day, and a strength stretch may
+ * still close a cardio day (user decision) — those roles pick by role+focus already, never by
+ * pattern, so narrowing them here would wrongly exclude exercises the engine itself would offer.
+ */
+export function scopeMainCandidatesToFocus(
+  candidates: readonly Exercise[],
+  focus: Focus,
+  section: Section,
+): Exercise[] {
+  if (section !== 'main') return [...candidates];
+  return focus === 'cardio'
+    ? candidates.filter(isCardioExercise)
+    : candidates.filter((e) => !isCardioExercise(e));
+}
 
 export default function ApprovalScreen({ navigation, route }: Props): React.JSX.Element {
   const { sessionId } = route.params;
@@ -319,7 +351,9 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
 
   /** §10.3 "add exercise" candidates — the same hard filters (§13.1/§13.2/§5.3) generation
    *  itself runs, via the engine's own `applyHardFilters`, never reimplemented here. Excludes
-   *  exercises already active in this session (adding a duplicate isn't a meaningful edit). */
+   *  exercises already active in this session (adding a duplicate isn't a meaningful edit), and
+   *  (MAIN section only) scopes to this session's focus the same way the generation pipeline
+   *  does — see `scopeMainCandidatesToFocus`. */
   const candidatesFor = (section: Section): Exercise[] => {
     const clock = nowEngineClock();
     const profile = usersRepo.buildUserProfile(db, clock.today);
@@ -336,9 +370,10 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
       disabledExerciseIds: new Set(profile.disabledExerciseIds),
       today: clock.today,
     });
-    return hardFiltered.filter(
+    const roleFiltered = hardFiltered.filter(
       (e) => e.roles.includes(SECTION_ROLE[section]) && !alreadyInSession.has(e.id),
     );
+    return scopeMainCandidatesToFocus(roleFiltered, session.focus, section);
   };
 
   const handleAddExercise = (section: Section, exercise: Exercise) => {
