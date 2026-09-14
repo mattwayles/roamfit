@@ -91,7 +91,11 @@ describe('§10.4/§10.8 pause an active workout', () => {
     expect(navigation.navigate).not.toHaveBeenCalled();
     expect(navigation.replace).not.toHaveBeenCalled();
     await waitFor(
-      () => expect(screen.getByTestId('workout-paused-banner')).toBeTruthy(),
+      () =>
+        expect(screen.getByTestId('pause-workout')).toHaveProp(
+          'accessibilityLabel',
+          'Resume workout',
+        ),
       WAIT_OPTS,
     );
     // The workout itself stays on screen and stays usable — pausing stops the clock, it does not
@@ -119,7 +123,11 @@ describe('§10.4/§10.8 pause an active workout', () => {
     // The same control resumes, and the hold picks up where it was frozen rather than restarting.
     await fireEvent.press(screen.getByTestId('pause-workout'));
     await waitFor(
-      () => expect(screen.queryByTestId('workout-paused-banner')).toBeNull(),
+      () =>
+        expect(screen.getByTestId('pause-workout')).toHaveProp(
+          'accessibilityLabel',
+          'Pause workout',
+        ),
       WAIT_OPTS,
     );
     // Back on a live hold, not reset to the un-started state.
@@ -151,7 +159,11 @@ describe('§10.4/§10.8 pause an active workout', () => {
     await waitFor(() => expect(screen.getByTestId('pause-workout')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('pause-workout'));
     await waitFor(
-      () => expect(screen.getByTestId('workout-paused-banner')).toBeTruthy(),
+      () =>
+        expect(screen.getByTestId('pause-workout')).toHaveProp(
+          'accessibilityLabel',
+          'Resume workout',
+        ),
       WAIT_OPTS,
     );
     // Home's resume card brings the user back to a fresh mount of this screen. Rendered as a
@@ -168,7 +180,11 @@ describe('§10.4/§10.8 pause an active workout', () => {
       </StoreProvider>,
     );
     await waitFor(
-      () => expect(screen.getByTestId('workout-paused-banner')).toBeTruthy(),
+      () =>
+        expect(screen.getByTestId('pause-workout')).toHaveProp(
+          'accessibilityLabel',
+          'Resume workout',
+        ),
       WAIT_OPTS,
     );
   }, 20000);
@@ -200,7 +216,11 @@ describe('§10.4/§10.8 pause an active workout', () => {
     await waitFor(() => expect(screen.getByTestId('pause-workout')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('pause-workout'));
     await waitFor(
-      () => expect(screen.getByTestId('workout-paused-banner')).toBeTruthy(),
+      () =>
+        expect(screen.getByTestId('pause-workout')).toHaveProp(
+          'accessibilityLabel',
+          'Resume workout',
+        ),
       WAIT_OPTS,
     );
 
@@ -241,7 +261,11 @@ describe('§10.4/§10.8 pause an active workout', () => {
     );
     await fireEvent.press(screen.getByTestId('pause-workout'));
     await waitFor(
-      () => expect(screen.getByTestId('workout-paused-banner')).toBeTruthy(),
+      () =>
+        expect(screen.getByTestId('pause-workout')).toHaveProp(
+          'accessibilityLabel',
+          'Resume workout',
+        ),
       WAIT_OPTS,
     );
 
@@ -297,7 +321,11 @@ describe('§10.4/§10.8 pause an active workout', () => {
     );
     await fireEvent.press(screen.getByTestId('pause-workout'));
     await waitFor(
-      () => expect(screen.getByTestId('workout-paused-banner')).toBeTruthy(),
+      () =>
+        expect(screen.getByTestId('pause-workout')).toHaveProp(
+          'accessibilityLabel',
+          'Resume workout',
+        ),
       WAIT_OPTS,
     );
     // Ending early is a long press on the ring now — still reachable while the session clock is

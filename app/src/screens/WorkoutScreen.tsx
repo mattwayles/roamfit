@@ -951,12 +951,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         </Text>
       )}
 
-      {paused && (
-        <Text testID="workout-paused-banner" style={styles.pausedBanner}>
-          Paused — the clock is stopped. Take as long as you need.
-        </Text>
-      )}
-
       {/* §10.4 — the gentle nudge, in the two-step-confirm shape this app uses everywhere else
           rather than a system alert. Neither answer is the "wrong" one, and the set is logged
           whichever is chosen, so nothing here reads as a warning. A modal (not an inline banner)
@@ -971,7 +965,9 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       >
         <View style={styles.pausedNudgeOverlay}>
           <View style={styles.pausedNudge} testID="paused-completion-nudge">
-            <Text style={styles.pausedNudgeText}>Your timer is still paused. Want to resume it?</Text>
+            <Text style={styles.pausedNudgeText}>
+              Your timer is still paused. Want to resume it?
+            </Text>
             <View style={styles.pausedNudgeButtons}>
               <Pressable
                 testID="paused-completion-stay-paused"
@@ -2090,7 +2086,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sessionIconText: { fontSize: 18, fontWeight: '800', color: '#334155', lineHeight: 22 },
-  pausedBanner: { textAlign: 'center', fontSize: 14, color: '#0369a1', paddingVertical: 4 },
   swapNotice: { textAlign: 'center', fontSize: 13, color: '#1d4ed8', paddingVertical: 2 },
   hero: { alignItems: 'center', gap: 12 },
   // `hero` centers its children, which would otherwise shrink the How-To/Demo blocks to their
