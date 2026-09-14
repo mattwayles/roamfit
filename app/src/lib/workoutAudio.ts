@@ -73,6 +73,7 @@ const SOUNDS = {
   completionTone: require('../../assets/audio/completion-tone.wav') as AudioSource,
   restZero: require('../../assets/audio/rest-zero.wav') as AudioSource,
   sessionComplete: require('../../assets/audio/session-complete.wav') as AudioSource,
+  levelUp: require('../../assets/audio/level-up.wav') as AudioSource,
 };
 /* eslint-enable @typescript-eslint/no-require-imports */
 
@@ -215,4 +216,15 @@ export function cueRestZero(): void {
 export function cueSessionComplete(): void {
   playSound('sessionComplete');
   hapticCompletion();
+}
+
+/** One level-up (or Mastery best set) landing on the completion screen — a fast rising arpeggio
+ *  with a sparkle on top, deliberately brighter than the session fanfare, since earning a new
+ *  exercise is the bigger event. The Heavy thump reads as the "slam"; the Success notification
+ *  a beat later is the payoff — the screen fires both through this one call, so muted users feel
+ *  the same two-beat shape. */
+export function cueLevelUp(): void {
+  playSound('levelUp');
+  hapticHeavy();
+  setTimeout(hapticCompletion, 140);
 }

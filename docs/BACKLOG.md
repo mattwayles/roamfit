@@ -76,16 +76,15 @@ sibling got drawn, which is exactly what anchoring avoids, so it needs a design 
 - **No quad stretch in the library**, so a Cardio cool-down can't target quads. Add one (and give
   it the `cardio` focus) if cardio cool-downs feel lopsided.
 
-- **Completion screen — the particle/gradient/SVG/gesture tier.** The "no new dependency" pass
-  landed (fanfare + choreographed haptics, staggered entrance, a real stat grid — see
-  `SummaryScreen.tsx`, `sessionStats.ts`, `AnimatedStatCounter.tsx`). Still open, all needing a
-  native dep + Expo dev-client rebuild: a real multi-directional confetti burst and moving gradient
-  background (`react-native-reanimated`), a muscle-worked visualization or progress ring toward the
-  next unlock (`react-native-svg`), tap-to-reburst/hold-to-charge interactions
-  (`react-native-gesture-handler`), and a rendered branded share-card image instead of text
-  (`react-native-view-shot`, already noted below as a §9.10 scope cut). Also open: give the
-  level-up/Mastery celebration screen its own full redesign (a badge/reveal treatment) rather than
-  just the completion-haptic parity fix it got.
+- **Completion screen — the native-dependency tier.** Everything the built-in `Animated` API can do
+  has landed (track 17: slammed-in headline, physics confetti cannons/pops, drifting glow-orb
+  backdrop, spinning rays, level-ups folded in as stamped reveal cards with their own sound, tap
+  the headline to re-burst — see `SummaryScreen.tsx`, `lib/completionTimeline.ts`). Still open, all
+  needing a native dep + Expo dev-client rebuild: a true blurred gradient background and 60fps
+  UI-thread confetti at higher piece counts (`react-native-reanimated`), a muscle-worked
+  visualization (`react-native-svg`), hold-to-charge interactions (`react-native-gesture-handler`),
+  and a rendered branded share-card image instead of text (`react-native-view-shot`, already noted
+  below as a §9.10 scope cut).
 - **Passport Feature** - What do we want to use it for? What should it look like? What's its primary purpose?
 - **User Accounts** - **Anonymous Firebase Auth session isn't persisted.** No RN AsyncStorage backing, so cross-device continuity silently doesn't work. Zero impact on the core loop — nothing reads it on the critical path.
 - **A native iOS wheel picker** (`@react-native-picker/picker`) instead of the hand-rolled drop-down. Costs two native dependencies and an Expo dev-client rebuild; the component interface wouldn't change, so it's a clean swap if wanted.

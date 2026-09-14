@@ -5,26 +5,30 @@
  * computes progression or milestones itself; `../lib/celebration.ts` only shapes what
  * `completeSession` already decided into what to show and in what order.
  *
- * §6.4/§6.7: a level-up or a Mastery best-set PR is a celebrated, unmissable, full-screen moment
- * shown one at a time, **before** the plain completion summary — never stacked underneath it.
- * §9.10: a one-tap native share sheet on that celebration screen. No image-rendering library is
- * installed (checked `app/package.json`), so this ships as RN's built-in `Share.share` with a
- * formatted text card — a real share action, not a rendered PNG. Recorded as a scope cut in
- * STATUS-5-motivation.md; a future wave can add `react-native-view-shot` for a literal branded
- * image if product wants one.
+ * One completion screen, and it is LOUD. Finishing a session is the one thing this app should
+ * never treat as routine: invariant 4 ("never punish") has a positive counterpart that isn't
+ * written down anywhere else, which is to actually celebrate the win. The sequence, one beat
+ * after another (see the choreography effect below):
+ *   1. the fanfare, and a hype headline slammed in word by word, a haptic tick per word;
+ *   2. the last word lands — heavy thump, screen shake, confetti cannons from both bottom
+ *      corners, light rays fanning out behind the headline;
+ *   3. the stat grid pops in tile by tile and counts up what actually happened (additive-only,
+ *      per invariant 4: counts of what happened, never a comparison against the plan);
+ *   4. §6.4/§6.7 — every level-up and Mastery best set this session earned stamps down on its
+ *      own beat: its own sound, haptic, shake and confetti pop, the level bar filling. These used
+ *      to be a separate step-through screen shown first; they are now this screen's crescendo;
+ *   5. "Heck yes!" arrives last and keeps pulsing. Tapping the headline fires another burst.
+ * Over a drifting glow-orb backdrop the whole time. All plain `Animated` API — the app has no
+ * reanimated/lottie/svg library, and adding one costs a dev-client rebuild (BACKLOG). Reduce
+ * Motion drops the shake and the endless loops, keeping the one-shot beats.
  *
- * The plain completion screen underneath those (no level-up, or every one already stepped
- * through) is deliberately loud too — confetti, a fanfare + choreographed haptic sequence, a
- * staggered entrance, a stat grid that counts up what actually happened, and the user's running
- * workout count. Finishing a session is the one thing this app should never treat as routine:
- * invariant 4 ("never punish") has a positive counterpart that isn't written down anywhere else,
- * which is to actually celebrate the win. `ConfettiBurst`/`AnimatedStatCounter` are plain
- * `Animated`-API components, not a new dependency — the app has no confetti/lottie/reanimated
- * library installed. The stat grid (`../lib/sessionStats.ts`) is additive-only, per invariant 4:
- * counts of what happened, never a comparison against the plan.
+ * §9.10: a one-tap native share sheet on each highlight. No image-rendering library is installed,
+ * so this ships as RN's built-in `Share.share` with a formatted text card — a real share action,
+ * not a rendered PNG (scope cut recorded in STATUS-5-motivation.md).
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   Animated,
   InputAccessoryView,
   Keyboard,
@@ -36,6 +40,8 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -45,10 +51,24 @@ import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
 import { findCurrentEntry, type Section } from '../lib/sessionProgress';
-import { buildCelebrationViewModel, type FullScreenCelebration } from '../lib/celebration';
+import {
+  buildCelebrationViewModel,
+  pickHypeHeadline,
+  type HighlightCelebration,
+} from '../lib/celebration';
 import { buildSessionCompletionStats } from '../lib/sessionStats';
-import { cueSessionComplete, hapticCompletion, hapticHeavy, hapticTick } from '../lib/workoutAudio';
-import ConfettiBurst from '../components/ConfettiBurst';
+import {
+  cueLevelUp,
+  cueSessionComplete,
+  hapticCompletion,
+  hapticHeavy,
+  hapticTick,
+} from '../lib/workoutAudio';
+import ConfettiBurst, { type ConfettiVariant } from '../components/ConfettiBurst';
+import CelebrationBackdrop, { Sunburst } from '../components/CelebrationBackdrop';
+import HypeHeadline from '../components/HypeHeadline';
+import { buildCompletionTimeline, HIGHLIGHT_SCROLL_LEAD_MS } from '../lib/completionTimeline';
+import HighlightCard from '../components/HighlightCard';
 import FeedbackControls, { type Difficulty } from '../components/FeedbackControls';
 import AnimatedStatCounter from '../components/AnimatedStatCounter';
 import BandChip from '../components/BandChip';
@@ -135,13 +155,7 @@ function editFeedback(
   }
 }
 
-function celebrationHeadline(c: FullScreenCelebration): string {
-  return c.kind === 'level_up'
-    ? `${c.familyName}: ${c.newExerciseName}`
-    : `${c.familyName} Mastery — new best set`;
-}
-
-function celebrationShareText(c: FullScreenCelebration): string {
+function celebrationShareText(c: HighlightCelebration): string {
   return c.kind === 'level_up'
     ? `Just leveled up in RoamFit — ${c.familyName}, now training ${c.newExerciseName}.`
     : `New Mastery best set in RoamFit — ${c.familyName}: ${c.exerciseName}${
@@ -173,7 +187,6 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   const [result, setResult] = useState<CompleteSessionResult | null>(null);
   const [milestones, setMilestones] = useState<milestonesRepo.MilestoneRecord[]>([]);
   const [finished, setFinished] = useState(false);
-  const [celebrationIndex, setCelebrationIndex] = useState(0);
   const [workoutCount, setWorkoutCount] = useState(0);
   // Which feedback is open for editing, or null when the popup is closed. `setIndex` is null for
   // a `warmup`/`cooldown` chip (the whole-stage answer); a `main` chip always names the one set
@@ -182,14 +195,28 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     entryId: string;
     setIndex: number | null;
   } | null>(null);
-  // The completion screen's staggered entrance (see the `showingCompletionScreen` effect below):
-  // the hero banner scales in first, the stat block/milestones fade up once the haptic sequence
-  // reaches its "detonation" beat, the exit button arrives last, and `breathScale` keeps the hero
-  // gently pulsing afterward so the screen is never fully still while it's on screen.
-  const bannerScale = useRef(new Animated.Value(0)).current;
+  // The completion screen's choreography state (see the effect that drives it below).
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const buttonOpacity = useRef(new Animated.Value(0)).current;
-  const breathScale = useRef(new Animated.Value(1)).current;
+  const buttonPulse = useRef(new Animated.Value(0)).current;
+  const raysVisible = useRef(new Animated.Value(0)).current;
+  const headlineBounce = useRef(new Animated.Value(0)).current;
+  const shake = useRef(new Animated.Value(0)).current;
+  const [reduceMotion, setReduceMotion] = useState(false);
+  /** How many highlight cards have stamped down so far. */
+  const [revealedHighlights, setRevealedHighlights] = useState(0);
+  /** Every confetti burst currently in flight. Each mounts once and runs to completion; the list
+   *  is capped so tapping the headline forever can't pile up thousands of views. */
+  const [bursts, setBursts] = useState<
+    { key: number; variant: ConfettiVariant; origin?: { x: number; y: number } }[]
+  >([]);
+  const burstKey = useRef(0);
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const viewportHeight = useRef(0);
+  const highlightsTop = useRef(0);
+  const cardLayouts = useRef<{ y: number; height: number }[]>([]);
+  const { width: windowWidth } = useWindowDimensions();
 
   const reload = useCallback(() => {
     setSession(sessionsRepo.getSession(db, sessionId));
@@ -201,7 +228,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     () =>
       result
         ? buildCelebrationViewModel(library, families, result.progressionEvents, milestones)
-        : { fullScreen: [], quiet: [] },
+        : { highlights: [], quiet: [] },
     [result, milestones, library, families],
   );
 
@@ -256,76 +283,184 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     });
   }, [navigation, sessionId, session, finished, frontier]);
 
-  // §6.4/§6.7 — a level-up/Mastery celebration used to be the *quieter* of the two completion
-  // screens (a static emoji, no confetti, no haptic) despite being the bigger event — earning a
-  // new exercise, not just finishing a session. Firing the same completion haptic here whenever a
-  // new one becomes visible closes that gap without a full redesign of this screen.
+  const showingCompletionScreen = finished && result !== null;
+
   useEffect(() => {
-    if (!finished || !result) return;
-    if (!celebration.fullScreen[celebrationIndex]) return;
-    hapticCompletion();
-  }, [finished, result, celebration.fullScreen, celebrationIndex]);
+    let cancelled = false;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        if (!cancelled) setReduceMotion(enabled);
+      })
+      .catch(() => {});
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
+  }, []);
 
-  // The plain completion screen, after every full-screen level-up/mastery celebration has been
-  // stepped through (or there were none) — invariant 4/§1.1 territory in reverse: this is the one
-  // moment that's allowed, even meant, to be as loud as possible.
-  const showingCompletionScreen =
-    finished && result !== null && celebrationIndex >= celebration.fullScreen.length;
+  const addBurst = useCallback((variant: ConfettiVariant, origin?: { x: number; y: number }) => {
+    burstKey.current += 1;
+    const key = burstKey.current;
+    setBursts((prev) => [...prev.slice(-5), { key, variant, origin }]);
+  }, []);
 
-  // A single choreographed entrance, run once when this screen first becomes visible: the fanfare
-  // (previously the one silent moment in the whole workout loop — every other cue in
-  // `workoutAudio.ts` pairs a tone with a haptic) fires with the banner's spring-in; three light
-  // taps track the spring settling; a heavy pulse lands with the confetti and reveals the stat
-  // block; a final success pulse lands once the counters have finished counting up, alongside the
-  // exit button. `breathScale` keeps the hero gently alive afterward rather than parking dead
-  // still once the sequence ends.
+  const shakeScreen = useCallback(
+    (strength: number) => {
+      if (reduceMotion) return;
+      shake.setValue(0);
+      Animated.sequence(
+        [1, -0.8, 0.6, -0.4, 0.2, 0].map((f) =>
+          Animated.timing(shake, { toValue: f * strength, duration: 45, useNativeDriver: true }),
+        ),
+      ).start();
+    },
+    [reduceMotion, shake],
+  );
+
+  // Every stat tile this session earns — additive facts only (invariant 4): a count of something
+  // that happened, never a comparison against the plan. A dimension earns a tile only when it
+  // actually applies this session (no "0 reps" tile on an all-timed session, no "0s" tile on an
+  // all-reps one).
+  const statTiles: { key: string; value: number; label: string; suffix?: string }[] = useMemo(
+    () =>
+      completionStats
+        ? [
+            { key: 'sets', value: completionStats.setsCompleted, label: 'Sets' },
+            ...(completionStats.totalReps > 0
+              ? [{ key: 'reps', value: completionStats.totalReps, label: 'Total reps' }]
+              : []),
+            ...(completionStats.totalSeconds > 0
+              ? [
+                  {
+                    key: 'seconds',
+                    value: completionStats.totalSeconds,
+                    label: 'Time under tension',
+                    suffix: 's',
+                  },
+                ]
+              : []),
+            { key: 'exercises', value: completionStats.exercisesTrained, label: 'Exercises' },
+          ]
+        : [],
+    [completionStats],
+  );
+
+  const hypeHeadline = pickHypeHeadline(sessionId);
+  const timeline = useMemo(
+    () =>
+      buildCompletionTimeline(
+        hypeHeadline.split(' ').length,
+        statTiles.length,
+        celebration.highlights.length,
+      ),
+    [hypeHeadline, statTiles.length, celebration.highlights.length],
+  );
+
+  // The whole completion choreography, run once when the screen appears. Every beat is a timer
+  // off `timeline` (`lib/completionTimeline.ts`), the same clock the stat tiles' own animation
+  // delays read, so sound, haptics and animation can't drift apart:
+  //   words        fanfare; headline words slam in, a tick per word
+  //   slam         last word: heavy thump + shake + confetti cannons + light rays
+  //   content      count text fades up; each stat tile pops with its own tick
+  //   highlights   each level-up/Mastery card stamps down (`cueLevelUp`, shake, confetti pop),
+  //                scrolled into view first if it's below the fold
+  //   button       a Success pulse and "Heck yes!" springs in, then keeps pulsing
   useEffect(() => {
     if (!showingCompletionScreen) return;
 
-    bannerScale.setValue(0);
     contentOpacity.setValue(0);
     buttonOpacity.setValue(0);
-    breathScale.setValue(1);
-
-    cueSessionComplete();
-
-    let breathLoop: ReturnType<typeof Animated.loop> | null = null;
-    Animated.spring(bannerScale, {
-      toValue: 1,
-      friction: 4,
-      tension: 55,
-      useNativeDriver: true,
-    }).start(() => {
-      breathLoop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(breathScale, { toValue: 1.05, duration: 900, useNativeDriver: true }),
-          Animated.timing(breathScale, { toValue: 1, duration: 900, useNativeDriver: true }),
-        ]),
-      );
-      breathLoop.start();
-    });
+    raysVisible.setValue(0);
+    setRevealedHighlights(0);
 
     const timers: ReturnType<typeof setTimeout>[] = [];
     const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
+    const loops: { stop: () => void }[] = [];
 
-    at(150, hapticTick);
-    at(300, hapticTick);
-    at(450, () => {
+    cueSessionComplete();
+
+    timeline.wordTicks.forEach((ms) => at(ms, hapticTick));
+    at(timeline.slam, () => {
       hapticHeavy();
+      shakeScreen(9);
+      addBurst('cannons');
+      Animated.spring(raysVisible, { toValue: 1, friction: 6, useNativeDriver: true }).start();
+    });
+    at(timeline.content, () => {
       Animated.timing(contentOpacity, { toValue: 1, duration: 350, useNativeDriver: true }).start();
     });
-    // ~700ms count-up duration + the stat grid's own stagger (see the render below) — timed to
-    // land just after the last tile finishes counting, not before.
-    at(1300, () => {
+    timeline.statTiles.forEach((ms) => at(ms, hapticTick));
+    at(timeline.statsDone, () => addBurst('rain'));
+
+    timeline.highlights.forEach((revealAt, i) => {
+      // Bring the card on screen before it lands — a level-up that stamps down below the fold is
+      // a level-up nobody saw.
+      at(revealAt - HIGHLIGHT_SCROLL_LEAD_MS, () => {
+        const card = cardLayouts.current[i];
+        if (!card) return;
+        const cardBottom = highlightsTop.current + card.y + card.height;
+        const target = cardBottom - viewportHeight.current + 110;
+        if (target > scrollY.current) scrollRef.current?.scrollTo({ y: target, animated: true });
+      });
+      at(revealAt, () => {
+        setRevealedHighlights(i + 1);
+        cueLevelUp();
+        shakeScreen(6);
+        const card = cardLayouts.current[i];
+        addBurst(
+          'pop',
+          card
+            ? {
+                x: windowWidth / 2,
+                y: highlightsTop.current + card.y + card.height / 2 - scrollY.current,
+              }
+            : undefined,
+        );
+      });
+    });
+
+    at(timeline.button, () => {
       hapticCompletion();
-      Animated.timing(buttonOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+      Animated.spring(buttonOpacity, {
+        toValue: 1,
+        friction: 4,
+        tension: 80,
+        useNativeDriver: true,
+      }).start();
+      if (!reduceMotion) {
+        const pulse = Animated.loop(
+          Animated.sequence([
+            Animated.timing(buttonPulse, { toValue: 1, duration: 650, useNativeDriver: true }),
+            Animated.timing(buttonPulse, { toValue: 0, duration: 650, useNativeDriver: true }),
+          ]),
+        );
+        pulse.start();
+        loops.push(pulse);
+      }
     });
 
     return () => {
       timers.forEach(clearTimeout);
-      breathLoop?.stop();
+      loops.forEach((l) => l.stop());
     };
-  }, [showingCompletionScreen, bannerScale, contentOpacity, buttonOpacity, breathScale]);
+    // Deliberately keyed only on the screen appearing: re-running on a reduce-motion flip or a
+    // rotation would replay the whole sequence from the top (no react-hooks lint plugin is
+    // configured in this project to flag the omission).
+  }, [showingCompletionScreen]);
+
+  const handleHeadlinePress = () => {
+    hapticHeavy();
+    shakeScreen(5);
+    addBurst('pop', { x: windowWidth / 2, y: 150 - scrollY.current });
+    headlineBounce.setValue(1);
+    Animated.spring(headlineBounce, {
+      toValue: 0,
+      friction: 3,
+      tension: 140,
+      useNativeDriver: true,
+    }).start();
+  };
 
   if (!session) return <View style={styles.centered} />;
 
@@ -369,94 +504,56 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   };
 
   if (finished && result) {
-    const current = celebration.fullScreen[celebrationIndex];
-    if (current) {
-      return (
-        <View style={styles.celebrationScreen} testID="level-up-celebration">
-          <Text style={styles.celebrationEmoji}>{current.kind === 'level_up' ? '🎉' : '🏆'}</Text>
-          <Text style={styles.celebrationEyebrow}>
-            {current.kind === 'level_up' ? 'Level up!' : 'Mastery — new best set'}
-          </Text>
-          <Text style={styles.celebrationHeadline}>{celebrationHeadline(current)}</Text>
-          <Pressable
-            testID="celebration-share"
-            style={styles.shareButton}
-            onPress={() => handleShare(celebrationShareText(current))}
-          >
-            <Text style={styles.shareButtonText}>Share</Text>
-          </Pressable>
-          <Pressable
-            testID="celebration-continue"
-            style={styles.finishButton}
-            onPress={() => setCelebrationIndex((i) => i + 1)}
-          >
-            <Text style={styles.finishButtonText}>
-              {celebrationIndex < celebration.fullScreen.length - 1 ? 'Next' : 'Continue'}
-            </Text>
-          </Pressable>
-        </View>
-      );
-    }
-
-    // What the stat grid below shows — additive facts only (invariant 4): a count of something
-    // that happened, never a comparison against the plan. A dimension earns a tile only when it
-    // actually applies this session (no "0 reps" tile on an all-timed session, no "0s" tile on an
-    // all-reps one).
-    const statTiles: { key: string; value: number; label: string; suffix?: string }[] =
-      completionStats
-        ? [
-            { key: 'sets', value: completionStats.setsCompleted, label: 'Sets' },
-            ...(completionStats.totalReps > 0
-              ? [{ key: 'reps', value: completionStats.totalReps, label: 'Total reps' }]
-              : []),
-            ...(completionStats.totalSeconds > 0
-              ? [
-                  {
-                    key: 'seconds',
-                    value: completionStats.totalSeconds,
-                    label: 'Time under tension',
-                    suffix: 's',
-                  },
-                ]
-              : []),
-            { key: 'exercises', value: completionStats.exercisesTrained, label: 'Exercises' },
-          ]
-        : [];
-
     return (
       <View style={styles.doneScreen} testID="session-complete">
-        <ConfettiBurst />
-        <ScrollView contentContainerStyle={styles.doneContainer}>
-          <Animated.View
-            style={{ transform: [{ scale: Animated.multiply(bannerScale, breathScale) }] }}
-          >
-            <Text style={styles.doneBannerEmoji}>🎉🙌🎉</Text>
-            <Text style={styles.doneBanner}>CONGRATULATIONS!</Text>
-          </Animated.View>
-
-          <Animated.View
-            style={{
-              opacity: contentOpacity,
-              transform: [
-                {
-                  translateY: contentOpacity.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [12, 0],
-                  }),
-                },
-              ],
-              alignItems: 'center',
-              gap: 14,
-              width: '100%',
+        <CelebrationBackdrop still={reduceMotion} />
+        <Animated.View style={[styles.flex, { transform: [{ translateX: shake }] }]}>
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={styles.doneContainer}
+            scrollEventThrottle={16}
+            onScroll={(e) => {
+              scrollY.current = e.nativeEvent.contentOffset.y;
+            }}
+            onLayout={(e) => {
+              viewportHeight.current = e.nativeEvent.layout.height;
             }}
           >
-            <Text style={styles.doneCountText} testID="workout-count">
-              You just finished your {ordinal(workoutCount)} workout on RoamFit!
-            </Text>
+            <View style={styles.hero}>
+              <Sunburst size={windowWidth * 1.6} visible={raysVisible} still={reduceMotion} />
+              <Pressable
+                testID="hype-headline"
+                onPress={handleHeadlinePress}
+                accessibilityHint="Fires more confetti"
+              >
+                <HypeHeadline text={hypeHeadline} bounce={headlineBounce} />
+              </Pressable>
+            </View>
 
-            <Text style={styles.doneSubtitle}>
-              {Math.round(result.actualMinutes)} min · {session.focus}
-            </Text>
+            <Animated.View
+              style={[
+                styles.doneContent,
+                {
+                  opacity: contentOpacity,
+                  transform: [
+                    {
+                      translateY: contentOpacity.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [16, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Text style={styles.doneCountText} testID="workout-count">
+                You just finished your {ordinal(workoutCount)} workout on RoamFit!
+              </Text>
+
+              <Text style={styles.doneSubtitle}>
+                {Math.round(result.actualMinutes)} min · {session.focus}
+              </Text>
+            </Animated.View>
 
             {statTiles.length > 0 && (
               <View testID="completion-stats" style={styles.statGrid}>
@@ -467,49 +564,108 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                     value={tile.value}
                     label={tile.label}
                     suffix={tile.suffix}
-                    delay={i * 130}
+                    delay={timeline.statTiles[i]}
+                    style={styles.statTile}
+                    valueStyle={styles.statTileValue}
                   />
                 ))}
               </View>
             )}
 
-            {completionStats?.heaviestBand && bandTensions && (
-              <View style={styles.bandRow} testID="completion-band">
-                <Text style={styles.bandRowLabel}>Heaviest band used</Text>
-                <BandChip band={completionStats.heaviestBand} tensions={bandTensions} />
+            <Animated.View style={[styles.doneContent, { opacity: contentOpacity }]}>
+              {completionStats?.heaviestBand && bandTensions && (
+                <View style={styles.bandRow} testID="completion-band">
+                  <Text style={styles.bandRowLabel}>Heaviest band used</Text>
+                  <BandChip band={completionStats.heaviestBand} tensions={bandTensions} />
+                </View>
+              )}
+            </Animated.View>
+
+            {celebration.highlights.length > 0 && (
+              <View
+                testID="completion-highlights"
+                style={styles.highlights}
+                onLayout={(e: LayoutChangeEvent) => {
+                  highlightsTop.current = e.nativeEvent.layout.y;
+                }}
+              >
+                <Animated.Text style={[styles.highlightsHeading, { opacity: contentOpacity }]}>
+                  {celebration.highlights.length === 1
+                    ? 'AND THAT’S NOT ALL…'
+                    : `AND THAT’S NOT ALL… ×${celebration.highlights.length}`}
+                </Animated.Text>
+                {celebration.highlights.map((h, i) => (
+                  <View
+                    key={i}
+                    style={styles.flexRow}
+                    onLayout={(e: LayoutChangeEvent) => {
+                      cardLayouts.current[i] = {
+                        y: e.nativeEvent.layout.y,
+                        height: e.nativeEvent.layout.height,
+                      };
+                    }}
+                  >
+                    <HighlightCard
+                      testID={`highlight-${i}`}
+                      highlight={h}
+                      revealed={i < revealedHighlights}
+                      still={reduceMotion}
+                      onShare={() => handleShare(celebrationShareText(h))}
+                    />
+                  </View>
+                ))}
               </View>
             )}
 
             {celebration.quiet.length > 0 && (
-              <View testID="quiet-milestones" style={styles.quietMilestones}>
+              <Animated.View
+                testID="quiet-milestones"
+                style={[styles.quietMilestones, { opacity: contentOpacity }]}
+              >
                 {celebration.quiet.map((m, i) => (
                   <Text key={i} style={styles.quietMilestoneText}>
                     ⭐ {m.text}
                   </Text>
                 ))}
-              </View>
+              </Animated.View>
             )}
-          </Animated.View>
 
-          <Animated.View
-            style={{
-              opacity: buttonOpacity,
-              transform: [
-                {
-                  scale: buttonOpacity.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }),
-                },
-              ],
-            }}
-          >
-            <Pressable
-              testID="return-home"
-              style={styles.doneFinishButton}
-              onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Home' }] })}
+            <Animated.View
+              style={{
+                opacity: buttonOpacity.interpolate({
+                  inputRange: [0, 0.4],
+                  outputRange: [0, 1],
+                  extrapolate: 'clamp',
+                }),
+                transform: [
+                  {
+                    scale: Animated.multiply(
+                      buttonOpacity.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }),
+                      buttonPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] }),
+                    ),
+                  },
+                ],
+              }}
             >
-              <Text style={styles.doneFinishButtonText}>Heck yes!</Text>
-            </Pressable>
-          </Animated.View>
-        </ScrollView>
+              <Pressable
+                testID="return-home"
+                style={styles.doneFinishButton}
+                onPress={() => {
+                  hapticHeavy();
+                  navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+                }}
+              >
+                <Text style={styles.doneFinishButtonText}>Heck yes! 💪</Text>
+              </Pressable>
+            </Animated.View>
+          </ScrollView>
+        </Animated.View>
+
+        <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="confetti-burst">
+          {bursts.map((b) => (
+            <ConfettiBurst key={b.key} variant={b.variant} origin={b.origin} />
+          ))}
+        </View>
       </View>
     );
   }
@@ -522,7 +678,6 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     );
     setResult(completion);
     setMilestones(milestonesRepo.getMilestonesForSession(db, sessionId));
-    setCelebrationIndex(0);
     setWorkoutCount(sessionsRepo.countCompletedSessions(db));
     setFinished(true);
   };
@@ -864,94 +1019,81 @@ const styles = StyleSheet.create({
   keyboardAccessoryButton: { paddingHorizontal: 12, paddingVertical: 6 },
   keyboardAccessoryButtonText: { color: '#2563eb', fontSize: 16, fontWeight: '700' },
   // The completion celebration (invariant 4/§1.1 in reverse — the one screen meant to be loud).
-  doneScreen: { flex: 1, backgroundColor: '#7c3aed' },
+  flex: { flex: 1 },
+  flexRow: { width: '100%' },
+  doneScreen: { flex: 1, backgroundColor: '#5b21b6', overflow: 'hidden' },
   doneContainer: {
     flexGrow: 1,
-    padding: 24,
-    paddingTop: 64,
+    padding: 20,
+    paddingTop: 48,
+    paddingBottom: 48,
     alignItems: 'center',
-    gap: 14,
+    gap: 18,
   },
-  doneBannerEmoji: { fontSize: 40, textAlign: 'center' },
-  doneBanner: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#fff',
-    textAlign: 'center',
-    letterSpacing: 1,
-    textShadowColor: 'rgba(0,0,0,0.25)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+  hero: {
+    width: '100%',
+    minHeight: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  doneContent: { alignItems: 'center', gap: 6, width: '100%' },
   doneCountText: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 19,
+    fontWeight: '800',
     color: '#fef9c3',
     textAlign: 'center',
   },
-  doneSubtitle: { fontSize: 14, color: '#e9d5ff', textAlign: 'center' },
+  doneSubtitle: { fontSize: 14, fontWeight: '600', color: '#e9d5ff', textAlign: 'center' },
   statGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 14,
+    gap: 10,
     width: '100%',
   },
+  statTile: {
+    flexBasis: '46%',
+    flexGrow: 1,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
+    borderRadius: 18,
+    paddingVertical: 14,
+  },
+  statTileValue: { fontSize: 34, fontWeight: '900' },
   bandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bandRowLabel: { fontSize: 13, color: '#e9d5ff', fontWeight: '600' },
+  highlights: { width: '100%', gap: 18, marginTop: 6 },
+  highlightsHeading: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#fde047',
+    textAlign: 'center',
+    letterSpacing: 2,
+  },
   quietMilestones: {
     gap: 6,
-    marginTop: 8,
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 16,
     padding: 14,
     width: '100%',
   },
-  quietMilestoneText: { fontSize: 13, color: '#fff', fontWeight: '600' },
+  quietMilestoneText: { fontSize: 14, color: '#fff', fontWeight: '700' },
   doneFinishButton: {
-    marginTop: 20,
+    marginTop: 12,
     backgroundColor: '#facc15',
-    borderRadius: 20,
-    paddingHorizontal: 32,
+    borderRadius: 999,
+    paddingHorizontal: 44,
     paddingVertical: 20,
     alignItems: 'center',
-    minHeight: 60,
+    minHeight: 64,
     justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
   },
-  doneFinishButtonText: { color: '#713f12', fontSize: 18, fontWeight: '900' },
-  // §6.4/§6.7 — full-screen, unmissable, one at a time, before anything else.
-  celebrationScreen: {
-    flex: 1,
-    backgroundColor: '#fef9c3',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    gap: 12,
-  },
-  celebrationEmoji: { fontSize: 56 },
-  celebrationEyebrow: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#a16207',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  celebrationHeadline: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#713f12',
-    textAlign: 'center',
-  },
-  shareButton: {
-    marginTop: 12,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-  },
-  shareButtonText: { color: '#854d0e', fontWeight: '700', fontSize: 15 },
+  doneFinishButtonText: { color: '#422006', fontSize: 20, fontWeight: '900' },
 });

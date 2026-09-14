@@ -2,8 +2,8 @@
  * §10.9/§6.4/§6.7 completion — driven through the real SummaryScreen against the real on-device-
  * shaped store (not mocked). Forces a real level-up by seeding every family one qualifying
  * session away from a level change (via the real `microAdvance` walk, not a fabricated event),
- * then meeting the prescription for every entry, so this test proves the full-screen celebration
- * actually fires "before anything else," not just that it type-checks.
+ * then meeting the prescription for every entry, so this test proves a real level-up actually lands
+ * on the completion screen, not just that it type-checks.
  *
  * There used to be a calibration mode where a single `too_easy` rating jumped a full level
  * immediately; that's gone (a new user climbs the ladder like everyone else, or uses the
@@ -208,7 +208,7 @@ async function createSessionWithASkippedFirstSet(
 }
 
 describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => {
-  it('FINISH completes the session; a real level-up shows the full-screen celebration before the plain summary, share works, and Continue reaches Done', async () => {
+  it('FINISH completes the session; a real level-up lands on the completion screen itself (no separate screen), stamps in, shares, and Heck yes goes Home', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -240,27 +240,33 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     }, WAIT_OPTS);
 
     // Every family was seeded one qualifying session from a level change and every entry met
-    // its prescription — at least one family's level_up should have fired, surfacing the
-    // full-screen celebration "before anything else" (no Done button visible yet).
-    await waitFor(() => expect(screen.getByTestId('level-up-celebration')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.queryByTestId('return-home')).toBeNull();
+    // its prescription — at least one family's level_up fired. It lands on the one completion
+    // screen, alongside the stats: there is no separate screen to step through first.
+    await waitFor(() => expect(screen.getByTestId('session-complete')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByTestId('completion-highlights')).toBeTruthy();
+    expect(screen.getByTestId('completion-stats')).toBeTruthy();
+    expect(screen.getByTestId('return-home')).toBeTruthy();
+    expect(screen.queryByTestId('level-up-celebration')).toBeNull();
+    expect(screen.queryByTestId('celebration-continue')).toBeNull();
+    expect(screen.getAllByText('LEVEL UP!').length).toBeGreaterThanOrEqual(1);
+
+    // The card is laid out from the start but untappable until its beat in the sequence (after
+    // the stats count up) — wait for it to stamp down.
+    const card = screen.getByTestId('highlight-0');
+    expect(card).toHaveProp('pointerEvents', 'none');
+    await waitFor(() => expect(card).toHaveProp('pointerEvents', 'auto'), {
+      timeout: 8000,
+      interval: 100,
+    });
 
     // §9.10 share — a real Share.share call, never auto-posting.
     const shareSpy = jest
       .spyOn(Share, 'share')
       .mockResolvedValue({ action: 'sharedAction' } as never);
-    await fireEvent.press(screen.getByTestId('celebration-share'));
+    await fireEvent.press(screen.getByTestId('highlight-0-share'));
     expect(shareSpy).toHaveBeenCalledTimes(1);
     expect(shareSpy.mock.calls[0][0]).toHaveProperty('message');
     shareSpy.mockRestore();
-
-    // Advance through every celebration (there may be more than one family leveling up) until
-    // the plain Done summary appears.
-    for (let guard = 0; guard < 10; guard += 1) {
-      if (screen.queryByTestId('return-home')) break;
-      await fireEvent.press(screen.getByTestId('celebration-continue'));
-    }
-    await waitFor(() => expect(screen.getByTestId('return-home')).toBeTruthy(), WAIT_OPTS);
 
     await fireEvent.press(screen.getByTestId('return-home'));
     expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'Home' }] });
@@ -930,7 +936,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     expect(screen.queryByTestId('back-to-workout')).toBeNull();
   });
 
-  it('the completion screen is a celebration — confetti, a big banner, and the running workout count', async () => {
+  it('the completion screen is a celebration — confetti, a hype headline, and the running workout count', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -972,16 +978,9 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('finish-button'));
 
-    // Step through any full-screen level-up/mastery celebrations first — the completion
-    // celebration is the screen underneath those, never stacked on top.
-    for (let guard = 0; guard < 10; guard += 1) {
-      if (screen.queryByTestId('session-complete')) break;
-      if (!screen.queryByTestId('celebration-continue')) break;
-      await fireEvent.press(screen.getByTestId('celebration-continue'));
-    }
-
     await waitFor(() => expect(screen.getByTestId('session-complete')).toBeTruthy(), WAIT_OPTS);
     expect(screen.getByTestId('confetti-burst')).toBeTruthy();
+    expect(screen.getByTestId('hype-headline')).toBeTruthy();
     expect(screen.getByTestId('workout-count')).toHaveTextContent(
       `You just finished your ${expectedOrdinal} workout on RoamFit!`,
     );
@@ -1016,12 +1015,6 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
 
     await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('finish-button'));
-
-    for (let guard = 0; guard < 10; guard += 1) {
-      if (screen.queryByTestId('session-complete')) break;
-      if (!screen.queryByTestId('celebration-continue')) break;
-      await fireEvent.press(screen.getByTestId('celebration-continue'));
-    }
 
     await waitFor(() => expect(screen.getByTestId('completion-stats')).toBeTruthy(), WAIT_OPTS);
     // Each tile counts up on its own stagger (see the render's `delay={i * 130}`) — wait for each
@@ -1091,11 +1084,6 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('finish-button'));
 
-    for (let guard = 0; guard < 10; guard += 1) {
-      if (screen.queryByTestId('session-complete')) break;
-      if (!screen.queryByTestId('celebration-continue')) break;
-      await fireEvent.press(screen.getByTestId('celebration-continue'));
-    }
     await waitFor(() => expect(screen.getByTestId('session-complete')).toBeTruthy(), WAIT_OPTS);
 
     // The choreography's last beat (a Success pulse paired with the button fading in) lands at
