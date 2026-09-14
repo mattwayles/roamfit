@@ -13,6 +13,7 @@ import {
   buildMuscleBalanceRows,
   buildPassportSummary,
   buildProgressionBoard,
+  monthLabelForLocalDate,
   nextUnlockHero,
   overWorkedMuscles,
 } from './dashboard';
@@ -177,30 +178,25 @@ describe('§9.6 Passport — strings only, deduplicated, accumulating', () => {
 });
 
 describe('§14.1.6 calendar heatmap — untrained days are present and neutral, never omitted', () => {
-  it('produces one entry per day in the trailing window, with null minutes on untrained days', () => {
+  it('produces one entry per day in the current month, with null minutes on untrained days', () => {
     const days = buildCalendarDays(
       [summary('2026-05-03', { actualMinutes: 42 })],
       '2026-05-05',
-      5,
       new Set(),
     );
-    expect(days.length).toBe(5);
-    expect(days.map((d) => d.localDate)).toEqual([
-      '2026-05-01',
-      '2026-05-02',
-      '2026-05-03',
-      '2026-05-04',
-      '2026-05-05',
-    ]);
+    expect(days.length).toBe(31);
+    expect(days[0].localDate).toBe('2026-05-01');
+    expect(days[days.length - 1].localDate).toBe('2026-05-31');
     expect(days.find((d) => d.localDate === '2026-05-03')!.minutes).toBe(42);
     expect(days.find((d) => d.localDate === '2026-05-01')!.minutes).toBeNull();
+    // Days later in the month than "today" are present too — the grid shows the whole month.
+    expect(days.find((d) => d.localDate === '2026-05-20')!.minutes).toBeNull();
   });
 
   it('marks each trained day with its session focus, and untrained days with a null focus', () => {
     const days = buildCalendarDays(
       [summary('2026-05-03', { focus: 'upper' })],
       '2026-05-05',
-      5,
       new Set(),
     );
     expect(days.find((d) => d.localDate === '2026-05-03')!.focus).toBe('upper');
@@ -216,18 +212,17 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
         summary('2026-05-05', { focus: 'abs', actualMinutes: 25 }),
       ],
       '2026-05-05',
-      1,
       new Set(),
     );
-    expect(days[0].minutes).toBe(35);
-    expect(days[0].focus).toBe('abs');
+    const day = days.find((d) => d.localDate === '2026-05-05')!;
+    expect(day.minutes).toBe(35);
+    expect(day.focus).toBe('abs');
   });
 
   it('a manual marker overrides the derived focus/travel state, and is reported back on the day', () => {
     const days = buildCalendarDays(
       [summary('2026-05-03', { focus: 'upper' })],
       '2026-05-05',
-      5,
       new Set(['2026-05-01']),
       new Map([
         ['2026-05-03', 'legs'],
@@ -253,15 +248,14 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
   });
 
   it('lays the window out as real Sun–Sat weeks, padding the partial first/last week with null', () => {
-    // 2026-05-01 is a Friday, 2026-05-05 is a Tuesday.
+    // 2026-05-01 is a Friday, 2026-05-31 is a Sunday.
     const days = buildCalendarDays(
       [summary('2026-05-03', { focus: 'upper' })],
       '2026-05-05',
-      5,
       new Set(),
     );
     const weeks = buildCalendarWeeks(days);
-    expect(weeks.length).toBe(2);
+    expect(weeks.length).toBe(6);
     expect(weeks[0].map((d) => d?.localDate ?? null)).toEqual([
       null,
       null,
@@ -271,10 +265,10 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
       '2026-05-01',
       '2026-05-02',
     ]);
-    expect(weeks[1].map((d) => d?.localDate ?? null)).toEqual([
-      '2026-05-03',
-      '2026-05-04',
-      '2026-05-05',
+    expect(weeks[weeks.length - 1].map((d) => d?.localDate ?? null)).toEqual([
+      '2026-05-31',
+      null,
+      null,
       null,
       null,
       null,
@@ -290,17 +284,15 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
     const days = buildCalendarDays(
       [summary('2026-05-05', { actualMinutes: null, estimatedMinutes: 20 })],
       '2026-05-05',
-      1,
       new Set(),
     );
-    expect(days[0].minutes).toBe(20);
+    expect(days.find((d) => d.localDate === '2026-05-05')!.minutes).toBe(20);
   });
 
   it('marks an untrained day in transit, but never overrides a trained day', () => {
     const days = buildCalendarDays(
       [summary('2026-05-04', { actualMinutes: 30 })],
       '2026-05-05',
-      2,
       new Set(['2026-05-04', '2026-05-05']),
     );
     // 2026-05-04 was travelled AND trained — the workout is the more informative fact.
@@ -327,7 +319,6 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
     const days = buildCalendarDays(
       [summary('2026-05-03', { focus: 'full', isQuick: true })],
       '2026-05-05',
-      5,
       new Set(),
     );
     const quickDay = days.find((d) => d.localDate === '2026-05-03')!;
@@ -342,10 +333,17 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
         summary('2026-05-05', { focus: 'upper', isQuick: false, actualMinutes: 30 }),
       ],
       '2026-05-05',
-      1,
       new Set(),
     );
-    expect(days[0].marker).toBe('upper');
+    expect(days.find((d) => d.localDate === '2026-05-05')!.marker).toBe('upper');
+  });
+});
+
+describe('monthLabelForLocalDate', () => {
+  it('names the month a local_date falls in', () => {
+    expect(monthLabelForLocalDate('2026-05-05')).toBe('May');
+    expect(monthLabelForLocalDate('2026-12-31')).toBe('December');
+    expect(monthLabelForLocalDate('2026-01-01')).toBe('January');
   });
 });
 

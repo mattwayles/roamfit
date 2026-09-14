@@ -61,6 +61,7 @@ import {
   buildMuscleBalanceRows,
   buildPassportSummary,
   buildProgressionBoard,
+  monthLabelForLocalDate,
   nextUnlockHero,
   WEEKDAY_LABELS,
   type CalendarDay,
@@ -77,8 +78,6 @@ import {
 import { runOpportunisticSync } from '../lib/opportunisticSync';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
-
-const CALENDAR_WINDOW_DAYS = 30;
 
 /** §14.1.6 — the one-letter marker shown on a trained calendar day: a focus letter, or 'Q' for a
  *  Quick Session (§9.5), which is otherwise indistinguishable from a regular full-body session
@@ -113,6 +112,7 @@ interface HomeData {
   recentTzChangeToday: boolean;
   passport: PassportSummary;
   calendarDays: CalendarDay[];
+  calendarMonthLabel: string;
   muscleBalance: MuscleBalanceRow[];
   lifetimeCounters: LifetimeCounters;
 }
@@ -167,7 +167,6 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     const calendarDays = buildCalendarDays(
       completedSessions,
       clock.today,
-      CALENDAR_WINDOW_DAYS,
       travelLocalDates,
       manualDayMarkers,
     );
@@ -190,6 +189,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       recentTzChangeToday,
       passport,
       calendarDays,
+      calendarMonthLabel: monthLabelForLocalDate(clock.today),
       muscleBalance,
       lifetimeCounters,
     });
@@ -397,6 +397,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     comebackTier,
     passport,
     calendarDays,
+    calendarMonthLabel,
     muscleBalance,
     lifetimeCounters,
   } = data;
@@ -541,7 +542,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       {stats.lifetimeSessionCount > 0 && (
         <View testID="calendar-heatmap">
           <View style={styles.calendarHeaderRow}>
-            <Text style={styles.sectionLabel}>Last {CALENDAR_WINDOW_DAYS} days</Text>
+            <Text style={styles.sectionLabel}>{calendarMonthLabel}</Text>
             <Pressable
               testID="travel-day-button"
               style={styles.travelButton}

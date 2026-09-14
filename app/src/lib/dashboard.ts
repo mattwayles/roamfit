@@ -219,18 +219,18 @@ export function buildCalendarWeeks(days: CalendarDay[]): (CalendarDay | null)[][
   return weeks;
 }
 
-/** §14.1.6 calendar heatmap — the trailing `days`-day window ending today, one entry per
- *  calendar day (including untrained ones, so the caller can render them neutrally rather than
- *  simply omitting them, which would look like a gap). `travelLocalDates` are the dates §9.3's
- *  "I'm in Transit" was tapped for (`signalsRepo.getSignalEventsByType(db, 'travel_day')`, mapped
- *  to `localDate`), so an untrained travel day can be marked as one rather than looking like any
- *  other empty day. `manualMarkers` are the hand-set overrides from `manualDayMarkersRepo`, keyed
- *  by `localDate` — they take precedence over every derived signal, since re-tagging a day is a
- *  deliberate correction. */
+/** §14.1.6 calendar heatmap — every day of `today`'s calendar month (1st through the month's last
+ *  day), one entry per calendar day (including untrained ones, so the caller can render them
+ *  neutrally rather than simply omitting them, which would look like a gap — this applies to
+ *  days later in the month than today too, so the grid always shows the whole month rather than
+ *  growing day by day). `travelLocalDates` are the dates §9.3's "I'm in Transit" was tapped for
+ *  (`signalsRepo.getSignalEventsByType(db, 'travel_day')`, mapped to `localDate`), so an untrained
+ *  travel day can be marked as one rather than looking like any other empty day. `manualMarkers`
+ *  are the hand-set overrides from `manualDayMarkersRepo`, keyed by `localDate` — they take
+ *  precedence over every derived signal, since re-tagging a day is a deliberate correction. */
 export function buildCalendarDays(
   sessions: DashboardSessionSummary[],
   today: string,
-  days: number,
   travelLocalDates: ReadonlySet<string>,
   manualMarkers: ReadonlyMap<string, DayMarker> = new Map(),
 ): CalendarDay[] {
@@ -259,10 +259,11 @@ export function buildCalendarDays(
       }
     }
   }
-  const [y, m, d] = today.split('-').map(Number);
+  const [y, m] = today.split('-').map(Number);
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
   const out: CalendarDay[] = [];
-  for (let i = days - 1; i >= 0; i -= 1) {
-    const date = new Date(Date.UTC(y, m - 1, d - i));
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const date = new Date(Date.UTC(y, m - 1, day));
     const localDate = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
     const trained = byDate.get(localDate);
     const inTransit = travelLocalDates.has(localDate);
@@ -287,6 +288,18 @@ export function buildCalendarDays(
     });
   }
   return out;
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+/** Month name for the calendar heatmap header, derived from a `local_date` — never from a live
+ *  UTC clock — so it always names the month `today` (per the caller's local calendar) falls in. */
+export function monthLabelForLocalDate(localDate: string): string {
+  const [, m] = localDate.split('-').map(Number);
+  return MONTH_NAMES[m - 1];
 }
 
 export interface LifetimeCounters {
