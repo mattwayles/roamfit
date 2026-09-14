@@ -43,9 +43,11 @@ export const ALWAYS_AVAILABLE_ANCHORS: readonly Anchor[] = [
 ];
 
 /** §5.3 defaults for the anchors that *do* need to be picked — band exercises anchored to a
- *  low/mid/high point, plus bar/bench equipment. Every option the "Available Equipment" picker
- *  (`GenerateScreen`) offers is checked by default — a new user should see the full library, not
- *  a pre-narrowed one — and each toggle persists back through `usersRepo`, so what the user
+ *  low/mid/high point, plus bar/bench equipment. Every anchor option the "Available Equipment"
+ *  picker (`GenerateScreen`) offers is checked by default — a new user should see the full
+ *  library, not a pre-narrowed one. The one deliberate exception is `jump-rope` (the picker's
+ *  "Cardio gear"): it is left out, so a rope move is never programmed for someone who hasn't said
+ *  they own one. Each toggle persists back through `usersRepo`, so what the user
  *  actually has stays remembered rather than re-defaulting on every visit. This does not weaken
  *  §13.1: `pullup-bar` and `body-support` stay `bodyweight_bearing`, so `difficultyCapForExercise`
  *  still caps them at `medium` regardless of whether the user has them enabled. Callers

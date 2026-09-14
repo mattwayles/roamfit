@@ -55,6 +55,14 @@ sibling got drawn, which is exactly what anchoring avoids, so it needs a design 
 
 ## Future Features
 
+- **Cardio: an interval-circuit format.** Cardio sessions currently run as timed straight sets
+  (work for time, short rest, next exercise — `CARDIO_INTERVAL_TABLE` in
+  `prescription/difficultyTable.ts`). A true circuit — rounds of back-to-back stations on a
+  work/rest timer — needs a new `SessionFormat`, circuit-aware time fit, and a Workout-screen mode.
+  Deferred when the Cardio focus landed (track 14) to keep that change inside the existing loop.
+- **No quad stretch in the library**, so a Cardio cool-down can't target quads. Add one (and give
+  it the `cardio` focus) if cardio cool-downs feel lopsided.
+
 - **Completion screen — the particle/gradient/SVG/gesture tier.** The "no new dependency" pass
   landed (fanfare + choreographed haptics, staggered entrance, a real stat grid — see
   `SummaryScreen.tsx`, `sessionStats.ts`, `AnimatedStatCounter.tsx`). Still open, all needing a

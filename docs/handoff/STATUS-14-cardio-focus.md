@@ -200,23 +200,31 @@ orchestrated by a lead agent delegating increments to sub-agents.
   + engine golden/tests + the one explain.ts fix) can or should fix; flagging for whoever merges
   the worktree branch / cleans it up.
 
-### Next
-- Increment 4 is done. Generate sample sessions (cardio 30/60min medium, cardio easy, cardio with
-  a knee_impact limitation, legs/full 45min) via a throwaway node/jest script (not committed) to
-  confirm no conditioning exercise leaks into legs/full main work and no rope exercise appears
-  anywhere without the `jump-rope` anchor ticked — reported directly to the user, not re-recorded
-  here since it's verification, not a code change.
-- Increment 5 (app) is running in the parallel worktree per the plan; merge it in and re-run
-  `npm run check` once it lands (that should also make the `.claude/worktrees/...` eslint noise
-  above go away, since the worktree will be cleaned up).
-- Increment 6 (backlog: park "interval-circuit cardio format", final status update) is still
-  owed by whoever is orchestrating — not part of this track's scope.
+  Sample real-library sessions (throwaway script, not committed) confirmed: cardio 30/60min
+  medium, cardio easy and cardio + knee_impact all compliant; legs/full 45min had no
+  conditioning in main and no rope anywhere; rope moves appear once `jump-rope` is ticked.
+
+- [x] Increment 5 — app, built in a worktree branch and merged (d6e9049; commits ff97025,
+  ffa5523, 5aa061d): Generate gets the Cardio focus option (last) and a "Cardio gear" group with
+  Jump rope, unticked by default; Home gets a "Cardio workout" day marker (letter `C`); Quick
+  Session's `ALL_FOCI` includes cardio; Approval's Add-exercise MAIN candidates are scoped to the
+  session's focus via `scopeMainCandidatesToFocus` (mirrors the pipeline; warmup/cooldown
+  untouched). Verified without changes: swap goes through the engine's same-pattern
+  `alternativesForSlot` on both screens; `formatToken` already renders `jump-rope`/`conditioning`
+  readably; store focus/marker columns are plain TEXT (no migration). The worktree-lint noise noted
+  above went away when the worktree was removed. Not fixed (pre-existing, out of scope):
+  `SummaryScreen.tsx` renders the raw focus token for every focus.
+
+- [x] Increment 6 — backlog (interval-circuit cardio format; no quad stretch for cardio
+  cool-downs), stale `DEFAULT_ANCHORS_AVAILABLE` comment corrected for the jump-rope exception,
+  increment 5's sub-log folded in here.
+
+### In progress
+- None. Track 14 is complete; `npm run check` and `npm run validate:library` green on master.
 
 ### Next
-4. Library additions (~30 cardio records) + coverage validator rules.
-5. App: Generate focus option + "Cardio gear" (jump rope), heatmap 'C' + day marker, Quick Session
-   rotation, Approval add-exercise scoping.
-6. Backlog: park "interval-circuit cardio format".
+- Device verification owed: generate a Cardio session in the dev client with Jump rope unticked
+  and ticked; confirm Legs/Full main work carries no cardio; calendar shows `C`.
 
 ### Decisions / gotchas (made with the user — do not re-litigate)
 - Cardio sessions = timed straight sets (metric 'time'), no new workout-screen mode.
