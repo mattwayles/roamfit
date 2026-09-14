@@ -1,7 +1,7 @@
 ## Track: 17 — Completion screen hype (level-ups folded in)
 Last updated: 2026-09-14 (increment complete)
 ### Done
-- [x] Level-ups folded into the completion screen + full hype pass (see commit "Completion
+- [x] Level-ups folded into the completion screen + full hype pass (0f9a1ee "Completion
   screen: fold level-ups in, add hype choreography"). `npm run check` green.
 ### In progress
 - nothing
