@@ -527,6 +527,80 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     expect(screen.getByText('Just right')).toBeTruthy();
   });
 
+  it('shows a placeholder chip for a logged set with no feedback yet, and tapping it records one retroactively', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('summary-feedback-placeholder-seed')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    sessionsRepo.startSession(db, sessionId, utcInstant);
+    const session = sessionsRepo.getSession(db, sessionId)!;
+    const mainEntry = session.entries.find(
+      (e) => e.section === 'main' && e.entryStatus !== 'removed_at_approval',
+    )!;
+    // Logged, but the rest screen was never answered — the case that had no chip at all before.
+    sessionsRepo.logSet(
+      db,
+      {
+        entryId: mainEntry.id,
+        setIndex: 0,
+        status: 'completed',
+        restPrescribedSec: mainEntry.restSec,
+      },
+      utcInstant,
+    );
+
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <SummaryScreen
+            navigation={mockNavigation() as never}
+            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
+    const freshEntry = () =>
+      sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === mainEntry.id)!;
+    const set0Log = freshEntry().setLogs.find((l) => l.setIndex === 0)!;
+
+    await fireEvent.press(screen.getByTestId(`summary-feedback-placeholder-${set0Log.id}`));
+    await waitFor(
+      () => expect(screen.getByTestId('difficulty-too_easy')).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    await fireEvent.press(screen.getByTestId('difficulty-too_easy'));
+    await fireEvent.press(screen.getByTestId('feedback-edit-done'));
+
+    const updatedSet0 = freshEntry().setLogs.find((l) => l.setIndex === 0)!;
+    expect(updatedSet0.difficultyFeedback).toBe('too_easy');
+    expect(screen.getByText('Too easy')).toBeTruthy();
+    expect(screen.queryByTestId(`summary-feedback-placeholder-${set0Log.id}`)).toBeNull();
+  });
+
   it('editing a legacy whole-stage feedback chip (from a session recorded before per-set warm-up/cool-down feedback) updates every entry in the stage', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(

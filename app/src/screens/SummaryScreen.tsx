@@ -106,6 +106,10 @@ const DIFFICULTY_COLORS: Record<Difficulty, { bg: string; text: string }> = {
   too_hard: { bg: '#fee2e2', text: '#991b1b' },
 };
 
+/** Neutral fill for the "no feedback yet" placeholder chip — same slate the not-yet-reached
+ *  square itself uses, so it reads as "nothing recorded" rather than as a fourth answer. */
+const PLACEHOLDER_CHIP_COLORS = { bg: '#e2e8f0', text: '#475569' };
+
 /**
  * §8.1 feedback: per SET, for every section (migration 0017 gave `main` this first; warm-up and
  * cool-down now get it too, on their own rest timer, instead of one shared question asked at the
@@ -599,6 +603,33 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                               ]}
                             >
                               {DIFFICULTY_LABEL[log.difficultyFeedback]}
+                            </Text>
+                          </Pressable>
+                        </View>
+                      )}
+                      {/* A logged set (completed or skipped) that never got an answer on the rest
+                          screen — the rest screen only ever asks once, so there was previously no
+                          way back to it. `recordSetFeedback` no-ops without a set_logs row, so this
+                          only offers the tap target once a log actually exists (`not_reached` sets
+                          get nothing to tap, same as before). */}
+                      {log && !log.difficultyFeedback && (
+                        <View style={styles.setSquareFeedbackRow}>
+                          <Pressable
+                            testID={`summary-feedback-placeholder-${log.id}`}
+                            hitSlop={4}
+                            onPress={() => setEditingFeedback({ entryId: entry.id, setIndex })}
+                            style={[
+                              styles.setSquareFeedbackChip,
+                              { backgroundColor: PLACEHOLDER_CHIP_COLORS.bg },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.setSquareFeedbackChipText,
+                                { color: PLACEHOLDER_CHIP_COLORS.text },
+                              ]}
+                            >
+                              + Feedback
                             </Text>
                           </Pressable>
                         </View>
