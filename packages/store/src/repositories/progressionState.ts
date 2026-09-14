@@ -4,7 +4,7 @@
  */
 import { eq, and } from 'drizzle-orm';
 import {
-  calibrationStartLevel,
+  baseStartLevel,
   defaultMicroForExercise,
   findFamily,
   exerciseForLevel,
@@ -21,7 +21,6 @@ function rowToState(row: typeof schema.progressionState.$inferSelect): EnginePro
     familyId: row.familyId as ProgressionFamilyId,
     levelId: row.levelId,
     micro: JSON.parse(row.micro),
-    calibrating: row.calibrating,
     consecutiveHits: row.consecutiveHits,
     consecutiveMisses: row.consecutiveMisses,
     lastLevelChangeAt: row.lastLevelChangeAt,
@@ -55,7 +54,7 @@ export function getAllProgressionStates(
   return out;
 }
 
-/** §6.5 cold start — seeds one row per family at ~30th percentile of its ladder, calibrating.
+/** Cold start — seeds one row per family at level 1, its ladder's base.
  *  Idempotent: only inserts families that don't already have a row. Call before the first-ever
  *  generation for a user (and safe to call on every generation after — a no-op once seeded). */
 export function ensureProgressionStatesInitialized(
@@ -74,7 +73,7 @@ export function ensureProgressionStatesInitialized(
   );
   for (const family of families.families) {
     if (existing.has(family.id)) continue;
-    const startLevel = calibrationStartLevel(family);
+    const startLevel = baseStartLevel(family);
     const exercise = library.find((e) => e.id === startLevel.anchor_exercise_id);
     const micro = exercise
       ? defaultMicroForExercise(exercise)
@@ -85,7 +84,6 @@ export function ensureProgressionStatesInitialized(
         familyId: family.id,
         levelId: startLevel.level_id,
         micro: JSON.stringify(micro),
-        calibrating: true,
         updatedAt: now,
       })
       .run();
@@ -93,9 +91,9 @@ export function ensureProgressionStatesInitialized(
 }
 
 /** Admin setting: reset every ladder's session counters back to zero without moving its rung.
- *  `level_id` (and `calibrating`) are left untouched (invariant 5) — only `consecutiveHits`,
- *  `consecutiveMisses`, and `micro` (re-seeded fresh for the current level's anchor exercise, same
- *  as entering that level for the first time) are reset. */
+ *  `level_id` is left untouched (invariant 5) — only `consecutiveHits`, `consecutiveMisses`, and
+ *  `micro` (re-seeded fresh for the current level's anchor exercise, same as entering that level
+ *  for the first time) are reset. */
 export function resetAllProgressionSessions(
   db: Db,
   families: FamilyLibrary,
@@ -117,7 +115,6 @@ export function upsertProgressionState(db: Db, state: EngineProgressionState, no
     familyId: state.familyId,
     levelId: state.levelId,
     micro: JSON.stringify(state.micro),
-    calibrating: state.calibrating,
     consecutiveHits: state.consecutiveHits,
     consecutiveMisses: state.consecutiveMisses,
     lastLevelChangeAt: state.lastLevelChangeAt,

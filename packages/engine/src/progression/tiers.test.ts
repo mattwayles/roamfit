@@ -76,7 +76,12 @@ describe('projectMicroToExercise — the same ladder position on a different sib
 // The two bugs this exists to fix, driven end to end through the real ladder.
 // ---------------------------------------------------------------------------------------------
 
-function climb(familyId: ProgressionFamilyId, levelId: string, exerciseId: string, sessions: number) {
+function climb(
+  familyId: ProgressionFamilyId,
+  levelId: string,
+  exerciseId: string,
+  sessions: number,
+) {
   const family = familyLibrary.families.find((f) => f.id === familyId)!;
   const anchor = byId(family.levels.find((l) => l.level_id === levelId)!.anchor_exercise_id);
   const exercise = byId(exerciseId);
@@ -86,7 +91,6 @@ function climb(familyId: ProgressionFamilyId, levelId: string, exerciseId: strin
     micro: defaultMicroForExercise(anchor),
     consecutiveHits: 0,
     consecutiveMisses: 0,
-    calibrating: false,
     lastLevelChangeAt: null,
   };
   const prescriptions: SessionEntry[] = [];

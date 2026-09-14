@@ -16,6 +16,7 @@ import {
   applyHardFilters,
   findFamily,
   levelUpForTooEasy,
+  levelDownForTooHard,
   resolveLadderSlot,
 } from '@roamfit/engine';
 import type { EngineClock, Rng } from '@roamfit/engine';
@@ -108,5 +109,90 @@ export function levelUpFamily(db: Db, input: LevelUpInput, now: string): LevelUp
     exerciseId: resolved.exercise.id,
     exerciseName: resolved.exercise.name,
     levelId: advanced.state.levelId,
+  };
+}
+
+/**
+ * The symmetric counterpart to `levelUpFamily` above — "this rung is above me", dropped one
+ * level. Same home (the progression board, no session required), same division of labor
+ * (`levelDownForTooHard` is the engine's transition; this module only checks eligibility on the
+ * new rung and persists it).
+ */
+export type LevelDownOutcome =
+  /** Dropped. `exerciseName` is the new (lower) rung's exercise, for the confirmation copy. */
+  | { status: 'levelled_down'; exerciseId: string; exerciseName: string; levelId: string }
+  /** Already at the bottom of this ladder — level 1 is the floor. */
+  | { status: 'at_min' }
+  /** No such family, or no progression state for it yet. */
+  | { status: 'unknown_family' }
+  /** The prior rung exists, but every exercise on it is hard-filtered out for this user (anchor or
+   *  limitation). Nothing is written, for the same reason `levelUpFamily` refuses this case. */
+  | { status: 'no_eligible_exercise' };
+
+export interface LevelDownInput {
+  familyId: ProgressionFamilyId;
+  library: ExerciseLibrary;
+  families: FamilyLibrary;
+  clock: EngineClock;
+  /** Only used to pick among the new rung's sibling exercises (ADR 0010) so the result can name
+   *  one. Nothing from the draw is persisted — which sibling gets programmed is decided fresh at
+   *  generation, as always. */
+  rng: Rng;
+}
+
+export function levelDownFamily(db: Db, input: LevelDownInput, now: string): LevelDownOutcome {
+  const { familyId, library, families, clock, rng } = input;
+
+  const family = findFamily(families.families, familyId);
+  if (!family) return { status: 'unknown_family' };
+
+  const states = getAllProgressionStates(db);
+  const state = states[familyId];
+  if (!state) return { status: 'unknown_family' };
+
+  const dropped = levelDownForTooHard(state, family, library.exercises);
+  if (!dropped) return { status: 'at_min' };
+
+  // Check the new (lower) rung against the user's real hard filters BEFORE committing.
+  const profile = buildUserProfile(db, clock.today);
+  const pool = applyHardFilters({
+    library: library.exercises,
+    request: { equipmentPreference: 'any' },
+    anchorsAvailable: profile.anchorsAvailable,
+    limitations: profile.limitations,
+    disabledExerciseIds: new Set(profile.disabledExerciseIds),
+    today: clock.today,
+  });
+  const resolved = resolveLadderSlot({
+    familyId,
+    families: families.families,
+    library: library.exercises,
+    progressionStates: { ...states, [familyId]: dropped.state },
+    hardFilteredPool: pool,
+    rng,
+    includeLowerRungs: false,
+  });
+  if (!resolved || resolved.substitutedFrom) return { status: 'no_eligible_exercise' };
+
+  upsertProgressionState(db, dropped.state, now);
+
+  logSignalEvent(db, {
+    sessionId: null,
+    type: 'level_down_too_hard',
+    payload: {
+      familyId,
+      fromLevelId: state.levelId,
+      toLevelId: dropped.state.levelId,
+      toExerciseId: resolved.exercise.id,
+    },
+    utcInstant: now,
+    localDate: clock.today,
+  });
+
+  return {
+    status: 'levelled_down',
+    exerciseId: resolved.exercise.id,
+    exerciseName: resolved.exercise.name,
+    levelId: dropped.state.levelId,
   };
 }

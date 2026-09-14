@@ -3,7 +3,7 @@
  * `dashboard.ts`'s header for why this logic lives outside `HomeScreen.tsx`.
  */
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import { calibrationStartLevel, defaultMicroForExercise } from '@roamfit/engine';
+import { baseStartLevel, defaultMicroForExercise } from '@roamfit/engine';
 import type { ProgressionState } from '@roamfit/engine';
 import type { ProgressionFamilyId } from '@roamfit/data';
 import {
@@ -22,13 +22,12 @@ type DashboardSessionSummary = sessionsRepo.DashboardSessionSummary;
 function seedAllFamilies(): Record<ProgressionFamilyId, ProgressionState> {
   const out = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of familyLibrary.families) {
-    const start = calibrationStartLevel(family);
+    const start = baseStartLevel(family);
     const exercise = exerciseLibrary.exercises.find((e) => e.id === start.anchor_exercise_id)!;
     out[family.id] = {
       familyId: family.id,
       levelId: start.level_id,
       micro: defaultMicroForExercise(exercise),
-      calibrating: true,
       consecutiveHits: 0,
       consecutiveMisses: 0,
       lastLevelChangeAt: null,
@@ -38,7 +37,7 @@ function seedAllFamilies(): Record<ProgressionFamilyId, ProgressionState> {
 }
 
 describe('§14.2 zero-session dashboard — buildProgressionBoard at starting levels', () => {
-  it('shows every family at its calibration start level, none mastered, all calibrating', () => {
+  it('shows every family at its base level, none mastered, all at the ladder floor', () => {
     const states = seedAllFamilies();
     const board = buildProgressionBoard(exerciseLibrary, familyLibrary, states);
 
@@ -50,42 +49,28 @@ describe('§14.2 zero-session dashboard — buildProgressionBoard at starting le
       expect(entry.exerciseName.length).toBeGreaterThan(0);
       expect(entry.sessionsToNextLevel).not.toBeNull();
       expect(entry.sessionsToNextLevel as number).toBeGreaterThan(0);
-      // §6.5 — also calibrating, with its own session-by-session counter that starts at zero
-      // (shown alongside the ladder countdown above, not instead of it — see `isCalibrating`).
-      expect(entry.isCalibrating).toBe(true);
-      expect(entry.calibrationSessionsDone).toBe(0);
-      expect(entry.calibrationSessionsTotal).toBeGreaterThan(0);
+      // A brand-new user starts at level 1 on every ladder, so "too hard — level down" has
+      // nothing to offer yet.
+      expect(entry.isBaseLevel).toBe(true);
     }
   });
 
-  it('a family past calibration reports no calibration progress at all', () => {
+  it('a family past its first level is no longer at the base', () => {
     const states = seedAllFamilies();
-    const family = familyLibrary.families[0];
-    states[family.id] = { ...states[family.id], calibrating: false };
+    const family = familyLibrary.families.find((f) => f.levels.length > 1)!;
+    const l2 = family.levels[1];
+    const exercise = exerciseLibrary.exercises.find((e) => e.id === l2.anchor_exercise_id)!;
+    states[family.id] = {
+      ...states[family.id],
+      levelId: l2.level_id,
+      micro: defaultMicroForExercise(exercise),
+    };
     const board = buildProgressionBoard(exerciseLibrary, familyLibrary, states);
     const entry = board.find((e) => e.familyId === family.id)!;
 
-    expect(entry.isCalibrating).toBe(false);
-    expect(entry.calibrationSessionsDone).toBeNull();
-    expect(entry.calibrationSessionsTotal).toBeNull();
+    expect(entry.isBaseLevel).toBe(false);
     expect(entry.sessionsToNextLevel).not.toBeNull();
     expect(entry.sessionsInLevel).not.toBeNull();
-  });
-
-  it('calibrationSessionsDone advances by exactly one qualifying-but-held session at a time, capped at the total', () => {
-    const states = seedAllFamilies();
-    const family = familyLibrary.families[0];
-    states[family.id] = { ...states[family.id], consecutiveHits: 2, consecutiveMisses: 0 };
-    const board = buildProgressionBoard(exerciseLibrary, familyLibrary, states);
-    const entry = board.find((e) => e.familyId === family.id)!;
-    expect(entry.calibrationSessionsDone).toBe(2);
-
-    // Never reports more than the total even if the counters (which also track ordinary
-    // miss-streaks once calibration ends) happen to exceed it.
-    states[family.id] = { ...states[family.id], consecutiveHits: 99, consecutiveMisses: 0 };
-    const overBoard = buildProgressionBoard(exerciseLibrary, familyLibrary, states);
-    const overEntry = overBoard.find((e) => e.familyId === family.id)!;
-    expect(overEntry.calibrationSessionsDone).toBe(overEntry.calibrationSessionsTotal);
   });
 
   it('a family with no progression_state row is simply omitted, not shown with fabricated data', () => {
@@ -118,7 +103,6 @@ describe('§6.4/§14.1.3 nextUnlockHero', () => {
         familyId: family.id,
         levelId: maxLevel.level_id,
         micro: defaultMicroForExercise(exercise),
-        calibrating: false,
         consecutiveHits: 0,
         consecutiveMisses: 0,
         lastLevelChangeAt: null,

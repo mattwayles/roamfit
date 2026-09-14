@@ -71,9 +71,9 @@ describe('§5.8 the explanation line', () => {
     expect(text.startsWith('Welcome back — let’s ease in.')).toBe(true);
   });
 
-  it('shows the calibration notice only when flagged', () => {
-    const text = composeExplanation({ ...base(), calibrationFirstSessionNotice: true });
-    expect(text).toMatch(/first few sessions set your starting levels/);
+  it('shows the first-session notice only when flagged', () => {
+    const text = composeExplanation({ ...base(), firstSessionNotice: true });
+    expect(text).toMatch(/starting at the bottom of each ladder/);
   });
 
   it('names the pattern balanced against when nothing else is notable', () => {

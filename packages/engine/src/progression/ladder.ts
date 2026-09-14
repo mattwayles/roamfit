@@ -109,14 +109,15 @@ export function levelOrdinal(
 }
 
 /**
- * Cold start — every family starts at **level 1** (ADR 0012).
+ * Cold start — every family starts at **level 1**, the base of its ladder.
  *
- * §6.5 put this at roughly the 30th percentile of the ladder, which meant a new user was handed a
- * mid-ladder exercise they had never done and told it was their level. Starting at the bottom
- * makes the ladder mean what it says: you climb it. The escape hatch for a user who is already
- * past the lower rungs is `levelUpForTooEasy` — an explicit, repeatable "this is too easy" —
- * plus the §6.5 automatic overshoot detection, not a guess baked into the seed.
+ * An earlier version of this seeded a new user at roughly the 30th percentile of the ladder and
+ * ran a few sessions of automatic calibration to correct it, which meant a new user was handed a
+ * mid-ladder exercise they had never done and told it was their level. Both are gone: starting at
+ * the bottom makes the ladder mean what it says — you climb it — and the escape hatch for a user
+ * who is already past the lower rungs is the explicit, repeatable "too easy — level up" button
+ * (`levelUpForTooEasy`), with "too hard — level down" (`levelDownForTooHard`) the other direction.
  */
-export function calibrationStartLevel(family: ProgressionFamily): ProgressionFamilyLevel {
+export function baseStartLevel(family: ProgressionFamily): ProgressionFamilyLevel {
   return family.levels[0];
 }

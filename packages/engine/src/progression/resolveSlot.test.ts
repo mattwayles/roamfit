@@ -1,7 +1,7 @@
 import { familyLibrary, exerciseLibrary } from '@roamfit/data';
 import type { ProgressionFamily, ProgressionFamilyId } from '@roamfit/data';
 import { resolveLadderSlot } from './resolveSlot';
-import { calibrationStartLevel, findFamily } from './ladder';
+import { baseStartLevel, findFamily } from './ladder';
 import { defaultMicroForExercise } from './micro';
 import { createRng } from '../rng';
 import type { ProgressionState } from '../types';
@@ -15,13 +15,12 @@ function allFamilyStates(
 ): Record<ProgressionFamilyId, ProgressionState> {
   const out = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of families) {
-    const level = calibrationStartLevel(family);
+    const level = baseStartLevel(family);
     const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     out[family.id] = {
       familyId: family.id,
       levelId: level.level_id,
       micro: defaultMicroForExercise(exercise),
-      calibrating: false,
       consecutiveHits: 0,
       consecutiveMisses: 0,
       lastLevelChangeAt: null,
@@ -37,7 +36,6 @@ describe('resolveLadderSlot', () => {
         familyId: 'horizontal_push',
         levelId: 'horizontal_push.l5', // banded-push-up
         micro: defaultMicroForExercise(library.find((e) => e.id === 'banded-push-up')!),
-        calibrating: false,
         consecutiveHits: 0,
         consecutiveMisses: 0,
         lastLevelChangeAt: null,
@@ -65,7 +63,6 @@ describe('resolveLadderSlot', () => {
         familyId: 'horizontal_push',
         levelId: 'horizontal_push.l5', // banded-push-up
         micro: defaultMicroForExercise(library.find((e) => e.id === 'banded-push-up')!),
-        calibrating: false,
         consecutiveHits: 0,
         consecutiveMisses: 0,
         lastLevelChangeAt: null,
@@ -97,7 +94,6 @@ describe('resolveLadderSlot', () => {
         familyId: 'horizontal_push',
         levelId: 'horizontal_push.l2',
         micro: defaultMicroForExercise(library.find((e) => e.id === 'bw-incline-push-up')!),
-        calibrating: false,
         consecutiveHits: 0,
         consecutiveMisses: 0,
         lastLevelChangeAt: null,
@@ -155,7 +151,6 @@ describe('resolveLadderSlot — sibling selection (ADR 0010)', () => {
         familyId: 'horizontal_push',
         levelId: 'horizontal_push.l3',
         micro: defaultMicroForExercise(library.find((e) => e.id === 'bw-knee-push-up')!),
-        calibrating: false,
         consecutiveHits: 0,
         consecutiveMisses: 0,
         lastLevelChangeAt: null,
@@ -280,7 +275,6 @@ describe('resolveLadderSlot — lower-rung recall (track 14)', () => {
         familyId: 'horizontal_push',
         levelId: 'horizontal_push.l5',
         micro: defaultMicroForExercise(library.find((e) => e.id === CURRENT)!),
-        calibrating: false,
         consecutiveHits: 0,
         consecutiveMisses: 0,
         lastLevelChangeAt: null,

@@ -1,23 +1,31 @@
 /**
  * §10.9/§6.4/§6.7 completion — driven through the real SummaryScreen against the real on-device-
- * shaped store (not mocked). Forces a calibration-mode level-up (during §6.5 calibration a
- * `too_easy` rating advances a full level immediately — no need to fabricate history) so this
- * test proves the full-screen celebration actually fires "before anything else," not just that it
- * type-checks.
+ * shaped store (not mocked). Forces a real level-up by seeding every family one qualifying
+ * session away from a level change (via the real `microAdvance` walk, not a fabricated event),
+ * then meeting the prescription for every entry, so this test proves the full-screen celebration
+ * actually fires "before anything else," not just that it type-checks.
  *
- * It used to force that level-up by logging reps 60% over target, back when exceeding the target
- * by >=25% was itself a calibration advance. That rule is gone — reps are a prescription to be
- * met, not a score to beat — so the user saying `too_easy` is now the only thing that jumps a
- * level during calibration.
+ * There used to be a calibration mode where a single `too_easy` rating jumped a full level
+ * immediately; that's gone (a new user climbs the ladder like everyone else, or uses the
+ * "too easy"/"too hard" board buttons), so this test drives the ordinary exhaustion-based advance
+ * instead.
  */
 import React from 'react';
 import { Keyboard, Share, StyleSheet } from 'react-native';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { createRng, seedFromString } from '@roamfit/engine';
+import {
+  baseStartLevel,
+  createRng,
+  defaultMicroForExercise,
+  microAdvance,
+  seedFromString,
+} from '@roamfit/engine';
+import type { ProgressionMicroState } from '@roamfit/engine';
+import type { Exercise } from '@roamfit/data';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import { completeSession, generate, sessionsRepo } from '@roamfit/store';
+import { completeSession, generate, progressionStateRepo, sessionsRepo } from '@roamfit/store';
 import SummaryScreen from './SummaryScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
@@ -43,15 +51,44 @@ function Setup({ onReady }: { onReady: (db: ReturnType<typeof useStore>['db']) =
   return null;
 }
 
-/** Builds a real started session, logs every set at target, and rates every main entry
- *  `too_easy` (calibration-mode advance, §6.5), so `completeSession` is guaranteed to produce at
- *  least one real level_up event — no fabricated progression state, just a real session that
- *  earns it. */
+/** Walks the real `microAdvance` ladder from a level's default micro-state to the one qualifying
+ *  session *before* it would trigger a level change — so seeding this and then meeting the
+ *  prescription once produces a real, earned `level_up` event, not a fabricated one. */
+function oneStepFromLevelUp(exercise: Exercise): ProgressionMicroState {
+  let current = defaultMicroForExercise(exercise);
+  for (let i = 0; i < 100; i += 1) {
+    const step = microAdvance(current, exercise);
+    if (step.levelChange === 'up') return current;
+    current = step.micro;
+  }
+  throw new Error('microAdvance never reached a level change — check the ladder constants');
+}
+
+/** Seeds every family one qualifying session away from a level change, then builds a real started
+ *  session and logs every set exactly at its prescribed target, so `completeSession` is
+ *  guaranteed to produce at least one real level_up event — no fabricated progression event, just
+ *  state positioned so a session that meets its prescription earns one for real. */
 async function createAndRunSessionForLevelUp(
   db: ReturnType<typeof useStore>['db'],
 ): Promise<string> {
   const clock = nowEngineClock();
   const utcInstant = nowUtcInstant();
+  for (const family of familyLibrary.families) {
+    const level = baseStartLevel(family);
+    const exercise = exerciseLibrary.exercises.find((e) => e.id === level.anchor_exercise_id)!;
+    progressionStateRepo.upsertProgressionState(
+      db,
+      {
+        familyId: family.id,
+        levelId: level.level_id,
+        micro: oneStepFromLevelUp(exercise),
+        consecutiveHits: 0,
+        consecutiveMisses: 0,
+        lastLevelChangeAt: null,
+      },
+      utcInstant,
+    );
+  }
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library: exerciseLibrary,
     families: familyLibrary,
@@ -87,12 +124,6 @@ async function createAndRunSessionForLevelUp(
         },
         utcInstant,
       );
-    }
-    // The signal that actually advances a level during calibration — migration 0017 moved a
-    // `main` exercise's feedback to its sets, so this rates set 0 (the aggregate progression
-    // reads is worst-case across an entry's sets, and `too_easy` on any one of them is enough).
-    if (entry.section === 'main') {
-      sessionsRepo.recordSetFeedback(db, entry.id, 0, { difficulty: 'too_easy' }, utcInstant);
     }
   }
   return sessionId;
@@ -177,7 +208,7 @@ async function createSessionWithASkippedFirstSet(
 }
 
 describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => {
-  it('FINISH completes the session; a real calibration-mode level-up shows the full-screen celebration before the plain summary, share works, and Continue reaches Done', async () => {
+  it('FINISH completes the session; a real level-up shows the full-screen celebration before the plain summary, share works, and Continue reaches Done', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -208,8 +239,8 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
       expect(sessionsRepo.getSession(db, sessionId)!.status).toBe('completed');
     }, WAIT_OPTS);
 
-    // Every family started in calibration mode (fresh db) and every main entry was rated
-    // too_easy — at least one family's calibration_advance should have fired, surfacing the
+    // Every family was seeded one qualifying session from a level change and every entry met
+    // its prescription — at least one family's level_up should have fired, surfacing the
     // full-screen celebration "before anything else" (no Done button visible yet).
     await waitFor(() => expect(screen.getByTestId('level-up-celebration')).toBeTruthy(), WAIT_OPTS);
     expect(screen.queryByTestId('return-home')).toBeNull();
@@ -588,10 +619,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     const set0Log = freshEntry().setLogs.find((l) => l.setIndex === 0)!;
 
     await fireEvent.press(screen.getByTestId(`summary-feedback-placeholder-${set0Log.id}`));
-    await waitFor(
-      () => expect(screen.getByTestId('difficulty-too_easy')).toBeTruthy(),
-      WAIT_OPTS,
-    );
+    await waitFor(() => expect(screen.getByTestId('difficulty-too_easy')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('difficulty-too_easy'));
     await fireEvent.press(screen.getByTestId('feedback-edit-done'));
 

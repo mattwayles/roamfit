@@ -466,6 +466,15 @@ const MIGRATION_0019_SESSION_IS_QUICK = `-- 0019_session_is_quick.sql — §9.5/
 ALTER TABLE sessions ADD COLUMN is_quick INTEGER NOT NULL DEFAULT 0;
 `;
 
+const MIGRATION_0020_REMOVE_CALIBRATION = `-- 0020_remove_calibration.sql — calibration mode is gone. A new user now starts at level 1 and
+-- moves only by meeting/missing the ordinary prescription or an explicit "too easy — level up" /
+-- "too hard — level down" tap on the progression board. \`calibrating\` no longer means anything to
+-- either the engine or the app, so the column is dropped rather than left as dead weight (same
+-- call as 0018_remove_enjoyment.sql).
+
+ALTER TABLE progression_state DROP COLUMN calibrating;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -492,4 +501,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0017_set_level_feedback.sql', sql: MIGRATION_0017_SET_LEVEL_FEEDBACK },
   { id: '0018_remove_enjoyment.sql', sql: MIGRATION_0018_REMOVE_ENJOYMENT },
   { id: '0019_session_is_quick.sql', sql: MIGRATION_0019_SESSION_IS_QUICK },
+  { id: '0020_remove_calibration.sql', sql: MIGRATION_0020_REMOVE_CALIBRATION },
 ];

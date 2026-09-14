@@ -10,7 +10,7 @@ import type { Focus, ProgressionFamilyId } from '@roamfit/data';
 import { generateSession } from './pipeline';
 import { createRng } from './rng';
 import { addDays } from './dates';
-import { calibrationStartLevel } from './progression/ladder';
+import { baseStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
 import { applySessionResult } from './progression/rules';
 import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
@@ -23,13 +23,12 @@ const families = familyLibrary.families;
 function freshUserState(): UserState {
   const progressionStates = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of families) {
-    const level = calibrationStartLevel(family);
+    const level = baseStartLevel(family);
     const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     progressionStates[family.id] = {
       familyId: family.id,
       levelId: level.level_id,
       micro: defaultMicroForExercise(exercise),
-      calibrating: true,
       consecutiveHits: 0,
       consecutiveMisses: 0,
       lastLevelChangeAt: null,
@@ -51,7 +50,7 @@ function freshUserState(): UserState {
 }
 
 /** A deterministic "how did it go" outcome generator — mostly hits, occasional miss, so
- *  calibration converges and normal advance/regress logic gets real exercise. */
+ *  advance/regress logic gets real exercise across a run. */
 function simulatedOutcome(rng: ReturnType<typeof createRng>): {
   allSetsMetTarget: boolean;
   anySetBelowTarget: boolean;
@@ -143,7 +142,7 @@ describe('multi-session simulation', () => {
           { familyId: entry.progressionFamilyId, ...outcome },
         );
         nextProgressionStates[entry.progressionFamilyId] = result.state;
-        if (result.event.kind === 'level_up' || result.event.kind === 'calibration_advance') {
+        if (result.event.kind === 'level_up') {
           levelUpCount++;
         }
         if (result.event.kind === 'micro_advance') {

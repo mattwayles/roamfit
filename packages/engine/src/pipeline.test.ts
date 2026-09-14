@@ -2,7 +2,7 @@ import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import type { Exercise, ExerciseLibrary, ProgressionFamilyId } from '@roamfit/data';
 import { generateSession, generateQuickSession } from './pipeline';
 import { createRng } from './rng';
-import { calibrationStartLevel } from './progression/ladder';
+import { baseStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
 import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
 import type { ProgressionState, SessionHistoryRecord, UserState } from './types';
@@ -11,17 +11,16 @@ const library = exerciseLibrary.exercises;
 const families = familyLibrary.families;
 const TODAY = '2026-08-30';
 
-/** §6.5 cold start: every family seeded at ~30th percentile, calibrating. */
+/** Cold start: every family seeded at level 1. */
 function coldStartUserState(overrides: Partial<UserState> = {}): UserState {
   const progressionStates = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of families) {
-    const level = calibrationStartLevel(family);
+    const level = baseStartLevel(family);
     const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     progressionStates[family.id] = {
       familyId: family.id,
       levelId: level.level_id,
       micro: defaultMicroForExercise(exercise),
-      calibrating: true,
       consecutiveHits: 0,
       consecutiveMisses: 0,
       lastLevelChangeAt: null,
@@ -78,7 +77,7 @@ describe('generateSession — pipeline wiring', () => {
     }
   });
 
-  it('the first-ever session includes the calibration notice', () => {
+  it('the first-ever session includes the first-session notice', () => {
     const plan = generateSession({
       library: exerciseLibrary,
       families: familyLibrary,
@@ -87,7 +86,7 @@ describe('generateSession — pipeline wiring', () => {
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(1),
     });
-    expect(plan.explanation).toMatch(/first few sessions set your starting levels/);
+    expect(plan.explanation).toMatch(/starting at the bottom of each ladder/);
   });
 
   it('generation is deterministic — same inputs, byte-identical output', () => {

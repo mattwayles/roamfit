@@ -1,5 +1,5 @@
 import { familyLibrary, exerciseLibrary } from '@roamfit/data';
-import { applySessionResult, levelUpForTooEasy } from './rules';
+import { applySessionResult, levelUpForTooEasy, levelDownForTooHard } from './rules';
 import { findFamily } from './ladder';
 import { defaultMicroForExercise, microStepsToNextLevel } from './micro';
 import { PROGRESSION_REP_LOW } from './constants';
@@ -16,7 +16,6 @@ function stateAt(levelId: string, overrides: Partial<ProgressionState> = {}): Pr
     familyId: 'horizontal_push',
     levelId,
     micro: defaultMicroForExercise(exercise),
-    calibrating: false,
     consecutiveHits: 0,
     consecutiveMisses: 0,
     lastLevelChangeAt: null,
@@ -205,7 +204,6 @@ describe('levelUpForTooEasy (ADR 0012)', () => {
       familyId: 'horizontal_push',
       levelId,
       micro: defaultMicroForExercise(exercise),
-      calibrating: false,
       consecutiveHits: 0,
       consecutiveMisses: 0,
       lastLevelChangeAt: null,
@@ -247,34 +245,74 @@ describe('levelUpForTooEasy (ADR 0012)', () => {
     expect(result.state.consecutiveMisses).toBe(0);
   });
 
-  it('preserves the calibrating flag either way', () => {
-    expect(
-      levelUpForTooEasy(
-        stateAt('horizontal_push.l1', { calibrating: true }),
-        horizontalPush,
-        library,
-      )!.state.calibrating,
-    ).toBe(true);
-    expect(
-      levelUpForTooEasy(
-        stateAt('horizontal_push.l1', { calibrating: false }),
-        horizontalPush,
-        library,
-      )!.state.calibrating,
-    ).toBe(false);
-  });
-
   it('is undefined at the top of the ladder rather than silently holding', () => {
     const top = horizontalPush.levels[horizontalPush.levels.length - 1].level_id;
     expect(levelUpForTooEasy(stateAt(top), horizontalPush, library)).toBeUndefined();
   });
 
-  it('works outside calibration, where the automatic path cannot jump a level', () => {
+  it('jumps a level directly — the automatic path cannot do this on its own', () => {
     // rules.ts only micro-advances on a logged hit; it takes a full micro sequence to change
     // level. That is the gap this closes for a user who started at level 1.
-    const state = stateAt('horizontal_push.l1', { calibrating: false });
+    const state = stateAt('horizontal_push.l1');
     expect(levelUpForTooEasy(state, horizontalPush, library)!.state.levelId).toBe(
       'horizontal_push.l2',
     );
+  });
+});
+
+// The user's explicit "this is too hard" — the symmetric counterpart to levelUpForTooEasy.
+describe('levelDownForTooHard', () => {
+  const horizontalPush = familyLibrary.families.find((f) => f.id === 'horizontal_push')!;
+  const library = exerciseLibrary.exercises;
+
+  function stateAt(levelId: string, overrides: Partial<ProgressionState> = {}): ProgressionState {
+    const level = horizontalPush.levels.find((l) => l.level_id === levelId)!;
+    const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
+    return {
+      familyId: 'horizontal_push',
+      levelId,
+      micro: defaultMicroForExercise(exercise),
+      consecutiveHits: 0,
+      consecutiveMisses: 0,
+      lastLevelChangeAt: null,
+      ...overrides,
+    };
+  }
+
+  it('drops exactly one rung and reports a level_down', () => {
+    const result = levelDownForTooHard(stateAt('horizontal_push.l3'), horizontalPush, library)!;
+    expect(result.state.levelId).toBe('horizontal_push.l2');
+    expect(result.event).toEqual({ kind: 'level_down', levelId: 'horizontal_push.l2' });
+  });
+
+  it('is repeatable — three taps drop three rungs', () => {
+    let state = stateAt('horizontal_push.l4');
+    for (let i = 0; i < 3; i++) {
+      state = levelDownForTooHard(state, horizontalPush, library)!.state;
+    }
+    expect(state.levelId).toBe('horizontal_push.l1');
+  });
+
+  it('resets micro-state to the new (lower) level default', () => {
+    const result = levelDownForTooHard(stateAt('horizontal_push.l3'), horizontalPush, library)!;
+    const l2 = horizontalPush.levels.find((l) => l.level_id === 'horizontal_push.l2')!;
+    const l2Exercise = library.find((e) => e.id === l2.anchor_exercise_id)!;
+    expect(result.state.micro).toEqual(defaultMicroForExercise(l2Exercise));
+  });
+
+  it('resets the streaks', () => {
+    const result = levelDownForTooHard(
+      stateAt('horizontal_push.l3', { consecutiveHits: 2, consecutiveMisses: 1 }),
+      horizontalPush,
+      library,
+    )!;
+    expect(result.state.consecutiveHits).toBe(0);
+    expect(result.state.consecutiveMisses).toBe(0);
+  });
+
+  it('is undefined at the bottom of the ladder rather than silently holding', () => {
+    expect(
+      levelDownForTooHard(stateAt('horizontal_push.l1'), horizontalPush, library),
+    ).toBeUndefined();
   });
 });

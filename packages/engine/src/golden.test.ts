@@ -9,7 +9,7 @@ import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import type { ProgressionFamilyId } from '@roamfit/data';
 import { generateSession, generateQuickSession } from './pipeline';
 import { createRng } from './rng';
-import { calibrationStartLevel, findFamily } from './progression/ladder';
+import { baseStartLevel, findFamily } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
 import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
 import type { ProgressionState, UserState } from './types';
@@ -21,13 +21,12 @@ const TODAY = '2026-08-30';
 function coldStartUserState(overrides: Partial<UserState> = {}): UserState {
   const progressionStates = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of families) {
-    const level = calibrationStartLevel(family);
+    const level = baseStartLevel(family);
     const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     progressionStates[family.id] = {
       familyId: family.id,
       levelId: level.level_id,
       micro: defaultMicroForExercise(exercise),
-      calibrating: true,
       consecutiveHits: 0,
       consecutiveMisses: 0,
       lastLevelChangeAt: null,
@@ -78,7 +77,7 @@ describe('golden: generateSession output is pinned', () => {
   // slot)") — title updated, seed/fixture otherwise unchanged.
   it('mid-progression full, 45min, hard, seed 3', () => {
     const userState = coldStartUserState({ hasEverCompletedSession: true });
-    // Move a couple of families off their calibration start so this fixture isn't identical in
+    // Move a couple of families off their base-start level so this fixture isn't identical in
     // shape to the cold-start ones above.
     const squatFamily = findFamily(families, 'squat')!;
     const squatLevel = squatFamily.levels[3];
@@ -87,7 +86,6 @@ describe('golden: generateSession output is pinned', () => {
       familyId: 'squat',
       levelId: squatLevel.level_id,
       micro: defaultMicroForExercise(squatExercise),
-      calibrating: false,
       consecutiveHits: 1,
       consecutiveMisses: 0,
       lastLevelChangeAt: '2026-08-15',

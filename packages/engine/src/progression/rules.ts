@@ -1,8 +1,13 @@
 /**
- * §6.3 advance/regress/drop-a-level, §6.7 mastery. Dispatches to §6.5 calibration.ts while
- * `state.calibrating` is true. This is the single state-transition function Wave 3 calls at
- * session completion — the generation pipeline itself only *reads* progression state (to pick
- * this session's variant), it never advances it.
+ * §6.3 advance/regress/drop-a-level, §6.7 mastery. This is the single state-transition function
+ * Wave 3 calls at session completion — the generation pipeline itself only *reads* progression
+ * state (to pick this session's variant), it never advances it.
+ *
+ * There used to be a separate calibration mode for a family's first few sessions, where a
+ * `too_easy` rating or a missed set jumped a full level immediately. That is gone: a new user
+ * starts at level 1 (`baseStartLevel`) and moves only by meeting/missing the ordinary prescription
+ * below, or by an explicit "too easy — level up" / "too hard — level down" tap
+ * (`levelUpForTooEasy` / `levelDownForTooHard`).
  */
 import type { Exercise, ProgressionFamily } from '@roamfit/data';
 import {
@@ -15,7 +20,6 @@ import {
 import { isMaxLevel, nextLevel, prevLevel } from './ladder';
 import type { ProgressionState } from '../types';
 import { CONSECUTIVE_BOTTOM_REGRESSIONS_TO_DROP_LEVEL } from './constants';
-import { applyCalibrationStep } from './calibration';
 import type { SessionPerformance } from './rules.types';
 
 export type ProgressionEvent =
@@ -24,10 +28,7 @@ export type ProgressionEvent =
   | { kind: 'micro_regress' }
   | { kind: 'level_up'; levelId: string }
   | { kind: 'level_down'; levelId: string }
-  | { kind: 'mastery_pr_check' }
-  | { kind: 'calibration_advance'; levelId: string }
-  | { kind: 'calibration_drop'; levelId: string }
-  | { kind: 'calibration_hold' };
+  | { kind: 'mastery_pr_check' };
 
 export interface ApplySessionResult {
   state: ProgressionState;
@@ -68,19 +69,6 @@ export function applySessionResult(
     );
     return micro === inputState.micro ? inputState : { ...inputState, micro };
   })();
-
-  if (state.calibrating) {
-    const { state: next, levelChanged } = applyCalibrationStep(state, family, library, perf);
-    return {
-      state: next,
-      event:
-        levelChanged === 'up'
-          ? { kind: 'calibration_advance', levelId: next.levelId }
-          : levelChanged === 'down'
-            ? { kind: 'calibration_drop', levelId: next.levelId }
-            : { kind: 'calibration_hold' },
-    };
-  }
 
   const exercise = currentExercise(family, state.levelId, library);
   if (!exercise) return { state, event: { kind: 'hold' } };
@@ -202,8 +190,8 @@ export type { SessionPerformance } from './rules.types';
  * performance at session completion, whereas this is a direct instruction, applied the moment it
  * is given so the current session can be rewritten around it. It is deliberately repeatable —
  * a user who belongs five rungs up taps it five times and sees each exercise on the way — because
- * the cold start is now level 1 (`calibrationStartLevel`) and automatic calibration alone cannot
- * climb far enough for an already-trained user.
+ * the cold start is level 1 (`baseStartLevel`) and there is no automatic climb for an
+ * already-trained user; the button is the only way up other than meeting the prescription.
  *
  * The new level's micro-state resets to that level's default, exactly as a `level_up` does:
  * arriving at a rung by declaring the last one easy is still arriving at it fresh.
@@ -228,10 +216,36 @@ export function levelUpForTooEasy(
       // They mean nothing at the new level, so they reset, as they do on any level change.
       consecutiveHits: 0,
       consecutiveMisses: 0,
-      // Still calibrating if it was: a user fixing their starting rung by hand is exactly what
-      // calibration is for, and ending it early would strand them if they overshoot.
-      calibrating: state.calibrating,
     },
     event: { kind: 'level_up', levelId: next.level_id },
+  };
+}
+
+/**
+ * The user's explicit "this is too hard, move me down" for one family — the symmetric
+ * counterpart to `levelUpForTooEasy` above. Same shape, same reasoning, opposite direction: a
+ * direct instruction, applied immediately, repeatable, resetting the new (lower) level's
+ * micro-state to its default rather than trying to guess where within it the user belongs.
+ *
+ * Returns `undefined` at the bottom of the ladder — level 1 is the floor; there is nowhere lower
+ * to send the caller, so it should leave the plan alone rather than silently holding.
+ */
+export function levelDownForTooHard(
+  state: ProgressionState,
+  family: ProgressionFamily,
+  library: readonly Exercise[],
+): ApplySessionResult | undefined {
+  const prev = prevLevel(family, state.levelId);
+  if (!prev) return undefined;
+  const prevExercise = library.find((e) => e.id === prev.anchor_exercise_id);
+  return {
+    state: {
+      ...state,
+      levelId: prev.level_id,
+      micro: prevExercise ? defaultMicro(prevExercise) : state.micro,
+      consecutiveHits: 0,
+      consecutiveMisses: 0,
+    },
+    event: { kind: 'level_down', levelId: prev.level_id },
   };
 }

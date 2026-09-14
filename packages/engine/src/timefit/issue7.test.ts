@@ -14,7 +14,7 @@ import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import type { Focus, ProgressionFamilyId } from '@roamfit/data';
 import { generateSession } from '../pipeline';
 import { createRng, seedFromString } from '../rng';
-import { calibrationStartLevel } from '../progression/ladder';
+import { baseStartLevel } from '../progression/ladder';
 import { defaultMicroForExercise } from '../progression/micro';
 import { DEFAULT_ANCHORS_AVAILABLE } from '../filters/hardFilters';
 import { longSessionSetsMultiplier, mainExerciseCountRange } from './formulas';
@@ -28,13 +28,12 @@ const TODAY = '2026-08-30';
 function coldStart(overrides: Partial<UserState> = {}): UserState {
   const progressionStates = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of families) {
-    const level = calibrationStartLevel(family);
+    const level = baseStartLevel(family);
     const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     progressionStates[family.id] = {
       familyId: family.id,
       levelId: level.level_id,
       micro: defaultMicroForExercise(exercise),
-      calibrating: false,
       consecutiveHits: 0,
       consecutiveMisses: 0,
       lastLevelChangeAt: null,
@@ -170,7 +169,7 @@ describe('long targets (ADR 0013)', () => {
   it('a comeback cut still lightens a long session rather than being overridden by it', () => {
     // The two multipliers compose: 0.8 (§9.4) x 2 (ADR 0013) < 2. 15 days before TODAY lands in
     // the 7-21 day 'week' comeback tier (COMEBACK_VOLUME_MULTIPLIER applies) rather than the
-    // >=21 day 'reset' tier (calibration re-entry, no volume multiplier at all).
+    // >=21 day 'reset' tier (a full level drop, no volume multiplier at all).
     const yesterday = {
       localDate: '2026-08-15',
       focus: 'full',

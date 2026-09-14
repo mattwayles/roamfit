@@ -141,7 +141,6 @@ export const progressionState = sqliteTable(
     levelId: text('level_id').notNull(),
     /** JSON: { repTarget, band, tempoSec, restSec, sets }. */
     micro: text('micro').notNull(),
-    calibrating: integer('calibrating', { mode: 'boolean' }).notNull().default(true),
     consecutiveHits: integer('consecutive_hits').notNull().default(0),
     consecutiveMisses: integer('consecutive_misses').notNull().default(0),
     lastLevelChangeAt: text('last_level_change_at'),
@@ -423,6 +422,11 @@ export const signalEvents = sqliteTable(
         // about a wrong starting level, and the natural feed for tuning the cold start later.
         // `signal_events.type` is plain TEXT (no CHECK constraint), so this needs no migration.
         'level_up_too_easy',
+        // Symmetric to 'level_up_too_easy' above — the user declared a laddered exercise too hard
+        // and dropped to the prior rung, from the progression board. Payload: {familyId,
+        // fromLevelId, toLevelId, toExerciseId}. `signal_events.type` is plain TEXT (no CHECK
+        // constraint), so this needs no migration.
+        'level_down_too_hard',
         // §10.3 — the timed counterpart to rep_target_adjusted_at_approval. Payload:
         // {entryId, exerciseId, fromDurationSec, toDurationSec}. `signal_events.type` is plain
         // TEXT (no CHECK constraint), so adding this value needs no migration.

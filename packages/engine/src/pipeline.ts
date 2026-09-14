@@ -540,7 +540,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   // §5.8's own example names exactly one novel exercise ("New today: Copenhagen plank") —
   // novelty is meant to flag the one new thing in an otherwise-familiar session, not to
   // enumerate every exercise when the whole session is new (a brand-new user's first few
-  // sessions, where the calibration notice already covers "this is all new"). Cap the callout
+  // sessions, where the first-session notice already covers "this is all new"). Cap the callout
   // and suppress it entirely when nearly everything is novel.
   const NOVELTY_DISPLAY_CAP = 2;
   const mostlyNovel = fit.main.length > 0 && noveltyNames.size >= fit.main.length * 0.75;
@@ -561,7 +561,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     timeBudgetDeviation,
     minimumTargetClamp,
     comebackNotice: comeback.notice ?? undefined,
-    calibrationFirstSessionNotice: !userState.hasEverCompletedSession,
+    firstSessionNotice: !userState.hasEverCompletedSession,
     // The highest-priority surviving entry, in *template* order — not `fit.main[0]`, which is now
     // shuffled within each priority tier (see fitSession.ts) so that a tight time budget doesn't
     // always squeeze out the same trailing pattern. This still reflects the pattern the session is

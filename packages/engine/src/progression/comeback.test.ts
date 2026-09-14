@@ -1,7 +1,7 @@
 import { familyLibrary, exerciseLibrary } from '@roamfit/data';
 import type { ProgressionFamilyId } from '@roamfit/data';
 import { applyComebackToProgressionStates, assessComeback } from './comeback';
-import { calibrationStartLevel } from './ladder';
+import { baseStartLevel } from './ladder';
 import { defaultMicroForExercise } from './micro';
 import type { ProgressionState, SessionHistoryRecord } from '../types';
 
@@ -24,13 +24,12 @@ function allFamilyStates(
 ): Record<ProgressionFamilyId, ProgressionState> {
   const out = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of families) {
-    const level = calibrationStartLevel(family);
+    const level = baseStartLevel(family);
     const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     out[family.id] = {
       familyId: family.id,
       levelId: level.level_id,
       micro: defaultMicroForExercise(exercise),
-      calibrating: false,
       consecutiveHits: 0,
       consecutiveMisses: 0,
       lastLevelChangeAt: null,
@@ -71,7 +70,6 @@ describe('§9.4 the comeback path', () => {
         familyId: 'horizontal_push',
         levelId: 'horizontal_push.l3',
         micro: advancedMicro,
-        calibrating: false,
         consecutiveHits: 0,
         consecutiveMisses: 0,
         lastLevelChangeAt: null,
@@ -82,22 +80,32 @@ describe('§9.4 the comeback path', () => {
     expect(out.horizontal_push.levelId).toBe('horizontal_push.l3'); // never drops a level for a comeback
   });
 
-  it('"reset" tier puts every family back into calibration without changing level_id', () => {
+  it('"reset" tier drops every family one full level, resetting streaks and micro-state', () => {
+    const family = families.find((f) => f.id === 'horizontal_push')!;
     const states = allFamilyStates({
       horizontal_push: {
         familyId: 'horizontal_push',
         levelId: 'horizontal_push.l5',
         micro: defaultMicroForExercise(library.find((e) => e.id === 'banded-push-up')!),
-        calibrating: false,
         consecutiveHits: 3,
         consecutiveMisses: 0,
         lastLevelChangeAt: '2026-07-01',
       },
     });
     const out = applyComebackToProgressionStates(states, families, library, 'reset');
-    expect(out.horizontal_push.calibrating).toBe(true);
-    expect(out.horizontal_push.levelId).toBe('horizontal_push.l5');
+    expect(out.horizontal_push.levelId).toBe('horizontal_push.l4');
     expect(out.horizontal_push.consecutiveHits).toBe(0);
+    const l4 = family.levels.find((l) => l.level_id === 'horizontal_push.l4')!;
+    const l4Exercise = library.find((e) => e.id === l4.anchor_exercise_id)!;
+    expect(out.horizontal_push.micro).toEqual(defaultMicroForExercise(l4Exercise));
+  });
+
+  it('"reset" tier holds at level 1 rather than going below the floor', () => {
+    const states = allFamilyStates();
+    const out = applyComebackToProgressionStates(states, families, library, 'reset');
+    for (const family of families) {
+      expect(out[family.id].levelId).toBe(family.levels[0].level_id);
+    }
   });
 
   it('"none" tier is a no-op copy', () => {

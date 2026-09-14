@@ -13,7 +13,7 @@ import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider } from '../state/StoreContext';
 
 describe('§14.2 cold start — the dashboard is never empty', () => {
-  it('renders the full progression board at starting levels, the calibration note, the Today card, and a real Next Unlock — with zero sessions ever run', async () => {
+  it('renders the full progression board at starting levels, the first-session note, the Today card, and a real Next Unlock — with zero sessions ever run', async () => {
     render(
       <StoreProvider>
         <NavigationContainer>
@@ -32,15 +32,15 @@ describe('§14.2 cold start — the dashboard is never empty', () => {
     await waitFor(() => expect(screen.getByTestId('today-card')).toBeTruthy());
     expect(screen.queryByTestId('resume-card')).toBeNull();
 
-    // §6.5 calibration explanation, shown because lifetimeSessionCount is 0.
-    expect(screen.getByTestId('calibration-explanation')).toBeTruthy();
+    // First-session explanation, shown because lifetimeSessionCount is 0.
+    expect(screen.getByTestId('first-session-explanation')).toBeTruthy();
 
     // Next Unlock hero — a concrete, non-empty "why open tomorrow" line, not a placeholder.
     const hero = screen.getByTestId('next-unlock-hero');
     expect(hero).toBeTruthy();
 
     // The full progression board — every family in the content library, none of them mastered
-    // (a fresh install starts at the §6.5 calibration percentile, nowhere near a ladder's top).
+    // (a fresh install starts at level 1, nowhere near a ladder's top).
     for (const family of familyLibrary.families) {
       const row = screen.getByTestId(`board-row-${family.id}`);
       expect(row).toBeTruthy();

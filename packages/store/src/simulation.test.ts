@@ -88,12 +88,12 @@ describe('five-session scripted run', () => {
 
       // 1. Progression state exists for every family and has moved off the cold-start defaults —
       //    at least one family shows evidence of the 5-session "always hit target" script (either
-      //    micro-progression advanced the rep target, or it changed level, or came out of
-      //    calibration — any one of these is proof the mechanism ran, not a no-op).
+      //    micro-progression advanced the rep target or it changed level — either one is proof
+      //    the mechanism ran, not a no-op).
       const finalProgression = getAllProgressionStates(db);
       expect(Object.keys(finalProgression).length).toBeGreaterThan(0);
       const anyProgressed = Object.values(finalProgression).some(
-        (s) => !s.calibrating || s.consecutiveHits > 0 || s.lastLevelChangeAt !== null,
+        (s) => s.consecutiveHits > 0 || s.lastLevelChangeAt !== null,
       );
       expect(anyProgressed).toBe(true);
 
@@ -168,9 +168,7 @@ describe('five-session scripted run', () => {
       completeSession(db, { sessionId, library, families }, utcInstantFor('2026-02-01', 10));
 
       const progression = getAllProgressionStates(db);
-      const anyRegressed = Object.values(progression).some(
-        (s) => s.consecutiveMisses > 0 || s.calibrating,
-      );
+      const anyRegressed = Object.values(progression).some((s) => s.consecutiveMisses > 0);
       expect(anyRegressed).toBe(true);
     } finally {
       close();

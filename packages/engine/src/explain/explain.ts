@@ -78,8 +78,8 @@ export interface ExplanationInputs {
   minimumTargetClamp?: { requestedMinutes: number; effectiveMinutes: number };
   /** §9.4 comeback copy, verbatim when present ("Welcome back — let's ease in."). */
   comebackNotice?: string;
-  /** §6.5 — shown once, on the very first session only. */
-  calibrationFirstSessionNotice?: boolean;
+  /** Shown once, on the very first session only. */
+  firstSessionNotice?: boolean;
   /** A pattern/muscle group the session deliberately balanced against recent volume, when
    *  nothing more specific (recovery/level-up/novelty) applies — keeps the line non-generic. */
   balancedAgainst?: Pattern;
@@ -136,9 +136,9 @@ export function composeExplanation(input: ExplanationInputs): string {
     sentences.push(`New today: ${input.noveltyExerciseNames.join(', ')}.`);
   }
 
-  if (input.calibrationFirstSessionNotice) {
+  if (input.firstSessionNotice) {
     sentences.push(
-      "Your first few sessions set your starting levels — push a little and it'll calibrate fast.",
+      "You're starting at the bottom of each ladder — tap too easy or too hard on the board any time to move a level.",
     );
   }
 

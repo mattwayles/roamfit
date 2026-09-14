@@ -41,23 +41,19 @@ export { shouldSuppressForRepeatedSkip } from './selection/candidates';
 // same state transition at session completion, and (b) drive an explicitly-triggered Recovery
 // Week through the identical `applyComebackToProgressionStates('week', ...)` transform rather
 // than a parallel implementation.
-export { applySessionResult, levelUpForTooEasy } from './progression/rules';
+export { applySessionResult, levelUpForTooEasy, levelDownForTooHard } from './progression/rules';
 export type { ProgressionEvent, ApplySessionResult } from './progression/rules';
 export type { SessionPerformance } from './progression/rules.types';
 export { assessComeback, applyComebackToProgressionStates } from './progression/comeback';
 export type { ComebackAssessment, ComebackTier } from './progression/comeback';
-export {
-  COMEBACK_VOLUME_MULTIPLIER,
-  COMEBACK_WEEK_GAP_DAYS,
-  CALIBRATION_SESSIONS,
-} from './progression/constants';
-// Cold-start (§6.5): the store needs these to seed a brand-new user's progression_state rows
-// before any generation has ever run — the engine's own pipeline only ever *reads* an existing
+export { COMEBACK_VOLUME_MULTIPLIER, COMEBACK_WEEK_GAP_DAYS } from './progression/constants';
+// Cold-start: the store needs this to seed a brand-new user's progression_state rows before any
+// generation has ever run — the engine's own pipeline only ever *reads* an existing
 // ProgressionState, it never fabricates the first one.
-export { calibrationStartLevel } from './progression/ladder';
+export { baseStartLevel } from './progression/ladder';
 export { resolveLadderSlot } from './progression/resolveSlot';
 export type { ResolvedLadderSlot } from './progression/resolveSlot';
-export { defaultMicroForExercise, microStepsToNextLevel } from './progression/micro';
+export { defaultMicroForExercise, microAdvance, microStepsToNextLevel } from './progression/micro';
 
 // Wave 5 wiring surface — §14.1.4 progression board / §6.4 Next Unlock. Read-only ladder lookups
 // the UI needs to render every family's level badge, mastery state, and next-unlock exercise
@@ -69,6 +65,7 @@ export {
   exerciseForLevel,
   exercisesForLevel,
   isMaxLevel,
+  isMinLevel,
   levelOrdinal,
   nextLevel,
 } from './progression/ladder';

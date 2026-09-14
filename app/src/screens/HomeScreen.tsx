@@ -5,8 +5,8 @@
  * §14.1 originally gave an identical ordering, so this stayed one screen rather than splitting
  * into a separate "Dashboard" screen — see STATUS-5-motivation.md's "Key findings."
  *
- * §14.2 zero-session requirement: the progression board, Next Unlock, and the calibration
- * explanation must all render before the user has ever generated a session. `ensureProgressionStatesInitialized`
+ * §14.2 zero-session requirement: the progression board and Next Unlock must both render before
+ * the user has ever generated a session. `ensureProgressionStatesInitialized`
  * is called here (idempotent store call, not new persistence logic) so a fresh install has
  * starting-level progression rows to show without waiting for a first generation.
  *
@@ -35,6 +35,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   generate,
   levelUpFamily,
+  levelDownFamily,
   manualDayMarkersRepo,
   milestonesRepo,
   progressionStateRepo,
@@ -120,11 +121,13 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   const [data, setData] = useState<HomeData | undefined>(undefined);
   const [startingQuick, setStartingQuick] = useState(false);
   const [travelDismissed, setTravelDismissed] = useState(false);
-  /** ADR 0012 — one-line result of the last board level-up. Informational only: never blocks,
-   *  never nags, replaced rather than stacked (invariant 4). */
+  /** ADR 0012 — one-line result of the last board level-up or level-down. Informational only:
+   *  never blocks, never nags, replaced rather than stacked (invariant 4). */
   const [levelUpNotice, setLevelUpNotice] = useState<string | null>(null);
   /** Which family row is showing its "are you sure" step, if any. One at a time. */
   const [confirmingLevelUp, setConfirmingLevelUp] = useState<ProgressionFamilyId | null>(null);
+  /** Same shape as `confirmingLevelUp`, for the symmetric "too hard — level down" button. */
+  const [confirmingLevelDown, setConfirmingLevelDown] = useState<ProgressionFamilyId | null>(null);
   /** §14.1.6 — the calendar day currently showing its marker-edit popup, if any (localDate). */
   const [editingDay, setEditingDay] = useState<string | null>(null);
 
@@ -244,11 +247,42 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     load();
   };
 
+  /**
+   * The symmetric counterpart to `handleLevelUp` — the user says a rung is above them, so drop
+   * it. Same shape, same reasoning, opposite direction: `levelDownFamily` is the engine's work
+   * via the store, and this only decides what to say about the outcome and reloads the board.
+   */
+  const handleLevelDown = (entry: FamilyBoardEntry) => {
+    setConfirmingLevelDown(null);
+    const result = levelDownFamily(
+      db,
+      {
+        familyId: entry.familyId,
+        library,
+        families,
+        clock: nowEngineClock(),
+        rng: createRng(seedFromString(nowUtcInstant())),
+      },
+      nowUtcInstant(),
+    );
+    if (result.status === 'levelled_down') {
+      setLevelUpNotice(`${entry.familyName}: now at ${result.exerciseName}.`);
+    } else if (result.status === 'at_min') {
+      setLevelUpNotice(`${entry.familyName} is already at the bottom of its ladder.`);
+    } else if (result.status === 'no_eligible_exercise') {
+      setLevelUpNotice(
+        `The prior ${entry.familyName} level needs an anchor you don't have set up.`,
+      );
+    }
+    load();
+  };
+
   useFocusEffect(
     useCallback(() => {
       load();
       setTravelDismissed(false);
       setConfirmingLevelUp(null);
+      setConfirmingLevelDown(null);
       // §11.3 — fire-and-forget. Never awaited by render, never blocks Home from showing local
       // data first (invariant 1); reloads afterward only so an applied change (a resolved
       // geocode, a curated video id) shows up without the user having to background/foreground
@@ -614,9 +648,9 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
 
       <Text style={styles.sectionLabel}>Progression board</Text>
       {isZeroSession && (
-        <Text testID="calibration-explanation" style={styles.calibrationNote}>
-          Your first few sessions set your starting levels — push a little and it&apos;ll calibrate
-          fast.
+        <Text testID="first-session-explanation" style={styles.firstSessionNote}>
+          You&apos;re starting at the bottom of each ladder — tap too easy or too hard any time to
+          move a level.
         </Text>
       )}
       <View testID="progression-board" style={styles.board}>
@@ -634,21 +668,6 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
               <View style={styles.boardIdentity}>
                 <Text style={styles.boardFamilyName}>{entry.familyName}</Text>
                 <Text style={styles.boardExerciseName}>{entry.exerciseName}</Text>
-                {/* §6.5 — a held ("just right") session during calibration doesn't move the
-                    ladder countdown to the right at all (`applyCalibrationStep` only reacts to
-                    "too easy" or a miss), so a family here can otherwise look like a completed
-                    session did nothing. This line moves by exactly one on every completed
-                    session regardless of outcome, alongside the (still real, still accurate)
-                    ladder countdown rather than replacing it. */}
-                {entry.isCalibrating && (
-                  <Text
-                    style={styles.boardCalibratingLine}
-                    testID={`board-calibrating-${entry.familyId}`}
-                  >
-                    Calibrating — session {entry.calibrationSessionsDone} of{' '}
-                    {entry.calibrationSessionsTotal}
-                  </Text>
-                )}
               </View>
 
               <View style={styles.boardStatus}>
@@ -718,55 +737,101 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
               )
             )}
 
-            {/* ADR 0012 — raise the rung from the board, before generating anything. The board is
-                where a ladder position is actually shown, and a level is a property of the user
-                rather than of any one session, so this is the place to correct it. Nothing to
-                offer at the top of a ladder (§6.7 Mastery). */}
-            {!entry.isMastery &&
-              (confirmingLevelUp === entry.familyId ? (
-                /* Two-step confirm, same shape as `AbandonSessionButton`'s. Warranted because a
-                   level-up is hard to take back: it resets this level's micro-progression to the
-                   new rung's floor, and there is no "level down" control — the only way back is
-                   §6.3's drop-a-level, which costs two failed sessions. Row-scoped, so only the
-                   row you tapped is ever in this state. */
-                <View
-                  style={styles.levelUpConfirmBox}
-                  testID={`board-level-up-confirm-${entry.familyId}`}
-                >
-                  <Text style={styles.levelUpConfirmText}>
-                    Move {entry.familyName} up a level? The next rung is harder, and your progress
-                    toward this unlock starts over.
-                  </Text>
-                  <View style={styles.levelUpConfirmButtons}>
-                    <Pressable
-                      testID={`board-level-up-cancel-${entry.familyId}`}
-                      style={styles.levelUpCancelButton}
-                      onPress={() => setConfirmingLevelUp(null)}
-                    >
-                      <Text style={styles.levelUpCancelText}>Not yet</Text>
-                    </Pressable>
-                    <Pressable
-                      testID={`board-level-up-confirm-yes-${entry.familyId}`}
-                      style={styles.levelUpConfirmButton}
-                      onPress={() => handleLevelUp(entry)}
-                    >
-                      <Text style={styles.levelUpConfirmButtonText}>Level up</Text>
-                    </Pressable>
+            {/* ADR 0012 — raise or drop the rung from the board, before generating anything. The
+                board is where a ladder position is actually shown, and a level is a property of
+                the user rather than of any one session, so this is the place to correct it.
+                Nothing to offer up at the top of a ladder (§6.7 Mastery) or down at the bottom. */}
+            <View style={styles.boardLevelButtonsRow}>
+              {!entry.isMastery &&
+                confirmingLevelDown !== entry.familyId &&
+                (confirmingLevelUp === entry.familyId ? (
+                  /* Two-step confirm, same shape as `AbandonSessionButton`'s. Warranted because a
+                     level change resets this level's micro-progression to the new rung's floor.
+                     Row-scoped, so only the row you tapped is ever in this state. */
+                  <View
+                    style={styles.levelUpConfirmBox}
+                    testID={`board-level-up-confirm-${entry.familyId}`}
+                  >
+                    <Text style={styles.levelUpConfirmText}>
+                      Move {entry.familyName} up a level? The next rung is harder, and your progress
+                      toward this unlock starts over.
+                    </Text>
+                    <View style={styles.levelUpConfirmButtons}>
+                      <Pressable
+                        testID={`board-level-up-cancel-${entry.familyId}`}
+                        style={styles.levelUpCancelButton}
+                        onPress={() => setConfirmingLevelUp(null)}
+                      >
+                        <Text style={styles.levelUpCancelText}>Not yet</Text>
+                      </Pressable>
+                      <Pressable
+                        testID={`board-level-up-confirm-yes-${entry.familyId}`}
+                        style={styles.levelUpConfirmButton}
+                        onPress={() => handleLevelUp(entry)}
+                      >
+                        <Text style={styles.levelUpConfirmButtonText}>Level up</Text>
+                      </Pressable>
+                    </View>
                   </View>
-                </View>
-              ) : (
-                <Pressable
-                  testID={`board-level-up-${entry.familyId}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${entry.exerciseName} is too easy — move up a level`}
-                  style={styles.boardLevelUpButton}
-                  onPress={() => setConfirmingLevelUp(entry.familyId)}
-                >
-                  <Text style={styles.boardLevelUpText} numberOfLines={1}>
-                    Too easy — level up
-                  </Text>
-                </Pressable>
-              ))}
+                ) : (
+                  <Pressable
+                    testID={`board-level-up-${entry.familyId}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${entry.exerciseName} is too easy — move up a level`}
+                    style={styles.boardLevelUpButton}
+                    onPress={() => setConfirmingLevelUp(entry.familyId)}
+                  >
+                    <Text style={styles.boardLevelUpText} numberOfLines={1}>
+                      Too easy — level up
+                    </Text>
+                  </Pressable>
+                ))}
+
+              {/* Symmetric "too hard" control — same two-step confirm shape, opposite direction.
+                  Never a punishing framing (invariant 4): dropping a rung is exactly as neutral a
+                  correction as raising one, just phrased for the other direction. */}
+              {!entry.isBaseLevel &&
+                confirmingLevelUp !== entry.familyId &&
+                (confirmingLevelDown === entry.familyId ? (
+                  <View
+                    style={styles.levelUpConfirmBox}
+                    testID={`board-level-down-confirm-${entry.familyId}`}
+                  >
+                    <Text style={styles.levelUpConfirmText}>
+                      Move {entry.familyName} down a level? The prior rung is easier, and your
+                      progress toward this unlock starts over.
+                    </Text>
+                    <View style={styles.levelUpConfirmButtons}>
+                      <Pressable
+                        testID={`board-level-down-cancel-${entry.familyId}`}
+                        style={styles.levelUpCancelButton}
+                        onPress={() => setConfirmingLevelDown(null)}
+                      >
+                        <Text style={styles.levelUpCancelText}>Not yet</Text>
+                      </Pressable>
+                      <Pressable
+                        testID={`board-level-down-confirm-yes-${entry.familyId}`}
+                        style={styles.levelUpConfirmButton}
+                        onPress={() => handleLevelDown(entry)}
+                      >
+                        <Text style={styles.levelUpConfirmButtonText}>Level down</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : (
+                  <Pressable
+                    testID={`board-level-down-${entry.familyId}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${entry.exerciseName} is too hard — move down a level`}
+                    style={styles.boardLevelDownButton}
+                    onPress={() => setConfirmingLevelDown(entry.familyId)}
+                  >
+                    <Text style={styles.boardLevelDownText} numberOfLines={1}>
+                      Too hard — level down
+                    </Text>
+                  </Pressable>
+                ))}
+            </View>
           </View>
         ))}
       </View>
@@ -943,7 +1008,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: { color: '#713f12', fontSize: 16, fontWeight: '700' },
   sectionLabel: { fontSize: 13, fontWeight: '700', color: '#64748b', marginTop: 8 },
-  calibrationNote: { fontSize: 13, color: '#64748b', fontStyle: 'italic', marginTop: -8 },
+  firstSessionNote: { fontSize: 13, color: '#64748b', fontStyle: 'italic', marginTop: -8 },
   board: { gap: 10 },
   boardRow: {
     backgroundColor: '#f8fafc',
@@ -967,10 +1032,10 @@ const styles = StyleSheet.create({
   },
   masteryBadgeText: { fontSize: 11, fontWeight: '700', color: '#713f12' },
   boardExerciseName: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
-  boardCalibratingLine: { fontSize: 12, color: '#64748b', marginTop: 2 },
   boardUnlockLine: { fontSize: 12, color: '#64748b' },
+  boardLevelButtonsRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
   boardLevelUpButton: {
-    marginTop: 8,
+    flex: 1,
     minHeight: 36,
     borderRadius: 8,
     backgroundColor: '#dbeafe',
@@ -979,8 +1044,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   boardLevelUpText: { fontSize: 13, fontWeight: '600', color: '#1d4ed8' },
+  boardLevelDownButton: {
+    flex: 1,
+    minHeight: 36,
+    borderRadius: 8,
+    backgroundColor: '#ffedd5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  boardLevelDownText: { fontSize: 13, fontWeight: '600', color: '#c2410c' },
   levelUpConfirmBox: {
-    marginTop: 8,
+    flex: 1,
     backgroundColor: '#f8fafc',
     borderRadius: 10,
     borderWidth: 1,

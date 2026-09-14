@@ -170,7 +170,7 @@ describe('§11.6 release gate — 5 workouts across exactly 3 days, cold install
       expect(Object.keys(progression).length).toBeGreaterThan(0);
       expect(
         Object.values(progression).some(
-          (s) => !s.calibrating || s.consecutiveHits > 0 || s.lastLevelChangeAt !== null,
+          (s) => s.consecutiveHits > 0 || s.lastLevelChangeAt !== null,
         ),
       ).toBe(true);
 

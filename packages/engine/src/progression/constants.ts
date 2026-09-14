@@ -40,19 +40,6 @@ export const BODYWEIGHT_SETS_CAP = 4;
  *  drops a full level instead. */
 export const CONSECUTIVE_BOTTOM_REGRESSIONS_TO_DROP_LEVEL = 2;
 
-/** §6.5 — calibration mode runs for exactly the first 3 sessions of a family (spec: "converges
- *  in two or three sessions" — a session that neither advances nor drops still counts toward
- *  this, since nothing else is specified to end it early). */
-export const CALIBRATION_SESSIONS = 3;
-/** Deliberately absent: an "exceeded the rep target by ≥25%" calibration jump. Reps are a
- *  prescription to be met, not a score to beat — the user does the prescribed reps if able and
- *  fewer if not, so there is no such thing as a session that earned something by going over.
- *  Calibration advances on `too_easy` alone; the ordinary ladder advances on meeting the
- *  prescription. */
-/** Retired by ADR 0012 — the cold start is level 1, not a percentile guess. Kept out of the
- *  ladder entirely rather than set to 0, so nothing reintroduces a "start them partway up" seed
- *  without reading the ADR first. */
-
 /** Product call, not derived: when a laddered slot has eligible exercises at both the current
  *  rung and at least one rung below it, this is the chance the current rung is drawn. Keeps
  *  progressive overload the dominant signal while still surfacing mastered exercises regularly

@@ -11,7 +11,7 @@ import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import type { Exercise, Focus, ProgressionFamilyId } from '@roamfit/data';
 import { generateSession } from './pipeline';
 import { createRng } from './rng';
-import { calibrationStartLevel } from './progression/ladder';
+import { baseStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
 import { ALWAYS_AVAILABLE_ANCHORS, DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
 import type { Difficulty, EquipmentPreference, ProgressionState, UserState } from './types';
@@ -24,13 +24,12 @@ const TODAY = '2026-08-30';
 function coldStart(overrides: Partial<UserState> = {}): UserState {
   const progressionStates = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of families) {
-    const level = calibrationStartLevel(family);
+    const level = baseStartLevel(family);
     const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     progressionStates[family.id] = {
       familyId: family.id,
       levelId: level.level_id,
       micro: defaultMicroForExercise(exercise),
-      calibrating: false,
       consecutiveHits: 0,
       consecutiveMisses: 0,
       lastLevelChangeAt: null,
@@ -53,7 +52,7 @@ function coldStart(overrides: Partial<UserState> = {}): UserState {
 }
 
 /** An "established" user sitting a few levels up several ladders, so laddered slots don't all
- *  resolve to the calibration-start level across every scenario. */
+ *  resolve to the base-start level across every scenario. */
 function establishedUser(): UserState {
   const state = coldStart();
   for (const family of families) {
@@ -64,7 +63,6 @@ function establishedUser(): UserState {
       familyId: family.id,
       levelId: level.level_id,
       micro: defaultMicroForExercise(exercise),
-      calibrating: false,
       consecutiveHits: 1,
       consecutiveMisses: 0,
       lastLevelChangeAt: '2026-08-01',

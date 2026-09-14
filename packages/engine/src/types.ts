@@ -101,7 +101,6 @@ export interface ProgressionState {
   familyId: ProgressionFamilyId;
   levelId: string;
   micro: ProgressionMicroState;
-  calibrating: boolean;
   consecutiveHits: number;
   consecutiveMisses: number;
   lastLevelChangeAt: LocalDate | null;
@@ -142,7 +141,7 @@ export interface UserState {
    *  as far as the rules require (5 sessions for PREFERRED, 14 days for trailing volume, etc). */
   history: SessionHistoryRecord[];
   /** True once the user has completed at least one session ever (any focus). Drives the
-   *  once-only calibration notice (§6.5) and comeback-vs-first-run distinction. */
+   *  once-only first-session notice and comeback-vs-first-run distinction. */
   hasEverCompletedSession: boolean;
 }
 

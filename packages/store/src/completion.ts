@@ -69,7 +69,7 @@ interface WorkingSetSummary {
   observedBand: BandId | null;
   /** The worst-case answer across the entry's sets (migration 0017 moved feedback from the entry
    *  to each set) — `too_hard` if any set said so, else `too_easy` if any did, else `just_right`.
-   *  §6.3's calibration/regression rules only ever see one verdict per entry, and erring toward
+   *  §6.3's advance/regress rules only ever see one verdict per entry, and erring toward
    *  the more cautious answer when sets disagreed is the safer read of "how did this one go". */
   difficultyFeedback: DifficultyFeedback;
 }
@@ -286,7 +286,7 @@ export function completeSession(
       upsertProgressionState(txDb, result.state, now);
       progressionEvents.push({ familyId, event: result.event });
 
-      if (result.event.kind === 'level_up' || result.event.kind === 'calibration_advance') {
+      if (result.event.kind === 'level_up') {
         milestoneTypes.push('level_up');
         addMilestone(
           txDb,

@@ -39,13 +39,7 @@ import {
 } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import {
-  exerciseStateRepo,
-  progressionStateRepo,
-  remoteConfigRepo,
-  sessionsRepo,
-  usersRepo,
-} from '@roamfit/store';
+import { exerciseStateRepo, remoteConfigRepo, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
 import { alternativesForSlot } from '@roamfit/engine';
 import type { BandId } from '@roamfit/engine';
@@ -75,6 +69,7 @@ import DemoMedia from '../components/DemoMedia';
 import type { DemoMediaProps } from '../components/DemoMedia';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import SpotifyControls from '../components/SpotifyControls';
+import { useSpotifyPlayer } from '../lib/spotifyRemote';
 import {
   configureWorkoutAudioSession,
   setCueSoundsEnabled,
@@ -155,24 +150,17 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   /** §1140 — band colours are user data, not a palette this screen invents. */
   const user = usersRepo.ensureUser(db, nowUtcInstant());
   const bandTensions = user.bandTensions;
-  /**
-   * §10.8 — mute everything this workout makes noise with: the cue tones, and the demo video's own
-   * audio (`DemoMedia`'s `muted`). Deliberately not persisted: it answers "not right now, I'm on a
-   * call / the baby's asleep", which is a fact about today's session and not a preference to carry
-   * into the next one.
-   *
-   * Always offered, including when "Timer sounds" is off in Settings — that setting covers the cue
-   * tones only, and a demo video is still audible with it off, so there is always something here
-   * to silence.
-   */
-  const [mutedThisWorkout, setMutedThisWorkout] = useState(false);
   const soundsAvailable = user.cueSoundsEnabled;
   useEffect(() => {
-    setCueSoundsEnabled(soundsAvailable && !mutedThisWorkout);
-    // Leaving the workout hands the module back to the persisted setting, so a session mute can
-    // never leak into whatever plays cues next.
+    setCueSoundsEnabled(soundsAvailable);
     return () => setCueSoundsEnabled(soundsAvailable);
-  }, [soundsAvailable, mutedThisWorkout]);
+  }, [soundsAvailable]);
+  // Demo video audio is silenced automatically whenever Spotify is connected, rather than via a
+  // manual mute — the video and Spotify audio fight for the same iOS audio session (see
+  // `spotifyRemote.ts`'s header), so "playing music" and "video has sound" are mutually exclusive
+  // by construction, not by a control the user has to remember to reach for.
+  const { connectionState: spotifyConnectionState } = useSpotifyPlayer();
+  const demoMediaMuted = spotifyConnectionState === 'connected';
   /** §10.4 — the pending set completion held back by the "your timer is still paused" nudge, or
    *  null when nothing is waiting. Holding the arguments (not just a flag) is what lets the nudge
    *  be a genuine question: whichever way it is answered, the reps the user already entered are
@@ -473,9 +461,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       : (entry.durationSec ?? 0);
   const exState = exerciseStateRepo.getExerciseState(db, entry.exerciseId);
   const isFirstEverPerformance = !exState || exState.sessionsPerformed === 0;
-  const progression = entry.progressionFamilyId
-    ? progressionStateRepo.getProgressionState(db, entry.progressionFamilyId)
-    : null;
 
   /**
    * §10.4/§10.8 — "Pause" (workout-level, distinct from the per-set `pause-resume-timer` §10.5
@@ -888,19 +873,11 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           The top-left nav item (the actual header, not this row) is where Home lives — see the
           `headerLeft` effect below. */}
       <View style={styles.timerRow}>
-        <View style={[styles.timerRowSpacer, styles.timerRowLeftActions]}>
-          <Pressable
-            testID="mute-workout"
-            accessibilityRole="button"
-            accessibilityLabel={
-              mutedThisWorkout ? 'Unmute sounds for this workout' : 'Mute sounds for this workout'
-            }
-            style={styles.sessionIconButton}
-            onPress={() => setMutedThisWorkout((m) => !m)}
-          >
-            <Text style={styles.sessionIconText}>{mutedThisWorkout ? '🔇' : '🔊'}</Text>
-          </Pressable>
-        </View>
+        {/* Empty on purpose: this flex-1 spacer still balances the flex-1 actions group on the
+            right so the elapsed clock stays centered, now that the mute button that used to live
+            here is gone (demo-video muting is automatic, and cue tones follow the persisted
+            Settings toggle — see `soundsAvailable` above). */}
+        <View style={[styles.timerRowSpacer, styles.timerRowLeftActions]} />
         <Text style={styles.elapsed} testID="workout-elapsed">
           {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
         </Text>
@@ -919,7 +896,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       </View>
       <Text style={styles.stage}>{entry.section}</Text>
 
-      {/* Sits with the session-level controls (timer, mute, pause, stop) rather than with the
+      {/* Sits with the session-level controls (timer, pause, stop) rather than with the
           exercise content, because that is what it is: something about this whole workout, not
           about this set. Above the phase view so it is in the same place during a set and during
           a rest — rest is when a user actually reaches for it, and a control that moves between
@@ -1056,7 +1033,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
                   onReportIssue: handleReportVideoIssue,
                   onPlayerError: handleDemoPlayerError,
                   onInputFocus: handleDemoInputFocus,
-                  muted: mutedThisWorkout,
+                  muted: demoMediaMuted,
                 }
               : null
           }
@@ -1075,7 +1052,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           {levelBadge(entry, families) && (
             <Text style={styles.levelBadge}>{levelBadge(entry, families)}</Text>
           )}
-          {progression?.calibrating && <Text style={styles.calibrating}>Calibrating</Text>}
 
           {/* Above the demo, and open by default every time — not only on a first-ever
               performance. Since ADR 0008 removed the bundled figures this cue IS the offline
@@ -1091,7 +1067,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               }}
             >
               <DemoMedia
-                muted={mutedThisWorkout}
+                muted={demoMediaMuted}
                 videoSearchQuery={exercise.video_search}
                 // §11.4 — a synchronous local read of whatever `sync/firestoreSyncWorker.ts` last
                 // pulled into `remote_video_config` (track 6d). Null (never bundled, invariant 8)
@@ -2065,9 +2041,8 @@ const styles = StyleSheet.create({
   headerBackButtonText: { color: '#2563eb', fontSize: 16, fontWeight: '600' },
   container: { padding: 20, gap: 16 },
   stage: { fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' },
-  // Timer row: mute lives left-justified in the left flex area (its own control, not grouped
-  // with pause/stop), the timer sits centered between the two flex-1 areas, and pause/stop stay
-  // right-justified in the right flex area.
+  // Timer row: the timer sits centered between two flex-1 areas — the left one is now an empty
+  // spacer, and pause/stop stay right-justified in the right flex area.
   timerRow: { flexDirection: 'row', alignItems: 'center' },
   timerRowSpacer: { flex: 1 },
   timerRowLeftActions: { flexDirection: 'row', justifyContent: 'flex-start' },
@@ -2253,7 +2228,6 @@ const styles = StyleSheet.create({
   circleCaptionStopped: { color: '#0369a1' },
   circleHint: { fontSize: 13, color: '#94a3b8' },
   levelBadge: { fontSize: 12, fontWeight: '700', color: '#64748b' },
-  calibrating: { fontSize: 12, color: '#b45309', fontWeight: '600' },
   nextUp: { fontSize: 13, color: '#64748b' },
   restNextBand: { marginTop: 4 },
   disclosureTitle: { fontSize: 14, fontWeight: '700', color: '#334155' },

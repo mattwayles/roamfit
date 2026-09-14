@@ -1,6 +1,8 @@
 /**
  * §9.4 The comeback path. Gap ≥7 days: regress one micro-step per family + cut this session's
- * volume ~20%. Gap ≥21 days: re-enter calibration (§6.5) for every family.
+ * volume ~20%. Gap ≥21 days: drop one full level per family instead — a longer layoff earns a
+ * bigger correction than a micro-step, and (calibration having been removed) a full level drop
+ * is the only larger correction this module has to apply automatically.
  *
  * §9.9 Recovery Week reuses the 7-day ("week") treatment through this exact same function — it
  * is not a parallel implementation. Whatever triggers it (an auto-detected gap, or a user
@@ -9,7 +11,8 @@
  */
 import type { Exercise, ProgressionFamily, ProgressionFamilyId } from '@roamfit/data';
 import { daysBetween } from '../dates';
-import { microRegress } from './micro';
+import { microRegress, defaultMicroForExercise } from './micro';
+import { prevLevel } from './ladder';
 import type { LocalDate, ProgressionState, SessionHistoryRecord } from '../types';
 import {
   COMEBACK_RESET_GAP_DAYS,
@@ -78,7 +81,17 @@ export function applyComebackToProgressionStates(
       continue;
     }
     if (tier === 'reset') {
-      out[familyId] = { ...state, calibrating: true, consecutiveHits: 0, consecutiveMisses: 0 };
+      const prev = prevLevel(family, state.levelId);
+      const prevExercise = prev && library.find((e) => e.id === prev.anchor_exercise_id);
+      out[familyId] = prev
+        ? {
+            ...state,
+            levelId: prev.level_id,
+            micro: prevExercise ? defaultMicroForExercise(prevExercise) : state.micro,
+            consecutiveHits: 0,
+            consecutiveMisses: 0,
+          }
+        : { ...state, consecutiveHits: 0, consecutiveMisses: 0 };
       continue;
     }
     // tier === 'week': one micro regress step per family.

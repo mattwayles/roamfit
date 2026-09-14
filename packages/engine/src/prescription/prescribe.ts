@@ -58,14 +58,8 @@ function scaleSets(sets: number, multiplier: number | undefined): number {
 }
 
 export function prescribeLaddered(input: PrescribeLadderedInput): SessionEntry {
-  const {
-    exercise,
-    familyId,
-    levelId,
-    requestedDifficulty,
-    recoveryTreatment,
-    substitutedFor,
-  } = input;
+  const { exercise, familyId, levelId, requestedDifficulty, recoveryTreatment, substitutedFor } =
+    input;
   const difficulty = difficultyCapForExercise(
     exercise,
     recoveryTreatment ? capBelowHard(requestedDifficulty) : requestedDifficulty,

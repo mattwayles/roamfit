@@ -97,7 +97,7 @@ describe('Home after a completed session', () => {
     expect(screen.getByTestId('muscle-balance')).toBeTruthy();
     expect(screen.getByTestId('calendar-heatmap')).toBeTruthy();
 
-    // The zero-session calibration note must be gone now that a session exists.
-    expect(screen.queryByTestId('calibration-explanation')).toBeNull();
+    // The zero-session first-session note must be gone now that a session exists.
+    expect(screen.queryByTestId('first-session-explanation')).toBeNull();
   });
 });

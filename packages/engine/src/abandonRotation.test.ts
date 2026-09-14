@@ -7,7 +7,7 @@ import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import type { ProgressionFamilyId } from '@roamfit/data';
 import { generateSession } from './pipeline';
 import { createRng } from './rng';
-import { calibrationStartLevel } from './progression/ladder';
+import { baseStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
 import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
 import { sessionsAgo, recencyTier } from './selection/candidates';
@@ -22,13 +22,12 @@ const TODAY = '2026-08-30';
 function userState(history: SessionHistoryRecord[]): UserState {
   const progressionStates = {} as Record<ProgressionFamilyId, ProgressionState>;
   for (const family of families) {
-    const level = calibrationStartLevel(family);
+    const level = baseStartLevel(family);
     const exercise = library.find((e) => e.id === level.anchor_exercise_id)!;
     progressionStates[family.id] = {
       familyId: family.id,
       levelId: level.level_id,
       micro: defaultMicroForExercise(exercise),
-      calibrating: true,
       consecutiveHits: 0,
       consecutiveMisses: 0,
       lastLevelChangeAt: null,

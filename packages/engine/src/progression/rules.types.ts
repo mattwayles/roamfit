@@ -3,7 +3,7 @@ import type { BandId, DifficultyFeedback } from '../types';
 
 /**
  * What the caller (Wave 3, at session completion) reports back about one family's working sets
- * this session. Shared between calibration.ts and rules.ts to avoid a circular import.
+ * this session.
  */
 export interface SessionPerformance {
   familyId: ProgressionFamilyId;

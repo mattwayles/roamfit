@@ -54,7 +54,7 @@ export function buildCelebrationViewModel(
     const family = findFamily(families.families, familyId);
     if (!family) continue;
 
-    if (event.kind === 'level_up' || event.kind === 'calibration_advance') {
+    if (event.kind === 'level_up') {
       const exercise = exerciseForLevel(family, event.levelId, library.exercises);
       fullScreen.push({
         kind: 'level_up',

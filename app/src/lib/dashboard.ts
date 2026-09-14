@@ -6,10 +6,10 @@
  * of `HomeScreen.tsx` so that file stays about rendering, not composing.
  */
 import {
-  CALIBRATION_SESSIONS,
   defaultMicroForExercise,
   exerciseForLevel,
   isMaxLevel,
+  isMinLevel,
   levelOrdinal,
   microStepsToNextLevel,
   OVER_WORKED_MULTIPLIER,
@@ -27,26 +27,14 @@ export interface FamilyBoardEntry {
   ordinal: { n: number; of: number };
   exerciseName: string;
   isMastery: boolean;
-  /** null once at Mastery — there is no "next" level, only the micro-ladder (§6.7). Still a real,
-   *  honest count while `isCalibrating` (below) — e.g. right after a manual ADR 0012 level-up the
-   *  ladder ahead is exactly as real as it is once calibration ends — it just isn't guaranteed to
-   *  move on every calibrating session (see `isCalibrating`). */
+  /** True at level 1 — the floor of the ladder. Gates the "too hard — level down" button the same
+   *  way `isMastery` gates "too easy — level up": there is nowhere lower to send the user. */
+  isBaseLevel: boolean;
+  /** null once at Mastery — there is no "next" level, only the micro-ladder (§6.7). */
   sessionsToNextLevel: number | null;
   /** Qualifying sessions this level takes end to end, from its own floor. With
    *  `sessionsToNextLevel` this gives "N of M done", i.e. a progress bar. null at Mastery. */
   sessionsInLevel: number | null;
-  /** §6.5 — true for a family's first `CALIBRATION_SESSIONS` sessions. `applyCalibrationStep`
-   *  only ever holds, jumps a full level (`too_easy`), or drops one (any set below target) — a
-   *  held ("just right") session doesn't nudge `micro` at all, so `sessionsToNextLevel` above can
-   *  sit frozen through an otherwise perfectly good, completed session. `calibrationSessionsDone`/
-   *  `calibrationSessionsTotal` give the caller something that DOES move on every completed
-   *  session regardless of outcome, to show alongside (not instead of) the ladder countdown. */
-  isCalibrating: boolean;
-  /** Sessions banked toward calibration so far, 0-`calibrationSessionsTotal`. null unless
-   *  `isCalibrating`. */
-  calibrationSessionsDone: number | null;
-  /** Always `CALIBRATION_SESSIONS` when `isCalibrating`, else null. */
-  calibrationSessionsTotal: number | null;
 }
 
 /**
@@ -87,13 +75,9 @@ export function buildProgressionBoard(
       ordinal: levelOrdinal(family, state.levelId),
       exerciseName: exercise.name,
       isMastery: mastery,
+      isBaseLevel: isMinLevel(family, state.levelId),
       sessionsToNextLevel: stepsRemaining,
       sessionsInLevel: stepsTotal,
-      isCalibrating: state.calibrating,
-      calibrationSessionsDone: state.calibrating
-        ? Math.min(state.consecutiveHits + state.consecutiveMisses, CALIBRATION_SESSIONS)
-        : null,
-      calibrationSessionsTotal: state.calibrating ? CALIBRATION_SESSIONS : null,
     });
   }
   return out;
@@ -227,7 +211,12 @@ export function buildCalendarDays(
     const minutes = s.actualMinutes ?? s.estimatedMinutes;
     const existing = byDate.get(s.localDate);
     if (!existing) {
-      byDate.set(s.localDate, { minutes, focus: s.focus, isQuick: s.isQuick, dominantMinutes: minutes });
+      byDate.set(s.localDate, {
+        minutes,
+        focus: s.focus,
+        isQuick: s.isQuick,
+        dominantMinutes: minutes,
+      });
     } else {
       existing.minutes += minutes;
       // Two sessions on one day is rare, but if it happens the marker follows whichever session

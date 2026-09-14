@@ -1,6 +1,6 @@
 import { familyLibrary, exerciseLibrary } from '@roamfit/data';
 import {
-  calibrationStartLevel,
+  baseStartLevel,
   exerciseForLevel,
   findFamily,
   isMaxLevel,
@@ -56,9 +56,9 @@ describe('§6.1/§4.2 ladder lookups (stable level_id, never a positional index)
     // 9-rung ladder. ADR 0012 starts at the bottom instead: a ladder you are placed partway up by
     // guesswork is not a ladder. `levelUpForTooEasy` is the escape hatch for anyone already past
     // the lower rungs.
-    expect(calibrationStartLevel(horizontalPush).level_id).toBe('horizontal_push.l1');
+    expect(baseStartLevel(horizontalPush).level_id).toBe('horizontal_push.l1');
     for (const family of familyLibrary.families) {
-      expect(calibrationStartLevel(family).level_id).toBe(family.levels[0].level_id);
+      expect(baseStartLevel(family).level_id).toBe(family.levels[0].level_id);
     }
   });
 });
