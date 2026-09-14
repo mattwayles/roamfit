@@ -93,28 +93,45 @@ orchestrated by a lead agent delegating increments to sub-agents.
   for its difficulty rather than its own `default_seconds`, verified at both medium and hard).
   `npm run check` green.
 
+- [x] Increment 3, step 4/4 — cardio exercise-count range + full test sweep + golden (97e1056): `timefit/formulas.ts` adds `cardioMainExerciseCountRange` (≤15→[3,5],
+  ≤20→[4,6], ≤30→[6,8], ≤45→[8,11], ≤60→[11,14], ≤90→[12,18], else→[14,18] — tuned against the
+  fixture-library tests below, `EXPANSION_HARD_CAP`/`longSessionSetsMultiplier` unchanged).
+  `fitSession.ts`'s `fitMainEntries` takes an optional `countRange` param (defaults to the
+  general table, so every pre-existing caller is unaffected) so its own sanity check agrees with
+  whichever range `expandOptionalSlots` was capped by. `pipeline.ts` computes `mainExerciseCount`
+  once (cardio range for `focus === 'cardio'`, general table otherwise) and feeds both call
+  sites. Confirmed a no-op for every non-cardio focus (full suite unchanged, no golden diff).
+
+  Tests: `properties.test.ts` — folded `'cardio'` directly into the existing full request sweep
+  (`FOCI`) rather than a separate narrower sweep; empirically all 900+ cases pass unmodified
+  (including `equipmentPreference: 'band'`, where I'd expected the thin 3-band-exercise real pool
+  to break the unconditional "≥1 warmup/≥1 cooldown" assertion — it doesn't, because
+  `selectWarmupCooldown`'s existing any-focus fallback finds band warmup/cooldown candidates
+  from the rest of the library). Added the pattern invariant (non-cardio MAIN never
+  `conditioning`; cardio MAIN always `conditioning`) into the same loop.
+  `pipeline.test.ts` — a `buildCardioFixtureLibrary()` helper (real library's 190 non-conditioning
+  records + 40 synthetic conditioning ones + one jump-rope-anchored one) backs: cardio at
+  15/30/60/120min within ±10% or a named 'under' deviation; back-to-back cardio sessions
+  (2 prior sessions, `BLOCKED` in effect) still fill under bodyweight-only + `knee_impact` +
+  easy; jump-rope never appears in any role across 25 seeds without the anchor, and does appear
+  once it's available. Also added the `full`/hard/45min-no-finisher regression test (no `AMRAP`
+  note anywhere, main count still capped) as a named test, not just a golden pin.
+  `swap.test.ts` — a jump-rope alternative is excluded/offered by `alternativesForSlot` exactly
+  like generation is.
+  Golden: added a new `cardio, 30min, normal, seed 6` case against the *real* (10-exercise)
+  library — no existing snapshot changed (`-u` only wrote the one new entry). Real-library
+  result: 6 main entries (all of the library's easy/medium-eligible conditioning exercises — the
+  4 hard ones are excluded by a `medium` request), `estimatedMinutes: 32` against a 30min target,
+  `timeBudgetDeviation: undefined` — no deviation reported today, even with the pre-increment-4
+  pool.
+  `npm run validate:library`: 0 errors. `npm run check` green (repo-wide).
+
 ### In progress
-- Increment 3, step 4/4: `timefit/formulas.ts` — add a cardio-specific
-  `mainExerciseCountRange`-equivalent (short timed sets mean more exercises per minute than the
-  ~5min/exercise strength assumption the existing table is tuned for) and wire it into
-  `pipeline.ts` everywhere `mainExerciseCountRange` is currently read for a cardio session
-  (`expandOptionalSlots`'s ceiling, and `fitMainEntries`' internal exercise-count-sanity check —
-  needs a way to pass the range in rather than have `fitSession.ts` re-derive it itself).
-  `EXPANSION_HARD_CAP` stays the outer ceiling regardless; `longSessionSetsMultiplier` still
-  supplies the 90-120min extra, unchanged. Starting point (to tune against tests at
-  15/30/60/120min): ≤15→[3,5], ≤20→[4,6], ≤30→[6,8], ≤45→[8,11], ≤60→[11,14], ≤90→[12,18],
-  else→[14,18]. Then the full test sweep this increment still owes: properties.test.ts (cardio
-  MAIN-entry pattern invariant across the existing seed sweep), a jump-rope fixture-library test
-  (never appears without the anchor, generation and swap both), a full/hard/45min-has-no-finisher
-  regression test, cardio time-fit at 15/30/60/120min against a ~40-exercise fixture library, a
-  back-to-back-cardio-sessions fill test under bodyweight-only/knee_impact/easy against the same
-  fixture, a golden snapshot review+update (`-u`, read the diff first) plus a new cardio golden
-  case, and `npm run validate:library`. Then the final STATUS-14 write-up with the real-library
-  cardio generation check (30min medium today, ~10 exercises — does it deviate) for the report.
+- None — increment 3 (engine) is fully done. Increment 4 (library additions) picks up next, on
+  top of 97e1056; increment 5 (app) can run in parallel with it (worktree), per the plan's
+  orchestration section.
 
 ### Next
-3. Engine: cardio template, finisher removal, main-pool scoping, band-ratio exemption for cardio,
-   cardio interval prescription, cardio exercise-count range, tests, golden snapshot.
 4. Library additions (~30 cardio records) + coverage validator rules.
 5. App: Generate focus option + "Cardio gear" (jump rope), heatmap 'C' + day marker, Quick Session
    rotation, Approval add-exercise scoping.
