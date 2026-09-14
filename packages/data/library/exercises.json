@@ -8997,6 +8997,412 @@
       ],
       "setup": "Quick, tiny steps in place as fast as you can, staying low and light on the balls of the feet, like beating a fast drum with your feet.",
       "video_search": "https://www.youtube.com/results?search_query=Fast+Feet+drill+proper+form+tutorial"
+    },
+    {
+      "id": "banded-jumping-jack",
+      "name": "Banded Jumping Jack",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [
+        "abductors",
+        "side_delts"
+      ],
+      "equipment": "band",
+      "band": "B1-B2",
+      "anchor": "thigh-loop",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "ankle",
+        "knee_impact"
+      ],
+      "setup": "Band looped around both thighs above the knees. Jumping jack as normal, working against the band's resistance on the way out.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Jumping+Jack+proper+form+tutorial"
+    },
+    {
+      "id": "banded-lateral-shuffle",
+      "name": "Banded Lateral Shuffle",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "abductors"
+      ],
+      "secondary": [
+        "glutes",
+        "quads"
+      ],
+      "equipment": "band",
+      "band": "B1-B2",
+      "anchor": "thigh-loop",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_flexion_loaded"
+      ],
+      "setup": "Band around the thighs, quarter-squat stance. Shuffle quickly several steps one direction, then reverse, keeping tension on the band throughout.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Lateral+Shuffle+proper+form+tutorial"
+    },
+    {
+      "id": "banded-resisted-sprint",
+      "name": "Banded Resisted Sprint in Place",
+      "aliases": [
+        "Resisted Sprint"
+      ],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "hip_flexors"
+      ],
+      "secondary": [
+        "quads",
+        "glutes"
+      ],
+      "equipment": "band",
+      "band": "B2-B3",
+      "anchor": "anchor-low",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_flexion_loaded"
+      ],
+      "setup": "Band anchored low behind you at the waist, facing away into tension. Drive the knees fast in a sprint-in-place rhythm against the pull.",
+      "video_search": "https://www.youtube.com/results?search_query=resistance+band+Resisted+Sprint+in+Place+proper+form+tutorial"
+    },
+    {
+      "id": "banded-speed-punches",
+      "name": "Banded Speed Punches",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "front_delts"
+      ],
+      "secondary": [
+        "chest",
+        "triceps"
+      ],
+      "equipment": "band",
+      "band": "B1-B2",
+      "anchor": "anchor-mid",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [],
+      "setup": "Band anchored at chest height behind you, a handle in each hand. Throw fast alternating punches forward against the resistance.",
+      "video_search": "https://www.youtube.com/results?search_query=resistance+band+Speed+Punches+proper+form+tutorial"
+    },
+    {
+      "id": "banded-skater",
+      "name": "Banded Skater",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "glutes"
+      ],
+      "secondary": [
+        "abductors",
+        "quads"
+      ],
+      "equipment": "band",
+      "band": "B1-B2",
+      "anchor": "thigh-loop",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "ankle",
+        "knee_impact"
+      ],
+      "setup": "Band around the thighs. Bound laterally from one foot to the other like a speed skater, working against the band on every push-off.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Skater+Jump+proper+form+tutorial"
+    },
+    {
+      "id": "rope-basic-bounce",
+      "name": "Jump Rope Basic Bounce",
+      "aliases": [
+        "Jump Rope"
+      ],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [
+        "quads"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "jump-rope",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle"
+      ],
+      "setup": "Turn the rope with the wrists, not the shoulders, and bounce just high enough to clear it on each turn. The basic two-foot jump rope rhythm.",
+      "video_search": "https://www.youtube.com/results?search_query=Jump+Rope+Basic+Bounce+proper+form+tutorial"
+    },
+    {
+      "id": "rope-alternate-foot",
+      "name": "Jump Rope Alternate-Foot Step",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [
+        "quads",
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "jump-rope",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle"
+      ],
+      "setup": "Jump rope while stepping foot to foot like a light jog, rather than bouncing on both feet together.",
+      "video_search": "https://www.youtube.com/results?search_query=Jump+Rope+Alternate+Foot+Step+proper+form+tutorial"
+    },
+    {
+      "id": "rope-boxer-skip",
+      "name": "Jump Rope Boxer Skip",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [
+        "quads"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "jump-rope",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle"
+      ],
+      "setup": "Jump rope with a small extra skip between turns, shifting weight foot to foot, boxer style. Stay light and springy through the ankles.",
+      "video_search": "https://www.youtube.com/results?search_query=Jump+Rope+Boxer+Skip+proper+form+tutorial"
+    },
+    {
+      "id": "rope-high-knee",
+      "name": "Jump Rope High-Knee",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [
+        "hip_flexors",
+        "quads"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "jump-rope",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle",
+        "knee_flexion_loaded"
+      ],
+      "setup": "Jump rope while driving alternating knees up to hip height on every turn. Fast rope speed required to keep up with the knee drive.",
+      "video_search": "https://www.youtube.com/results?search_query=Jump+Rope+High+Knees+proper+form+tutorial"
+    },
+    {
+      "id": "rope-side-to-side",
+      "name": "Jump Rope Side-to-Side Hops",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [
+        "abductors",
+        "quads"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "jump-rope",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle"
+      ],
+      "setup": "Jump rope while hopping both feet side to side over an imaginary line with each turn, instead of jumping straight up.",
+      "video_search": "https://www.youtube.com/results?search_query=Jump+Rope+Side+to+Side+Hops+proper+form+tutorial"
+    },
+    {
+      "id": "rope-double-under",
+      "name": "Jump Rope Double-Unders",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [
+        "quads",
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "jump-rope",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle",
+        "knee_flexion_loaded"
+      ],
+      "setup": "Jump higher than usual and whip the rope around twice under your feet per jump. High skill, high output \u2014 go back to single turns if you lose rhythm.",
+      "video_search": "https://www.youtube.com/results?search_query=Jump+Rope+Double+Unders+proper+form+tutorial"
     }
   ]
 }

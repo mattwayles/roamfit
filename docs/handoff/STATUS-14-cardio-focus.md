@@ -137,7 +137,7 @@ orchestrated by a lead agent delegating increments to sub-agents.
   `.claude/worktrees/...` copy of `functions/lib/index.js` — untouched, out of scope, absent when
   linting packages/data or packages/engine directly).
 
-- [x] Increment 4, batch 2/4 — impact bodyweight cardio (sha recorded in batch 3's commit): 12 medium/hard
+- [x] Increment 4, batch 2/4 — impact bodyweight cardio (d55c531): 12 medium/hard
   records — tuck jump, star jump, lateral hop, jumping lunge (Split Jump), pop squat, frog jump,
   sprint in place, plank jack (wrist_extension/core_pressure, no knee_impact), seal jack, cross
   jack, butt kick, fast feet. All `bw-`, pattern conditioning, focus ['cardio'], roles ['main'].
@@ -149,14 +149,33 @@ orchestrated by a lead agent delegating increments to sub-agents.
   packages/data/packages/engine (same pre-existing, out-of-scope `.claude/worktrees/...` eslint
   noise as batch 1, unrelated to any file this track touches).
 
+- [x] Increment 4, batch 3/4 — band + jump rope cardio (this commit): 5 band records
+  (`banded-` prefix, all eligible under `DEFAULT_ANCHORS_AVAILABLE` since anchor-low/anchor-mid are
+  in it and thigh-loop is always-available: banded jumping jack, banded lateral shuffle, banded
+  resisted sprint [anchor-low, hard], banded speed punches [anchor-mid, medium, no impact
+  contraindication], banded skater) + 6 jump rope records (`rope-` prefix, `anchor: 'jump-rope'`,
+  `anchor_class: 'none'`, `equipment: 'bodyweight'`, `band: null`, all carry knee_impact + ankle:
+  basic bounce [easy], alternate-foot step, boxer skip, side-to-side hops [medium], high-knee rope,
+  double-unders [hard, + knee_flexion_loaded]). Golden `cardio, 30min, normal, seed 6` updated
+  again: `banded-speed-punches` now wins a main slot (band cardio is eligible by default and no
+  band-ratio pass applies to cardio — increment 3's exemption, confirmed still working), a 6th main
+  slot fills at `sets: 1` (existing `fitMainEntries`/expansion fill-precision behavior, unmodified,
+  now visible because the bigger pool gives it a closer-fitting option), rope exercises do NOT
+  appear anywhere (no fixture/golden state ticks `jump-rope` in `anchorsAvailable` — expected,
+  matches the "unchecked for everyone" decision). `npm run validate:library` 0 errors; `npm run
+  check` green for packages/data/packages/engine (same pre-existing worktree eslint noise).
+
 ### In progress
-- Increment 4, batch 3/4 — band cardio (5 records, `banded-` prefix: banded jumping jack,
-  banded lateral shuffle, banded resisted sprint, banded speed punches, banded skater) + jump rope
-  (6 records, `rope-` prefix, `anchor: 'jump-rope'`, `anchor_class: 'none'`, `equipment:
-  'bodyweight'`, `band: null`: basic bounce, alternate-foot step, boxer skip, high-knee rope,
-  side-to-side hops, double-unders). Will update the cardio golden snapshot again after adding.
-  Next after this: batch 4 (coverage validator rules + data tests + explain.ts copy fix + final
-  golden pass + sample-session check).
+- Increment 4, batch 4/4 — coverage validator rules (conditioning ⇒ metric time; ≥8 easy
+  conditioning; ≥8 conditioning without knee_impact; ≥5 band conditioning; cardio counts in the
+  coverage report output) + data tests (`index.test.ts`: the coverage minimums, plus every
+  `jump-rope`-anchored record is equipment bodyweight/band null/anchor_class none) +
+  `explain/explain.ts` cardio copy fix (~line 149, PATTERN_LABELS['conditioning'] currently
+  produces "Balanced to keep working cardio work..." — special-casing `conditioning` in explain.ts
+  rather than relying on the generic template) + explain tests/golden for it + a final full-suite
+  pass. After that: generate sample sessions (cardio 30/60min medium, cardio easy, cardio +
+  knee_impact limitation, legs/full 45min) via a scratch script (not committed) to confirm no
+  conditioning leaks into legs/full main work and no rope exercise appears without the anchor.
 
 ### Next
 4. Library additions (~30 cardio records) + coverage validator rules.
