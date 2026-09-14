@@ -8550,6 +8550,453 @@
       ],
       "setup": "Standing tall, punch straight overhead in fast alternating reps, like reaching for the sky. Keep the core braced so the lower back doesn't arch.",
       "video_search": "https://www.youtube.com/results?search_query=Fast+Overhead+Punches+cardio+tutorial"
+    },
+    {
+      "id": "bw-tuck-jump",
+      "name": "Tuck Jump",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "quads"
+      ],
+      "secondary": [
+        "glutes",
+        "calves"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle",
+        "knee_flexion_loaded"
+      ],
+      "setup": "Jump straight up, driving both knees to the chest at the peak, and land soft with bent knees. Explosive \u2014 skip it if joints are cranky today.",
+      "video_search": "https://www.youtube.com/results?search_query=Tuck+Jump+proper+form+tutorial"
+    },
+    {
+      "id": "bw-star-jump",
+      "name": "Star Jump",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "quads"
+      ],
+      "secondary": [
+        "calves",
+        "side_delts"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle"
+      ],
+      "setup": "Squat down, then jump up explosively, throwing arms and legs out wide into a star shape at the peak. Land soft and reset before the next rep.",
+      "video_search": "https://www.youtube.com/results?search_query=Star+Jump+proper+form+tutorial"
+    },
+    {
+      "id": "bw-lateral-hop",
+      "name": "Lateral Hop",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [
+        "quads",
+        "abductors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle"
+      ],
+      "setup": "Hop side to side over an imaginary line, feet together, landing soft on the balls of the feet each time. Keep the hops quick and low.",
+      "video_search": "https://www.youtube.com/results?search_query=Lateral+Hop+cardio+proper+form+tutorial"
+    },
+    {
+      "id": "bw-jumping-lunge",
+      "name": "Jumping Lunge",
+      "aliases": [
+        "Split Jump"
+      ],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "quads"
+      ],
+      "secondary": [
+        "glutes",
+        "hamstrings"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle",
+        "knee_flexion_loaded"
+      ],
+      "setup": "From a lunge stance, jump and switch legs mid-air, landing in a lunge on the other side. Keep the front knee tracking over the foot on every landing.",
+      "video_search": "https://www.youtube.com/results?search_query=Jumping+Lunge+Split+Jump+proper+form+tutorial"
+    },
+    {
+      "id": "bw-pop-squat",
+      "name": "Pop Squat",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "quads"
+      ],
+      "secondary": [
+        "glutes",
+        "calves"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact"
+      ],
+      "setup": "Squat down, then hop the feet out wide and back to narrow, popping up slightly between each. Stay light on the feet.",
+      "video_search": "https://www.youtube.com/results?search_query=Pop+Squat+proper+form+tutorial"
+    },
+    {
+      "id": "bw-frog-jump",
+      "name": "Frog Jump",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "quads"
+      ],
+      "secondary": [
+        "glutes",
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle",
+        "knee_flexion_loaded"
+      ],
+      "setup": "Squat low, hands to the floor, and jump forward like a frog, landing soft back in the squat. Small hops forward and back work fine in tight spaces.",
+      "video_search": "https://www.youtube.com/results?search_query=Frog+Jump+proper+form+tutorial"
+    },
+    {
+      "id": "bw-sprint-in-place",
+      "name": "Sprint in Place",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "hip_flexors"
+      ],
+      "secondary": [
+        "calves",
+        "quads"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact"
+      ],
+      "setup": "Run in place as fast as you can hold form, driving the knees and pumping the arms hard. Stay on the balls of the feet.",
+      "video_search": "https://www.youtube.com/results?search_query=Sprint+in+Place+cardio+proper+form+tutorial"
+    },
+    {
+      "id": "bw-plank-jack",
+      "name": "Plank Jack",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "abs"
+      ],
+      "secondary": [
+        "chest",
+        "front_delts"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "wrist_extension",
+        "core_pressure"
+      ],
+      "setup": "High plank, hands under shoulders. Jump the feet apart and back together like a jumping jack while the hands stay planted and the hips stay level.",
+      "video_search": "https://www.youtube.com/results?search_query=Plank+Jack+proper+form+tutorial"
+    },
+    {
+      "id": "bw-seal-jack",
+      "name": "Seal Jack",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "chest"
+      ],
+      "secondary": [
+        "calves",
+        "front_delts"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle"
+      ],
+      "setup": "Like a jumping jack, but the arms stay straight and clap out in front of the chest instead of overhead. Land soft on each rep.",
+      "video_search": "https://www.youtube.com/results?search_query=Seal+Jack+proper+form+tutorial"
+    },
+    {
+      "id": "bw-cross-jack",
+      "name": "Cross Jack",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [
+        "chest",
+        "abductors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle"
+      ],
+      "setup": "Jumping jack with a cross \u2014 feet cross and uncross at the ankles while the arms cross and uncross out in front, alternating which foot and arm lead.",
+      "video_search": "https://www.youtube.com/results?search_query=Cross+Jack+proper+form+tutorial"
+    },
+    {
+      "id": "bw-butt-kick",
+      "name": "Butt Kick",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "hamstrings"
+      ],
+      "secondary": [
+        "calves",
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_flexion_loaded",
+        "ankle"
+      ],
+      "setup": "Jog in place, kicking the heels up to tap the glutes on each stride. Stay tall through the torso rather than leaning forward.",
+      "video_search": "https://www.youtube.com/results?search_query=Butt+Kick+proper+form+tutorial"
+    },
+    {
+      "id": "bw-fast-feet",
+      "name": "Fast Feet",
+      "aliases": [],
+      "focus": [
+        "cardio"
+      ],
+      "pattern": "conditioning",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [
+        "quads",
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_impact",
+        "ankle"
+      ],
+      "setup": "Quick, tiny steps in place as fast as you can, staying low and light on the balls of the feet, like beating a fast drum with your feet.",
+      "video_search": "https://www.youtube.com/results?search_query=Fast+Feet+drill+proper+form+tutorial"
     }
   ]
 }

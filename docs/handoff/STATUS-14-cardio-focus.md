@@ -126,14 +126,37 @@ orchestrated by a lead agent delegating increments to sub-agents.
   pool.
   `npm run validate:library`: 0 errors. `npm run check` green (repo-wide).
 
+- [x] Increment 4, batch 1/4 — low-impact bodyweight cardio (d6883a5): 9 easy, no-knee_impact
+  bodyweight records (march in place, step jack, standing knee drive, shadow boxing, low-impact
+  skater step, boxer shuffle, standing cross-body knee march, standing mountain climber, fast
+  overhead punches). March-in-place/step-jack also carry the warmup role. Golden `cardio, 30min,
+  normal, seed 6` updated — diff is a boxer-shuffle-for-jumping-jack main swap, a cooldown draw
+  change, and the warmup no longer falling back to a strength squat, all explained by the larger
+  real pool. `npm run validate:library` 0 errors; `npm run check` green for packages/data and
+  packages/engine (root eslint separately reports 2 pre-existing errors from the parallel agent's
+  `.claude/worktrees/...` copy of `functions/lib/index.js` — untouched, out of scope, absent when
+  linting packages/data or packages/engine directly).
+
+- [x] Increment 4, batch 2/4 — impact bodyweight cardio (sha recorded in batch 3's commit): 12 medium/hard
+  records — tuck jump, star jump, lateral hop, jumping lunge (Split Jump), pop squat, frog jump,
+  sprint in place, plank jack (wrist_extension/core_pressure, no knee_impact), seal jack, cross
+  jack, butt kick, fast feet. All `bw-`, pattern conditioning, focus ['cardio'], roles ['main'].
+  Golden `cardio, 30min, normal, seed 6` updated again — main pool draw shifts to
+  bw-butt-kick/bw-mountain-climber/bw-cross-jack/bw-lateral-hop/bw-high-knees/bw-skater-jump (still
+  6 entries, all medium, `estimatedMinutes` 32→31, no deviation), warmup/cooldown picks cascade
+  with it (bw-step-jack, bw-squat/wu fallback, cd-hip-flexor) — all traced to the larger real pool,
+  nothing structural. `npm run validate:library` 0 errors; `npm run check` green for
+  packages/data/packages/engine (same pre-existing, out-of-scope `.claude/worktrees/...` eslint
+  noise as batch 1, unrelated to any file this track touches).
+
 ### In progress
-- Increment 4 (library additions), running in the main tree while increment 5 (app) runs in a
-  parallel worktree. Plan: 4 commits — (1) low-impact bodyweight batch (9 records, `bw-` prefix),
-  (2) impact bodyweight batch (12 records), (3) band batch (5, `banded-` prefix) + jump rope batch
-  (6, `rope-` prefix, new `Anchor` value already lands as `jump-rope` from increment 1), (4)
-  coverage validator rules (conditioning ⇒ metric time; ≥8 easy; ≥8 no knee_impact; ≥5 band;
-  cardio counts in the report) + data tests + the `explain.ts` cardio copy fix + golden update.
-  Starting commit 1 now, on top of 97e1056.
+- Increment 4, batch 3/4 — band cardio (5 records, `banded-` prefix: banded jumping jack,
+  banded lateral shuffle, banded resisted sprint, banded speed punches, banded skater) + jump rope
+  (6 records, `rope-` prefix, `anchor: 'jump-rope'`, `anchor_class: 'none'`, `equipment:
+  'bodyweight'`, `band: null`: basic bounce, alternate-foot step, boxer skip, high-knee rope,
+  side-to-side hops, double-unders). Will update the cardio golden snapshot again after adding.
+  Next after this: batch 4 (coverage validator rules + data tests + explain.ts copy fix + final
+  golden pass + sample-session check).
 
 ### Next
 4. Library additions (~30 cardio records) + coverage validator rules.
