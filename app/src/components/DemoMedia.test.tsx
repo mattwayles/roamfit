@@ -66,7 +66,10 @@ async function submitUrl(renderer: TestRenderer.ReactTestRenderer, text: string)
 describe('DemoMedia', () => {
   beforeEach(() => {
     mockGetNetworkStatus.mockReset();
-    jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    // `Linking.openURL` is already a jest.fn() in the RN preset, so `restoreAllMocks` below
+    // restores the spy but not that underlying mock's call history — clear it explicitly or
+    // calls from a previous test leak into this one's `not.toHaveBeenCalled` assertions.
+    jest.spyOn(Linking, 'openURL').mockResolvedValue(true).mockClear();
   });
 
   afterEach(() => {
@@ -166,6 +169,31 @@ describe('DemoMedia', () => {
       webview.props.onShouldStartLoadWithRequest({ url: 'https://sponsor.example/deal' }),
     ).toBe(false);
     expect(Linking.openURL).toHaveBeenCalledWith('https://sponsor.example/deal');
+  });
+
+  it('blocks the frame without handing about:blank (or other non-http navigations) to Linking', async () => {
+    mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+    const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
+    const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
+
+    // YouTube's watch-page chrome issues internal navigations like this for popup targets and
+    // ad slots; Linking.openURL rejects for them, so this must never reach Linking at all.
+    expect(webview.props.onShouldStartLoadWithRequest({ url: 'about:blank' })).toBe(false);
+    expect(Linking.openURL).not.toHaveBeenCalled();
+  });
+
+  it('swallows a Linking.openURL rejection instead of an unhandled rejection', async () => {
+    mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
+    (Linking.openURL as jest.Mock).mockRejectedValueOnce(new Error('Unable to open URL'));
+    const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
+    const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
+
+    expect(
+      webview.props.onShouldStartLoadWithRequest({ url: 'https://sponsor.example/deal' }),
+    ).toBe(false);
+    // Flush the rejected promise's microtask; a failing test here means an unhandled rejection.
+    await Promise.resolve();
+    await Promise.resolve();
   });
 
   it('online, curated id, but locally demoted: no embed, but the search link survives', async () => {

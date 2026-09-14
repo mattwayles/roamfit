@@ -233,7 +233,14 @@ export default function DemoMedia({
    */
   const handleFrameNavigation = (request: { url: string }): boolean => {
     if (isYouTubeUrl(request.url)) return true;
-    void Linking.openURL(request.url);
+    // The watch page's own chrome issues internal navigations to things like `about:blank`
+    // (popup targets, ad slots) that are not real links — Linking.openURL rejects for those,
+    // and previously did so unhandled, surfacing as an uncaught promise rejection. Only hand
+    // off something actually openable, and swallow a failed open either way rather than crash
+    // the session over a tap that didn't do anything (invariant 4: never punish).
+    if (request.url.startsWith('http://') || request.url.startsWith('https://')) {
+      Linking.openURL(request.url).catch(() => {});
+    }
     return false;
   };
 
