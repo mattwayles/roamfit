@@ -70,6 +70,7 @@ import PinnedNote from '../components/PinnedNote';
 import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
 import BandPicker from '../components/BandPicker';
+import BandChip from '../components/BandChip';
 import DemoMedia from '../components/DemoMedia';
 import type { DemoMediaProps } from '../components/DemoMedia';
 import AbandonSessionButton from '../components/AbandonSessionButton';
@@ -1034,6 +1035,11 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           // *upcoming* entry here — same post-reload reasoning `nextLabel` relies on.
           nextAnchor={isFinalRest ? null : (exercise?.anchor ?? null)}
           nextAnchorAlt={isFinalRest ? null : (exercise?.anchor_alt ?? null)}
+          // `bandForSet` is already resolved against the *upcoming* entry/setIndex during rest
+          // (see its own comment above) — the same band the exercise phase will show once this
+          // rest ends, so rest is exactly when swapping to it is useful.
+          nextBand={isFinalRest ? null : bandForSet}
+          bandTensions={bandTensions}
           // Same DemoMedia props the exercise phase passes below (line ~1039) — `exercise` and
           // `entry` are already the *upcoming* pair during rest, so the video shown here is the
           // one about to be trained, not the one just finished.
@@ -1862,6 +1868,8 @@ function RestPhase({
   nextLabel,
   nextAnchor,
   nextAnchorAlt,
+  nextBand,
+  bandTensions,
   demoMedia,
   howTo,
   difficulty,
@@ -1875,6 +1883,11 @@ function RestPhase({
   nextAnchor: Anchor | null;
   /** A second fixed point the next exercise works equally well from (`Exercise.anchor_alt`). */
   nextAnchorAlt: Anchor | null;
+  /** The band the *next* set is prescribed, or null when it isn't a band exercise. Shown during
+   *  rest so a band swap is something to do here, not something discovered after standing up. */
+  nextBand: BandId | null;
+  /** The user's own band colours/labels (spec §1140), for the `BandChip` above. */
+  bandTensions: Record<BandId, usersRepo.BandTension>;
   /** The next exercise's demo video, so rest doubles as prep time — rig the anchor or check form
    *  before the set starts, rather than only after. Null when there is no upcoming exercise (the
    *  workout is ending) or nothing to demo (`DemoMedia` already returns null in that case; this is
@@ -1994,6 +2007,11 @@ function RestPhase({
 
       <Text style={styles.nextUp}>Next up: {nextLabel}</Text>
       <AnchorBadge anchor={nextAnchor} anchorAlt={nextAnchorAlt} testID="rest-next-anchor" />
+      {nextBand != null && (
+        <View style={styles.restNextBand} testID="rest-next-band">
+          <BandChip band={nextBand} tensions={bandTensions} />
+        </View>
+      )}
 
       {/* Same "How to" cue the exercise phase shows, read here for the *upcoming* exercise — rest
           is prep time, so the setup text is exactly as useful here as the demo below. `hero`
@@ -2237,6 +2255,7 @@ const styles = StyleSheet.create({
   levelBadge: { fontSize: 12, fontWeight: '700', color: '#64748b' },
   calibrating: { fontSize: 12, color: '#b45309', fontWeight: '600' },
   nextUp: { fontSize: 13, color: '#64748b' },
+  restNextBand: { marginTop: 4 },
   disclosureTitle: { fontSize: 14, fontWeight: '700', color: '#334155' },
   disclosureBody: { fontSize: 13, color: '#64748b', marginTop: 4 },
 });
