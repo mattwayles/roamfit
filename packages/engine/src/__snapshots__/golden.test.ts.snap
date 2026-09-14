@@ -322,7 +322,7 @@ exports[`golden: generateSession output is pinned cardio, 30min, normal, seed 6 
   "difficulty": "medium",
   "engineVersion": "2.11.0",
   "estimatedMinutes": 32,
-  "explanation": "Balanced to keep working cardio work without repeating what you just did.",
+  "explanation": "Mixed up to keep your heart rate up without repeating what you just did.",
   "focus": "cardio",
   "format": "straight_sets",
   "generatedAtLocalDate": "2026-08-30",

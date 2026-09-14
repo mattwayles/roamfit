@@ -76,6 +76,20 @@ describe('§5.8 the explanation line', () => {
     expect(text).toMatch(/first few sessions set your starting levels/);
   });
 
+  it('names the pattern balanced against when nothing else is notable', () => {
+    const text = composeExplanation({ ...base(), balancedAgainst: 'squat' });
+    expect(text).toBe('Balanced to keep working squatting without repeating what you just did.');
+  });
+
+  // Track 14 — `conditioning`'s pattern label ("cardio work") reads fine on its own but clashes
+  // grammatically with the generic "keep working X" frame ("keep working cardio work"). It gets
+  // its own no-guilt phrasing instead.
+  it('phrases a cardio-balanced session naturally instead of "keep working cardio work"', () => {
+    const text = composeExplanation({ ...base(), balancedAgainst: 'conditioning' });
+    expect(text).toBe('Mixed up to keep your heart rate up without repeating what you just did.');
+    expect(text).not.toMatch(/cardio work/);
+  });
+
   it('matches the spec §5.8 example shape: recovery + novelty + level-up together', () => {
     const text = composeExplanation({
       ...base(),

@@ -238,6 +238,16 @@ function main() {
       }
     }
 
+    // Track 14, increment 4 — every conditioning record is timed, never rep-counted:
+    // `CARDIO_INTERVAL_TABLE` (prescription/difficultyTable.ts) reads work/rest seconds by
+    // difficulty and never touches a rep target, so a conditioning record authored with
+    // metric "reps" would silently fall through to the ordinary rep-based prescription path
+    // instead. `default_seconds` is still always authored as 30 — the table's `workSec` is what
+    // actually varies at prescribe time (see prescribeAccessory), this is just the metric shape.
+    if (isConditioning && ex.metric !== 'time') {
+      fail(`${id}: pattern is "conditioning" but metric is "${ex.metric}", expected "time"`);
+    }
+
     // `setup` is the offline floor. Since ADR 0008 removed the bundled figures, this cue is the
     // *only* thing a user has to go on with no connectivity, which makes a blank or stub cue a
     // §11.6 offline-gate failure rather than a content nit. The 20-char floor catches empties,
@@ -410,6 +420,54 @@ function main() {
     if (cooldowns.length === 0) fail(`focus "${focus}": zero eligible cooldown exercises`);
   }
 
+  // Track 14, increment 4 — coverage minimums for the Cardio focus. Recency alone forces a
+  // decently sized pool: an exercise used in either of the last 2 sessions is BLOCKED, and a
+  // 60-minute cardio day draws roughly a dozen exercises, so a thin easy/no-impact/band slice
+  // empties fast for anyone training cardio back to back. These mirror the low-impact, impact,
+  // band, and jump-rope batches the plan called for landing.
+  const conditioning = exercises.filter((e) => e.pattern === 'conditioning');
+  const conditioningEasy = conditioning.filter((e) => e.difficulty === 'easy');
+  const conditioningNoKneeImpact = conditioning.filter(
+    (e) => !e.contraindications.includes('knee_impact'),
+  );
+  const conditioningBand = conditioning.filter((e) => e.equipment === 'band');
+  if (conditioningEasy.length < 8) {
+    fail(
+      `cardio coverage: only ${conditioningEasy.length} easy conditioning exercises, need at least 8 — an easy cardio request only ever sees this pool`,
+    );
+  }
+  if (conditioningNoKneeImpact.length < 8) {
+    fail(
+      `cardio coverage: only ${conditioningNoKneeImpact.length} conditioning exercises without "knee_impact", need at least 8 — a knee_impact limitation only ever sees this pool`,
+    );
+  }
+  if (conditioningBand.length < 5) {
+    fail(
+      `cardio coverage: only ${conditioningBand.length} band conditioning exercises, need at least 5`,
+    );
+  }
+
+  // Track 14, increment 4 — every `jump-rope`-anchored record must be gear, not a fixed point:
+  // equipment bodyweight, band null, anchor_class none (mirrors `anchorClassFor('jump-rope')`
+  // above). A rope record that slipped equipment "band" or a non-null band would bypass the
+  // "Cardio gear" jump-rope toggle the app gates it behind.
+  for (const ex of exercises) {
+    if (ex.anchor !== 'jump-rope') continue;
+    if (ex.equipment !== 'bodyweight') {
+      fail(
+        `${ex.id}: anchor is "jump-rope" but equipment is "${ex.equipment}", expected "bodyweight"`,
+      );
+    }
+    if (ex.band !== null) {
+      fail(`${ex.id}: anchor is "jump-rope" but band is not null`);
+    }
+    if (ex.anchor_class !== 'none') {
+      fail(
+        `${ex.id}: anchor is "jump-rope" but anchor_class is "${ex.anchor_class}", expected "none"`,
+      );
+    }
+  }
+
   // ---- demo media ----
   // Nothing to validate: there is no bundled media any more (ADR 0008). Offline demo guidance is
   // the `setup` cue, which the per-record loop above now checks explicitly. Curated
@@ -446,6 +504,13 @@ function main() {
     'By tier:',
     countBy((e) => e.tier),
   );
+  console.log('Cardio (conditioning) coverage:', {
+    total: conditioning.length,
+    easy: conditioningEasy.length,
+    noKneeImpact: conditioningNoKneeImpact.length,
+    band: conditioningBand.length,
+    jumpRope: conditioning.filter((e) => e.anchor === 'jump-rope').length,
+  });
   console.log(
     'By family level:',
     Object.fromEntries(families.map((f) => [f.id, f.levels.map((l) => l.level_id)])),

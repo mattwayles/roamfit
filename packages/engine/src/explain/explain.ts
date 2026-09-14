@@ -145,9 +145,17 @@ export function composeExplanation(input: ExplanationInputs): string {
   if (sentences.length === 0) {
     const label = input.balancedAgainst ? PATTERN_LABELS[input.balancedAgainst] : undefined;
     sentences.push(
-      label
-        ? `Balanced to keep working ${label} without repeating what you just did.`
-        : 'Balanced across your recent sessions — nothing repeated, nothing overloaded.',
+      // Track 14 — `PATTERN_LABELS.conditioning` ("cardio work") reads fine standing alone but
+      // grammatically clashes with this sentence's "keep working X" frame ("keep working cardio
+      // work"). Every other pattern label is a gerund/noun that slots into that frame cleanly;
+      // conditioning is the one exception, so it gets its own phrasing rather than a label change
+      // that would also affect the pattern-gap sentence above. Still no-guilt voice — describes
+      // what varied, not what's owed.
+      input.balancedAgainst === 'conditioning'
+        ? 'Mixed up to keep your heart rate up without repeating what you just did.'
+        : label
+          ? `Balanced to keep working ${label} without repeating what you just did.`
+          : 'Balanced across your recent sessions — nothing repeated, nothing overloaded.',
     );
   }
 

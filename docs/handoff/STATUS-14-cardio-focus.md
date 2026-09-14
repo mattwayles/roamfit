@@ -165,17 +165,52 @@ orchestrated by a lead agent delegating increments to sub-agents.
   matches the "unchecked for everyone" decision). `npm run validate:library` 0 errors; `npm run
   check` green for packages/data/packages/engine (same pre-existing worktree eslint noise).
 
-### In progress
-- Increment 4, batch 4/4 — coverage validator rules (conditioning ⇒ metric time; ≥8 easy
-  conditioning; ≥8 conditioning without knee_impact; ≥5 band conditioning; cardio counts in the
-  coverage report output) + data tests (`index.test.ts`: the coverage minimums, plus every
-  `jump-rope`-anchored record is equipment bodyweight/band null/anchor_class none) +
-  `explain/explain.ts` cardio copy fix (~line 149, PATTERN_LABELS['conditioning'] currently
-  produces "Balanced to keep working cardio work..." — special-casing `conditioning` in explain.ts
-  rather than relying on the generic template) + explain tests/golden for it + a final full-suite
-  pass. After that: generate sample sessions (cardio 30/60min medium, cardio easy, cardio +
-  knee_impact limitation, legs/full 45min) via a scratch script (not committed) to confirm no
-  conditioning leaks into legs/full main work and no rope exercise appears without the anchor.
+- [x] Increment 4, batch 4/4 — coverage validator + data tests + explain.ts copy fix (this
+  commit): `validate.ts` gets (1) a per-record rule that `pattern === 'conditioning'` implies
+  `metric === 'time'` (the cardio interval table never reads a rep target — a rep-metric
+  conditioning record would silently fall through to the wrong prescription path), (2) the three
+  coverage minimums (≥8 easy conditioning, ≥8 without knee_impact, ≥5 band conditioning) as hard
+  failures, (3) every `jump-rope`-anchored record must be equipment bodyweight/band null/
+  anchor_class none, and (4) a `Cardio (conditioning) coverage` line in the report output (total,
+  easy, noKneeImpact, band, jumpRope counts). `index.test.ts` mirrors all of it as jest tests (so
+  a plain `jest` run in packages/data catches a regression too, not just the CLI script) plus the
+  jump-rope equipment/band/anchor_class invariant. `explain/explain.ts` ~line 149: `balancedAgainst
+  === 'conditioning'` now gets its own sentence ("Mixed up to keep your heart rate up without
+  repeating what you just did.") instead of falling through the generic "Balanced to keep working
+  ${label}" template, which read as "keep working cardio work" — every other pattern label is a
+  gerund/noun that slots into that frame, conditioning was the one exception. New explain.test.ts
+  cases for both the generic pattern-balanced fallback (previously untested) and the cardio one.
+  Golden `cardio, 30min, normal, seed 6` updated once more — the explanation line is the only
+  diff.
+
+  Final numbers: library conditioning total 42 (10 pre-existing + 32 new across the three
+  batches), 11 easy, 16 without knee_impact, 8 band, 6 jump-rope. `npm run validate:library`: 0
+  errors. Full-suite check, run piece by piece since root `eslint .` currently fails at the
+  lint step before reaching test (see below): `npm run typecheck` (all workspaces) green,
+  `npm run test --workspaces` green (app 70/419, engine 26/1195, data 1/12, store 25/173,
+  functions 9/34, all passed), `npm run check:engine-purity` green. `npx eslint packages/data
+  packages/engine` (this track's actual scope): 0 errors, pre-existing unrelated warnings only.
+  Root `eslint .` reports 2 real errors, both inside
+  `.claude/worktrees/agent-a34e489a1da46cfe0/functions/lib/index.js` — a full nested copy of the
+  repo that the parallel increment-5 agent's `isolation: "worktree"` run created *inside* the main
+  tree (normally a worktree is a sibling directory; this one landed under `.claude/worktrees/` in
+  this tree, so root eslint's `functions/lib/**` ignore pattern doesn't match the nested path and
+  scans that copy's build output). Present since before batch 1 of this increment, unrelated to
+  and unmodified by any of this track's commits — not something increment 4's scope (packages/data
+  + engine golden/tests + the one explain.ts fix) can or should fix; flagging for whoever merges
+  the worktree branch / cleans it up.
+
+### Next
+- Increment 4 is done. Generate sample sessions (cardio 30/60min medium, cardio easy, cardio with
+  a knee_impact limitation, legs/full 45min) via a throwaway node/jest script (not committed) to
+  confirm no conditioning exercise leaks into legs/full main work and no rope exercise appears
+  anywhere without the `jump-rope` anchor ticked — reported directly to the user, not re-recorded
+  here since it's verification, not a code change.
+- Increment 5 (app) is running in the parallel worktree per the plan; merge it in and re-run
+  `npm run check` once it lands (that should also make the `.claude/worktrees/...` eslint noise
+  above go away, since the worktree will be cleaned up).
+- Increment 6 (backlog: park "interval-circuit cardio format", final status update) is still
+  owed by whoever is orchestrating — not part of this track's scope.
 
 ### Next
 4. Library additions (~30 cardio records) + coverage validator rules.

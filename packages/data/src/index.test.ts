@@ -139,3 +139,43 @@ describe('warm-up variety for a shoulder_overhead limitation (issue #33, track 6
     expect(survivesBoth.length).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe('Track 14, increment 4 — cardio library coverage minimums', () => {
+  // Mirrors the coverage checks in validate.ts (which also fails the build if these regress) so
+  // a plain `jest` run in packages/data catches a thin cardio pool without needing the CLI script.
+  const conditioning = exerciseLibrary.exercises.filter((e) => e.pattern === 'conditioning');
+
+  it('has at least 8 easy conditioning exercises', () => {
+    expect(conditioning.filter((e) => e.difficulty === 'easy').length).toBeGreaterThanOrEqual(8);
+  });
+
+  it('has at least 8 conditioning exercises without a knee_impact contraindication', () => {
+    expect(
+      conditioning.filter((e) => !e.contraindications.includes('knee_impact')).length,
+    ).toBeGreaterThanOrEqual(8);
+  });
+
+  it('has at least 5 band conditioning exercises', () => {
+    expect(conditioning.filter((e) => e.equipment === 'band').length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('every conditioning exercise is metric "time"', () => {
+    for (const e of conditioning) {
+      expect(e.metric).toBe('time');
+    }
+  });
+});
+
+describe('Track 14, increment 4 — jump-rope records are gear, not a fixed point', () => {
+  // A rope exercise must never be reachable through any anchor other than the dedicated
+  // "Cardio gear" toggle — never treated as bodyweight-bearing or band-tensioned.
+  it('every jump-rope-anchored record is equipment bodyweight, band null, anchor_class none', () => {
+    const ropeExercises = exerciseLibrary.exercises.filter((e) => e.anchor === 'jump-rope');
+    expect(ropeExercises.length).toBeGreaterThan(0);
+    for (const e of ropeExercises) {
+      expect(e.equipment).toBe('bodyweight');
+      expect(e.band).toBeNull();
+      expect(e.anchor_class).toBe('none');
+    }
+  });
+});
