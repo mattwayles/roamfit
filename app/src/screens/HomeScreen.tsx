@@ -76,6 +76,7 @@ import {
   scheduleMotivationNotifications,
 } from '../lib/motivationNotifications';
 import { runOpportunisticSync } from '../lib/opportunisticSync';
+import { requestLocationPermission } from '../lib/geocode';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -881,6 +882,10 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
             style={styles.passportOptIn}
             onPress={() => {
               usersRepo.updateUser(db, { passportEnabled: true }, nowUtcInstant());
+              // Fire-and-forget, same as `runOpportunisticSync` below — the queued
+              // `passport_geocode` jobs are what actually retry the lookup; this just gives the
+              // very first one a granted permission to find instead of failing once for free.
+              void requestLocationPermission();
               load();
             }}
           >

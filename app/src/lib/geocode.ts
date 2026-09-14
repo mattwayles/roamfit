@@ -50,7 +50,12 @@ export const geocodeCaller: GeocodeCaller = {
     const loc = loadLocationModule();
     if (!loc) throw new Error('expo-location unavailable');
 
-    const permission = await loc.getForegroundPermissionsAsync();
+    // `requestForegroundPermissionsAsync` only surfaces the OS prompt while the status is still
+    // undetermined — once the user has answered (granted or denied) it just returns that answer
+    // straight back, so this is safe to call on every attempt rather than only from the opt-in
+    // toggle. That matters because a user who enabled Passport before permission was ever
+    // requested (e.g. this bug) would otherwise be stuck failing forever with no way to be asked.
+    const permission = await loc.requestForegroundPermissionsAsync();
     if (!permission || permission.status !== 'granted') {
       throw new Error('location permission not granted');
     }
