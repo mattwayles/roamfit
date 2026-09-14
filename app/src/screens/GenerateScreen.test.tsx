@@ -124,6 +124,24 @@ describe('§10.2 Generate screen', () => {
     expect(screen.queryByText('abs')).toBeNull();
   });
 
+  it('track 14: Cardio is a selectable focus, listed after the muscle-group focuses', async () => {
+    renderScreen();
+    await waitFor(() => expect(screen.getByTestId('focus-picker')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('focus-picker'));
+
+    await waitFor(
+      () => expect(screen.getByTestId('focus-picker-option-cardio')).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    expect(screen.getByText('Cardio')).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId('focus-picker-option-cardio'));
+    await waitFor(() => expect(screen.queryByTestId('focus-picker-list')).toBeNull(), WAIT_OPTS);
+    // The closed field now reads "Cardio", confirming the selection round-tripped rather than
+    // just closing the list.
+    expect(screen.getByText('Cardio')).toBeTruthy();
+  });
+
   it('the recovery-week option shows an unticked checkbox until it is chosen', async () => {
     renderScreen();
     await waitFor(() => expect(screen.getByTestId('recovery-week-toggle')).toBeTruthy(), WAIT_OPTS);
@@ -263,6 +281,48 @@ describe('§10.2 Generate screen', () => {
     // same `usersRepo.ensureUser` call GenerateScreen's own mount effect makes.
     const reloaded = usersRepo.ensureUser(getDb(), '2026-09-01T00:00:00.000Z');
     expect(reloaded.anchorsAvailable).not.toContain('pullup-bar');
+  });
+
+  it('track 14: Cardio gear (jump rope) is a second group, unchecked by default', async () => {
+    const { getDb } = renderScreen();
+    await waitFor(() => expect(screen.getByTestId('anchors-disclosure')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('anchors-disclosure'));
+
+    await waitFor(() => expect(screen.getByTestId('anchor-jump-rope')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByText('Cardio gear')).toBeTruthy();
+    expect(screen.getByText('Jump rope')).toBeTruthy();
+    // Unlike every anchor in the first group, jump rope starts unticked — a rope move must never
+    // be programmed unless the user opts in, for anyone, new or existing profile alike.
+    expect(screen.getByTestId('anchor-jump-rope').props.accessibilityState.checked).toBe(false);
+    const anchors = usersRepo.buildUserProfile(getDb(), '2026-09-01').anchorsAvailable;
+    expect(anchors).not.toContain('jump-rope');
+  });
+
+  it('track 14: ticking Jump rope persists it, unticking removes it again', async () => {
+    const { getDb } = renderScreen();
+    await waitFor(() => expect(screen.getByTestId('anchors-disclosure')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('anchors-disclosure'));
+    await waitFor(() => expect(screen.getByTestId('anchor-jump-rope')).toBeTruthy(), WAIT_OPTS);
+
+    fireEvent.press(screen.getByTestId('anchor-jump-rope'));
+    await waitFor(() => {
+      expect(screen.getByTestId('anchor-jump-rope').props.accessibilityState.checked).toBe(true);
+      expect(usersRepo.buildUserProfile(getDb(), '2026-09-01').anchorsAvailable).toContain(
+        'jump-rope',
+      );
+    }, WAIT_OPTS);
+    // The rest of the checklist is untouched by toggling the new group.
+    expect(usersRepo.buildUserProfile(getDb(), '2026-09-01').anchorsAvailable).toContain(
+      'anchor-low',
+    );
+
+    fireEvent.press(screen.getByTestId('anchor-jump-rope'));
+    await waitFor(() => {
+      expect(screen.getByTestId('anchor-jump-rope').props.accessibilityState.checked).toBe(false);
+      expect(usersRepo.buildUserProfile(getDb(), '2026-09-01').anchorsAvailable).not.toContain(
+        'jump-rope',
+      );
+    }, WAIT_OPTS);
   });
 
   it('the summary count tracks the selection', async () => {
