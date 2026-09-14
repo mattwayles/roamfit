@@ -282,6 +282,36 @@ describe('selectWarmupCooldownGroup — §5.6 fills the budgeted minutes, not a 
     expect(asCooldown).toBeNull();
   });
 
+  it('guarantees at least two distinct exercises when the pool has them, even though one alone clears the floor', () => {
+    // Each `ex()` is a 45s hold: timedExerciseSec(45s + 30s rest) + 60s transition = 135s — on its
+    // own already past the 126s floor (180s x 0.7) and, added a second time, past the 234s ceiling
+    // (180s x 1.3) too. Warmup/cooldown exist for safety, not just to spend the budgeted minutes,
+    // so one movement stopping the loop early is the bug this guarantees against.
+    const picked = selectWarmupCooldownGroup({
+      role: 'warmup',
+      pool: [ex('a'), ex('b')],
+      focus: 'abs',
+      userState: userState(),
+      today: TODAY,
+      rng: createRng(1),
+      targetSec: 180,
+    });
+    expect(picked.length).toBe(2);
+  });
+
+  it('still returns only one when the pool has just one eligible exercise', () => {
+    const picked = selectWarmupCooldownGroup({
+      role: 'warmup',
+      pool: [ex('a')],
+      focus: 'abs',
+      userState: userState(),
+      today: TODAY,
+      rng: createRng(1),
+      targetSec: 180,
+    });
+    expect(picked.map((e) => e.id)).toEqual(['a']);
+  });
+
   it('returns an empty array when the role pool is genuinely empty', () => {
     const picked = selectWarmupCooldownGroup({
       role: 'cooldown',

@@ -84,6 +84,18 @@ const WARMUP_COOLDOWN_GROUP_MAX = 4;
 const GROUP_FLOOR_RATIO = 0.7;
 /** Never accept a candidate that would push the running total past this multiple of target. */
 const GROUP_CEILING_RATIO = 1.3;
+/**
+ * A single long hold/movement (e.g. a 45s stretch) can alone exceed `GROUP_FLOOR_RATIO` of a
+ * short session's 3-minute warmup/cooldown floor, which used to stop the loop at one exercise —
+ * technically "budget met," but warmup/cooldown exist for safety (injury prevention, not just
+ * filling time), and one movement reads as thin no matter how the seconds add up. Below this
+ * count, the floor/ceiling checks are bypassed (never the pool-exhaustion checks — an empty pool
+ * still returns fewer) so the loop keeps reaching for a second, distinct exercise. The time this
+ * costs comes out of main-phase sets, never the other way around: `pipeline.ts` sizes the main
+ * budget off the *actual* prescribed warmup/cooldown seconds after this function returns, so
+ * spending more here is exactly "sacrifice main before warmup or cooldown," not a competing rule.
+ */
+const WARMUP_COOLDOWN_GROUP_MIN = 2;
 
 export function selectWarmupCooldownGroup(
   input: SelectWarmupCooldownInput & { targetSec: number },
@@ -97,16 +109,19 @@ export function selectWarmupCooldownGroup(
   const floor = input.targetSec * GROUP_FLOOR_RATIO;
   const ceiling = input.targetSec * GROUP_CEILING_RATIO;
   for (let i = 0; i < WARMUP_COOLDOWN_GROUP_MAX; i++) {
+    const belowMin = chosen.length < WARMUP_COOLDOWN_GROUP_MIN;
     // Check BEFORE fetching another candidate — already close enough, stop here. (Checking only
     // after fetching one more, as the previous version did, is what produced the systematic
-    // one-exercise-too-many overrun.)
-    if (totalSec >= floor) break;
+    // one-exercise-too-many overrun.) Skipped below the guaranteed minimum: one long hold can
+    // alone clear the floor, but warmup/cooldown are a safety floor, not just a time-fill target.
+    if (!belowMin && totalSec >= floor) break;
     const pick = selectWarmupCooldown({ ...input, excludeIds: usedIds });
     if (!pick) break;
     const entrySec = prescribeWarmupCooldown(pick, input.role).estimatedSec;
     // Always take at least one, even if it alone exceeds the ceiling (a single warmup movement
-    // longer than the budget is still better than none) — only reject the *next* one on that basis.
-    if (totalSec > 0 && totalSec + entrySec > ceiling) break;
+    // longer than the budget is still better than none) — only reject the *next* one on that
+    // basis, and only once the guaranteed minimum is already met.
+    if (!belowMin && totalSec > 0 && totalSec + entrySec > ceiling) break;
     chosen.push(pick);
     usedIds.add(pick.id);
     totalSec += entrySec;

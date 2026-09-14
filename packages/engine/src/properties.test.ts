@@ -215,8 +215,17 @@ describe('property: invariants hold across the full request sweep', () => {
                 expect(pushCount).toBe(pullCount);
               }
 
-              // Abs is never all-flexion when nothing forced a gap.
-              if (focus === 'abs' && plan.patternGaps.length === 0 && plan.main.length > 0) {
+              // Abs is never all-flexion when nothing forced a gap — same <25min compressed-
+              // template exemption as the push/pull balance check above: a tight budget now
+              // spends more of its room protecting the warmup/cooldown safety floor
+              // (`WARMUP_COOLDOWN_GROUP_MIN`), which can leave a 15-min abs session room for only
+              // one required pattern slot.
+              if (
+                focus === 'abs' &&
+                targetMinutes >= 25 &&
+                plan.patternGaps.length === 0 &&
+                plan.main.length > 0
+              ) {
                 const allFlexion = plan.main.every((e) => e.pattern === 'flexion');
                 expect(allFlexion).toBe(false);
               }
