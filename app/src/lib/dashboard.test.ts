@@ -8,6 +8,7 @@ import type { ProgressionState } from '@roamfit/engine';
 import type { ProgressionFamilyId } from '@roamfit/data';
 import {
   buildCalendarDays,
+  buildCalendarWeeks,
   buildLifetimeCounters,
   buildMuscleBalanceRows,
   buildPassportSummary,
@@ -249,6 +250,40 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
     expect(untravelled.marker).toBe('full');
     // A day with no manual entry falls back to the derived state.
     expect(days.find((d) => d.localDate === '2026-05-04')!.manualMarker).toBeNull();
+  });
+
+  it('lays the window out as real Sun–Sat weeks, padding the partial first/last week with null', () => {
+    // 2026-05-01 is a Friday, 2026-05-05 is a Tuesday.
+    const days = buildCalendarDays(
+      [summary('2026-05-03', { focus: 'upper' })],
+      '2026-05-05',
+      5,
+      new Set(),
+    );
+    const weeks = buildCalendarWeeks(days);
+    expect(weeks.length).toBe(2);
+    expect(weeks[0].map((d) => d?.localDate ?? null)).toEqual([
+      null,
+      null,
+      null,
+      null,
+      null,
+      '2026-05-01',
+      '2026-05-02',
+    ]);
+    expect(weeks[1].map((d) => d?.localDate ?? null)).toEqual([
+      '2026-05-03',
+      '2026-05-04',
+      '2026-05-05',
+      null,
+      null,
+      null,
+      null,
+    ]);
+  });
+
+  it('returns no weeks for an empty window', () => {
+    expect(buildCalendarWeeks([])).toEqual([]);
   });
 
   it('falls back to estimatedMinutes when actualMinutes is null (an abandoned-but-logged edge case)', () => {

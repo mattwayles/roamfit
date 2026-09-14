@@ -188,6 +188,37 @@ export interface CalendarDay {
   marker: DayMarker;
 }
 
+/** Sunday-first day-of-week labels for the calendar grid header. */
+export const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
+
+function localDateDayOfWeek(localDate: string): number {
+  const [y, m, d] = localDate.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+/** Lays the calendar window out as real weeks (Sun–Sat) so it can render as a calendar grid under
+ *  day-name headers, rather than as arbitrary fixed-length rows — a retroactive edit ("I was in
+ *  transit last Wednesday") needs the day under its actual weekday, not the Nth square from the
+ *  left. Cells outside the window but inside the first/last partial week are `null`; the caller
+ *  renders those as blank placeholders, never as another day. */
+export function buildCalendarWeeks(days: CalendarDay[]): (CalendarDay | null)[][] {
+  if (days.length === 0) return [];
+  const weeks: (CalendarDay | null)[][] = [];
+  let week: (CalendarDay | null)[] = new Array(localDateDayOfWeek(days[0].localDate)).fill(null);
+  for (const day of days) {
+    week.push(day);
+    if (week.length === 7) {
+      weeks.push(week);
+      week = [];
+    }
+  }
+  if (week.length > 0) {
+    while (week.length < 7) week.push(null);
+    weeks.push(week);
+  }
+  return weeks;
+}
+
 /** §14.1.6 calendar heatmap — the trailing `days`-day window ending today, one entry per
  *  calendar day (including untrained ones, so the caller can render them neutrally rather than
  *  simply omitting them, which would look like a gap). `travelLocalDates` are the dates §9.3's

@@ -56,11 +56,13 @@ import AbandonSessionButton from '../components/AbandonSessionButton';
 import { DISCLAIMER_TEXT } from './SettingsScreen';
 import {
   buildCalendarDays,
+  buildCalendarWeeks,
   buildLifetimeCounters,
   buildMuscleBalanceRows,
   buildPassportSummary,
   buildProgressionBoard,
   nextUnlockHero,
+  WEEKDAY_LABELS,
   type CalendarDay,
   type DayMarker,
   type FamilyBoardEntry,
@@ -77,7 +79,6 @@ import { runOpportunisticSync } from '../lib/opportunisticSync';
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 const CALENDAR_WINDOW_DAYS = 30;
-const CALENDAR_ROW_LENGTH = 10;
 
 /** §14.1.6 — the one-letter marker shown on a trained calendar day: a focus letter, or 'Q' for a
  *  Quick Session (§9.5), which is otherwise indistinguishable from a regular full-body session
@@ -401,11 +402,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   } = data;
   const suggestRecoveryWeek = statsRepo.shouldSuggestRecoveryWeek(stats);
   const isZeroSession = stats.lifetimeSessionCount === 0;
-  // 3 even rows of `CALENDAR_ROW_LENGTH` — `CALENDAR_WINDOW_DAYS` must divide evenly by it.
-  const calendarRows: CalendarDay[][] = [];
-  for (let i = 0; i < calendarDays.length; i += CALENDAR_ROW_LENGTH) {
-    calendarRows.push(calendarDays.slice(i, i + CALENDAR_ROW_LENGTH));
-  }
+  const calendarWeeks = buildCalendarWeeks(calendarDays);
 
   // §13.3 — the medical disclaimer must be shown on first launch, blocking, before any other
   // screen content. `hasAcknowledgedDisclaimer` is a one-way flag (usersRepo.acknowledgeDisclaimer)
@@ -554,42 +551,63 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
               <Text style={styles.travelButtonText}>I&apos;m in transit</Text>
             </Pressable>
           </View>
+          <View style={styles.calendarWeekdayRow}>
+            {WEEKDAY_LABELS.map((label, i) => (
+              <Text key={i} style={styles.calendarWeekdayLabel}>
+                {label}
+              </Text>
+            ))}
+          </View>
           <View style={styles.calendarGrid}>
-            {calendarRows.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.calendarRow}>
-                {row.map((day) => (
-                  <Pressable
-                    key={day.localDate}
-                    testID={`calendar-day-${day.localDate}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      day.marker === 'travel'
-                        ? 'Travel day — tap to edit'
-                        : day.marker === 'none'
-                          ? 'No workout — tap to edit'
-                          : day.marker === 'quick'
-                            ? 'Quick workout — tap to edit'
-                            : `${day.marker} workout — tap to edit`
-                    }
-                    style={[
-                      styles.calendarCell,
-                      day.marker === 'none'
-                        ? styles.calendarCellUntrained
-                        : styles.calendarCellWorkout,
-                    ]}
-                    onPress={() => setEditingDay(day.localDate)}
-                  >
-                    {day.marker === 'travel' && (
-                      <Text style={styles.calendarCellTransitIcon}>✈</Text>
-                    )}
-                    {day.marker === 'quick' && (
-                      <Text style={styles.calendarCellLetter}>{QUICK_LETTER}</Text>
-                    )}
-                    {day.marker !== 'none' && day.marker !== 'travel' && day.marker !== 'quick' && (
-                      <Text style={styles.calendarCellLetter}>{FOCUS_LETTER[day.marker]}</Text>
-                    )}
-                  </Pressable>
-                ))}
+            {calendarWeeks.map((week, weekIndex) => (
+              <View key={weekIndex} style={styles.calendarRow}>
+                {week.map((day, dayIndex) =>
+                  day === null ? (
+                    <View key={dayIndex} style={styles.calendarCell} />
+                  ) : (
+                    <Pressable
+                      key={day.localDate}
+                      testID={`calendar-day-${day.localDate}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        day.marker === 'travel'
+                          ? 'Travel day — tap to edit'
+                          : day.marker === 'none'
+                            ? 'No workout — tap to edit'
+                            : day.marker === 'quick'
+                              ? 'Quick workout — tap to edit'
+                              : `${day.marker} workout — tap to edit`
+                      }
+                      style={[
+                        styles.calendarCell,
+                        day.marker === 'none'
+                          ? styles.calendarCellUntrained
+                          : styles.calendarCellWorkout,
+                      ]}
+                      onPress={() => setEditingDay(day.localDate)}
+                    >
+                      <Text
+                        style={[
+                          styles.calendarCellDateNumber,
+                          day.marker === 'none' && styles.calendarCellDateNumberUntrained,
+                        ]}
+                      >
+                        {Number(day.localDate.split('-')[2])}
+                      </Text>
+                      {day.marker === 'travel' && (
+                        <Text style={styles.calendarCellTransitIcon}>✈</Text>
+                      )}
+                      {day.marker === 'quick' && (
+                        <Text style={styles.calendarCellLetter}>{QUICK_LETTER}</Text>
+                      )}
+                      {day.marker !== 'none' &&
+                        day.marker !== 'travel' &&
+                        day.marker !== 'quick' && (
+                          <Text style={styles.calendarCellLetter}>{FOCUS_LETTER[day.marker]}</Text>
+                        )}
+                    </Pressable>
+                  ),
+                )}
               </View>
             ))}
           </View>
@@ -1112,6 +1130,14 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   passportOptInText: { fontSize: 13, fontWeight: '600', color: '#334155' },
+  calendarWeekdayRow: { flexDirection: 'row', gap: 6, marginTop: 8 },
+  calendarWeekdayLabel: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94a3b8',
+  },
   calendarGrid: { gap: 6, marginTop: 4 },
   calendarRow: { flexDirection: 'row', gap: 6 },
   calendarCell: {
@@ -1123,6 +1149,15 @@ const styles = StyleSheet.create({
   },
   calendarCellUntrained: { backgroundColor: '#e2e8f0' },
   calendarCellWorkout: { backgroundColor: '#16a34a' },
+  calendarCellDateNumber: {
+    position: 'absolute',
+    top: 2,
+    left: 4,
+    fontSize: 9,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.85)',
+  },
+  calendarCellDateNumberUntrained: { color: '#64748b' },
   calendarCellTransitIcon: { fontSize: 11, lineHeight: 14, color: '#475569' },
   calendarCellLetter: { fontSize: 10, lineHeight: 14, fontWeight: '700', color: '#ffffff' },
   dayMarkerBackdrop: {
