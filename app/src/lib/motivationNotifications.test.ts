@@ -1,96 +1,36 @@
-import {
-  buildDailyNudgeText,
-  buildWeeklySummaryText,
-  clampToQuietHours,
-  observedTrainingHour,
-  sessionLocalHours,
-} from './motivationNotifications';
-
-describe("§9.8 sessionLocalHours — uses each session's own tzId, not the device's current one", () => {
-  it('derives the local hour from a UTC instant + tzId', () => {
-    // 2026-05-01T06:30:00Z is 18:30 in America/Los_Angeles the previous day, but the *hour*
-    // (18) is what matters, not the date rollover.
-    const hours = sessionLocalHours([{ startedAt: '2026-05-01T06:30:00.000Z', tzId: 'UTC' }]);
-    expect(hours).toEqual([6]);
-  });
-
-  it('the same instant produces a different hour under a different tzId', () => {
-    const utc = sessionLocalHours([{ startedAt: '2026-05-01T18:00:00.000Z', tzId: 'UTC' }]);
-    const tokyo = sessionLocalHours([
-      { startedAt: '2026-05-01T18:00:00.000Z', tzId: 'Asia/Tokyo' },
-    ]);
-    expect(utc[0]).not.toBe(tokyo[0]);
-  });
-
-  it('an unrecognized tzId is skipped rather than throwing', () => {
-    expect(
-      sessionLocalHours([{ startedAt: '2026-05-01T18:00:00.000Z', tzId: 'Not/A_Zone' }]),
-    ).toEqual([]);
-  });
-});
-
-describe('§9.8 observedTrainingHour — the mode, not the mean', () => {
-  it('picks the most frequent hour', () => {
-    expect(observedTrainingHour([7, 7, 7, 18, 20])).toBe(7);
-  });
-
-  it('returns null with no history — the caller falls back to a neutral default', () => {
-    expect(observedTrainingHour([])).toBeNull();
-  });
-});
+import { clampToQuietHours, shiftTime } from './motivationNotifications';
 
 describe('§9.8 quiet hours — never dropped, moved to a gentle default instead', () => {
-  it('leaves a daytime hour untouched', () => {
-    expect(clampToQuietHours(18)).toBe(18);
+  it('leaves a daytime time untouched', () => {
+    expect(clampToQuietHours('18:00')).toBe('18:00');
   });
 
-  it("moves a late-night hour to the quiet window's own end (7am), never silently drops it", () => {
-    expect(clampToQuietHours(23)).toBe(7);
-    expect(clampToQuietHours(3)).toBe(7);
+  it("moves a late-night time to the quiet window's own end (7am), never silently drops it", () => {
+    expect(clampToQuietHours('23:15')).toBe('07:00');
+    expect(clampToQuietHours('03:00')).toBe('07:00');
   });
 
-  it('the boundary hours themselves are handled consistently (start is quiet, end is not)', () => {
-    expect(clampToQuietHours(22)).toBe(7);
-    expect(clampToQuietHours(7)).toBe(7);
+  it('the boundary times themselves are handled consistently (start is quiet, end is not)', () => {
+    expect(clampToQuietHours('22:00')).toBe('07:00');
+    expect(clampToQuietHours('07:00')).toBe('07:00');
+  });
+
+  it('disabling quiet hours leaves any time untouched, including 3am', () => {
+    expect(clampToQuietHours('03:00', false)).toBe('03:00');
   });
 });
 
-describe('§9.8 copy — loss-aversion, never guilt', () => {
-  it('prefers a concrete Next Unlock line when one exists', () => {
-    const { body } = buildDailyNudgeText({
-      familyName: 'Horizontal Push',
-      sessionsRemaining: 2,
-    });
-    expect(body).toContain('2 sessions to next level');
-    expect(body.toLowerCase()).not.toMatch(/missed|fail|broke|streak/);
-    // ADR 0014 — a lock-screen preview must not spoil the unlock. This is the one surface seen
-    // by people who never opened the app to look at the board.
-    expect(body.toLowerCase()).not.toContain('archer');
+describe('shiftTime — the Settings time stepper, wraps around midnight', () => {
+  it('adds and subtracts minutes', () => {
+    expect(shiftTime('18:00', 15)).toBe('18:15');
+    expect(shiftTime('18:00', -15)).toBe('17:45');
   });
 
-  it('falls back to a still-positive line with no board data', () => {
-    const { body } = buildDailyNudgeText(null);
-    expect(body.length).toBeGreaterThan(0);
-    expect(body.toLowerCase()).not.toMatch(/missed|fail|broke/);
+  it('wraps forward past midnight', () => {
+    expect(shiftTime('23:50', 15)).toBe('00:05');
   });
 
-  it('weekly summary reports the count without shaming a miss', () => {
-    const { body } = buildWeeklySummaryText(
-      {
-        lifetimeSessionCount: 10,
-        lifetimeTotalMinutes: 300,
-        rolling7dLocalDates: [],
-        weekStreak: 2,
-        travelDaysThisWeek: 0,
-        estimateAccuracyEma: null,
-        lastSessionLocalDate: null,
-        weeksSinceLastRecoveryWeek: 1,
-      },
-      1,
-      3,
-    );
-    expect(body).toContain('1 of 3 sessions this week');
-    expect(body).toContain('2 week streak');
-    expect(body.toLowerCase()).not.toMatch(/missed|fail|behind/);
+  it('wraps backward past midnight', () => {
+    expect(shiftTime('00:10', -15)).toBe('23:55');
   });
 });

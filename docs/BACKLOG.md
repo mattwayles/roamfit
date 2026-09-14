@@ -55,6 +55,19 @@ sibling got drawn, which is exactly what anchoring avoids, so it needs a design 
 
 ## Future Features
 
+- **Daily motivation notifications — not verified on a real device/simulator.** The pool-based
+  scheduler (`app/src/lib/motivationMessages.ts` + `motivationNotifications.ts`, Settings' new
+  "Daily motivation" section) is Jest-proven only — real calls with the right arguments, never a
+  real iOS notification center. Same honest gap the rest of Wave 5's notification work already
+  carries (see `STATUS-5-motivation.md`). Needs an `expo run:ios` pass.
+- **Daily motivation's schedule window is 7 days, refreshed opportunistically (on Home
+  focus/open), same limitation already noted for the sync trigger below.** Because a local
+  notification can't run app code at delivery time, "skip today — already trained / marked in
+  transit" is only ever evaluated when the schedule is (re)built, not when it fires. If the app
+  genuinely isn't opened for more than 7 days, the tail of that window can fire on a day the user
+  already trained. No background task exists in this app to correct that without a reopen; fixing
+  it for real would need `expo-background-task`, a new native dependency and Expo dev-client
+  rebuild, deliberately not added for this.
 - **Cardio: an interval-circuit format.** Cardio sessions currently run as timed straight sets
   (work for time, short rest, next exercise — `CARDIO_INTERVAL_TABLE` in
   `prescription/difficultyTable.ts`). A true circuit — rounds of back-to-back stations on a

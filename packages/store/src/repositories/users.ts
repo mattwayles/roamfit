@@ -21,6 +21,13 @@ export interface NotificationPrefs {
   /** §9.8/§10.8 — issue #20. Off disables the 10pm-7am clamp entirely (notifications may land at
    *  any observed-training hour); on (the default) is the original always-on behavior. */
   quietHoursEnabled?: boolean;
+  /** Master on/off for the daily motivational-pool notification (a request-driven feature, not
+   *  from the deleted spec). Off cancels every scheduled one and stops scheduling new ones. */
+  motivationEnabled?: boolean;
+  /** "HH:MM" 24-hour local times, one per notification the user wants that day. Count is just
+   *  this array's length — there is no separate count field. User-editable in Settings; always
+   *  clamped through `quietHoursEnabled` at schedule time, never stored pre-clamped. */
+  motivationTimes?: string[];
 }
 
 /**
@@ -53,6 +60,8 @@ export const DEFAULT_BAND_TENSIONS: Record<BandId, BandTension> = {
 
 export const DEFAULT_NOTIFICATION_PREFS: Required<NotificationPrefs> = {
   quietHoursEnabled: true,
+  motivationEnabled: true,
+  motivationTimes: ['18:00'],
 };
 
 export interface UserRecord {

@@ -15,11 +15,14 @@
  * diagnostics panel is a straight `instrumentationRepo.computeInstrumentationSnapshot` read.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { instrumentationRepo, progressionStateRepo, usersRepo } from '@roamfit/store';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
+import { MAX_DAILY_MOTIVATION_TIMES, shiftTime } from '../lib/motivationNotifications';
+
+const DEFAULT_MOTIVATION_TIMES = ['18:00'];
 
 export const DISCLAIMER_TEXT =
   'RoamFit is a fitness tool, not a medical device or a substitute for professional medical ' +
@@ -85,6 +88,51 @@ export default function SettingsScreen(): React.JSX.Element {
     [db, refresh],
   );
 
+  const motivationTimes = user.notificationPrefs.motivationTimes ?? DEFAULT_MOTIVATION_TIMES;
+
+  const saveMotivationTimes = useCallback(
+    (times: string[]) => {
+      usersRepo.updateUser(db, { notificationPrefs: { motivationTimes: times } }, nowUtcInstant());
+      refresh();
+    },
+    [db, refresh],
+  );
+
+  const toggleMotivation = useCallback(
+    (value: boolean) => {
+      usersRepo.updateUser(
+        db,
+        { notificationPrefs: { motivationEnabled: value } },
+        nowUtcInstant(),
+      );
+      refresh();
+    },
+    [db, refresh],
+  );
+
+  const addMotivationTime = useCallback(() => {
+    if (motivationTimes.length >= MAX_DAILY_MOTIVATION_TIMES) return;
+    saveMotivationTimes([...motivationTimes, '18:00']);
+  }, [motivationTimes, saveMotivationTimes]);
+
+  const removeMotivationTime = useCallback(
+    (index: number) => {
+      // Always leave at least one — disabling the whole feature is what the master toggle is for.
+      if (motivationTimes.length <= 1) return;
+      saveMotivationTimes(motivationTimes.filter((_, i) => i !== index));
+    },
+    [motivationTimes, saveMotivationTimes],
+  );
+
+  const adjustMotivationTime = useCallback(
+    (index: number, deltaMinutes: number) => {
+      saveMotivationTimes(
+        motivationTimes.map((t, i) => (i === index ? shiftTime(t, deltaMinutes) : t)),
+      );
+    },
+    [motivationTimes, saveMotivationTimes],
+  );
+
   const togglePassport = useCallback(
     (value: boolean) => {
       usersRepo.updateUser(db, { passportEnabled: value }, nowUtcInstant());
@@ -121,6 +169,7 @@ export default function SettingsScreen(): React.JSX.Element {
   }, [db, families, library]);
 
   const quietHoursEnabled = user.notificationPrefs.quietHoursEnabled ?? true;
+  const motivationEnabled = user.notificationPrefs.motivationEnabled ?? true;
 
   const diagnosticsLines = useMemo(() => {
     if (!snapshot) return [];
@@ -205,6 +254,62 @@ export default function SettingsScreen(): React.JSX.Element {
             onValueChange={toggleQuietHours}
           />
         </View>
+
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>Daily motivation</Text>
+          <Switch
+            testID="toggle-motivation"
+            value={motivationEnabled}
+            onValueChange={toggleMotivation}
+          />
+        </View>
+        <Text style={styles.body}>
+          A short nudge picked from a large, always-varied pool — never the same message twice in a
+          row where avoidable. Skipped automatically on a day you've already trained or marked
+          &quot;I&apos;m in Transit,&quot; and every time below still respects quiet hours.
+        </Text>
+
+        {motivationEnabled && (
+          <View style={styles.motivationTimes} testID="motivation-times">
+            {motivationTimes.map((time, index) => (
+              <View key={index} style={styles.row} testID={`motivation-time-row-${index}`}>
+                <View style={styles.timeStepper}>
+                  <Pressable
+                    testID={`motivation-time-${index}-minus`}
+                    style={styles.stepperButton}
+                    onPress={() => adjustMotivationTime(index, -15)}
+                  >
+                    <Text style={styles.stepperButtonText}>−</Text>
+                  </Pressable>
+                  <Text style={styles.timeValue} testID={`motivation-time-${index}-value`}>
+                    {time}
+                  </Text>
+                  <Pressable
+                    testID={`motivation-time-${index}-plus`}
+                    style={styles.stepperButton}
+                    onPress={() => adjustMotivationTime(index, 15)}
+                  >
+                    <Text style={styles.stepperButtonText}>+</Text>
+                  </Pressable>
+                </View>
+                {motivationTimes.length > 1 && (
+                  <Text
+                    style={[styles.body, styles.destructiveAction]}
+                    testID={`motivation-time-${index}-remove`}
+                    onPress={() => removeMotivationTime(index)}
+                  >
+                    Remove
+                  </Text>
+                )}
+              </View>
+            ))}
+            {motivationTimes.length < MAX_DAILY_MOTIVATION_TIMES && (
+              <Text style={styles.body} onPress={addMotivationTime} testID="motivation-time-add">
+                + Add a time ({motivationTimes.length}/{MAX_DAILY_MOTIVATION_TIMES} per day)
+              </Text>
+            )}
+          </View>
+        )}
       </Section>
 
       <Section title="Diagnostics">
@@ -244,4 +349,16 @@ const styles = StyleSheet.create({
   rowLabel: { fontSize: 14, flexShrink: 1, paddingRight: 12 },
   diagnosticsLine: { fontSize: 12, color: '#64748b' },
   destructiveAction: { color: '#b91c1c', fontWeight: '600' },
+  motivationTimes: { gap: 8 },
+  timeStepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepperButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperButtonText: { fontSize: 16, fontWeight: '600', color: '#334155' },
+  timeValue: { fontSize: 14, fontVariant: ['tabular-nums'], minWidth: 48, textAlign: 'center' },
 });

@@ -56,6 +56,28 @@ describe('notificationPrefs — shallow merge, not replace', () => {
     }
   });
 
+  it('a motivationTimes patch does not clobber quietHoursEnabled, and vice versa', () => {
+    const { db, close } = createTestDb();
+    try {
+      ensureUser(db, utcInstantFor('2026-08-01'));
+      updateUser(
+        db,
+        { notificationPrefs: { quietHoursEnabled: false } },
+        utcInstantFor('2026-08-01'),
+      );
+      updateUser(
+        db,
+        { notificationPrefs: { motivationTimes: ['08:00', '13:00'] } },
+        utcInstantFor('2026-08-02'),
+      );
+      const prefs = getUser(db)!.notificationPrefs;
+      expect(prefs.quietHoursEnabled).toBe(false);
+      expect(prefs.motivationTimes).toEqual(['08:00', '13:00']);
+    } finally {
+      close();
+    }
+  });
+
   it('mutation check: a wholesale-replace implementation would lose an unrelated existing key', () => {
     // Seeds a field the current `NotificationPrefs` interface doesn't declare (forward-
     // compatibility: a future settings field, or data written by an older/newer build) directly

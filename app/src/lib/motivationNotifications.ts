@@ -1,114 +1,39 @@
 /**
- * §9.8 notifications — adaptive to the *observed* training window, max one per day, quiet hours,
- * device tz, never guilt-based (loss-aversion framing preferred), Sunday weekly summary.
+ * Daily motivational push notifications — a request-driven feature (see CLAUDE.md: this app is
+ * now driven by user feedback, not the deleted spec). Requirements, verbatim from the request:
+ * a large pool of varied messages randomly picked each day (not the same nudge every time); skip
+ * the day entirely once a workout is already done or the day is marked "in transit"; a Settings
+ * on/off switch; a user-chosen count of notifications per day, each at a user-chosen time; and
+ * every one of those times still respects the existing quiet-hours setting.
  *
- * Architecture for "max one per day": rather than one repeating daily notification with content
- * fixed forever at schedule time, this schedules **seven** weekday-scoped local notifications
- * (identifiers `motivation-nudge-0..6`, 0=Sunday) via `expo-notifications`' calendar trigger
- * (`{ weekday, hour, minute, repeats: true }`) — exactly one per calendar day, which is what
- * makes "max one per day" a structural property instead of a rule the caller has to remember.
- * Sunday's carries the weekly-summary copy; the other six carry the adaptive loss-aversion nudge.
- * `scheduleMotivationNotifications` re-schedules all seven every time it's called (cheap,
- * idempotent via fixed identifiers — a re-schedule replaces, never accumulates), so content stays
- * reasonably fresh across app opens without needing a background task.
+ * This supersedes the earlier "seven fixed weekday triggers, one adaptive nudge + a Sunday
+ * summary" design (STATUS-5-motivation.md) — that scheme had no user-facing count/time controls
+ * and no per-day skip, both now explicitly requested. The weekly-summary/streak copy isn't gone,
+ * it's folded into the pool (`motivationMessages.ts`'s `streak-*` templates) since there's no
+ * more "always Sunday" slot once times are user-chosen.
  *
- * `expo-notifications` imports and calls cleanly under Jest (see `workoutNotifications.ts`'s
- * header — already established in Wave 4b) so no lazy-loader guard is needed here, but exactly
- * like that file, nothing here can prove a notification actually appears on a real device; that
- * is unverified-in-Jest and recorded honestly in STATUS-5-motivation.md.
+ * **Honest limitation, same shape as the backlog's existing "sync trigger is weak" note**: local
+ * notifications can't run app code at delivery time, so "already done today"/"in transit today"
+ * can only be evaluated at *schedule* time, not fire time. This module schedules a rolling
+ * `SCHEDULE_WINDOW_DAYS`-day window of one-shot notifications and gets re-run opportunistically
+ * (on every Home focus, and therefore also right after marking a travel day or finishing a
+ * session, both of which return to Home) — see `HomeScreen.tsx`'s `load()`. If the app genuinely
+ * isn't opened for that many days, the tail of the window can fire on a day the user already
+ * trained; there is no background task in this app to correct that without a reopen.
  */
 import * as Notifications from 'expo-notifications';
-import type { sessionsRepo, statsRepo } from '@roamfit/store';
-import type { NextUnlockHero } from './dashboard';
+import { addDays, createRng, seedFromString } from '@roamfit/engine';
+import { buildMotivationPool, pickDailyMessages } from './motivationMessages';
+import type { MotivationContext } from './motivationMessages';
 
-const IDENTIFIER_PREFIX = 'motivation-nudge-';
+const IDENTIFIER_PREFIX = 'motivation-slot-';
 const QUIET_HOURS_START = 22; // 10pm
 const QUIET_HOURS_END = 7; // 7am
-const DEFAULT_HOUR = 18; // 6pm — used when there isn't yet an observed training window
-const WEEKLY_SUMMARY_HOUR = 18;
-const SUNDAY = 0;
-
-/** The local hour-of-day (0-23) each session actually started in, using that *session's own*
- *  `tzId` (§12invariant 6's sibling rule for time-of-day) — not the device's current timezone,
- *  which would misrepresent a traveler's history. */
-export function sessionLocalHours(startTimes: sessionsRepo.SessionStartTime[]): number[] {
-  return startTimes
-    .map(({ startedAt, tzId }) => {
-      try {
-        const formatted = new Intl.DateTimeFormat('en-US', {
-          timeZone: tzId,
-          hour: 'numeric',
-          hour12: false,
-        }).format(new Date(startedAt));
-        const hour = Number(formatted.replace(/[^\d]/g, ''));
-        return Number.isFinite(hour) ? hour % 24 : null;
-      } catch {
-        return null;
-      }
-    })
-    .filter((h): h is number => h !== null);
-}
-
-/** The single most common training hour, or `null` with too little history to say anything
- *  (the caller falls back to a neutral default rather than guessing). */
-export function observedTrainingHour(hours: number[]): number | null {
-  if (hours.length === 0) return null;
-  const counts = new Map<number, number>();
-  for (const h of hours) counts.set(h, (counts.get(h) ?? 0) + 1);
-  let best = hours[0];
-  let bestCount = 0;
-  for (const [hour, count] of counts) {
-    if (count > bestCount) {
-      best = hour;
-      bestCount = count;
-    }
-  }
-  return best;
-}
-
-/** Quiet hours (§9.8) — a fixed 10pm-7am window, on by default. Wave 7 (issue #20) added a
- *  settings-screen toggle to turn the whole clamp off (`enabled=false`); there is still no
- *  arbitrary custom-hours picker, a deliberate scope cut recorded in STATUS-7-acceptance.md. An
- *  hour inside the window is moved to the window's own end (a gentle morning default), never
- *  silently dropped — the user still gets exactly one notification that day, just not at 3am. */
-export function clampToQuietHours(hour: number, enabled = true): number {
-  if (!enabled) return hour;
-  const inQuiet =
-    QUIET_HOURS_START > QUIET_HOURS_END
-      ? hour >= QUIET_HOURS_START || hour < QUIET_HOURS_END
-      : hour >= QUIET_HOURS_START && hour < QUIET_HOURS_END;
-  return inQuiet ? QUIET_HOURS_END : hour;
-}
-
-/** §9.8 — loss-aversion framing, never guilt. Prefers a concrete Next Unlock line (the example
- *  the spec itself gives); falls back to a still-positive, still-not-guilt generic line when
- *  there's no board data yet (shouldn't happen once `hasEverCompletedSession`, but defensive). */
-export function buildDailyNudgeText(hero: NextUnlockHero | null): { title: string; body: string } {
-  if (hero) {
-    return {
-      title: 'RoamFit',
-      // ADR 0014 — a lock-screen notification is the last place to spoil an unlock: it is seen
-      // by people who never opened the app to look.
-      body: `${hero.sessionsRemaining} ${hero.sessionsRemaining === 1 ? 'session' : 'sessions'} to next level.`,
-    };
-  }
-  return { title: 'RoamFit', body: 'Your next session is ready whenever you are.' };
-}
-
-/** §9.8 Sunday weekly summary — also the §9.10 recap-card source text (a share card is just this
- *  same string rendered, per the "no new backend" rule). */
-export function buildWeeklySummaryText(
-  stats: statsRepo.RolledUpStatsRecord,
-  rollingCount: number,
-  weeklyTarget: number,
-): { title: string; body: string } {
-  return {
-    title: 'Your week',
-    body: `${rollingCount} of ${weeklyTarget} sessions this week${
-      stats.weekStreak > 0 ? ` · ${stats.weekStreak} week streak` : ''
-    }.`,
-  };
-}
+/** How many days ahead to keep scheduled — see the module doc's "honest limitation." */
+const SCHEDULE_WINDOW_DAYS = 7;
+/** Hard ceiling on notifications/day, enforced in Settings too — keeps the scheduled total well
+ *  under iOS's ~64-pending-notification budget even at the full 7-day window. */
+export const MAX_DAILY_MOTIVATION_TIMES = 5;
 
 let permissionRequested = false;
 
@@ -123,52 +48,123 @@ export async function ensureNotificationPermission(): Promise<void> {
   }
 }
 
-export interface ScheduleMotivationNotificationsInput {
-  startTimes: sessionsRepo.SessionStartTime[];
-  hero: NextUnlockHero | null;
-  stats: statsRepo.RolledUpStatsRecord;
-  rollingCount: number;
-  weeklyTarget: number;
-  /** Issue #20 — user-editable via Settings. Defaults true (unchanged behavior) when omitted. */
-  quietHoursEnabled?: boolean;
+/** A "HH:MM" local time, clamped out of the 10pm-7am quiet window when it's enabled. Moved to
+ *  the window's own end (a gentle morning default), never silently dropped — matches the
+ *  original single-nudge behavior's rule, just applied per user-chosen time instead of once. */
+export function clampToQuietHours(time: string, enabled = true): string {
+  const [hour, minute] = parseTime(time);
+  if (!enabled) return time;
+  const inQuiet =
+    QUIET_HOURS_START > QUIET_HOURS_END
+      ? hour >= QUIET_HOURS_START || hour < QUIET_HOURS_END
+      : hour >= QUIET_HOURS_START && hour < QUIET_HOURS_END;
+  return inQuiet ? formatTime(QUIET_HOURS_END, 0) : formatTime(hour, minute);
 }
 
-/** Re-schedules all seven weekday notifications. Safe to call on every app open once the user
- *  has ever completed a session — cancels+replaces by fixed identifier, never accumulates. */
+function parseTime(time: string): [number, number] {
+  const [h, m] = time.split(':').map((n) => Number(n));
+  return [Number.isFinite(h) ? h : 18, Number.isFinite(m) ? m : 0];
+}
+
+function formatTime(hour: number, minute: number): string {
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+/** Settings' time-of-day stepper — a plain +/- N minutes on a "HH:MM" string, wrapping around
+ *  midnight. No new date-picker dependency (none is installed, see backlog's native-wheel-picker
+ *  item) — a stepper is enough for a handful of daily times and needs no native rebuild. */
+export function shiftTime(time: string, deltaMinutes: number): string {
+  const [h, m] = parseTime(time);
+  const minutesPerDay = 24 * 60;
+  let total = (h * 60 + m + deltaMinutes) % minutesPerDay;
+  if (total < 0) total += minutesPerDay;
+  return formatTime(Math.floor(total / 60), total % 60);
+}
+
+export interface ScheduleMotivationNotificationsInput {
+  /** Off cancels everything scheduled and schedules nothing new. */
+  motivationEnabled: boolean;
+  /** "HH:MM" 24-hour local times — one notification/day per entry. Empty = none scheduled. */
+  motivationTimes: string[];
+  quietHoursEnabled: boolean;
+  motivationContext: MotivationContext;
+  /** Today's local date (`YYYY-MM-DD`), for both the schedule window's start and the daily rng
+   *  seed — same date format used everywhere else in the store (invariant 6). */
+  todayLocalDate: string;
+  /** Today already has a completed session, or is marked "in transit" — skip today's slots
+   *  entirely (both explicitly requested). Days after today are scheduled regardless, since
+   *  tomorrow's state isn't knowable yet — see the module doc. */
+  skipToday: boolean;
+  /** Injected so tests don't depend on real wall-clock time; defaults to `new Date()`. */
+  now?: Date;
+}
+
+/** Re-derives the full rolling window and replaces every previously-scheduled identifier. Safe
+ *  to call on every Home open (matches the app's existing opportunistic-refresh pattern, e.g.
+ *  `runOpportunisticSync`) — cancel+reschedule by fixed identifier never accumulates. */
 export async function scheduleMotivationNotifications(
   input: ScheduleMotivationNotificationsInput,
 ): Promise<void> {
-  const observedHour = observedTrainingHour(sessionLocalHours(input.startTimes));
-  const nudgeHour = clampToQuietHours(
-    observedHour ?? DEFAULT_HOUR,
-    input.quietHoursEnabled ?? true,
-  );
-  const nudge = buildDailyNudgeText(input.hero);
-  const summary = buildWeeklySummaryText(input.stats, input.rollingCount, input.weeklyTarget);
+  const times = input.motivationTimes.slice(0, MAX_DAILY_MOTIVATION_TIMES);
 
-  for (let weekday = 0; weekday < 7; weekday += 1) {
-    const identifier = `${IDENTIFIER_PREFIX}${weekday}`;
-    try {
-      await Notifications.cancelScheduledNotificationAsync(identifier);
-    } catch {
-      // Nothing scheduled yet — fine.
-    }
-    const isSunday = weekday === SUNDAY;
-    const content = isSunday ? summary : nudge;
-    const hour = isSunday ? WEEKLY_SUMMARY_HOUR : nudgeHour;
-    try {
-      await Notifications.scheduleNotificationAsync({
-        identifier,
-        content: { title: content.title, body: content.body },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-          weekday: weekday + 1, // expo-notifications: 1=Sunday..7=Saturday
-          hour,
-          minute: 0,
-        },
-      });
-    } catch {
-      // Best-effort — denied permission or no native module must never block the app.
+  // Cancel the widest window this module could ever have scheduled, regardless of today's
+  // slot count — a lower count than last time must not leave orphaned notifications behind.
+  for (let dayOffset = 0; dayOffset < SCHEDULE_WINDOW_DAYS; dayOffset += 1) {
+    for (let slot = 0; slot < MAX_DAILY_MOTIVATION_TIMES; slot += 1) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(
+          `${IDENTIFIER_PREFIX}${dayOffset}-${slot}`,
+        );
+      } catch {
+        // Nothing scheduled at that identifier yet — fine.
+      }
     }
   }
+
+  if (!input.motivationEnabled || times.length === 0) return;
+
+  const now = input.now ?? new Date();
+  const pool = buildMotivationPool(input.motivationContext);
+
+  for (let dayOffset = 0; dayOffset < SCHEDULE_WINDOW_DAYS; dayOffset += 1) {
+    if (dayOffset === 0 && input.skipToday) continue;
+
+    const dateLabel = addDays(input.todayLocalDate, dayOffset);
+    const rng = createRng(seedFromString(`motivation-${dateLabel}`));
+    const messages = pickDailyMessages(pool, times.length, rng);
+
+    for (let slot = 0; slot < times.length; slot += 1) {
+      const clamped = clampToQuietHours(times[slot], input.quietHoursEnabled);
+      const [hour, minute] = parseTime(clamped);
+      const fireAt = dateForLocalTime(input.todayLocalDate, dayOffset, hour, minute);
+      if (fireAt.getTime() <= now.getTime()) continue; // already passed — today's slot only
+
+      const message = messages[slot];
+      try {
+        await Notifications.scheduleNotificationAsync({
+          identifier: `${IDENTIFIER_PREFIX}${dayOffset}-${slot}`,
+          content: { title: message.title, body: message.body },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireAt },
+        });
+      } catch {
+        // Best-effort — denied permission or no native module must never block the app.
+      }
+    }
+  }
+}
+
+/** `todayLocalDate` + `dayOffset` days, at `hour:minute` *local to this device* — local
+ *  notifications fire in the device's own timezone, so building the trigger `Date` from the
+ *  device's local components (not a UTC-parsed instant, invariant 6's app-layer counterpart) is
+ *  the correct thing here, unlike persisted session timestamps. */
+function dateForLocalTime(
+  todayLocalDate: string,
+  dayOffset: number,
+  hour: number,
+  minute: number,
+): Date {
+  const [y, m, d] = todayLocalDate.split('-').map(Number);
+  const base = new Date(y, (m ?? 1) - 1, d ?? 1, hour, minute, 0, 0);
+  base.setDate(base.getDate() + dayOffset);
+  return base;
 }

@@ -190,19 +190,24 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       lifetimeCounters,
     });
 
-    // §9.8 — re-schedule the seven weekday notifications on every Home open (cheap, idempotent by
-    // fixed identifier). Gated on `hasEverCompletedSession` — a fresh install with nothing to be
-    // "adaptive" about yet shouldn't be prompted for notification permission or nagged at all,
+    // Daily motivation pool — re-derive the rolling schedule on every Home open (cheap,
+    // idempotent by fixed identifier; same opportunistic-refresh pattern as `runOpportunisticSync`
+    // below). This is also what makes "skip today once a workout's done or it's a travel day"
+    // take effect promptly: both the travel button and finishing a session route back to Home,
+    // which re-runs `load()`. Gated on `hasEverCompletedSession` — a fresh install with nothing to
+    // be adaptive about yet shouldn't be prompted for notification permission or nagged at all,
     // consistent with §1.1's "never punish/never pressure" register extended to onboarding.
     if (user.hasEverCompletedSession) {
+      const alreadyCompletedToday = stats.lastSessionLocalDate === clock.today;
+      const isTravelDayToday = travelLocalDates.has(clock.today);
       void ensureNotificationPermission().then(() =>
         scheduleMotivationNotifications({
-          startTimes: sessionsRepo.getCompletedSessionStartTimes(db),
-          hero: nextUnlockHero(board),
-          stats,
-          rollingCount: statsRepo.rollingSessionCount(stats, clock.today),
-          weeklyTarget: user.weeklyTarget,
+          motivationEnabled: user.notificationPrefs.motivationEnabled ?? true,
+          motivationTimes: user.notificationPrefs.motivationTimes ?? ['18:00'],
           quietHoursEnabled: user.notificationPrefs.quietHoursEnabled ?? true,
+          motivationContext: { hero: nextUnlockHero(board), weekStreak: stats.weekStreak },
+          todayLocalDate: clock.today,
+          skipToday: alreadyCompletedToday || isTravelDayToday,
         }),
       );
     }
