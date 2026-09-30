@@ -42,18 +42,25 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
   `Sheet`, `Screen adjustForKeyboard`, legacy light override removed for Summary,
   `SummaryScreen.presentation.test.tsx` — b53f55a
 
+- [x] F1 Field Guide (`ExercisesScreen.tsx`, §5.3): own header, search, chip row + Filters `Sheet`, avatar rows, EmptyState;
+  `FOCUS_TONE` moved to `lib/focusLabels.ts`; Icon `up`/`down`/`fitness`; Tabs no longer show a header or the legacy
+  scene — 23d1c2a
+- [x] F2 Exercise detail (`ExerciseDetailScreen.tsx`, §5.4): hero + StatTiles + section cards + spec grid + Switch row;
+  `EmptyState` gained `bodyTestID`; stack header off for this route — a58e489
+- [x] F3 Settings (`SettingsScreen.tsx`, §5.10) + `SettingsScreen.test.tsx`; `legacyLightScene` / `legacyLightContent` /
+  `LEGACY_SCENE` deleted from `navigation/screenOptions.ts` (nothing used them) — 08c9174
+
 ### In progress
-- **Phase F (Field Guide, Exercise detail, Settings)** in progress, three increments, one commit each:
-  F1 Field Guide (`ExercisesScreen.tsx`, header hidden in `Tabs.tsx`, `FOCUS_TONE` moved to
-  `lib/focusLabels.ts`, Icon names `up`/`down`/`fitness`); F2 Exercise detail; F3 Settings + delete the
-  legacy light-scene mechanism in `navigation/screenOptions.ts`. Decision: Field Guide header scrolls with
-  the list (it is the FlatList's `ListHeaderComponent`); filters live in a `Sheet` with testID `filter-panel`.
+- Phase F is complete and `npm run check` is green. Next agent: Phase G (below).
 
 ### Next (sequential — each phase is one agent run, several small commits)
-- **F. Field Guide + Exercise detail + Settings** (§5.3, §5.4, §5.10).
 - **G. Sweep** (§5.11, §7 "zero off-system surfaces") — grep for raw hex/fontSize/fontWeight/
-  glyph icons outside theme/ui, empty + loading states, keyboard accessories, remove dead styles
-  and OptionPicker if unused, BACKLOG updates (device rebuild owed, app icon art).
+  glyph icons outside theme/ui, empty + loading states, keyboard accessories (fold `RepsAccessoryBar` /
+  `PinnedNote`'s bar into `KeyboardDoneBar`, see BACKLOG), remove dead styles, BACKLOG updates (device rebuild
+  owed, app icon art). Phase F leaves no legacy light override anywhere, so nothing to delete there.
+  Known tail for the sweep: `navigation/screenOptions.ts` reads `type.h2.fontSize` (a token, not a literal, but a
+  naive `fontSize:` grep hits it); `SettingsScreen` has one `fontFamily: 'Menlo'` for the diagnostics well (intentional:
+  monospace, per §5.10); app version in the Settings footer is still omitted (see Phase F reference).
 
 ### Decisions / gotchas
 - `react-native-svg` is native: the app needs a dev-client rebuild (`npm run ios`) after phase A.
@@ -122,12 +129,9 @@ longer resolves. `open-exercises` on Home still works (sibling tab navigate).
 `headerTransparent`, so content is not pushed under the header). Tab screens still get a tab-navigator
 header (with the old titles in caps) so Home/Exercises keep their top inset; phases C/F set
 `headerShown: false` and draw their own headers with `<Screen edges={['top','left','right']}
-safeBottom={false}>`. **Workout is migrated (phase B): `headerShown: false`, no legacy scene.** **Un-migrated screens
-sit on the old light scene color**: `legacyLightContent` (stack `contentStyle`) is now **opt-in per
-screen** in `navigation/RootNavigator.tsx` (Generate, Approval, Summary, Settings, ExerciseDetail
-spread it into their own `options`); `legacyLightScene` (tab `sceneStyle`) is still on the tabs.
-When a phase migrates a screen, give it `<Screen>` and delete its spread (phase G removes the
-constants once none remain).
+safeBottom={false}>`. **Workout is migrated (phase B): `headerShown: false`, no legacy scene.** **(Phase F: every screen is migrated
+and the legacy light scene — `legacyLightContent` / `legacyLightScene` / `LEGACY_SCENE` — is deleted; the tab
+navigator has `headerShown: false` and a `bg` scene for all three tabs.)**
 
 ### Phase B reference (Active Workout) — for phases C-G
 
@@ -383,3 +387,64 @@ whole rendered tree, confetti included, for every violet the old page and the pa
 - **Not verified on a device/simulator** (Jest only): see the BACKLOG item "Golden Hour Debrief + Completion are
   Jest-verified only".
 
+### Phase F reference (Field Guide + Exercise detail + Settings) — for phase G
+
+**Field Guide (`ExercisesScreen.tsx`)**: `Screen padded={false} edges top/left/right` > `FlatList exercise-list` whose
+`ListHeaderComponent` (so the header scrolls away and rows stay virtualised) holds an `Enter` title block (gold eyebrow "Every
+move we know", `display` "Field guide", live `exercise-count` = "N moves" / "1 move", an `h2` whose `props.children[0]` is still the
+number), the search well (`exercise-search`, `clear-search` only while there is text), and a horizontal chip row: `toggle-filters`
+(ember-outlined when active, badge `filters-badge` = applied count), removable ember chips for applied filters the row has no
+chip for (`active-filter-${key}-${value}`), then quick toggles `quick-filter-focus-${focus}` (focus-toned), `quick-filter-needs-video`,
+`quick-filter-completed`; `clear-filters-inline` under the row when anything is applied. `Sheet testID="filter-panel"` holds every
+group with the *unchanged* `filter-video-*` / `filter-performed-*` / `filter-${key}-${value}` ids, `clear-filters` (Clear all, in the
+sheet header, only when applied) and a primary `filters-done` ("Show N moves"). Rows `exercise-card-${id}` (`React.memo`, a
+`PressableScale haptic={false}`): 52pt `radius.md` avatar tinted `tints[FOCUS_TONE[exercise.focus[0]]]` with a `PATTERN_ICON` glyph (the
+single pattern -> icon map, `Record<Pattern, IconName>` so a new pattern is a compile error), `h3` name, `small` muscle,
+`exercise-card-count-${id}` (ember `×N` chip once performed; a quiet caption "Not done yet" otherwise), muted `No video` /
+`Disabled` chips (`exercise-card-no-video-` / `exercise-card-disabled-`), `opacity: 0.5` when disabled. No SVG in rows.
+`exercise-empty` = `EmptyState` (gold search icon, "No moves match yet", a Clear filters button when filters are on).
+
+**Exercise detail (`ExerciseDetailScreen.tsx`)**: stack header **off** for this route (`headerShown: false`; swipe-back still works);
+the hero draws its own `detail-back` `IconButton`. Hero = focus-tone gradient (`accentGradient`, cardio borrows rose -> emberDeep
+from tokens) + `TopoPattern seed={exercise.id} strength 1.6`, rounded bottom corners, `detail-name` `display`, subtitle, aliases; text is
+`ink`, except the violet legs gradient which takes `text` (ink would be ~3.9:1 there). Then two `StatTile`s (`detail-times-completed`
+ember, `detail-last-performed` gold — the second is now always shown, "Not yet" when never done), `PinnedNote`, How to `Card`
+(`detail-setup`), `DemoMedia` (its own card, `defaultOpen`), Progress (a `Card` with `detail-progress-summary`, `detail-chart` of
+sunrise-gradient bars, and `detail-gain-${label}` `Chip`s — improved = ember + trending-up icon, label "Best set · 6 reps → 8 reps"; or,
+with no history, an `EmptyState` whose body carries `detail-progress-summary`), Details (2-column grid of `surface2` `detail-field-${label}`
+tiles, `wide` for Progression / Contraindications, `detail-field-Library id` caption last), and the `toggle-exercise-disabled` row: a
+`PressableScale` (role switch, `accessibilityState.checked` = *enabled*) containing `toggle-exercise-disabled-switch`. The switch reads ON when the
+exercise is in workouts (the inverse of the stored `disabledAt`); copy keeps "Currently appears in workouts" / "Currently hidden from workouts".
+
+**Settings (`SettingsScreen.tsx`)**: header title is `''` (native header kept for back) and the screen draws an `h1` "Settings". Groups
+(`settings-section-${title}`, in order): Training (`toggle-cue-sounds`, gold volume), Motivation (`toggle-motivation` sparkles +
+`toggle-quiet-hours` moon, ember; `motivation-times` > `motivation-time-row-${i}` pill with `-minus` / `-value` / `-plus` and a trailing
+`-remove` IconButton when there is more than one, dashed `motivation-time-add`), Travel & privacy (`toggle-passport`, sky; the three
+privacy paragraphs as captions under the group), Apple Health (`toggle-healthkit-write`, lagoon), Medical disclaimer (its own gold-shield `Card`,
+`settings-section-Medical disclaimer`, `disclaimer-text`), Advanced (`settings-advanced-toggle` disclosure, collapsed; expands to Diagnostics
+— `load-diagnostics`, `diagnostics-lines` well in Menlo — and `reset-progression-sessions`). Reset confirm = `Sheet` `reset-sheet`:
+`reset-confirm-cancel` ("Keep my progress", primary) and `reset-confirm-yes` ("Reset ladders", secondary). Persistence is byte-identical (each toggle
+is the same `usersRepo.updateUser` patch; reset is the same `progressionStateRepo.resetAllProgressionSessions` call, now behind the sheet instead
+of `Alert`). Every `toggle-*` id is on the ROW (`accessibilityState.checked` = value) with the `Switch` twin at `${id}-switch` (hidden from
+VoiceOver, so tests query it `{ hidden: true }`). The Settings screen had no tests before; `SettingsScreen.test.tsx` is new.
+
+**Deviations from DESIGN.md §5.3/§5.4/§5.10 (all deliberate)**:
+- Field Guide: the count reads "N moves" even when filtered (no "of 247"); the title block scrolls with the list rather than pinning (only the
+  Filters chip row would be a candidate for sticking — left off so rows get the room on a small phone). A "Not done yet" row shows a caption,
+  not a muted chip (a column of muted pills is the boring list being replaced); the spec's "muted chips" are the no-video / disabled ones.
+- Field Guide: quick row = Filters + applied extras + the five focus chips + Needs video + Completed (the spec said "active/most-used";
+  these five focus values are the only filter every user understands without a legend).
+- Detail: header is hidden and the hero carries a back `IconButton` (spec allowed either). The Last-performed tile always renders.
+- Detail: the old loud red/green Disable/Enable button is now the "Use in workouts" switch row (no red); its accessibility label keeps the old
+  Enable/Disable sentences. Because the switch reads enabled-is-on, the row's checked state is the inverse of `disabledAt`.
+- Settings: **the app version is omitted** from the footer. `expo-constants` is not a declared dependency of `app` (only hoisted in via `expo`), and the
+  task said not to add one; add it (and read `Constants.expoConfig?.version`) in phase G or later if wanted. The footer is wordmark + "Train anywhere."
+- Settings: the "Load diagnostics" intro lost its "(§15)" dead pointer; the Advanced disclosure row is labelled "Diagnostics & reset".
+- Settings: Training/Motivation explanatory copy moved from under the row to under the group card (captions) — same text.
+
+**Gotchas**:
+- `Switch` here is a Pressable (`onPress` -> `onValueChange(!value)`), not the RN `Switch`: tests press it, there is no `valueChange` event.
+- A Sheet unmounts after its exit animation: tests that assert it "closed" `waitFor` (the reset test does).
+- The tab screens stay mounted under a pushed stack screen, so a test looking for `topo-pattern-*` / other shared testIDs after opening
+  Exercise detail sees Today's hero too — use `getAllByTestId` (see `ExerciseDetailScreen.test.tsx`).
+- Not verified on a device/simulator (Jest only): see the BACKLOG item "Golden Hour Field Guide + Exercise detail + Settings are Jest-verified only".

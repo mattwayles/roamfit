@@ -44,6 +44,16 @@ the record of what was completed and why.
   a 6.1" phone, the glow orbs' warmth against `bg`, the gold sunburst, the stamped highlight card, and the
   breathing glow behind "Heck yes!". Deviations from DESIGN.md §5.8/§5.9 are in
   `docs/handoff/STATUS-21-ui-redesign.md`.
+- **Golden Hour Field Guide + Exercise detail + Settings are Jest-verified only** (same `npm run ios` dev-client
+  rebuild owed as the items above). Check on a device: the Field Guide's header scrolling away under a 247-row
+  list, the quick chip row's horizontal scroll bleeding off the gutter, the Filters `Sheet` height with every group
+  open (and its "Show N moves" button), row heights with long names + three right-hand chips, the detail hero
+  (status bar over the gradient, bounce overscroll revealing `bg` above it, long names fitting `adjustsFontSizeToFit`,
+  the violet legs hero text contrast), the 2-column spec grid with wide tiles, the gradient chart bars, and Settings'
+  motivation time pills with five times, the dashed Add row, the Advanced disclosure and the reset `Sheet`.
+  Deviations from DESIGN.md §5.3/§5.4/§5.10 are in `docs/handoff/STATUS-21-ui-redesign.md`.
+- **Show the app version in Settings' footer.** `expo-constants` is hoisted in by `expo` but not declared in
+  `app/package.json`; add it (`npx expo install expo-constants`) and read `Constants.expoConfig?.version`.
 - **"This week" strip shows blank cells at a month edge.** It is derived from the Logbook's
   month-only `buildCalendarWeeks`, so the days of the week that fall in the neighbouring month are
   empty placeholders (up to 6 on the 1st/last of a month). Fixing it needs `buildCalendarDays` to
