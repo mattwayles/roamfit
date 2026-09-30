@@ -12,7 +12,7 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
 
 ### In progress
 - Phase A (foundation), running as small commits: deps -> theme -> fonts/app.json -> hypeCopy ->
-  ui primitives -> nav shell. Next action: theme tokens in `app/src/theme/`.
+  ui primitives -> nav shell. Next action: fonts in App.tsx + app.json dark/splash.
 
 ### Next (sequential — each phase is one agent run, several small commits)
 - **A. Foundation** — deps (`npx expo install react-native-svg @expo/vector-icons
