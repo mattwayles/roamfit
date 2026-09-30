@@ -27,6 +27,7 @@ import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { getNetworkStatus } from '../lib/networkStatus';
+import { DIFFICULTY_LABELS, FOCUS_LABELS } from '../lib/focusLabels';
 import { IconBadge } from '../components/IconBadge';
 import {
   colors,
@@ -58,13 +59,6 @@ const TIME_OPTIONS = [15, 20, 30, 45, 60, 90, 120]; // ADR 0002 floor, ADR 0013 
 // muscle-group focuses keeps their relative order (and therefore existing muscle memory for
 // where a focus sits in the picker) unchanged.
 const FOCUS_OPTIONS: Focus[] = ['upper', 'abs', 'legs', 'full', 'cardio'];
-const FOCUS_LABELS: Record<Focus, string> = {
-  upper: 'Upper',
-  abs: 'Core',
-  legs: 'Legs',
-  full: 'Full body',
-  cardio: 'Cardio Only',
-};
 /** Tile icon + one-line flavor per focus (DESIGN.md §5.5). Color comes from the semantic `focus`
  *  map; `FOCUS_TONE` is the same mapping by accent name, for `Icon`/`IconBadge` which take names. */
 const FOCUS_FLAVOR: Record<Focus, { icon: IconName; flavor: string }> = {
@@ -82,11 +76,6 @@ const FOCUS_TONE: Record<Focus, AccentName> = {
   cardio: 'rose',
 };
 const DIFFICULTY_OPTIONS: Difficulty[] = ['easy', 'medium', 'hard'];
-const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  easy: 'Easy',
-  medium: 'Medium',
-  hard: 'Hard',
-};
 /** Flames shown over each intensity label (text labels stay: emoji-alone was rejected earlier). */
 const DIFFICULTY_FLAMES: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3 };
 /**

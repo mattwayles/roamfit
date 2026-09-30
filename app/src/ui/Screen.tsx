@@ -22,6 +22,8 @@ export type Edge = 'top' | 'left' | 'right' | 'bottom';
 
 export interface ScreenProps {
   scroll?: boolean;
+  /** Lets a screen freeze the scroll view while a drag gesture owns the touch (Approval reorder). */
+  scrollEnabled?: boolean;
   footer?: React.ReactNode;
   edges?: readonly Edge[];
   /** Apply the bottom inset (default true). Off when a tab bar sits below. */
@@ -37,6 +39,7 @@ export interface ScreenProps {
 
 export function Screen({
   scroll = false,
+  scrollEnabled = true,
   footer,
   edges = ['left', 'right'],
   safeBottom = true,
@@ -62,6 +65,7 @@ export function Screen({
       {scroll ? (
         <ScrollView
           style={styles.flex}
+          scrollEnabled={scrollEnabled}
           keyboardShouldPersistTaps="handled"
           contentInsetAdjustmentBehavior="never"
           refreshControl={refreshControl}

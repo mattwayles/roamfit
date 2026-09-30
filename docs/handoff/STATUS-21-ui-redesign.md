@@ -29,15 +29,17 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
 - [x] C3 HomeScreen -> Today (hero, tiles, week strip, next unlock, disclaimer gate), legacy light scene
   removed from Home, Home tests moved/rewritten, `open-exercises` retired — 08acf37
 
+- [x] D1 Generate "Ignition" (`GenerateScreen.tsx`), OptionPicker deleted, Generate tests address options by
+  value, legacy light override removed for Generate — f9762b4
+- [x] D2 Plan / Approval "Your route" (`ApprovalScreen.tsx`, `components/KeyboardDoneBar.tsx`,
+  `lib/focusLabels.ts`, `Screen scrollEnabled`, `ApprovalScreen.presentation.test.tsx`), legacy light override
+  removed for Approval — D2_SHA
+
 ### In progress
-- Phase D (Generate + Plan/Approval, DESIGN.md §5.5, §5.6). Plan, in commits: D1 Generate ("Ignition":
-  focus tiles, numeral time chips, flame intensity, equipment card, Switch rows, sticky footer; tests
-  address `${pickerTestID}-option-${value}`; OptionPicker deleted; legacy light override removed for
-  Generate) -> D2 Approval header/timeline/entry cards (`ApprovalScreen.tsx`, `components/KeyboardDoneBar`)
-  -> D3 Approval add-picker Sheet, sticky footer, abandon, override removed. D1 (Generate) committed; D2 starting (see Done for sha).
+- Phase E (Debrief + Completion, DESIGN.md §5.8, §5.9). Not started. Phase D is complete and
+  `npm run check` is green.
 
 ### Next (sequential — each phase is one agent run, several small commits)
-- **D. Generate + Plan/Approval** (§5.5, §5.6) — replace OptionPicker usage.
 - **E. Debrief + Completion** (§5.8, §5.9) + HighlightCard, AnimatedStatCounter, HypeHeadline,
   CelebrationBackdrop, ConfettiBurst.
 - **F. Field Guide + Exercise detail + Settings** (§5.3, §5.4, §5.10).
@@ -243,3 +245,60 @@ while the §13.3 disclaimer gate is up, so the gate really blocks (nothing else 
 (gate/hero/tiles/week strip) + `JourneyScreen.dashboard` (Trails, empty states); `HomeScreen.afterSession`
 split into Today (week strip marker) + `JourneyScreen.afterSession` (lifetime, muscle balance,
 calendar, day-marker sheet, passport opt-in + stamp + reload-on-focus). New: `HomeScreen.banners`.
+
+### Phase D reference (Generate + Plan) — for phases E-G
+
+**Generate (`GenerateScreen.tsx`)**: `Screen scroll` (native header stays for the back button, title now
+`''` so the eyebrow "NEW SESSION" + `display` "WHAT ARE WE TRAINING?" is the title) with `Enter` staggering.
+Focus tiles `focus-picker` (radiogroup) / `focus-picker-option-${f}` (`IconBadge` + `h2` label + flavor
+caption, selected = focus-colour 2px border + tint + `glow` + check badge; Cardio full-width, last); Time
+`time-picker` (horizontal `ScrollView` bleeding off the gutter) / `time-picker-option-${m}` (`h1` numeral +
+"MIN"; selected = solid ember); Intensity `difficulty-picker` / `difficulty-picker-option-${d}` (1/2/3 flame
+icons over the text label); Equipment `anchors-disclosure` (Card header, `anchors-summary` still reads "N of M
+selected" as an array of children) -> group eyebrows + `anchor-${value}` toggle rows (role checkbox); extras
+are `ToggleRow`s `cardio-addon-toggle` / `recovery-week-toggle` (row is role `switch`, tap anywhere) whose
+`Switch` carries `cardio-addon-checkbox` / `recovery-week-checkbox` (state = its `accessibilityState.checked`).
+Footer: `generate-recap` (eyebrow, "30 min · Full body · Medium", plus "+ cardio" / "recovery" when on) over
+`generate-button` "BUILD MY SESSION" (bolt, medium haptic; loading label "SCOUTING YOUR ROUTE..." — note
+`generate()` is synchronous so it is never visible in practice, unchanged from the old spinner). Every option
+is a `PressableScale` (selection haptic). Generation logic, defaults and the `recoveryWeek` route param are
+untouched. Two icons were added to `ui/Icon.tsx`: `walk`, `core`. `OptionPicker` is deleted (its `time-picker-list`
+/ `expanded` semantics are gone; tests select by `accessibilityState.selected`).
+
+**Plan (`ApprovalScreen.tsx`)**: `Screen scroll scrollEnabled={drag === null}` (new `Screen` prop) + footer.
+`boarding-pass` `Card` (6pt sunrise ribbon; `plan-focus`, `plan-minutes` = the live estimate numeral,
+`plan-level`, `plan-moves`; dashed perforation with bg-coloured notch discs clipped by `overflow: hidden`;
+explanation below). `swap-notice` is a lagoon pill. Each section `section-${warmup|main|cooldown}`: a solid
+section `Chip` (Warm-up gold / Main ember / Cool-down lagoon) + "N moves", then a 2px rail in the section
+colour with a node dot per card (inside the card, so it travels with a drag) and a dashed
+`add-exercise-${section}` row at the rail's end. Entry cards: `drag-handle-*` (same raw responder props),
+IconButtons `swap-*` (lagoon-tinted) and `remove-*`, `surface2` wells with eyebrow labels, BandPicker `field`.
+The add flow is a `Sheet` `add-picker-${section}` with `add-option-${id}` rows and `add-cancel-${section}`;
+candidates are captured when it opens (`openAdd`) and kept through the exit animation. Footer:
+`regenerate-button` (IconButton refresh, label "Regenerate plan") + `start-button` "LET'S GO" (success haptic).
+Abandon is the last thing in the scroll. `KeyboardDoneBar` (`nativeID` = `approval-number-accessory`) is the
+Done accessory for every numeric field. Drag maths is unchanged (`CARD_GAP` 8, `ESTIMATED_CARD_HEIGHT`
+132); the dragged section is lifted (`zIndex`) so the card paints over the next section. Header title is
+'YOUR ROUTE'.
+
+**Deviations from DESIGN.md §5.5/§5.6 (all deliberate)**:
+- Generate's Equipment options are full-width toggle *rows* (check circle + label + hint caption), not wrapping
+  chips: each option carries a hint that would not fit inside a chip, and rows are 52pt targets.
+- Generate's native header title is empty (the screen draws its own eyebrow + title); Approval keeps a native
+  header titled "YOUR ROUTE" so the back gesture/button still works.
+- Boarding-pass stats sit on their own row under the focus name, not to its right: a `display` name plus
+  three stat columns is wider than a phone.
+- The recap line also names the cardio add-on / recovery week when they are on (presentation only).
+- Generate footer button is the only place "SCOUTING YOUR ROUTE..." can appear, and it will not in practice
+  (see above).
+
+**Tests changed**: `GenerateScreen.test.tsx` (drop-down open/close/one-open-at-a-time tests replaced by "every
+option up front / selected state", "choosing an option sets it + recap", "one selected per control", labels +
+difficulty request; cardio + toggle tests press options directly and read the Switch's checked state instead of a
+'✓' glyph; new recap assertions). `ApprovalScreen.test.tsx`: the live estimate is read from `plan-minutes`
+instead of the "~N min estimated" line; the add sheet is asserted closed via `waitFor`. New:
+`ApprovalScreen.presentation.test.tsx`. Everything else (reorder, entryCard, swap, abandon, candidates,
+estimate) passed unchanged.
+
+**Not verified on a device/simulator** (Jest only): see the BACKLOG item "Golden Hour Generate + Plan are
+Jest-verified only" for the checklist.

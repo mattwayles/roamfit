@@ -74,7 +74,8 @@ describe('§10.3 Plan Approval, driven through ApprovalScreen', () => {
 
     await waitFor(() => expect(screen.getByTestId('start-button')).toBeTruthy(), WAIT_OPTS);
 
-    const initialEstimateText = screen.getByText(/min estimated/).props.children.join('');
+    // The live estimate is the MIN numeral on the boarding-pass header.
+    const initialEstimateText = String(screen.getByTestId('plan-minutes').props.children);
 
     // --- Add exercise ---------------------------------------------------------------------
     const mainBefore = sessionsRepo
@@ -101,17 +102,18 @@ describe('§10.3 Plan Approval, driven through ApprovalScreen', () => {
       expect(added.entryStatus).toBe('unplanned_added');
     }, WAIT_OPTS);
 
-    // The §8.3 signal was recorded, and the picker closed back to the add-exercise button.
+    // The §8.3 signal was recorded, and the add sheet closed back to the add-exercise row.
     expect(
       sessionsRepo
         .getSession(db, sessionId)!
         .entries.some((e) => e.exerciseId === chosenExerciseId),
     ).toBe(true);
-    await waitFor(() => expect(screen.getByTestId('add-exercise-main')).toBeTruthy(), WAIT_OPTS);
+    await waitFor(() => expect(screen.queryByTestId('add-picker-main')).toBeNull(), WAIT_OPTS);
+    expect(screen.getByTestId('add-exercise-main')).toBeTruthy();
 
     // The live estimate changed after adding a whole extra exercise.
     await waitFor(() => {
-      const nowText = screen.getByText(/min estimated/).props.children.join('');
+      const nowText = String(screen.getByTestId('plan-minutes').props.children);
       expect(nowText).not.toBe(initialEstimateText);
     }, WAIT_OPTS);
 

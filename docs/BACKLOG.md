@@ -26,6 +26,16 @@ the record of what was completed and why.
   the Logbook cell size (7 flex columns), day-marker and Adjust flows, Stamp grid wrapping with tilt,
   the disclaimer gate with the tab bar hidden. Deviations from DESIGN.md §5.1/§5.2 are in
   `docs/handoff/STATUS-21-ui-redesign.md`.
+- **Golden Hour Generate + Plan are Jest-verified only** (same `npm run ios` dev-client rebuild owed as
+  the items above). Check on a device: the focus tile grid and full-width Cardio tile on a 6.1" phone,
+  the Time row's horizontal scroll off the gutter, the boarding-pass perforation notches (clipped
+  bg-colored discs), the rail + node alignment against 1-, 2- and 3-line exercise names, drag-to-reorder
+  with the new cards (the dragged card should glow and paint over the next section), the band dropdown
+  overlapping the next card, the add-exercise `Sheet` list height, and the number-pad "Done" bar.
+  Deviations from DESIGN.md §5.5/§5.6 are in `docs/handoff/STATUS-21-ui-redesign.md`.
+- **Unify the number-pad "Done" accessory.** `components/KeyboardDoneBar.tsx` (Approval) duplicates the
+  bars `WorkoutScreen` (`RepsAccessoryBar`) and `PinnedNote`/`SummaryScreen` each carry. Fold them into
+  the shared component in the phase-G sweep.
 - **"This week" strip shows blank cells at a month edge.** It is derived from the Logbook's
   month-only `buildCalendarWeeks`, so the days of the week that fall in the neighbouring month are
   empty placeholders (up to 6 on the 1st/last of a month). Fixing it needs `buildCalendarDays` to

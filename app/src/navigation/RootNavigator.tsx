@@ -23,11 +23,7 @@ export default function RootNavigator(): React.JSX.Element {
       {/* Screens not yet migrated to the design system opt in to the old light scene color via
           `legacyLightContent`; each phase deletes it for the screens it migrates. */}
       <Stack.Screen name="Generate" component={GenerateScreen} options={{ title: '' }} />
-      <Stack.Screen
-        name="Approval"
-        component={ApprovalScreen}
-        options={{ title: 'YOUR PLAN', ...legacyLightContent }}
-      />
+      <Stack.Screen name="Approval" component={ApprovalScreen} options={{ title: 'YOUR ROUTE' }} />
       {/* Workout draws its own top bar (home / elapsed clock / pause / stop) and is migrated: no
           native header, no legacy scene. The edge-swipe stays off so the bar is the way off it. */}
       <Stack.Screen

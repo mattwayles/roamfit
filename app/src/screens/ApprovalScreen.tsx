@@ -16,15 +16,7 @@
  * out of scope for the offline-first loop this wave proves out.
  */
 import React, { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -46,13 +38,29 @@ import type {
   ProgressionFamilyId,
   Role,
 } from '@roamfit/data';
-import type { BandId } from '@roamfit/engine';
+import type { BandId, Difficulty } from '@roamfit/engine';
 import type { RootStackParamList } from '../navigation/types';
 import { homeReset } from '../navigation/routes';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
+import { DIFFICULTY_LABELS, FOCUS_LABELS } from '../lib/focusLabels';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import BandPicker from '../components/BandPicker';
+import KeyboardDoneBar from '../components/KeyboardDoneBar';
+import { colors, glow, radius, space, tints, type, withAlpha, type AccentName } from '../theme';
+import {
+  Button,
+  Card,
+  Chip,
+  Enter,
+  Gradient,
+  Icon,
+  IconButton,
+  PressableScale,
+  Screen,
+  Sheet,
+  Txt,
+} from '../ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Approval'>;
 type Section = 'warmup' | 'main' | 'cooldown';
@@ -119,8 +127,13 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   const { db, library, families } = useStore();
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [regenerating, setRegenerating] = useState(false);
-  // §10.3 "add exercise" — which section's picker is open, if any. Closed by default.
-  const [addingSection, setAddingSection] = useState<Section | null>(null);
+  // §10.3 "add exercise" — the add sheet. `addSheet` holds the section and its candidates as they
+  // were when it opened and is never cleared, so the list survives the sheet's exit animation;
+  // `addOpen` is what actually shows it. Closed by default.
+  const [addOpen, setAddOpen] = useState(false);
+  const [addSheet, setAddSheet] = useState<{ section: Section; candidates: Exercise[] } | null>(
+    null,
+  );
   /** ADR 0012 — one-line result of the last "too easy" tap. Informational only: never blocks,
    *  never nags, and is replaced rather than stacked (invariant 4). */
   /** One-line result of the last swap. Informational, never blocking. */
@@ -153,9 +166,11 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
 
   if (!session) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator />
-      </View>
+      <Screen>
+        <View style={styles.centered}>
+          <ActivityIndicator color={colors.ember} />
+        </View>
+      </Screen>
     );
   }
 
@@ -387,8 +402,13 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
           })
         : prescribeWarmupCooldown(exercise, section);
     sessionsRepo.addEntryAtApproval(db, sessionId, section, prescription, nowUtcInstant());
-    setAddingSection(null);
+    setAddOpen(false);
     reload();
+  };
+
+  const openAdd = (section: Section) => {
+    setAddSheet({ section, candidates: candidatesFor(section).slice(0, 20) });
+    setAddOpen(true);
   };
 
   const handleRegenerate = () => {
@@ -444,92 +464,258 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     navigation.reset(homeReset());
   };
 
+  const activeCount = session.entries.filter((e) => e.entryStatus !== 'removed_at_approval').length;
+  const estimate = estimateMinutes(session);
+
   return (
-    <ScrollView contentContainerStyle={styles.container} scrollEnabled={drag === null}>
-      <Text style={styles.explanation}>{session.explanation}</Text>
-      <Text style={styles.estimate}>~{estimateMinutes(session)} min estimated</Text>
-      {swapNotice != null && (
-        <Text testID="swap-notice" style={styles.swapNotice}>
-          {swapNotice}
-        </Text>
-      )}
-
-      {(['warmup', 'main', 'cooldown'] as const).map((section) => (
-        <View key={section} style={styles.sectionBlock}>
-          <Text style={styles.sectionHeading}>{section}</Text>
-          {bySection(section).map((entry, index) => (
-            <EntryCard
-              key={entry.id}
-              entry={entry}
-              exerciseName={
-                library.exercises.find((e) => e.id === entry.exerciseId)?.name ?? entry.exerciseId
-              }
-              bandTensions={bandTensions}
-              dragging={drag?.section === section && drag.entryId === entry.id}
-              displacement={dragDisplacement(section, index, entry.id)}
-              onMeasure={(height) => cardHeightsRef.current.set(entry.id, height)}
-              onDragStart={(y) => beginDrag(section, entry.id, index, y)}
-              onDragMove={updateDrag}
-              onDragEnd={endDrag}
-              onSetSets={(v) => handleSetSets(entry, v)}
-              onSetRepTarget={(v) => handleSetRepTarget(entry, v)}
-              onSetDuration={(v) => handleSetDuration(entry, v)}
-              onSetRest={(v) => handleSetRest(entry, v)}
-              onChangeBand={(band) => handleChangeBand(entry, band)}
-              onSwap={() => handleSwap(entry)}
-              onRemove={() => handleRemove(entry)}
-            />
-          ))}
-
-          {addingSection === section ? (
-            <View style={styles.addPicker} testID={`add-picker-${section}`}>
-              {candidatesFor(section)
-                .slice(0, 20)
-                .map((exercise) => (
-                  <Pressable
-                    key={exercise.id}
-                    testID={`add-option-${exercise.id}`}
-                    style={styles.addOption}
-                    onPress={() => handleAddExercise(section, exercise)}
-                  >
-                    <Text style={styles.addOptionText}>{exercise.name}</Text>
-                  </Pressable>
-                ))}
-              <Pressable
-                testID={`add-cancel-${section}`}
-                style={styles.addCancel}
-                onPress={() => setAddingSection(null)}
-              >
-                <Text style={styles.addCancelText}>Cancel</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable
-              testID={`add-exercise-${section}`}
-              style={styles.addExerciseButton}
-              onPress={() => setAddingSection(section)}
-            >
-              <Text style={styles.addExerciseButtonText}>+ Add exercise</Text>
-            </Pressable>
-          )}
+    <Screen
+      scroll
+      scrollEnabled={drag === null}
+      contentStyle={styles.content}
+      footer={
+        <View style={styles.footer}>
+          <IconButton
+            testID="regenerate-button"
+            icon="refresh"
+            size="lg"
+            accessibilityLabel="Regenerate plan"
+            disabled={regenerating}
+            onPress={handleRegenerate}
+          />
+          <Button
+            testID="start-button"
+            label="Let's go"
+            icon="arrowRight"
+            iconRight
+            size="lg"
+            haptic="success"
+            style={styles.startButton}
+            onPress={handleStart}
+          />
         </View>
-      ))}
+      }
+    >
+      <Enter index={0} style={styles.gap}>
+        <BoardingPass
+          focus={session.focus}
+          difficulty={session.difficulty}
+          minutes={estimate}
+          moves={activeCount}
+          explanation={session.explanation}
+        />
+        {swapNotice != null && (
+          <View testID="swap-notice" accessibilityRole="alert" style={styles.swapNotice}>
+            <Icon name="swap" size={16} color="lagoon" />
+            <Txt variant="small" color="lagoon" style={styles.swapNoticeText}>
+              {swapNotice}
+            </Txt>
+          </View>
+        )}
+      </Enter>
 
-      <Pressable
-        testID="regenerate-button"
-        style={styles.regenerateButton}
-        onPress={handleRegenerate}
-        disabled={regenerating}
+      {(['warmup', 'main', 'cooldown'] as const).map((section) => {
+        const tone = SECTION_TONE[section];
+        const railColor = colors[tone];
+        const entries = bySection(section);
+        return (
+          <View
+            key={section}
+            testID={`section-${section}`}
+            // Lifted while one of its cards is being dragged, so the card paints over the next
+            // section's header instead of sliding underneath it.
+            style={[styles.sectionBlock, drag?.section === section && styles.sectionLifted]}
+          >
+            <View style={styles.sectionHeader}>
+              <Chip label={SECTION_LABEL[section]} tone={tone} selected />
+              <Txt variant="caption" color="text3">
+                {entries.length === 1 ? '1 move' : `${entries.length} moves`}
+              </Txt>
+            </View>
+
+            <View style={styles.timeline}>
+              {/* The rail: a 2px line in the section's color, each card hangs a node dot off it. It
+                  stops at the middle of the add row below, where the route ends. */}
+              <View style={[styles.rail, { backgroundColor: railColor }]} />
+              <View style={styles.cards}>
+                {entries.map((entry, index) => (
+                  <EntryCard
+                    key={entry.id}
+                    entry={entry}
+                    railColor={railColor}
+                    exerciseName={
+                      library.exercises.find((e) => e.id === entry.exerciseId)?.name ??
+                      entry.exerciseId
+                    }
+                    bandTensions={bandTensions}
+                    dragging={drag?.section === section && drag.entryId === entry.id}
+                    displacement={dragDisplacement(section, index, entry.id)}
+                    onMeasure={(height) => cardHeightsRef.current.set(entry.id, height)}
+                    onDragStart={(y) => beginDrag(section, entry.id, index, y)}
+                    onDragMove={updateDrag}
+                    onDragEnd={endDrag}
+                    onSetSets={(v) => handleSetSets(entry, v)}
+                    onSetRepTarget={(v) => handleSetRepTarget(entry, v)}
+                    onSetDuration={(v) => handleSetDuration(entry, v)}
+                    onSetRest={(v) => handleSetRest(entry, v)}
+                    onChangeBand={(band) => handleChangeBand(entry, band)}
+                    onSwap={() => handleSwap(entry)}
+                    onRemove={() => handleRemove(entry)}
+                  />
+                ))}
+
+                <PressableScale
+                  testID={`add-exercise-${section}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Add exercise to ${SECTION_LABEL[section]}`}
+                  style={[styles.addRow, { borderColor: withAlpha(railColor, 0.55) }]}
+                  onPress={() => openAdd(section)}
+                >
+                  <View style={[styles.node, styles.addNode, { borderColor: railColor }]} />
+                  <Icon name="add" size={18} color={tone} />
+                  <Txt variant="eyebrow" color={tone} style={styles.addRowText}>
+                    Add exercise
+                  </Txt>
+                </PressableScale>
+              </View>
+            </View>
+          </View>
+        );
+      })}
+
+      <View style={styles.abandon}>
+        <AbandonSessionButton onConfirm={handleAbandon} />
+      </View>
+
+      <KeyboardDoneBar nativeID={NUMBER_ACCESSORY_ID} testID="approval-keyboard-done" />
+
+      {/* §10.3 add exercise: candidates are captured when the sheet opens (and kept through its
+          exit animation, so the list does not blank as it slides away). */}
+      <Sheet
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        title={addSheet ? `Add to ${SECTION_LABEL[addSheet.section]}` : undefined}
+        testID={`add-picker-${addSheet?.section ?? 'closed'}`}
       >
-        <Text style={styles.regenerateButtonText}>Regenerate</Text>
-      </Pressable>
+        {addSheet && (
+          <>
+            <ScrollView style={styles.addList} keyboardShouldPersistTaps="handled">
+              {addSheet.candidates.map((exercise) => (
+                <PressableScale
+                  key={exercise.id}
+                  testID={`add-option-${exercise.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Add ${exercise.name}`}
+                  style={styles.addOption}
+                  onPress={() => handleAddExercise(addSheet.section, exercise)}
+                >
+                  <Txt variant="h3" style={styles.addOptionText}>
+                    {exercise.name}
+                  </Txt>
+                  <Icon name="add" size={20} color={SECTION_TONE[addSheet.section]} />
+                </PressableScale>
+              ))}
+            </ScrollView>
+            <Button
+              testID={`add-cancel-${addSheet.section}`}
+              label="Cancel"
+              variant="quiet"
+              size="md"
+              fullWidth
+              onPress={() => setAddOpen(false)}
+            />
+          </>
+        )}
+      </Sheet>
+    </Screen>
+  );
+}
 
-      <Pressable testID="start-button" style={styles.startButton} onPress={handleStart}>
-        <Text style={styles.startButtonText}>START</Text>
-      </Pressable>
+/** Section -> accent tone (matches the workout's section chips) and display label. */
+const SECTION_TONE: Record<Section, AccentName> = {
+  warmup: 'gold',
+  main: 'ember',
+  cooldown: 'lagoon',
+};
+const SECTION_LABEL: Record<Section, string> = {
+  warmup: 'Warm-up',
+  main: 'Main',
+  cooldown: 'Cool-down',
+};
 
-      <AbandonSessionButton onConfirm={handleAbandon} />
-    </ScrollView>
+/** Shared `inputAccessoryViewID` for every numeric field — one "Done" bar for the whole screen. */
+const NUMBER_ACCESSORY_ID = 'approval-number-accessory';
+
+/**
+ * §5.6 boarding-pass header: focus name, the live MIN estimate, LEVEL (difficulty) and MOVES, then
+ * a dashed perforation with half-circle notches cut into both edges, and the §5.8 explanation
+ * underneath. The stats sit on their own row under the name rather than beside it — a `display`
+ * focus name plus three stat columns is wider than a phone.
+ */
+function BoardingPass({
+  focus,
+  difficulty,
+  minutes,
+  moves,
+  explanation,
+}: {
+  focus: Focus;
+  difficulty: Difficulty;
+  minutes: number;
+  moves: number;
+  explanation: string;
+}): React.JSX.Element {
+  return (
+    <Card testID="boarding-pass" padding="none" style={styles.pass}>
+      <View style={styles.passRibbon}>
+        <Gradient />
+      </View>
+      <View style={styles.passTop}>
+        <Txt variant="eyebrow" color="text3">
+          Focus
+        </Txt>
+        <Txt variant="display" numberOfLines={1} adjustsFontSizeToFit testID="plan-focus">
+          {FOCUS_LABELS[focus]}
+        </Txt>
+        <View style={styles.passStats}>
+          <View style={styles.passStat} accessible accessibilityLabel={`About ${minutes} minutes`}>
+            <Txt variant="eyebrow" color="text3">
+              Min
+            </Txt>
+            <Txt variant="h1" color="ember" testID="plan-minutes">
+              {minutes}
+            </Txt>
+          </View>
+          <View style={styles.passStat}>
+            <Txt variant="eyebrow" color="text3">
+              Level
+            </Txt>
+            <Txt variant="h1" testID="plan-level">
+              {DIFFICULTY_LABELS[difficulty]}
+            </Txt>
+          </View>
+          <View style={styles.passStat}>
+            <Txt variant="eyebrow" color="text3">
+              Moves
+            </Txt>
+            <Txt variant="h1" testID="plan-moves">
+              {moves}
+            </Txt>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.perforation}>
+        <View style={styles.perforationLine} />
+        <View style={[styles.notch, styles.notchLeft]} />
+        <View style={[styles.notch, styles.notchRight]} />
+      </View>
+
+      <View style={styles.passBottom}>
+        <Txt variant="small" color="text2">
+          {explanation}
+        </Txt>
+      </View>
+    </Card>
   );
 }
 
@@ -549,6 +735,12 @@ const CARD_GAP = 8;
  */
 export const ESTIMATED_CARD_HEIGHT = 132;
 
+/** Horizontal room the timeline rail takes to the left of every card, and the node dot's size. */
+const RAIL_WIDTH = 28;
+const NODE = 14;
+/** Diameter of the perforation's edge notches. */
+const NOTCH = 22;
+
 /** One editable exercise in the plan.
  *
  * Replaces a single cramped horizontal row that packed a reorder column, the name, the detail
@@ -564,6 +756,7 @@ export const ESTIMATED_CARD_HEIGHT = 132;
  */
 function EntryCard({
   entry,
+  railColor,
   exerciseName,
   bandTensions,
   dragging,
@@ -581,6 +774,8 @@ function EntryCard({
   onRemove,
 }: {
   entry: sessionsRepo.SessionEntryRecord;
+  /** The section's rail color: the node dot, and the glow while dragging. */
+  railColor: string;
   exerciseName: string;
   /** The user's own band colours/labels (spec §1140), for `BandChip`. */
   bandTensions: Record<BandId, usersRepo.BandTension>;
@@ -611,11 +806,12 @@ function EntryCard({
       onLayout={(e) => onMeasure(e.nativeEvent.layout.height)}
       style={[
         styles.card,
-        dragging && styles.cardDragging,
+        dragging && [styles.cardDragging, glow(railColor), { borderColor: railColor }],
         bandPickerOpen && styles.cardElevated,
         displacement !== 0 && { transform: [{ translateY: displacement }] },
       ]}
     >
+      <View style={[styles.node, { borderColor: railColor }]} />
       <View style={styles.cardHeader}>
         <View
           testID={`drag-handle-${entry.exerciseId}`}
@@ -632,35 +828,33 @@ function EntryCard({
           onResponderRelease={onDragEnd}
           onResponderTerminate={onDragEnd}
         >
-          <Text style={styles.dragHandleText}>⠿</Text>
+          <Icon name="drag" size={26} color="text3" />
         </View>
         <View style={styles.cardTitleBlock}>
-          <Text style={styles.entryName} numberOfLines={2}>
+          <Txt variant="h3" numberOfLines={2}>
             {exerciseName}
-          </Text>
+          </Txt>
         </View>
 
         {/* Both actions are icons on the title's own row, so they cost no vertical space at
-            all. The accessible names carry the meaning the glyphs cannot. */}
+            all. The accessible names carry the meaning the glyphs cannot. Swap wears the lagoon
+            tint so the one control that replaces the exercise never reads as a plain one. */}
         <View style={styles.cardActions}>
-          <Pressable
+          <IconButton
             testID={`swap-${entry.exerciseId}`}
-            accessibilityRole="button"
+            icon="swap"
+            tone="lagoon"
             accessibilityLabel={`Swap ${exerciseName} for another exercise`}
-            style={[styles.iconButton, styles.swapButton]}
+            style={styles.swapButton}
             onPress={onSwap}
-          >
-            <Text style={styles.swapButtonText}>⇄</Text>
-          </Pressable>
-          <Pressable
+          />
+          <IconButton
             testID={`remove-${entry.exerciseId}`}
-            accessibilityRole="button"
+            icon="close"
+            tone="text2"
             accessibilityLabel={`Remove ${exerciseName}`}
-            style={[styles.iconButton, styles.removeButton]}
             onPress={onRemove}
-          >
-            <Text style={styles.removeButtonText}>✕</Text>
-          </Pressable>
+          />
         </View>
       </View>
 
@@ -733,7 +927,8 @@ function EntryCard({
 /** A labelled numeric field: type a value directly rather than tapping −/+ some number of times.
  *  Local `text` state tracks keystrokes (including a momentarily-empty field mid-edit); the value
  *  only commits — clamped to `minValue` and written to the store — on blur or submit, so a partial
- *  edit never round-trips through the store as an invalid intermediate value. */
+ *  edit never round-trips through the store as an invalid intermediate value. The number pad has
+ *  no return key, so every field shares the screen's "Done" accessory bar. */
 function NumericField({
   label,
   value,
@@ -767,8 +962,10 @@ function NumericField({
 
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={styles.fieldInputRow}>
+      <Txt variant="caption" color="text3" upper style={styles.fieldLabel}>
+        {label}
+      </Txt>
+      <View style={styles.fieldWell}>
         <TextInput
           testID={testID}
           accessibilityLabel={accessibilityLabel}
@@ -779,42 +976,129 @@ function NumericField({
           onSubmitEditing={commit}
           keyboardType="number-pad"
           returnKeyType="done"
+          inputAccessoryViewID={NUMBER_ACCESSORY_ID}
+          selectionColor={colors.ember}
+          keyboardAppearance="dark"
           selectTextOnFocus
+          hitSlop={4}
         />
-        {suffix != null && <Text style={styles.fieldSuffix}>{suffix}</Text>}
+        {suffix != null && (
+          <Txt variant="caption" color="text3">
+            {suffix}
+          </Txt>
+        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  content: { paddingTop: space.sm, gap: space.xxl },
+  gap: { gap: space.md },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  footer: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  startButton: { flex: 1 },
+  abandon: { alignItems: 'center' },
+
+  // -- boarding pass
+  pass: { overflow: 'hidden' },
+  passRibbon: { height: 6 },
+  passTop: { gap: space.xs, padding: space.lg },
+  passStats: { flexDirection: 'row', gap: space.md, marginTop: space.sm },
+  passStat: { flex: 1 },
+  // Notches are bg-colored discs centred on the card's own edge; the pass clips them to the
+  // half that lies inside, which reads as a semicircle punched out of the ticket.
+  perforation: { height: NOTCH, justifyContent: 'center' },
+  perforationLine: {
+    marginHorizontal: space.lg + NOTCH / 2,
+    borderTopWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.lineStrong,
+  },
+  notch: {
+    position: 'absolute',
+    top: 0,
+    width: NOTCH,
+    height: NOTCH,
+    borderRadius: NOTCH / 2,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  notchLeft: { left: -NOTCH / 2 },
+  notchRight: { right: -NOTCH / 2 },
+  passBottom: { padding: space.lg, paddingTop: space.sm },
+
+  swapNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: space.sm,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.pill,
+    backgroundColor: tints.lagoon,
+  },
+  swapNoticeText: { flexShrink: 1 },
+
+  // -- route timeline
+  sectionBlock: { gap: space.md },
+  sectionLifted: { zIndex: 10 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  timeline: { position: 'relative', paddingLeft: RAIL_WIDTH },
+  rail: {
+    position: 'absolute',
+    left: RAIL_WIDTH / 2 - 1,
+    width: 2,
+    top: 0,
+    // Ends at the middle of the 48pt add row, where the route stops.
+    bottom: 24,
+    borderRadius: 1,
+  },
+  cards: { gap: CARD_GAP },
+  // The node hangs off the rail: a `bg`-filled ring in the section color, centred on the rail.
+  node: {
+    position: 'absolute',
+    left: -(RAIL_WIDTH / 2 + NODE / 2),
+    top: 24,
+    width: NODE,
+    height: NODE,
+    borderRadius: NODE / 2,
+    borderWidth: 3,
+    backgroundColor: colors.bg,
+  },
+  addNode: { top: 15.5, left: -(RAIL_WIDTH / 2 + NODE / 2) - 1.5 },
+  addRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.sm,
+    minHeight: 48,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+  },
+  addRowText: { marginLeft: 0 },
+
+  // -- entry card
   card: {
     // No fixed height: a long exercise name gets a taller card, which is correct. `minHeight`
     // only stops a card with nothing in its detail line from looking collapsed.
     minHeight: ESTIMATED_CARD_HEIGHT,
-    borderRadius: 14,
-    backgroundColor: '#f8fafc',
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: colors.line,
+    paddingHorizontal: space.md,
+    paddingVertical: space.md,
     justifyContent: 'space-between',
   },
-  cardDragging: {
-    backgroundColor: '#fff',
-    borderColor: '#94a3b8',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-    zIndex: 10,
-  },
+  cardDragging: { backgroundColor: colors.surface3, elevation: 6, zIndex: 10 },
   // Just the stacking bits of `cardDragging`, without its visual restyle: the band picker's open
   // dropdown is an absolute overlay that extends below this card's own bounds, and would
   // otherwise paint underneath the next card in the list rather than over it.
   cardElevated: { zIndex: 10, elevation: 6 },
-  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
   dragHandle: {
     width: 32,
     minHeight: 44,
@@ -822,116 +1106,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: -6,
   },
-  dragHandleText: { fontSize: 20, color: '#94a3b8' },
-  cardTitleBlock: { flex: 1, paddingTop: 2 },
-  entryName: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
-  swapNotice: { fontSize: 13, color: '#1d4ed8' },
+  cardTitleBlock: { flex: 1, paddingTop: space.sm },
   // `field` used to be `flex: 1`, stretching all four columns to fill the row — fine for a label,
   // wasteful for a box that only ever holds 1-3 digits. Fixed-width instead, left-aligned with
   // `gap`, so each box is only as wide as the value it holds actually needs — which is what freed
   // up the row's right edge for the band picker (`justify-content: space-between` below).
-  fieldRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  fieldsGroup: { flexDirection: 'row', gap: 16 },
-  field: { width: 60 },
-  fieldLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-    marginBottom: 2,
+  fieldRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginTop: space.sm,
   },
-  fieldInputRow: {
+  fieldsGroup: { flexDirection: 'row', gap: space.md },
+  field: { width: 64 },
+  fieldLabel: { marginBottom: 2 },
+  fieldWell: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    borderRadius: 8,
-    backgroundColor: '#e2e8f0',
-    paddingHorizontal: 8,
+    gap: space.xs,
+    height: 36,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: space.sm,
   },
   fieldInput: {
-    height: 36,
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0f172a',
+    ...type.h3,
+    color: colors.text,
+    minWidth: 20,
     padding: 0,
     textAlign: 'center',
   },
-  fieldSuffix: { fontSize: 13, fontWeight: '600', color: '#64748b' },
   // In the header row, not on a line of their own: an icon pair is far narrower than the row it
   // used to occupy, and giving it a whole line cost ~26pt of every card for no information.
   // Pinned to the top so they stay level with the first line of a name that wraps.
-  cardActions: { flexDirection: 'row', gap: 8, marginLeft: 8, alignSelf: 'flex-start' },
-  iconButton: {
-    width: 44,
-    minHeight: 36,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  // Blue, not the steppers' slate — it was previously the exact same '#e2e8f0' as the +/-
-  // buttons, so the one control that replaces the exercise looked like one that nudges a number.
-  // Reuses the accent the progression board's level-up already uses rather than inventing a
-  // fourth hue: on this card it is unique, and app-wide it stays consistent.
-  swapButton: { backgroundColor: '#dbeafe' },
-  swapButtonText: { fontSize: 17, fontWeight: '700', color: '#1d4ed8', lineHeight: 21 },
-  removeButton: { backgroundColor: '#fee2e2' },
-  removeButtonText: { fontSize: 16, fontWeight: '700', color: '#b91c1c', lineHeight: 20 },
+  cardActions: { flexDirection: 'row', gap: space.xs, alignSelf: 'flex-start' },
+  swapButton: { backgroundColor: tints.lagoon, borderColor: 'transparent' },
 
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { padding: 20, gap: 16 },
-  explanation: { fontSize: 15, color: '#334155', lineHeight: 20 },
-  estimate: { fontSize: 13, color: '#64748b', fontWeight: '600' },
-  sectionBlock: { gap: 8 },
-  sectionHeading: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#64748b',
-    textTransform: 'uppercase',
-  },
-  addExerciseButton: {
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#94a3b8',
-  },
-  addExerciseButtonText: { fontSize: 13, fontWeight: '600', color: '#334155' },
-  addPicker: {
-    gap: 6,
-    padding: 10,
-    borderRadius: 12,
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
+  // -- add sheet
+  addList: { marginBottom: space.sm },
   addOption: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
-  addOptionText: { fontSize: 14, color: '#0f172a' },
-  addCancel: { alignItems: 'center', paddingVertical: 6 },
-  addCancelText: { color: '#64748b', fontWeight: '600' },
-  regenerateButton: {
-    borderRadius: 14,
-    padding: 14,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.md,
+    minHeight: 52,
+    paddingHorizontal: space.md,
+    marginBottom: space.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface2,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    minHeight: 48,
-    justifyContent: 'center',
+    borderColor: colors.line,
   },
-  regenerateButtonText: { fontWeight: '600', color: '#334155' },
-  startButton: {
-    backgroundColor: '#111',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    minHeight: 60,
-    justifyContent: 'center',
-  },
-  startButtonText: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  addOptionText: { flex: 1 },
 });
