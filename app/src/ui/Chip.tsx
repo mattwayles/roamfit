@@ -18,6 +18,8 @@ export interface ChipProps {
   /** Custom leading element, e.g. a band color dot. */
   leading?: React.ReactNode;
   size?: 'md' | 'sm';
+  /** Let a long label wrap onto more lines instead of truncating (e.g. a milestone sentence). */
+  wrap?: boolean;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
@@ -31,6 +33,7 @@ export function Chip({
   icon,
   leading,
   size = 'md',
+  wrap = false,
   onPress,
   style,
   testID,
@@ -53,7 +56,12 @@ export function Chip({
       {icon ? (
         <Icon name={icon} size={size === 'sm' ? 12 : 14} color={textColor} style={styles.gap} />
       ) : null}
-      <Txt variant="eyebrow" color={textColor} numberOfLines={1}>
+      <Txt
+        variant="eyebrow"
+        color={textColor}
+        numberOfLines={wrap ? undefined : 1}
+        style={wrap ? styles.wrapText : undefined}
+      >
         {label}
       </Txt>
     </>
@@ -89,10 +97,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
+    maxWidth: '100%',
     borderRadius: radius.pill,
   },
   md: { paddingHorizontal: space.md, paddingVertical: 7, minHeight: 30 },
   sm: { paddingHorizontal: space.sm + 2, paddingVertical: 4, minHeight: 24 },
   neutralBorder: { borderWidth: 1, borderColor: colors.line },
   gap: { marginRight: 6 },
+  wrapText: { flexShrink: 1 },
 });

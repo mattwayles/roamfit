@@ -14,16 +14,18 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, useWindowDimensions } from 'react-native';
+import { colors } from '../theme';
 
-const COLORS = [
-  '#facc15',
-  '#fb7185',
-  '#38bdf8',
-  '#4ade80',
-  '#a78bfa',
-  '#fb923c',
-  '#f472b6',
-  '#ffffff',
+/** Ember, emberDeep, gold, sun, lagoon, sky, rose and paper white — no violet (DESIGN.md §5.9). */
+const COLORS: string[] = [
+  colors.ember,
+  colors.emberDeep,
+  colors.gold,
+  colors.sun,
+  colors.lagoon,
+  colors.sky,
+  colors.rose,
+  colors.text,
 ];
 const SAMPLES = 12;
 

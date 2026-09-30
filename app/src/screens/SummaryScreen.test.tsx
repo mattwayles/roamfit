@@ -255,7 +255,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     expect(screen.getByTestId('return-home')).toBeTruthy();
     expect(screen.queryByTestId('level-up-celebration')).toBeNull();
     expect(screen.queryByTestId('celebration-continue')).toBeNull();
-    expect(screen.getAllByText('LEVEL UP!').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('LEVEL UP').length).toBeGreaterThanOrEqual(1);
 
     // The card is laid out from the start but untappable until its beat in the sequence (after
     // the stats count up) — wait for it to stamp down.

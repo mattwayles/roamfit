@@ -1,6 +1,7 @@
 /**
  * The completion screen's headline, slammed in one word at a time: each word drops from oversized
- * and tilted down onto the page with a hard spring, like a stamp. The screen fires a haptic tick
+ * and tilted down onto the page with a hard spring, like a stamp. Barlow Condensed 800 in `text`,
+ * the last word in `sun`, every word stamped in light with an ember glow (DESIGN.md §5.9). The screen fires a haptic tick
  * per word on the same `WORD_STAGGER_MS` beat (`lib/completionTimeline.ts`), and the heavy hit +
  * confetti on the last, so the words are felt landing, not just seen. `bounce` is bumped by the screen whenever the user taps
  * the headline, for a re-slam.
@@ -8,6 +9,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { WORD_STAGGER_MS } from '../lib/completionTimeline';
+import { colors, numeralMaxFontScale, space, type, withAlpha } from '../theme';
 
 function Word({
   text,
@@ -31,6 +33,7 @@ function Word({
 
   return (
     <Animated.Text
+      maxFontSizeMultiplier={numeralMaxFontScale}
       style={[
         styles.word,
         accent && styles.accent,
@@ -89,19 +92,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    columnGap: 10,
+    columnGap: space.sm + 2,
   },
   word: {
-    fontSize: 42,
-    lineHeight: 50,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: '#ffffff',
+    ...type.display,
+    color: colors.text,
     textAlign: 'center',
-    letterSpacing: 0.5,
-    textShadowColor: 'rgba(76, 29, 149, 0.9)',
-    textShadowOffset: { width: 3, height: 4 },
-    textShadowRadius: 0,
+    textShadowColor: withAlpha(colors.ember, 0.9),
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 16,
   },
-  accent: { color: '#fde047' },
+  accent: { color: colors.sun },
 });

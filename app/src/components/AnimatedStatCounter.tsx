@@ -10,14 +10,9 @@
  * native-driven value.
  */
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  StyleSheet,
-  Text,
-  type StyleProp,
-  type TextStyle,
-  type ViewStyle,
-} from 'react-native';
+import { Animated, StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { colors, radius, space, withAlpha } from '../theme';
+import { Txt } from '../ui';
 
 interface Props {
   value: number;
@@ -99,17 +94,34 @@ export default function AnimatedStatCounter({
       ]}
       testID={testID}
     >
-      <Text style={[styles.value, valueStyle]} testID={testID ? `${testID}-value` : undefined}>
+      <Txt
+        variant="hero"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.5}
+        style={valueStyle}
+        testID={testID ? `${testID}-value` : undefined}
+      >
         {displayValue}
         {suffix}
-      </Text>
-      <Text style={[styles.label, labelStyle]}>{label}</Text>
+      </Txt>
+      <Txt variant="eyebrow" color="gold" numberOfLines={1} style={labelStyle}>
+        {label}
+      </Txt>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  cell: { alignItems: 'center', minWidth: 72, gap: 2 },
-  value: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  label: { fontSize: 11, fontWeight: '600', color: '#e9d5ff', textTransform: 'uppercase' },
+  cell: {
+    alignItems: 'center',
+    minWidth: 96,
+    gap: space.xs,
+    paddingVertical: space.md,
+    paddingHorizontal: space.md,
+    backgroundColor: withAlpha(colors.surface, 0.85),
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.lg,
+  },
 });

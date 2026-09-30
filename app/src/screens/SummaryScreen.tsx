@@ -65,6 +65,7 @@ import {
   hapticHeavy,
   hapticTick,
 } from '../lib/workoutAudio';
+import { FOCUS_LABELS } from '../lib/focusLabels';
 import ConfettiBurst, { type ConfettiVariant } from '../components/ConfettiBurst';
 import CelebrationBackdrop, { Sunburst } from '../components/CelebrationBackdrop';
 import HypeHeadline from '../components/HypeHeadline';
@@ -73,6 +74,9 @@ import HighlightCard from '../components/HighlightCard';
 import FeedbackControls, { type Difficulty } from '../components/FeedbackControls';
 import AnimatedStatCounter from '../components/AnimatedStatCounter';
 import BandChip from '../components/BandChip';
+import { colors, glow, gutter, radius, space } from '../theme';
+import { Button, Chip, Txt } from '../ui';
+import { useInsets } from '../ui/useInsets';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Summary'>;
 
@@ -156,6 +160,11 @@ function editFeedback(
   }
 }
 
+/** A session's focus as the friendly label ("Full body"), falling back to the raw key. */
+function focusLabel(focus: string): string {
+  return (FOCUS_LABELS as Record<string, string>)[focus] ?? focus;
+}
+
 function celebrationShareText(c: HighlightCelebration): string {
   return c.kind === 'level_up'
     ? `Just leveled up in RoamFit — ${c.familyName}, now training ${c.newExerciseName}.`
@@ -218,6 +227,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   const highlightsTop = useRef(0);
   const cardLayouts = useRef<{ y: number; height: number }[]>([]);
   const { width: windowWidth } = useWindowDimensions();
+  const insets = useInsets();
 
   const reload = useCallback(() => {
     setSession(sessionsRepo.getSession(db, sessionId));
@@ -258,6 +268,15 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   // exact set it was opened from. Turned back off once FINISH has actually run: `completeSession`
   // has already happened by then, so replaying back into `Workout` would just re-open a completed
   // session and immediately bounce back here.
+  const showingCompletionScreen = finished && result !== null;
+
+  // The celebration is full-bleed: the sunburst and glow orbs run right up under the status bar,
+  // so the native header steps aside once FINISH has run. Declared before the effect below so that
+  // one stays the last `setOptions` call (the tests read the last call).
+  useEffect(() => {
+    if (showingCompletionScreen) navigation.setOptions({ headerShown: false });
+  }, [navigation, showingCompletionScreen]);
+
   useEffect(() => {
     if (finished) {
       navigation.setOptions({ gestureEnabled: true, headerLeft: undefined });
@@ -283,8 +302,6 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
       ),
     });
   }, [navigation, sessionId, session, finished, frontier]);
-
-  const showingCompletionScreen = finished && result !== null;
 
   useEffect(() => {
     let cancelled = false;
@@ -511,7 +528,15 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
         <Animated.View style={[styles.flex, { transform: [{ translateX: shake }] }]}>
           <ScrollView
             ref={scrollRef}
-            contentContainerStyle={styles.doneContainer}
+            contentContainerStyle={[
+              styles.doneContainer,
+              {
+                paddingTop: insets.top + space.lg,
+                paddingBottom: insets.bottom + space.xl,
+                paddingLeft: gutter + insets.left,
+                paddingRight: gutter + insets.right,
+              },
+            ]}
             scrollEventThrottle={16}
             onScroll={(e) => {
               scrollY.current = e.nativeEvent.contentOffset.y;
@@ -547,13 +572,13 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                 },
               ]}
             >
-              <Text style={styles.doneCountText} testID="workout-count">
+              <Txt variant="h2" align="center" testID="workout-count">
                 You just finished your {ordinal(workoutCount)} workout on RoamFit!
-              </Text>
+              </Txt>
 
-              <Text style={styles.doneSubtitle}>
-                {Math.round(result.actualMinutes)} min · {session.focus}
-              </Text>
+              <Txt variant="small" color="text2" align="center">
+                {Math.round(result.actualMinutes)} min · {focusLabel(session.focus)}
+              </Txt>
             </Animated.View>
 
             {statTiles.length > 0 && (
@@ -567,7 +592,6 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                     suffix={tile.suffix}
                     delay={timeline.statTiles[i]}
                     style={styles.statTile}
-                    valueStyle={styles.statTileValue}
                   />
                 ))}
               </View>
@@ -576,7 +600,9 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
             <Animated.View style={[styles.doneContent, { opacity: contentOpacity }]}>
               {completionStats?.heaviestBand && bandTensions && (
                 <View style={styles.bandRow} testID="completion-band">
-                  <Text style={styles.bandRowLabel}>Heaviest band used</Text>
+                  <Txt variant="small" color="text2">
+                    Heaviest band used
+                  </Txt>
                   <BandChip band={completionStats.heaviestBand} tensions={bandTensions} />
                 </View>
               )}
@@ -590,11 +616,18 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                   highlightsTop.current = e.nativeEvent.layout.y;
                 }}
               >
-                <Animated.Text style={[styles.highlightsHeading, { opacity: contentOpacity }]}>
-                  {celebration.highlights.length === 1
-                    ? 'AND THAT’S NOT ALL…'
-                    : `AND THAT’S NOT ALL… ×${celebration.highlights.length}`}
-                </Animated.Text>
+                <Animated.View style={{ opacity: contentOpacity }}>
+                  <Txt
+                    variant="eyebrow"
+                    color="gold"
+                    align="center"
+                    style={styles.highlightsHeading}
+                  >
+                    {celebration.highlights.length === 1
+                      ? 'AND THAT’S NOT ALL…'
+                      : `AND THAT’S NOT ALL… ×${celebration.highlights.length}`}
+                  </Txt>
+                </Animated.View>
                 {celebration.highlights.map((h, i) => (
                   <View
                     key={i}
@@ -624,40 +657,63 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                 style={[styles.quietMilestones, { opacity: contentOpacity }]}
               >
                 {celebration.quiet.map((m, i) => (
-                  <Text key={i} style={styles.quietMilestoneText}>
-                    ⭐ {m.text}
-                  </Text>
+                  <Chip key={i} tone="gold" icon="star" wrap label={m.text} />
                 ))}
               </Animated.View>
             )}
 
             <Animated.View
-              style={{
-                opacity: buttonOpacity.interpolate({
-                  inputRange: [0, 0.4],
-                  outputRange: [0, 1],
-                  extrapolate: 'clamp',
-                }),
-                transform: [
-                  {
-                    scale: Animated.multiply(
-                      buttonOpacity.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }),
-                      buttonPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] }),
-                    ),
-                  },
-                ],
-              }}
+              style={[
+                styles.doneButtonWrap,
+                {
+                  opacity: buttonOpacity.interpolate({
+                    inputRange: [0, 0.4],
+                    outputRange: [0, 1],
+                    extrapolate: 'clamp',
+                  }),
+                  transform: [
+                    {
+                      scale: Animated.multiply(
+                        buttonOpacity.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }),
+                        buttonPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] }),
+                      ),
+                    },
+                  ],
+                },
+              ]}
             >
-              <Pressable
+              {/* The pulse breathes the glow too: this halo brightens and swells with the same
+                  `buttonPulse` value that scales the button (both native-driven). */}
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.buttonHalo,
+                  {
+                    opacity: buttonPulse.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.18, 0.7],
+                    }),
+                    transform: [
+                      {
+                        scale: buttonPulse.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.1],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
+              <Button
                 testID="return-home"
-                style={styles.doneFinishButton}
+                label="Heck yes! 💪"
+                size="lg"
+                haptic={false}
                 onPress={() => {
                   hapticHeavy();
                   navigation.reset(homeReset());
                 }}
-              >
-                <Text style={styles.doneFinishButtonText}>Heck yes! 💪</Text>
-              </Pressable>
+              />
             </Animated.View>
           </ScrollView>
         </Animated.View>
@@ -1019,82 +1075,48 @@ const styles = StyleSheet.create({
   },
   keyboardAccessoryButton: { paddingHorizontal: 12, paddingVertical: 6 },
   keyboardAccessoryButtonText: { color: '#2563eb', fontSize: 16, fontWeight: '700' },
-  // The completion celebration (invariant 4/§1.1 in reverse — the one screen meant to be loud).
+  // The completion celebration (invariant 4/§1.1 in reverse — the one screen meant to be loud),
+  // re-skinned into Golden Hour (DESIGN.md §5.9): `bg` night base under the glow orbs, gold
+  // accents, no violet. Spacing is tight so headline + stats + the first highlight sit above the
+  // fold on a 6.1" phone.
   flex: { flex: 1 },
   flexRow: { width: '100%' },
-  doneScreen: { flex: 1, backgroundColor: '#5b21b6', overflow: 'hidden' },
-  doneContainer: {
-    flexGrow: 1,
-    padding: 20,
-    paddingTop: 48,
-    paddingBottom: 48,
-    alignItems: 'center',
-    gap: 18,
-  },
+  doneScreen: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' },
+  doneContainer: { flexGrow: 1, alignItems: 'center', gap: space.md },
   hero: {
     width: '100%',
-    minHeight: 180,
+    minHeight: 132,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  doneContent: { alignItems: 'center', gap: 6, width: '100%' },
-  doneCountText: {
-    fontSize: 19,
-    fontWeight: '800',
-    color: '#fef9c3',
-    textAlign: 'center',
-  },
-  doneSubtitle: { fontSize: 14, fontWeight: '600', color: '#e9d5ff', textAlign: 'center' },
+  doneContent: { alignItems: 'center', gap: space.xs, width: '100%' },
   statGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 10,
+    gap: space.sm + 2,
     width: '100%',
   },
-  statTile: {
-    flexBasis: '46%',
-    flexGrow: 1,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.35)',
-    borderRadius: 18,
-    paddingVertical: 14,
-  },
-  statTileValue: { fontSize: 34, fontWeight: '900' },
-  bandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  bandRowLabel: { fontSize: 13, color: '#e9d5ff', fontWeight: '600' },
-  highlights: { width: '100%', gap: 18, marginTop: 6 },
-  highlightsHeading: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#fde047',
-    textAlign: 'center',
-    letterSpacing: 2,
-  },
+  statTile: { flexBasis: '46%', flexGrow: 1 },
+  bandRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  highlights: { width: '100%', gap: space.md },
+  highlightsHeading: { letterSpacing: 2 },
   quietMilestones: {
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 16,
-    padding: 14,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: space.sm,
     width: '100%',
   },
-  quietMilestoneText: { fontSize: 14, color: '#fff', fontWeight: '700' },
-  doneFinishButton: {
-    marginTop: 12,
-    backgroundColor: '#facc15',
-    borderRadius: 999,
-    paddingHorizontal: 44,
-    paddingVertical: 20,
-    alignItems: 'center',
-    minHeight: 64,
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
+  doneButtonWrap: { alignSelf: 'stretch', marginTop: space.xs },
+  buttonHalo: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: radius.pill,
+    backgroundColor: colors.ember,
+    ...glow(colors.ember),
   },
-  doneFinishButtonText: { color: '#422006', fontSize: 20, fontWeight: '900' },
 });

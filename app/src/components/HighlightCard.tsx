@@ -1,14 +1,18 @@
 /**
  * One level-up (or Mastery best set) on the completion screen — what used to be its own
- * step-through full-screen interrupt, now the completion screen's crescendo. Laid out from the
- * start (so revealing it never shifts the page), invisible and untappable until `revealed`, then:
- * stamped down with an overshooting spring, a pulsing gold glow behind it, a shine sweeping across
- * it on a loop, and — for a level-up — the "Level N of M" bar filling from the old rung to the
- * new one. Plain `Animated` API throughout.
+ * step-through full-screen interrupt, now the completion screen's crescendo (DESIGN.md §5.9).
+ * Laid out from the start (so revealing it never shifts the page), invisible and untappable until
+ * `revealed`, then: the card stamps down with an overshooting spring, a `Stamp` ("LEVEL UP" in
+ * ember, "BEST SET" in gold) slams onto its left a beat later, a pulsing gold glow sits behind it,
+ * a shine sweeps across it on a loop, and — for a level-up — the "Level N of M" bar fills from the
+ * old rung to the new one in the `sunrise` gradient. The card is `surface` inside a 2px `golden`
+ * gradient border; share is an `IconButton`. Plain `Animated` API throughout, and no violet.
  */
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 import type { HighlightCelebration } from '../lib/celebration';
+import { colors, glow, gradients, radius, space, withAlpha } from '../theme';
+import { Card, Gradient, IconButton, Stamp, Txt } from '../ui';
 
 interface Props {
   highlight: HighlightCelebration;
@@ -19,6 +23,8 @@ interface Props {
   testID: string;
 }
 
+const STAMP_SIZE = 84;
+
 export default function HighlightCard({
   highlight,
   revealed,
@@ -27,7 +33,8 @@ export default function HighlightCard({
   testID,
 }: Props): React.JSX.Element {
   const stamp = useRef(new Animated.Value(0)).current;
-  const glow = useRef(new Animated.Value(0)).current;
+  const badge = useRef(new Animated.Value(0)).current;
+  const glowPulse = useRef(new Animated.Value(0)).current;
   const shine = useRef(new Animated.Value(0)).current;
   // Layout width can't run on the native driver.
   const fill = useRef(new Animated.Value(0)).current;
@@ -49,6 +56,14 @@ export default function HighlightCard({
     stampIn.start();
     anims.push(stampIn);
 
+    // The passport stamp lands a beat after the card, so there are two slams, not one.
+    const badgeIn = Animated.sequence([
+      Animated.delay(220),
+      Animated.spring(badge, { toValue: 1, friction: 5, tension: 160, useNativeDriver: true }),
+    ]);
+    badgeIn.start();
+    anims.push(badgeIn);
+
     const fillUp = Animated.sequence([
       Animated.delay(350),
       Animated.timing(fill, {
@@ -64,8 +79,8 @@ export default function HighlightCard({
     if (!still) {
       const glowLoop = Animated.loop(
         Animated.sequence([
-          Animated.timing(glow, { toValue: 1, duration: 700, useNativeDriver: true }),
-          Animated.timing(glow, { toValue: 0, duration: 700, useNativeDriver: true }),
+          Animated.timing(glowPulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+          Animated.timing(glowPulse, { toValue: 0, duration: 700, useNativeDriver: true }),
         ]),
       );
       glowLoop.start();
@@ -86,94 +101,135 @@ export default function HighlightCard({
       anims.push(shineLoop);
     }
     return () => anims.forEach((a) => a.stop());
-  }, [revealed, still, stamp, glow, shine, fill, fromFraction, toFraction]);
+  }, [revealed, still, stamp, badge, glowPulse, shine, fill, fromFraction, toFraction]);
 
   return (
     <View testID={testID} pointerEvents={revealed ? 'auto' : 'none'} style={styles.wrap}>
       <Animated.View
         style={[
-          styles.glow,
+          styles.halo,
           {
             opacity: Animated.multiply(
               stamp.interpolate({ inputRange: [0, 1], outputRange: [0, 1], extrapolate: 'clamp' }),
-              glow.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.9] }),
+              glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.7] }),
             ),
             transform: [
-              { scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }) },
+              { scale: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.03] }) },
             ],
           },
         ]}
       />
       <Animated.View
-        style={[
-          styles.card,
-          {
-            opacity: stamp.interpolate({
-              inputRange: [0, 0.2, 1],
-              outputRange: [0, 1, 1],
-              extrapolate: 'clamp',
-            }),
-            transform: [
-              { scale: stamp.interpolate({ inputRange: [0, 1], outputRange: [1.8, 1] }) },
-              {
-                rotate: stamp.interpolate({ inputRange: [0, 1], outputRange: ['-10deg', '0deg'] }),
-              },
-            ],
-          },
-        ]}
+        style={{
+          opacity: stamp.interpolate({
+            inputRange: [0, 0.2, 1],
+            outputRange: [0, 1, 1],
+            extrapolate: 'clamp',
+          }),
+          transform: [
+            { scale: stamp.interpolate({ inputRange: [0, 1], outputRange: [1.6, 1] }) },
+            { rotate: stamp.interpolate({ inputRange: [0, 1], outputRange: ['-8deg', '0deg'] }) },
+          ],
+        }}
       >
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.shine,
-            {
-              transform: [
-                { translateX: shine.interpolate({ inputRange: [0, 1], outputRange: [-160, 520] }) },
-                { rotate: '20deg' },
-              ],
-            },
-          ]}
-        />
-
-        <View style={styles.topRow}>
-          <Text style={styles.emoji}>{isLevelUp ? '🚀' : '🏆'}</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{isLevelUp ? 'LEVEL UP!' : 'MASTERY PR!'}</Text>
+        <Card variant="accent" gradient={gradients.golden} padding="md" style={styles.card}>
+          <View pointerEvents="none" style={styles.shineClip}>
+            <Animated.View
+              style={[
+                styles.shine,
+                {
+                  transform: [
+                    {
+                      translateX: shine.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-160, 520],
+                      }),
+                    },
+                    { rotate: '20deg' },
+                  ],
+                },
+              ]}
+            />
           </View>
-        </View>
 
-        <Text style={styles.family}>{highlight.familyName}</Text>
-
-        {highlight.kind === 'level_up' ? (
-          <>
-            {highlight.fromExerciseName && (
-              <Text style={styles.from} numberOfLines={1}>
-                {highlight.fromExerciseName}
-              </Text>
-            )}
-            <Text style={styles.to}>⬆ {highlight.newExerciseName}</Text>
-            <View style={styles.barTrack}>
-              <Animated.View
-                style={[
-                  styles.barFill,
-                  { width: fill.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) },
-                ]}
+          <View style={styles.row}>
+            <Animated.View
+              style={{
+                opacity: badge.interpolate({
+                  inputRange: [0, 0.2, 1],
+                  outputRange: [0, 1, 1],
+                  extrapolate: 'clamp',
+                }),
+                transform: [
+                  { scale: badge.interpolate({ inputRange: [0, 1], outputRange: [2.4, 1] }) },
+                ],
+              }}
+            >
+              <Stamp
+                testID={`${testID}-stamp`}
+                title={isLevelUp ? 'LEVEL UP' : 'BEST SET'}
+                seed={`${highlight.kind}:${highlight.familyName}`}
+                tone={isLevelUp ? 'ember' : 'gold'}
+                size={STAMP_SIZE}
               />
-            </View>
-            <Text style={styles.levelText}>
-              Level {highlight.levelN} of {highlight.levelOf}
-            </Text>
-          </>
-        ) : (
-          <Text style={styles.to}>
-            New best set — {highlight.exerciseName}
-            {highlight.value !== null ? `: ${highlight.value}` : ''}
-          </Text>
-        )}
+            </Animated.View>
 
-        <Pressable testID={`${testID}-share`} style={styles.share} onPress={onShare} hitSlop={6}>
-          <Text style={styles.shareText}>Share it 📣</Text>
-        </Pressable>
+            <View style={styles.body}>
+              <View style={styles.headRow}>
+                <Txt variant="eyebrow" color="gold" numberOfLines={1} style={styles.family}>
+                  {highlight.familyName}
+                </Txt>
+                <IconButton
+                  testID={`${testID}-share`}
+                  icon="share"
+                  size="md"
+                  accessibilityLabel="Share"
+                  onPress={onShare}
+                />
+              </View>
+
+              {highlight.kind === 'level_up' ? (
+                <>
+                  <Txt variant="h2" numberOfLines={2}>
+                    {highlight.newExerciseName}
+                  </Txt>
+                  {highlight.fromExerciseName && (
+                    <Txt variant="small" color="text3" numberOfLines={1} style={styles.from}>
+                      {highlight.fromExerciseName}
+                    </Txt>
+                  )}
+                  <View style={styles.barTrack}>
+                    <Animated.View
+                      style={[
+                        styles.barFill,
+                        {
+                          width: fill.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['0%', '100%'],
+                          }),
+                        },
+                      ]}
+                    >
+                      <Gradient radius={radius.pill} />
+                    </Animated.View>
+                  </View>
+                  <Txt variant="eyebrow" color="text2">
+                    Level {highlight.levelN} of {highlight.levelOf}
+                  </Txt>
+                </>
+              ) : (
+                <>
+                  <Txt variant="h2" numberOfLines={2}>
+                    {highlight.exerciseName}
+                  </Txt>
+                  <Txt variant="small" color="text2">
+                    New best set{highlight.value !== null ? `: ${highlight.value}` : ''}
+                  </Txt>
+                </>
+              )}
+            </View>
+          </View>
+        </Card>
       </Animated.View>
     </View>
   );
@@ -181,22 +237,24 @@ export default function HighlightCard({
 
 const styles = StyleSheet.create({
   wrap: { width: '100%' },
-  glow: {
+  halo: {
     position: 'absolute',
     top: -6,
     left: -6,
     right: -6,
     bottom: -6,
-    borderRadius: 26,
-    backgroundColor: '#fde047',
+    borderRadius: radius.lg + 6,
+    backgroundColor: colors.gold,
+    ...glow(colors.gold),
   },
-  card: {
-    backgroundColor: '#fef08a',
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: '#ffffff',
-    padding: 16,
-    gap: 4,
+  card: { overflow: 'hidden' },
+  shineClip: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: radius.lg,
     overflow: 'hidden',
   },
   shine: {
@@ -204,48 +262,19 @@ const styles = StyleSheet.create({
     top: -60,
     bottom: -60,
     width: 60,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: withAlpha(colors.sun, 0.18),
   },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  emoji: { fontSize: 30 },
-  badge: {
-    backgroundColor: '#7c3aed',
-    borderRadius: 999,
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-  },
-  badgeText: { color: '#fff', fontWeight: '900', fontSize: 13, letterSpacing: 1 },
-  family: {
-    marginTop: 6,
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#a16207',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  from: {
-    fontSize: 14,
-    color: '#854d0e',
-    textDecorationLine: 'line-through',
-    opacity: 0.7,
-  },
-  to: { fontSize: 22, fontWeight: '900', color: '#422006' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  body: { flex: 1, gap: 2 },
+  headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  family: { flex: 1, marginRight: space.sm },
+  from: { textDecorationLine: 'line-through' },
   barTrack: {
-    marginTop: 8,
-    height: 12,
-    borderRadius: 999,
-    backgroundColor: 'rgba(66, 32, 6, 0.15)',
+    marginTop: space.sm,
+    height: 10,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface2,
     overflow: 'hidden',
   },
-  barFill: { height: '100%', borderRadius: 999, backgroundColor: '#7c3aed' },
-  levelText: { fontSize: 12, fontWeight: '800', color: '#713f12', marginTop: 2 },
-  share: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    backgroundColor: '#ffffff',
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  shareText: { color: '#6d28d9', fontWeight: '800', fontSize: 14 },
+  barFill: { height: '100%', borderRadius: radius.pill, overflow: 'hidden' },
 });

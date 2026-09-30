@@ -1,17 +1,20 @@
 /**
- * The completion screen's living background: soft glow orbs drifting across a saturated base, so
- * the screen reads as a moving gradient rather than a flat fill. Plain `Animated` API — there is
- * no gradient or blur library installed, so each orb is a stack of concentric translucent circles
- * (a stepped radial falloff that reads as a soft glow once it's large and moving), and every
- * motion is a native-driver transform loop.
+ * The completion screen's living background (DESIGN.md §5.9): soft ember, gold and sun glow orbs
+ * (plus a faint lagoon one for depth) drifting across the `bg` night base, so the screen reads as
+ * a moving sunset bloom rather than a flat fill. Each orb is a stack of concentric translucent
+ * circles (a stepped radial falloff that reads as a soft glow once it's large and moving), and
+ * every motion is a native-driver transform loop. Never violet: `summit` is not used on this page.
  *
  * `still` (the iOS Reduce Motion setting, read by the screen) parks the orbs where they are.
  */
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { colors, withAlpha } from '../theme';
 
 interface OrbSpec {
   color: string;
+  /** Opacity of each of the `RINGS` stacked circles; they add up at the orb's core. */
+  ring: number;
   size: number;
   /** Fractions of the window. */
   x: number;
@@ -22,12 +25,53 @@ interface OrbSpec {
 }
 
 const ORBS: OrbSpec[] = [
-  { color: '#ec4899', size: 1.1, x: -0.35, y: -0.1, driftX: 0.35, driftY: 0.18, period: 7000 },
-  { color: '#f59e0b', size: 0.95, x: 0.45, y: 0.45, driftX: -0.3, driftY: -0.22, period: 9000 },
-  { color: '#06b6d4', size: 0.85, x: -0.2, y: 0.75, driftX: 0.4, driftY: -0.15, period: 11000 },
+  {
+    color: colors.ember,
+    ring: 0.1,
+    size: 1.1,
+    x: -0.35,
+    y: -0.1,
+    driftX: 0.35,
+    driftY: 0.18,
+    period: 7000,
+  },
+  {
+    color: colors.gold,
+    ring: 0.09,
+    size: 0.95,
+    x: 0.45,
+    y: 0.45,
+    driftX: -0.3,
+    driftY: -0.22,
+    period: 9000,
+  },
+  {
+    color: colors.sun,
+    ring: 0.07,
+    size: 0.8,
+    x: 0.1,
+    y: -0.05,
+    driftX: 0.2,
+    driftY: 0.3,
+    period: 8000,
+  },
+  {
+    color: colors.lagoon,
+    ring: 0.045,
+    size: 0.85,
+    x: -0.2,
+    y: 0.75,
+    driftX: 0.4,
+    driftY: -0.15,
+    period: 11000,
+  },
 ];
 
 const RINGS = 6;
+
+/** Sunburst rays alternate gold and sun, low opacity. */
+const RAY_GOLD = withAlpha(colors.gold, 0.16);
+const RAY_SUN = withAlpha(colors.sun, 0.1);
 
 function Orb({ spec, still }: { spec: OrbSpec; still: boolean }): React.JSX.Element {
   const { width, height } = useWindowDimensions();
@@ -94,7 +138,7 @@ function Orb({ spec, still }: { spec: OrbSpec; still: boolean }): React.JSX.Elem
               height: d,
               borderRadius: d / 2,
               backgroundColor: spec.color,
-              opacity: 0.09,
+              opacity: spec.ring,
             }}
           />
         );
@@ -114,7 +158,7 @@ export default function CelebrationBackdrop({ still }: { still: boolean }): Reac
 }
 
 /**
- * Slowly rotating light rays fanning out from behind the headline — the classic "you won" burst.
+ * Slowly rotating gold light rays fanning out from behind the headline — the classic "you won" burst.
  * Each ray is a zero-size View with a coloured top border and transparent side borders (a CSS
  * triangle), apex at the centre, inside a full-size wrapper rotated to its angle.
  */
@@ -182,7 +226,7 @@ export function Sunburst({
               borderTopWidth: half,
               borderLeftColor: 'transparent',
               borderRightColor: 'transparent',
-              borderTopColor: i % 2 === 0 ? 'rgba(255,255,255,0.13)' : 'rgba(253,224,71,0.10)',
+              borderTopColor: i % 2 === 0 ? RAY_GOLD : RAY_SUN,
             }}
           />
         </View>
@@ -192,5 +236,5 @@ export function Sunburst({
 }
 
 const styles = StyleSheet.create({
-  clip: { overflow: 'hidden' },
+  clip: { overflow: 'hidden', backgroundColor: colors.bg },
 });

@@ -36,8 +36,13 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
   removed for Approval — 4eecc76
 
 ### In progress
-- Phase E (Debrief + Completion, DESIGN.md §5.8, §5.9). Not started. Phase D is complete and
-  `npm run check` is green.
+- Phase E (Debrief + Completion, DESIGN.md §5.8, §5.9), started 2026-09-29. Plan, one commit each:
+  E1 the five celebration components restyled to tokens (`CelebrationBackdrop`, `HypeHeadline`,
+  `ConfettiBurst`, `HighlightCard`, `AnimatedStatCounter`); E2 SummaryScreen completion phase re-skin
+  (no violet, tightened above-the-fold spacing, `Button` Heck yes with pulsing glow) + legacy light
+  override removed; E3 SummaryScreen Debrief (stat tiles, 30pt set squares, feedback dots, edit
+  `Sheet`, TRAIL NOTES card, sticky footer); E4 the haptics-test flake fix. Flake root cause is
+  already found (see gotchas): a one-word hype headline has no word ticks.
 
 ### Next (sequential — each phase is one agent run, several small commits)
 - **E. Debrief + Completion** (§5.8, §5.9) + HighlightCard, AnimatedStatCounter, HypeHeadline,
