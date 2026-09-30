@@ -1,7 +1,7 @@
 /**
- * §13.3/§13.5 Settings — Wave 7. Didn't exist before this wave (carried-forward issues #20 and
- * #37 both cite "no settings screen" as the reason a real toggle couldn't be built). This screen
- * is the permanent home for:
+ * §13.3/§13.5 Settings — a grouped, iOS-style list on `bg` (DESIGN.md §5.10), most-changed first:
+ * Training, Motivation, Travel & privacy, Apple Health, the Medical disclaimer card, and the rare
+ * stuff (diagnostics, reset) tucked behind an Advanced disclosure. It is the permanent home for:
  *
  *  - §13.3's medical disclaimer, permanently available (not just the first-launch prompt).
  *  - §13.5 privacy copy: location opt-in (city-level, one lookup at completion, strings only),
@@ -12,15 +12,36 @@
  *  - A read-only §15 instrumentation diagnostics panel — purely local, purely a read, no network.
  *
  * No business logic lives here — every toggle is a straight `usersRepo.updateUser` patch, and the
- * diagnostics panel is a straight `instrumentationRepo.computeInstrumentationSnapshot` read.
+ * diagnostics panel is a straight `instrumentationRepo.computeInstrumentationSnapshot` read. This
+ * file is presentation only: nothing it reads or writes changed when it got its new look.
+ *
+ * Every boolean is the design system's `Switch`. Each `toggle-*` id sits on its *row* (tap anywhere
+ * on the row), and the row's `accessibilityState.checked` is the value; the switch inside carries
+ * `${id}-switch`. Tests press the row, not a native switch's `valueChange`.
  */
-import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import React, { Children, useCallback, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { instrumentationRepo, progressionStateRepo, usersRepo } from '@roamfit/store';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
 import { MAX_DAILY_MOTIVATION_TIMES, shiftTime } from '../lib/motivationNotifications';
+import { colors, radius, space, tints, type AccentName } from '../theme';
+import {
+  Button,
+  Card,
+  Enter,
+  Icon,
+  IconButton,
+  PressableScale,
+  Screen,
+  Sheet,
+  Switch,
+  Txt,
+  haptics,
+  type IconName,
+} from '../ui';
+import { IconBadge } from '../components/IconBadge';
 
 const DEFAULT_MOTIVATION_TIMES = ['18:00'];
 
@@ -30,18 +51,91 @@ export const DISCLAIMER_TEXT =
   'starting any new exercise program, especially if you are pregnant, recovering from an ' +
   'injury, or have an existing health condition. Stop immediately if you feel pain.';
 
-function Section({
+/** Icon tile size, and how far a hairline separator is inset so it starts past the icon. */
+const TILE = 32;
+const ROW_PAD = space.lg;
+const DIVIDER_INSET = ROW_PAD + TILE + space.md;
+
+/** An iOS-style group: eyebrow above, a `surface` card of rows (hairlines between them), and an
+ *  optional caption beneath. `testID` is `settings-section-${title}`. */
+function Group({
   title,
+  caption,
   children,
 }: {
   title: string;
+  caption?: string;
   children: React.ReactNode;
 }): React.JSX.Element {
+  const rows = Children.toArray(children).filter(Boolean);
   return (
-    <View style={styles.section} testID={`settings-section-${title}`}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {children}
+    <View style={styles.group} testID={`settings-section-${title}`}>
+      <Txt variant="eyebrow" color="text3" accessibilityRole="header" style={styles.groupTitle}>
+        {title}
+      </Txt>
+      <Card padding="none" style={styles.groupCard}>
+        {rows.map((row, i) => (
+          <React.Fragment key={i}>
+            {i > 0 ? <View style={styles.divider} /> : null}
+            {row}
+          </React.Fragment>
+        ))}
+      </Card>
+      {caption ? (
+        <Txt variant="caption" color="text3" style={styles.groupCaption}>
+          {caption}
+        </Txt>
+      ) : null}
     </View>
+  );
+}
+
+/** The 32pt rounded-square icon tile, tinted in its group's accent. */
+function IconTile({ icon, tone }: { icon: IconName; tone: AccentName }): React.JSX.Element {
+  return (
+    <View style={[styles.tile, { backgroundColor: tints[tone] }]}>
+      <Icon name={icon} size={18} color={tone} />
+    </View>
+  );
+}
+
+/** One switch row: tile, `h3` label, `Switch`. The row is the toggle (`testID`); the switch inside
+ *  is a visual twin (hidden from VoiceOver, which already has the row) with its own id. */
+function SwitchRow({
+  testID,
+  icon,
+  tone,
+  label,
+  value,
+  onValueChange,
+}: {
+  testID: string;
+  icon: IconName;
+  tone: AccentName;
+  label: string;
+  value: boolean;
+  onValueChange: (next: boolean) => void;
+}): React.JSX.Element {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="switch"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: value }}
+      onPress={() => {
+        haptics.selection();
+        onValueChange(!value);
+      }}
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+    >
+      <IconTile icon={icon} tone={tone} />
+      <Txt variant="h3" style={styles.rowLabel}>
+        {label}
+      </Txt>
+      <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <Switch testID={`${testID}-switch`} value={value} onValueChange={onValueChange} />
+      </View>
+    </Pressable>
   );
 }
 
@@ -53,6 +147,8 @@ export default function SettingsScreen(): React.JSX.Element {
   const [snapshot, setSnapshot] = useState<instrumentationRepo.InstrumentationSnapshot | null>(
     null,
   );
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
 
   const refresh = useCallback(() => {
     setUser(usersRepo.getUser(db) ?? usersRepo.ensureUser(db, nowUtcInstant()));
@@ -146,26 +242,13 @@ export default function SettingsScreen(): React.JSX.Element {
   }, [db]);
 
   const resetProgressionSessions = useCallback(() => {
-    Alert.alert(
-      'Reset progression ladders?',
-      'Every ladder goes back to 0 sessions at its current level. Your current level on each ' +
-        "ladder is kept — this doesn't move anyone up or down a rung.",
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: () => {
-            progressionStateRepo.resetAllProgressionSessions(
-              db,
-              families,
-              library.exercises,
-              nowUtcInstant(),
-            );
-          },
-        },
-      ],
+    progressionStateRepo.resetAllProgressionSessions(
+      db,
+      families,
+      library.exercises,
+      nowUtcInstant(),
     );
+    setResetOpen(false);
   }, [db, families, library]);
 
   const quietHoursEnabled = user.notificationPrefs.quietHoursEnabled ?? true;
@@ -186,179 +269,342 @@ export default function SettingsScreen(): React.JSX.Element {
   }, [snapshot]);
 
   return (
-    <ScrollView contentContainerStyle={styles.container} testID="settings-screen">
-      <Section title="Medical disclaimer">
-        <Text style={styles.body} testID="disclaimer-text">
-          {DISCLAIMER_TEXT}
-        </Text>
-      </Section>
+    <Screen scroll testID="settings-screen" contentStyle={styles.content}>
+      <Enter index={0}>
+        <Txt variant="h1" accessibilityRole="header">
+          Settings
+        </Txt>
+      </Enter>
 
-      <Section title="Privacy">
-        <Text style={styles.body}>
-          Location: opt-in, city-level only, resolved once when you complete a session. No
-          coordinates and no continuous or background tracking — only city/country names are ever
-          stored.
-        </Text>
-        <Text style={styles.body}>
-          Health data (workout duration and estimated energy) is written to Apple Health, never read
-          back, and never leaves this device.
-        </Text>
-        <Text style={styles.body}>
-          If you add optional freeform notes, that text is your content and is sent off-device only
-          to generate a short coaching summary — never stored or used for anything else.
-        </Text>
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>Passport (city/country on completion)</Text>
-          <Switch
-            testID="toggle-passport"
-            value={user.passportEnabled}
-            onValueChange={togglePassport}
-          />
-        </View>
-      </Section>
-
-      <Section title="Apple Health">
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>Write workouts to Apple Health</Text>
-          <Switch
-            testID="toggle-healthkit-write"
-            value={user.healthWriteEnabled}
-            onValueChange={toggleHealthWrite}
-          />
-        </View>
-      </Section>
-
-      <Section title="Sounds">
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>Timer sounds</Text>
-          <Switch
+      <Enter index={1}>
+        <Group
+          title="Training"
+          caption="The 3-2-1 count, the halfway chime and the end-of-rest tone. They mix with whatever else is playing rather than pausing it. Vibration cues are unaffected either way, so a silent workout still tells you when a hold or a rest is up. There is also a mute button on the workout itself, for one session at a time."
+        >
+          <SwitchRow
             testID="toggle-cue-sounds"
+            icon="volume"
+            tone="gold"
+            label="Timer sounds"
             value={user.cueSoundsEnabled}
             onValueChange={toggleCueSounds}
           />
-        </View>
-        <Text style={styles.body}>
-          The 3-2-1 count, the halfway chime and the end-of-rest tone. They mix with whatever else
-          is playing rather than pausing it. Vibration cues are unaffected either way, so a silent
-          workout still tells you when a hold or a rest is up. There is also a mute button on the
-          workout itself, for one session at a time.
-        </Text>
-      </Section>
+        </Group>
+      </Enter>
 
-      <Section title="Notifications">
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>Quiet hours (10pm–7am)</Text>
-          <Switch
-            testID="toggle-quiet-hours"
-            value={quietHoursEnabled}
-            onValueChange={toggleQuietHours}
-          />
-        </View>
-
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>Daily motivation</Text>
-          <Switch
+      <Enter index={2}>
+        <Group
+          title="Motivation"
+          caption={
+            'A short nudge picked from a large, always-varied pool — never the same message twice in a row where avoidable. Skipped automatically on a day you’ve already trained or marked “I’m in Transit,” and every time below still respects quiet hours.'
+          }
+        >
+          <SwitchRow
             testID="toggle-motivation"
+            icon="sparkles"
+            tone="ember"
+            label="Daily motivation"
             value={motivationEnabled}
             onValueChange={toggleMotivation}
           />
-        </View>
-        <Text style={styles.body}>
-          A short nudge picked from a large, always-varied pool — never the same message twice in a
-          row where avoidable. Skipped automatically on a day you've already trained or marked
-          &quot;I&apos;m in Transit,&quot; and every time below still respects quiet hours.
-        </Text>
-
-        {motivationEnabled && (
-          <View style={styles.motivationTimes} testID="motivation-times">
-            {motivationTimes.map((time, index) => (
-              <View key={index} style={styles.row} testID={`motivation-time-row-${index}`}>
-                <View style={styles.timeStepper}>
-                  <Pressable
-                    testID={`motivation-time-${index}-minus`}
-                    style={styles.stepperButton}
-                    onPress={() => adjustMotivationTime(index, -15)}
-                  >
-                    <Text style={styles.stepperButtonText}>−</Text>
-                  </Pressable>
-                  <Text style={styles.timeValue} testID={`motivation-time-${index}-value`}>
-                    {time}
-                  </Text>
-                  <Pressable
-                    testID={`motivation-time-${index}-plus`}
-                    style={styles.stepperButton}
-                    onPress={() => adjustMotivationTime(index, 15)}
-                  >
-                    <Text style={styles.stepperButtonText}>+</Text>
-                  </Pressable>
+          <SwitchRow
+            testID="toggle-quiet-hours"
+            icon="moon"
+            tone="ember"
+            label="Quiet hours (10pm–7am)"
+            value={quietHoursEnabled}
+            onValueChange={toggleQuietHours}
+          />
+          {motivationEnabled ? (
+            <View style={styles.times} testID="motivation-times">
+              {motivationTimes.map((time, index) => (
+                <View key={index} style={styles.timeRow} testID={`motivation-time-row-${index}`}>
+                  <View style={styles.timePill}>
+                    <IconButton
+                      testID={`motivation-time-${index}-minus`}
+                      icon="remove"
+                      accessibilityLabel={`Move time ${index + 1} 15 minutes earlier`}
+                      onPress={() => adjustMotivationTime(index, -15)}
+                    />
+                    <Txt
+                      variant="h2"
+                      style={styles.timeValue}
+                      testID={`motivation-time-${index}-value`}
+                    >
+                      {time}
+                    </Txt>
+                    <IconButton
+                      testID={`motivation-time-${index}-plus`}
+                      icon="add"
+                      accessibilityLabel={`Move time ${index + 1} 15 minutes later`}
+                      onPress={() => adjustMotivationTime(index, 15)}
+                    />
+                  </View>
+                  {motivationTimes.length > 1 && (
+                    <IconButton
+                      testID={`motivation-time-${index}-remove`}
+                      icon="close"
+                      variant="plain"
+                      tone="text2"
+                      accessibilityLabel={`Remove time ${index + 1}`}
+                      onPress={() => removeMotivationTime(index)}
+                    />
+                  )}
                 </View>
-                {motivationTimes.length > 1 && (
-                  <Text
-                    style={[styles.body, styles.destructiveAction]}
-                    testID={`motivation-time-${index}-remove`}
-                    onPress={() => removeMotivationTime(index)}
-                  >
-                    Remove
-                  </Text>
-                )}
-              </View>
-            ))}
-            {motivationTimes.length < MAX_DAILY_MOTIVATION_TIMES && (
-              <Text style={styles.body} onPress={addMotivationTime} testID="motivation-time-add">
-                + Add a time ({motivationTimes.length}/{MAX_DAILY_MOTIVATION_TIMES} per day)
-              </Text>
-            )}
+              ))}
+              {motivationTimes.length < MAX_DAILY_MOTIVATION_TIMES && (
+                <PressableScale
+                  testID="motivation-time-add"
+                  accessibilityRole="button"
+                  accessibilityLabel="Add a time"
+                  onPress={addMotivationTime}
+                  style={styles.addTime}
+                >
+                  <Icon name="add" size={18} color="ember" />
+                  <Txt variant="eyebrow" color="ember" style={styles.addTimeLabel}>
+                    Add a time ({motivationTimes.length}/{MAX_DAILY_MOTIVATION_TIMES} per day)
+                  </Txt>
+                </PressableScale>
+              )}
+            </View>
+          ) : null}
+        </Group>
+      </Enter>
+
+      <Enter index={3}>
+        <View style={styles.privacyGroup}>
+          <Group title="Travel & privacy">
+            <SwitchRow
+              testID="toggle-passport"
+              icon="airplane"
+              tone="sky"
+              label="Passport (city/country on completion)"
+              value={user.passportEnabled}
+              onValueChange={togglePassport}
+            />
+          </Group>
+          <View style={styles.privacyCopy}>
+            <Txt variant="caption" color="text3">
+              Location: opt-in, city-level only, resolved once when you complete a session. No
+              coordinates and no continuous or background tracking — only city/country names are
+              ever stored.
+            </Txt>
+            <Txt variant="caption" color="text3">
+              Health data (workout duration and estimated energy) is written to Apple Health, never
+              read back, and never leaves this device.
+            </Txt>
+            <Txt variant="caption" color="text3">
+              If you add optional freeform notes, that text is your content and is sent off-device
+              only to generate a short coaching summary — never stored or used for anything else.
+            </Txt>
           </View>
-        )}
-      </Section>
+        </View>
+      </Enter>
 
-      <Section title="Diagnostics">
-        <Text style={styles.body} onPress={loadDiagnostics} testID="load-diagnostics">
-          Tap to load on-device usage diagnostics (§15) — nothing here ever leaves this device.
-        </Text>
-        {diagnosticsLines.map((line) => (
-          <Text key={line} style={styles.diagnosticsLine}>
-            {line}
-          </Text>
-        ))}
-      </Section>
+      <Enter index={4}>
+        <Group title="Apple Health">
+          <SwitchRow
+            testID="toggle-healthkit-write"
+            icon="heart"
+            tone="lagoon"
+            label="Write workouts to Apple Health"
+            value={user.healthWriteEnabled}
+            onValueChange={toggleHealthWrite}
+          />
+        </Group>
+      </Enter>
 
-      <Section title="Advanced">
-        <Text
-          style={[styles.body, styles.destructiveAction]}
-          onPress={resetProgressionSessions}
-          testID="reset-progression-sessions"
-        >
-          Reset progression ladders to 0 sessions
-        </Text>
-        <Text style={styles.body}>
-          Restarts the session count at whatever level each ladder is currently on — it does not
-          move any ladder up or down a rung.
-        </Text>
-      </Section>
-    </ScrollView>
+      <Enter index={5}>
+        <Card padding="md" style={styles.disclaimer} testID="settings-section-Medical disclaimer">
+          <IconBadge icon="shield" tone="gold" size={40} />
+          <View style={styles.disclaimerBody}>
+            <Txt variant="eyebrow" color="text3" accessibilityRole="header">
+              Medical disclaimer
+            </Txt>
+            <Txt variant="small" color="text2" testID="disclaimer-text">
+              {DISCLAIMER_TEXT}
+            </Txt>
+          </View>
+        </Card>
+      </Enter>
+
+      <Enter index={6}>
+        <Group title="Advanced">
+          <Pressable
+            testID="settings-advanced-toggle"
+            accessibilityRole="button"
+            accessibilityLabel="Diagnostics and reset"
+            accessibilityState={{ expanded: advancedOpen }}
+            onPress={() => {
+              haptics.selection();
+              setAdvancedOpen((open) => !open);
+            }}
+            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+          >
+            <IconTile icon="settings" tone="summit" />
+            <Txt variant="h3" style={styles.rowLabel}>
+              Diagnostics &amp; reset
+            </Txt>
+            <Icon name={advancedOpen ? 'chevronUp' : 'chevronDown'} size={18} color="text3" />
+          </Pressable>
+          {advancedOpen ? (
+            <View style={styles.advancedBlock}>
+              <Txt variant="h3">Diagnostics</Txt>
+              <Txt variant="caption" color="text3">
+                On-device usage diagnostics — nothing here ever leaves this device.
+              </Txt>
+              <Button
+                testID="load-diagnostics"
+                label="Load diagnostics"
+                variant="secondary"
+                size="sm"
+                onPress={loadDiagnostics}
+              />
+              {diagnosticsLines.length > 0 ? (
+                <View style={styles.well} testID="diagnostics-lines">
+                  {diagnosticsLines.map((line) => (
+                    <Txt key={line} variant="caption" color="text2" style={styles.mono}>
+                      {line}
+                    </Txt>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+          {advancedOpen ? (
+            <View style={styles.advancedBlock}>
+              <Txt variant="h3">Reset progression ladders</Txt>
+              <Txt variant="caption" color="text3">
+                Restarts the session count at whatever level each ladder is currently on — it does
+                not move any ladder up or down a rung.
+              </Txt>
+              <Button
+                testID="reset-progression-sessions"
+                label="Reset ladders to 0 sessions"
+                variant="secondary"
+                size="sm"
+                onPress={() => setResetOpen(true)}
+              />
+            </View>
+          ) : null}
+        </Group>
+      </Enter>
+
+      <View style={styles.footer}>
+        <Txt variant="eyebrow" color="text3">
+          RoamFit
+        </Txt>
+        <Txt variant="caption" color="text3">
+          Train anywhere.
+        </Txt>
+      </View>
+
+      {/* The reset confirm (DESIGN.md §5.11): the safe choice is the loud one, and there is no red. */}
+      <Sheet
+        testID="reset-sheet"
+        visible={resetOpen}
+        onClose={() => setResetOpen(false)}
+        title="Reset progression ladders?"
+      >
+        <Txt variant="small" color="text2" style={styles.sheetBody}>
+          Every ladder goes back to 0 sessions at its current level. Your current level on each
+          ladder is kept — this doesn&apos;t move anyone up or down a rung.
+        </Txt>
+        <View style={styles.sheetButtons} testID="reset-confirm-row">
+          <Button
+            testID="reset-confirm-cancel"
+            label="Keep my progress"
+            onPress={() => setResetOpen(false)}
+          />
+          <Button
+            testID="reset-confirm-yes"
+            label="Reset ladders"
+            variant="secondary"
+            size="md"
+            fullWidth
+            onPress={resetProgressionSessions}
+          />
+        </View>
+      </Sheet>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 20 },
-  section: { gap: 8 },
-  sectionTitle: { fontSize: 16, fontWeight: '600' },
-  body: { fontSize: 13, lineHeight: 18, color: '#334155' },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  rowLabel: { fontSize: 14, flexShrink: 1, paddingRight: 12 },
-  diagnosticsLine: { fontSize: 12, color: '#64748b' },
-  destructiveAction: { color: '#b91c1c', fontWeight: '600' },
-  motivationTimes: { gap: 8 },
-  timeStepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  stepperButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#e2e8f0',
+  content: { paddingTop: space.sm, gap: space.xxl },
+  group: { gap: space.sm },
+  groupTitle: { marginLeft: space.xs },
+  groupCard: { overflow: 'hidden' },
+  groupCaption: { marginHorizontal: space.xs },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: DIVIDER_INSET,
+    backgroundColor: colors.line,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 52,
+    paddingHorizontal: ROW_PAD,
+    paddingVertical: space.sm,
+  },
+  rowPressed: { backgroundColor: colors.surface2 },
+  rowLabel: { flex: 1, flexShrink: 1, marginHorizontal: space.md },
+  tile: {
+    width: TILE,
+    height: TILE,
+    borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepperButtonText: { fontSize: 16, fontWeight: '600', color: '#334155' },
-  timeValue: { fontSize: 14, fontVariant: ['tabular-nums'], minWidth: 48, textAlign: 'center' },
+  times: {
+    gap: space.sm,
+    paddingHorizontal: ROW_PAD,
+    paddingVertical: space.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.line,
+  },
+  timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  timePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    padding: space.xs,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface2,
+  },
+  timeValue: { minWidth: 72, textAlign: 'center' },
+  addTime: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.lineStrong,
+  },
+  addTimeLabel: { marginLeft: space.xs },
+  privacyGroup: { gap: space.sm },
+  privacyCopy: { gap: space.sm, marginHorizontal: space.xs },
+  disclaimer: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
+  disclaimerBody: { flex: 1, gap: space.xs },
+  advancedBlock: {
+    gap: space.sm,
+    alignItems: 'flex-start',
+    padding: ROW_PAD,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.line,
+  },
+  well: {
+    alignSelf: 'stretch',
+    gap: space.xs,
+    padding: space.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface2,
+  },
+  mono: { fontFamily: 'Menlo' },
+  footer: { alignItems: 'center', gap: 2, paddingTop: space.md },
+  sheetBody: { marginBottom: space.xl },
+  sheetButtons: { gap: space.md },
 });

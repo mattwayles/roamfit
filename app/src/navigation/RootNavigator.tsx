@@ -8,7 +8,7 @@ import WorkoutScreen from '../screens/WorkoutScreen';
 import SummaryScreen from '../screens/SummaryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
-import { headerOptions, legacyLightContent } from './screenOptions';
+import { headerOptions } from './screenOptions';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -20,8 +20,6 @@ export default function RootNavigator(): React.JSX.Element {
   return (
     <Stack.Navigator initialRouteName="Tabs" screenOptions={headerOptions}>
       <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
-      {/* Screens not yet migrated to the design system opt in to the old light scene color via
-          `legacyLightContent`; each phase deletes it for the screens it migrates. */}
       <Stack.Screen name="Generate" component={GenerateScreen} options={{ title: '' }} />
       <Stack.Screen name="Approval" component={ApprovalScreen} options={{ title: 'YOUR ROUTE' }} />
       {/* Workout draws its own top bar (home / elapsed clock / pause / stop) and is migrated: no
@@ -32,11 +30,8 @@ export default function RootNavigator(): React.JSX.Element {
         options={{ headerShown: false, gestureEnabled: false }}
       />
       <Stack.Screen name="Summary" component={SummaryScreen} options={{ title: '' }} />
-      <Stack.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{ title: 'SETTINGS', ...legacyLightContent }}
-      />
+      {/* Settings draws its own h1 title; the native header stays for the back button. */}
+      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: '' }} />
       {/* The detail page opens on a full-bleed focus-colour hero and draws its own back button over
           it; the edge-swipe back gesture stays on. */}
       <Stack.Screen
