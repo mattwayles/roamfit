@@ -112,27 +112,29 @@ pod), so that build needs network. Later builds don't.
 
 - **It briefly switches to Spotify when you connect and Spotify wasn't running.** `connect()` can
   only attach to an already-running Spotify, and iOS suspends backgrounded apps, so the app is
-  woken and playback started — which is what you wanted anyway. Connecting is always a tap and
-  never happens on its own, precisely so this can't happen mid-set.
-- **You reconnect once per app launch.** See below — this is unrelated to the token-swap server;
-  it's because the session is only ever held in memory, never persisted to SQLite.
+  woken and playback started — which is what you wanted anyway. This can only happen from an
+  explicit tap on Connect (never from the silent background resume below), precisely so it can't
+  happen mid-set.
 - **Skip buttons grey out during an advert.** Spotify reports the restriction and the buttons
   follow it, rather than looking live and doing nothing.
 - **Cue tones and the demo video still mix over the music** — that's the audio session
   `workoutAudio.ts` configures, unchanged by any of this. If beeps ever start pausing Spotify
   again, that file's header is where to look, not this feature.
 
-## Why you reconnect once per app launch
+## Connecting once should stay connected
 
-The session (access token + refresh token) is held in memory for the life of the app process and
-never written to SQLite or synced anywhere — reconnecting on a cold launch is one tap that bounces
-through an already-authorized Spotify and straight back. That's a deliberate scope cut, not a
-symptom of the token-swap server: nothing here writes an OAuth token anywhere near a table that
-might one day sync.
+The session (access token + refresh token) is persisted to the iOS Keychain (`spotifySession.ts`,
+`expo-secure-store`) the moment it's granted or renewed, and reused from there — a cold app launch,
+a device restart, and the ordinary mid-workout in-and-out of another app (a phone call, switching
+to YouTube, the screen locking) all reattach silently, with no tap and, for a still-fresh access
+token, no network call either. `spotifyRemote.ts`'s `resumeSpotifySession` is what does this; its
+own header and `connectSpotify`'s explain the mechanics in full. The one thing it will never do on
+its own is foreground Spotify (`authorizeAndPlay`) — that stays behind an explicit tap on Connect,
+same as before.
 
-This used to also be true for a different reason — the old Implicit Grant flow returned a token
-good for about an hour with no refresh token at all, so there was nothing *to* persist. That's no
-longer why: Authorization Code (step 3 above) does return a refresh token, and the iOS SDK uses
-`tokenRefreshURL` to renew the access token automatically while the app is running. Persisting that
-refresh token across launches (so reconnecting is a no-op instead of a tap) would be the next step
-if the one-tap reconnect ever becomes annoying — it's parked in `docs/BACKLOG.md`.
+This used to not be possible — the old Implicit Grant flow returned a token good for about an hour
+with no refresh token at all, so there was nothing *to* persist, and reconnecting was a one-tap
+"bounce through an already-authorized Spotify" every app launch with no way to avoid even that.
+Authorization Code (step 3 above) is what changed that: it returns a real refresh token, which is
+what `spotifySession.ts` now persists and `Auth.refresh()` uses to get a new access token whenever
+the stored one has expired, without ever showing Spotify's interactive auth screen again.

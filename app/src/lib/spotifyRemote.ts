@@ -3,12 +3,21 @@
  * wraps Spotify's native iOS App Remote SDK) so screens never touch the native module directly —
  * the same shape, and for the same reasons, as `workoutAudio.ts`.
  *
- * **Why App Remote and not the Web API.** iOS gives a third-party app no way to drive another
- * app's playback: `MPRemoteCommandCenter` receives commands about your *own* audio and
- * `MPMusicPlayerController` is Apple Music only. Of Spotify's two routes, App Remote is IPC to the
- * Spotify process already running on this device, so every button here keeps working with no
- * connectivity — the Web API would need a network round trip per press and an "active device",
- * which is precisely wrong for a workout in a park.
+ * **Why App Remote and not the Web API — for playback.** iOS gives a third-party app no way to
+ * drive another app's playback: `MPRemoteCommandCenter` receives commands about your *own* audio
+ * and `MPMusicPlayerController` is Apple Music only. Of Spotify's two routes, App Remote is IPC to
+ * the Spotify process already running on this device, so every transport button and every actual
+ * `Player.play` here keeps working with no network call of our own — the Web API would need a
+ * round trip per press and an "active device", which is precisely wrong for a workout in a park.
+ *
+ * **The one deliberate exception: `getFitnessContent` uses the Web API, for browsing only.** App
+ * Remote has no search and no "list playlists" — its `Content` namespace only offers a personalised
+ * recommendation feed, which turned out to be full of playlists nowhere near a workout and
+ * non-playable section rows (see that function's own header). Finding *new* music by name genuinely
+ * needs a request this app makes, not just one Spotify's own app makes internally — there is no way
+ * around that being a real trade against the "no network of our own" rule above. Everything after a
+ * search result is picked — previewing a playlist's tracks, playing it — goes back over App Remote
+ * with no further network call of ours; see `getFitnessContent`'s header for the full reasoning.
  *
  * **The import must stay lazy and try/caught.** `ExpoSpotifySDKModule.js` calls
  * `requireNativeModule("ExpoSpotifySDK")` at the top level, which *throws on import* whenever no
@@ -35,8 +44,32 @@
  * configures `mixWithOthers`, which is what lets cue tones layer over Spotify instead of pausing
  * it (see that file's header — getting this wrong failed silently for a whole release). Spotify
  * owns its own session in its own process; nothing here calls `setAudioModeAsync`.
+ *
+ * **Connecting once should stay connected, not reconnect on every interruption.** User-reported:
+ * having to tap Connect on every app launch, every workout, and every backgrounding (a phone call,
+ * switching to another app, the screen locking) made the feature feel broken. Two things were
+ * true before this paragraph was added: (1) the session (access token + refresh token) lived only
+ * in the native SDK's memory, gone the instant the process died — cold launch or device restart —
+ * so the only way back was the full interactive `Auth.authenticate()` bounce through Spotify's own
+ * auth screen; (2) nothing ever reattached automatically when the app came back to the foreground
+ * after the App Remote IPC link dropped (which it does on every backgrounding), so even *within*
+ * the same process the user had to notice and re-tap. `spotifySession.ts` persists the refresh
+ * token to the Keychain so it survives both of those; `resumeSpotifySession` below is what uses it
+ * — tried first by `connectSpotify` (so even an explicit tap skips the interactive screen whenever
+ * possible) and by `useSpotifyPlayer`'s mount/foreground effect (so most reconnects need no tap at
+ * all). Silent resume never calls `authorizeAndPlay` (which foregrounds Spotify) — that stays
+ * gated on `allowWake`, true only for the explicit-tap path, so an automatic reattach can never
+ * hijack the screen mid-workout the way `connectSpotify`'s own header already rules out for the
+ * first-ever connect.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
+import {
+  clearStoredSpotifySession,
+  loadStoredSpotifySession,
+  saveStoredSpotifySession,
+  type StoredSpotifySession,
+} from './spotifySession';
 
 type SpotifyModule = typeof import('@wwdrew/expo-spotify-sdk');
 
@@ -50,6 +83,25 @@ export type SpotifyConnectionState = 'unavailable' | 'disconnected' | 'connectin
 export interface SpotifyTrack {
   name: string;
   artist: string;
+}
+
+/**
+ * One row of the browse sheet — a playlist from `getFitnessContent`'s search, or one of its tracks
+ * from `getContentChildren`. Deliberately not the library's own `ContentItem`: same reasoning as
+ * `SpotifyTrack` above, and the native side only ever reads `uri` back off whatever is handed to
+ * `Content.getChildren`/`Player.play` (confirmed against the native source, not assumed), so
+ * trimming to exactly what the browse UI shows is safe, not just convenient.
+ */
+export interface SpotifyContentItem {
+  title: string | null;
+  subtitle: string | null;
+  identifier: string;
+  uri: string;
+  /** Can be started directly with `playSpotifyContent`. */
+  isPlayable: boolean;
+  /** Can be drilled into with `getContentChildren` — a playlist folder, or a playlist's own
+   *  tracks. Not mutually exclusive with `isPlayable`: a playlist row is usually both. */
+  isContainer: boolean;
 }
 
 /**
@@ -87,16 +139,22 @@ export function isSpotifySupported(): boolean {
   return loadModule() != null;
 }
 
+/** The native layer's error `code`, or `''` when whatever was thrown doesn't carry one. Shared by
+ *  `describeError` and every place below that needs to branch on *which* failure this was rather
+ *  than just report it. */
+function errorCode(error: unknown): string {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code: unknown }).code)
+    : '';
+}
+
 /**
  * Turns whatever the native layer threw into a sentence worth showing mid-workout. The library's
  * error codes are precise but they are developer-facing; a user holding a plank wants to know
  * whether to keep going or reach for their phone.
  */
 function describeError(error: unknown): string {
-  const code =
-    typeof error === 'object' && error !== null && 'code' in error
-      ? String((error as { code: unknown }).code)
-      : '';
+  const code = errorCode(error);
   switch (code) {
     case 'SPOTIFY_NOT_INSTALLED':
       return 'Spotify isn’t installed on this phone.';
@@ -113,13 +171,162 @@ function describeError(error: unknown): string {
       return 'Couldn’t reach Spotify to sign in.';
     case 'CONNECTION_FAILED':
       return 'Couldn’t reach the Spotify app.';
+    // The rest are reachable once `Content`/`Player.play` are in the mix (browsing/playing a
+    // workout playlist), not just the original transport controls.
+    case 'NOT_CONNECTED':
+    case 'CONNECTION_LOST':
+      return 'Lost the connection to Spotify.';
+    case 'CONTENT_API_UNAVAILABLE':
+      return 'Spotify’s workout picks aren’t available right now.';
+    case 'OPERATION_NOT_ALLOWED':
+      return 'Spotify won’t allow that right now.';
     default:
       return 'Spotify didn’t respond.';
   }
 }
 
+/** The minimum App Remote needs — control and read. Nothing here reads a library, a profile, or
+ *  anything else, and asking for scopes we don't use would be asking the user to grant access we
+ *  have no reason to hold. Shared between the interactive `authenticate()` call and the silent
+ *  `refresh()` one, since a refreshed token has to carry the same grant as the one it replaces. */
+const SPOTIFY_SCOPES = ['app-remote-control', 'user-read-playback-state'];
+
+/** How much of an access token's remaining lifetime is still worth using as-is rather than
+ *  refreshing pre-emptively. Generous on purpose: refreshing needs a network round trip and this
+ *  is the difference between a truly zero-network reconnect (common case: token still has most of
+ *  its ~1hr life left) and one that silently costs a request the user never notices either way. */
+const TOKEN_EXPIRY_SAFETY_MARGIN_MS = 2 * 60 * 1000;
+
+/** Persists a session from the library's own shape, but only when it's actually resumable — no
+ *  `refreshToken` means nothing here could ever reattach without the interactive screen anyway
+ *  (see `spotifySession.ts`'s header on why `refreshToken` is required, not optional, there). */
+function persistResumableSession(session: {
+  accessToken: string;
+  refreshToken: string | null;
+  expirationDate: number;
+  scopes: string[];
+}): Promise<void> {
+  if (!session.refreshToken) return Promise.resolve();
+  const stored: StoredSpotifySession = {
+    accessToken: session.accessToken,
+    refreshToken: session.refreshToken,
+    expirationDate: session.expirationDate,
+    scopes: session.scopes,
+  };
+  return saveStoredSpotifySession(stored);
+}
+
+interface ResumeOutcome {
+  connected: boolean;
+  /** Set only when a fresh interactive sign-in couldn't fix this either (right now: Premium being
+   *  required) — surfacing it immediately saves the user a pointless bounce to Spotify's own auth
+   *  screen just to hit the exact same wall a second later. `null` for every other failure (no
+   *  stored session, a dead refresh token, Spotify not running with waking disallowed, a network
+   *  hiccup): those are all reasonable to either fall through to interactive auth for (the
+   *  explicit-tap caller) or just stay quietly disconnected for (the silent background caller). */
+  blockingError: SpotifyErrorMessage;
+}
+
+const NOT_RESUMED: ResumeOutcome = { connected: false, blockingError: null };
+
+/** The stored access token if it has real life left, else a silently refreshed one (persisted),
+ *  else null — no refresh URL configured, a dead refresh token (which is cleared, since it can
+ *  never work again), or the network being down (session left alone; it may work next time). */
+async function freshAccessToken(
+  mod: SpotifyModule,
+  stored: StoredSpotifySession,
+): Promise<string | null> {
+  if (Date.now() < stored.expirationDate - TOKEN_EXPIRY_SAFETY_MARGIN_MS) {
+    return stored.accessToken;
+  }
+  const tokenRefreshURL = process.env.EXPO_PUBLIC_SPOTIFY_TOKEN_REFRESH_URL;
+  if (!tokenRefreshURL) return null;
+  try {
+    const renewed = await mod.Auth.refresh({
+      refreshToken: stored.refreshToken,
+      tokenRefreshURL,
+      scopes: stored.scopes as unknown as Parameters<SpotifyModule['Auth']['refresh']>[0]['scopes'],
+    });
+    await persistResumableSession(renewed);
+    return renewed.accessToken;
+  } catch (error) {
+    // A dead refresh token (revoked from the user's Spotify account, or genuinely expired) can
+    // never succeed again on its own — clear it so the next attempt goes straight to interactive
+    // auth instead of paying a network round trip to fail the same way every time.
+    if (errorCode(error) === 'REFRESH_TOKEN_EXPIRED') await clearStoredSpotifySession();
+    return null;
+  }
+}
+
+async function attemptResume(
+  mod: SpotifyModule,
+  options: { allowWake: boolean },
+): Promise<ResumeOutcome> {
+  if (mod.AppRemote.isConnected()) return { connected: true, blockingError: null };
+
+  const stored = await loadStoredSpotifySession();
+  if (!stored) return NOT_RESUMED;
+
+  const accessToken = await freshAccessToken(mod, stored);
+  if (!accessToken) return NOT_RESUMED;
+
+  try {
+    await mod.AppRemote.connect(accessToken);
+    return { connected: true, blockingError: null };
+  } catch (error) {
+    if (errorCode(error) !== 'CONNECTION_FAILED') {
+      return {
+        connected: false,
+        blockingError: errorCode(error) === 'PREMIUM_REQUIRED' ? describeError(error) : null,
+      };
+    }
+    // `connect()` only attaches to an already-running Spotify. Waking a suspended/terminated one
+    // (`authorizeAndPlay`) foregrounds it — exactly the disruption `connectSpotify`'s own header
+    // rules out for anything that isn't a deliberate tap, so a silent background resume stops here
+    // rather than doing it uninvited mid-workout.
+    if (!options.allowWake) return NOT_RESUMED;
+    try {
+      await mod.AppRemote.authorizeAndPlay(accessToken);
+      return { connected: true, blockingError: null };
+    } catch (wakeError) {
+      return {
+        connected: false,
+        blockingError:
+          errorCode(wakeError) === 'PREMIUM_REQUIRED' ? describeError(wakeError) : null,
+      };
+    }
+  }
+}
+
+/** Collapses concurrent resume attempts (the mount effect and the foreground effect can both fire
+ *  around the same moment, and this file's two call sites into `useSpotifyPlayer` per screen — see
+ *  its own header — would otherwise each try their own refresh/connect) into one real attempt. */
+let resumeInFlight: Promise<ResumeOutcome> | null = null;
+
 /**
- * Authenticate, then attach to the running Spotify app.
+ * Reattaches to Spotify using whatever was last persisted, entirely without the interactive
+ * `Auth.authenticate()` screen — silently, and usually without any network call at all (a still-
+ * fresh access token goes straight to `AppRemote.connect()`). This is what turns "reconnect" from
+ * "redo the OAuth bounce" into "resume the session that was already granted," for a cold app
+ * launch, a device restart, or the ordinary mid-workout in-and-out of another app.
+ *
+ * `options.allowWake` gates `authorizeAndPlay` (see `attemptResume`'s own comment) — pass `true`
+ * only for a call the user just asked for.
+ */
+function resumeSpotifySession(options: { allowWake: boolean }): Promise<ResumeOutcome> {
+  const mod = loadModule();
+  if (!mod) return Promise.resolve(NOT_RESUMED);
+  if (!resumeInFlight) {
+    resumeInFlight = attemptResume(mod, options).finally(() => {
+      resumeInFlight = null;
+    });
+  }
+  return resumeInFlight;
+}
+
+/**
+ * Connect: resume a persisted session if at all possible, and only fall back to the full
+ * interactive OAuth bounce when there is truly nothing to resume from.
  *
  * **Authorization Code, not Implicit Grant.** Spotify sunset the Implicit Grant flow on
  * 2025-11-27 (the OAuth migration Spotify announced on its developer blog); asking for it now
@@ -135,14 +342,20 @@ function describeError(error: unknown): string {
  * so the common case (phone in a pocket, Spotify not touched today) fails first and succeeds on
  * `authorizeAndPlay`, which wakes Spotify, starts playback and then connects. That it starts
  * playback is a feature here: someone tapping Connect at the top of a workout wants music.
- *
- * Scopes are the minimum App Remote needs — control and read. Nothing here reads a library, a
- * profile, or anything else, and asking for scopes we don't use would be asking the user to grant
- * access we have no reason to hold.
  */
 export async function connectSpotify(): Promise<SpotifyErrorMessage> {
   const mod = loadModule();
   if (!mod) return 'Spotify isn’t set up in this build.';
+  if (!mod.Auth.isAvailable()) return 'Spotify isn’t installed on this phone.';
+
+  // `allowWake: true` — this is the one call site where the user just explicitly asked to
+  // connect, so foregrounding a suspended Spotify (if it comes to that) is expected, not a
+  // surprise. Every other outcome here except "actually connected" falls through to the
+  // interactive flow below, same as if nothing had ever been persisted.
+  const resumed = await resumeSpotifySession({ allowWake: true });
+  if (resumed.connected) return null;
+  if (resumed.blockingError) return resumed.blockingError;
+
   // Read per call, not at module load: `EXPO_PUBLIC_` vars are inlined by Metro at bundle time in
   // a real build, but reading them lazily here (rather than into a module-level const) is what
   // lets tests for the configured and unconfigured cases set `process.env` before calling this,
@@ -154,23 +367,21 @@ export async function connectSpotify(): Promise<SpotifyErrorMessage> {
   }
 
   try {
-    if (!mod.Auth.isAvailable()) return 'Spotify isn’t installed on this phone.';
     // iOS can leak an in-flight authorization if a previous attempt was interrupted; clearing it
     // first is what makes a retry actually retry rather than reject as AUTH_IN_PROGRESS.
     await mod.Auth.cancelPending();
     const session = await mod.Auth.authenticate({
-      scopes: ['app-remote-control', 'user-read-playback-state'],
+      scopes: SPOTIFY_SCOPES as unknown as Parameters<
+        SpotifyModule['Auth']['authenticate']
+      >[0]['scopes'],
       tokenSwapURL,
       tokenRefreshURL,
     });
+    await persistResumableSession(session);
     try {
       await mod.AppRemote.connect(session.accessToken);
     } catch (error) {
-      const code =
-        typeof error === 'object' && error !== null && 'code' in error
-          ? String((error as { code: unknown }).code)
-          : '';
-      if (code !== 'CONNECTION_FAILED') throw error;
+      if (errorCode(error) !== 'CONNECTION_FAILED') throw error;
       await mod.AppRemote.authorizeAndPlay(session.accessToken);
     }
     return null;
@@ -213,6 +424,132 @@ export function spotifySkipPrevious(): Promise<SpotifyErrorMessage> {
   return transport((mod) => mod.Player.skipPrevious());
 }
 
+/** One page of Spotify content — either the top-level feed, or one item's children. */
+export interface SpotifyContentResult {
+  items: SpotifyContentItem[];
+  error: SpotifyErrorMessage;
+}
+
+function toContentItem(item: {
+  title: string | null;
+  subtitle: string | null;
+  identifier: string;
+  uri: string;
+  isPlayable: boolean;
+  isContainer: boolean;
+}): SpotifyContentItem {
+  return {
+    title: item.title,
+    subtitle: item.subtitle,
+    identifier: item.identifier,
+    uri: item.uri,
+    isPlayable: item.isPlayable,
+    isContainer: item.isContainer,
+  };
+}
+
+/** Searches that together cover what people actually train to. Each is a separate query because a
+ *  single "workout" search is dominated by whatever playlist names game it best. */
+const FITNESS_SEARCHES = ['workout', 'gym', 'hiit', 'running', 'strength training', 'cardio'];
+
+/** A search hit only counts as a fitness playlist if its name says so — search also matches on
+ *  description and owner, which is how unrelated "vibe" playlists sneak in. */
+const FITNESS_NAME =
+  /workout|gym|hiit|cardio|running|\brun\b|training|fitness|lift|cycl|spin|sweat|pump|bootcamp|crossfit/i;
+
+interface SearchedPlaylist {
+  id: string;
+  uri: string;
+  name: string;
+  owner?: { display_name?: string | null } | null;
+  tracks?: { total?: number } | null;
+}
+
+/**
+ * Fitness playlists by name, via the Spotify Web API's public playlist search. The App Remote
+ * "recommended: fitness" feed this used to call is personalised — it returned playlists in the
+ * user's own taste, mostly not workout material, plus non-playable section rows. Search needs no
+ * scope beyond the access token the session already holds.
+ *
+ * This is the one deliberate exception to "everything here works over App Remote with no network
+ * of our own" — there is no search in App Remote at all, and asking "am I able to choose songs or
+ * switch playlists" honestly means admitting *finding* something new needs a request our app makes,
+ * not just one Spotify's own app makes internally. Every result is still a real Spotify playlist
+ * URI, so what happens *after* a search — previewing its tracks (`getContentChildren`) and actually
+ * playing it (`playSpotifyContent`) — goes over App Remote exactly like everything else in this
+ * file, with no further network call of ours: `isContainer: true` below is what lets the browse
+ * sheet offer that preview, since a playlist is, to App Remote, a container of tracks regardless of
+ * whether search or App Remote's own feed is what found it.
+ */
+export async function getFitnessContent(): Promise<SpotifyContentResult> {
+  const mod = loadModule();
+  if (!mod) return { items: [], error: 'Spotify isn’t set up in this build.' };
+  try {
+    const stored = await loadStoredSpotifySession();
+    const token = stored ? await freshAccessToken(mod, stored) : null;
+    if (!token) return { items: [], error: 'Reconnect Spotify to browse workout playlists.' };
+
+    const responses = await Promise.all(
+      FITNESS_SEARCHES.map(async (q) => {
+        const res = await fetch(
+          `https://api.spotify.com/v1/search?type=playlist&limit=10&q=${encodeURIComponent(q)}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (!res.ok) throw new Error(`search ${res.status}`);
+        const body = (await res.json()) as { playlists?: { items?: (SearchedPlaylist | null)[] } };
+        return body.playlists?.items ?? [];
+      }),
+    );
+
+    const seen = new Set<string>();
+    const items: SpotifyContentItem[] = [];
+    // Round-robin across queries so one search's results don't crowd out the others.
+    for (let i = 0; i < 10; i++) {
+      for (const list of responses) {
+        const p = list[i];
+        if (!p || !p.uri || seen.has(p.id) || !FITNESS_NAME.test(p.name)) continue;
+        seen.add(p.id);
+        items.push({
+          title: p.name,
+          subtitle: p.owner?.display_name ?? null,
+          identifier: p.id,
+          uri: p.uri,
+          isPlayable: true,
+          // A playlist is a container of tracks — `getContentChildren` can preview them over App
+          // Remote, no further network call, regardless of how this URI was found.
+          isContainer: true,
+        });
+      }
+    }
+    return { items, error: null };
+  } catch {
+    return { items: [], error: 'Couldn’t reach Spotify to find playlists.' };
+  }
+}
+
+/** Previews a playlist's own tracks (from `getFitnessContent`'s search results) over App Remote —
+ *  no network call of ours, unlike finding the playlist in the first place. */
+export async function getContentChildren(item: SpotifyContentItem): Promise<SpotifyContentResult> {
+  const mod = loadModule();
+  if (!mod) return { items: [], error: 'Spotify isn’t set up in this build.' };
+  try {
+    const items = await mod.Content.getChildren(
+      item as unknown as Parameters<SpotifyModule['Content']['getChildren']>[0],
+    );
+    return { items: items.map(toContentItem), error: null };
+  } catch (error) {
+    return { items: [], error: describeError(error) };
+  }
+}
+
+/** Starts playback of a track/album/playlist URI from `getFitnessContent`/`getContentChildren` —
+ *  always an already-valid Spotify URI, hence `SpotifyURI.unsafe` (not `.from`'s validation),
+ *  exactly the case the library's own docs carve that out for. Premium-only, like every other
+ *  on-demand playback call — `describeError` already has a sentence for that. */
+export function playSpotifyContent(uri: string): Promise<SpotifyErrorMessage> {
+  return transport((mod) => mod.Player.play(mod.SpotifyURI.unsafe(uri)));
+}
+
 /** What `useSpotifyPlayer` hands its caller. */
 export interface SpotifyPlayer {
   /** False when there is no native module — render nothing at all, not a dead button. */
@@ -239,9 +576,15 @@ export interface SpotifyPlayer {
  * Subscribes to the Spotify app's connection and player state for as long as the component using
  * it is mounted.
  *
- * Note what this deliberately does *not* do: auto-connect. Connecting can foreground Spotify (see
- * `connectSpotify`), and a screen that hijacks the foreground on mount would be intolerable — the
- * user is mid-workout. Connection is always a tap.
+ * Note what this deliberately does *not* do: interactively auto-connect. Nothing here ever calls
+ * `connectSpotify()`/`Auth.authenticate()` on its own — that can foreground Spotify or pop its auth
+ * screen, and a screen that hijacked the foreground on mount or on every backgrounding would be
+ * intolerable mid-workout. What it *does* do on its own is quietly try to resume an already-granted
+ * session (`resumeSpotifySession({ allowWake: false })`) on mount and every time the app returns to
+ * the foreground — this can only reattach to a Spotify that's already running and can only ever
+ * make `connectionState` go forward to `'connected'`, never pop anything onto the screen. That
+ * silent reattach is what makes reconnecting after a phone call, another app, or the screen
+ * locking a non-event instead of a trip back to the "Connect Spotify" button.
  */
 export function useSpotifyPlayer(): SpotifyPlayer {
   const available = isSpotifySupported();
@@ -289,6 +632,28 @@ export function useSpotifyPlayer(): SpotifyPlayer {
       // screen: dropping it on unmount would kill the music every time the user finished a
       // workout or stepped into exercise detail and back.
     };
+  }, []);
+
+  useEffect(() => {
+    const mod = loadModule();
+    if (!mod) return;
+
+    // Covers a cold app launch and a remount after an earlier workout in the same process — both
+    // just mean "there might be a still-good session nobody has reattached to yet," which is
+    // exactly what a no-op `isConnected()` check up front in `attemptResume` makes this safe to
+    // always try. Errors are deliberately not surfaced here (see the hook's own header): a failed
+    // silent resume just leaves `connectionState` at whatever it already was.
+    void resumeSpotifySession({ allowWake: false });
+
+    // The other half: `AppRemote`'s IPC link drops every time the app backgrounds (a phone call,
+    // switching to YouTube, the screen locking), which was previously the user's cue to go tap
+    // Connect again. Reattaching the moment the app is frontmost again is what turns that into
+    // nothing happening at all, from the user's side.
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void resumeSpotifySession({ allowWake: false });
+    });
+
+    return () => subscription.remove();
   }, []);
 
   /** Runs one transport/connect promise and posts its outcome to `lastError`. Every action shares

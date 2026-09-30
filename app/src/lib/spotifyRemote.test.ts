@@ -18,6 +18,65 @@ class FakeSpotifyError extends Error {
   }
 }
 
+/**
+ * The persisted-session half (`spotifySession.ts`) is auto-mocked (no factory) rather than given
+ * one like `@wwdrew/expo-spotify-sdk` below — deliberately, not just for brevity. `spotifyRemote.ts`
+ * imports it with a plain top-level `import`, unlike the SDK module (which it only ever
+ * `require()`s lazily, inside a function, specifically so a factory closing over an outer `const`
+ * can populate it before that `require()` ever runs — see that module's own header). A factory
+ * here closing over a same-file `const mockLoadStoredSpotifySession = jest.fn()` would capture it
+ * *before* the `const` initializer had run: Babel hoists every `import`-derived `require()`
+ * (including the one that pulls in `spotifySession.ts` transitively, via `spotifyRemote.ts`'s own
+ * eager import of it) above this file's own top-level statements, so the factory would see
+ * `undefined` in place of the mock function. Auto-mocking sidesteps the whole problem: Jest
+ * replaces each real export with its own `jest.fn()` in place, no closure involved, so
+ * `jest.mocked()` below just gets a typed handle on exactly those. */
+jest.mock('./spotifySession');
+import {
+  loadStoredSpotifySession,
+  saveStoredSpotifySession,
+  clearStoredSpotifySession,
+} from './spotifySession';
+const mockLoadStoredSpotifySession = jest.mocked(loadStoredSpotifySession);
+const mockSaveStoredSpotifySession = jest.mocked(saveStoredSpotifySession);
+const mockClearStoredSpotifySession = jest.mocked(clearStoredSpotifySession);
+
+/** `useSpotifyPlayer`'s foreground-resume effect subscribes to the real `AppState`, which under
+ *  Jest has no device to ever report a real transition — this captures the `'change'` handler so
+ *  a test can fire one, the same way `emit()` above stands in for the SDK's own listeners.
+ *
+ * Mocked at this specific submodule path, not the whole `react-native` package (`AppState`'s own
+ * export in `react-native/index.js`) — pulling in the real package via `jest.requireActual` to
+ * spread over drags in `DevMenu` and other native-only modules that don't exist under Jest and
+ * crash the whole suite on import. This is the exact file `react-native`'s own `AppState` getter
+ * requires, so `import { AppState } from 'react-native'` resolves to this mock either way. */
+let mockAppStateChangeHandler: ((state: string) => void) | null = null;
+jest.mock('react-native/Libraries/AppState/AppState', () => ({
+  __esModule: true,
+  default: {
+    addEventListener: jest.fn((event: string, handler: (state: string) => void) => {
+      if (event === 'change') mockAppStateChangeHandler = handler;
+      return {
+        remove: () => {
+          if (mockAppStateChangeHandler === handler) mockAppStateChangeHandler = null;
+        },
+      };
+    }),
+  },
+}));
+
+/** One resumable stored session — a still-fresh access token, so a test using it exercises the
+ *  zero-network path unless it deliberately backdates `expirationDate` itself. */
+function storedSession(over: Partial<import('./spotifySession').StoredSpotifySession> = {}) {
+  return {
+    accessToken: 'stored-access-token',
+    refreshToken: 'stored-refresh-token',
+    expirationDate: Date.now() + 60 * 60 * 1000,
+    scopes: ['app-remote-control', 'user-read-playback-state'],
+    ...over,
+  };
+}
+
 type Listener = (payload: unknown) => void;
 
 const listeners: Record<string, Listener[]> = {};
@@ -39,7 +98,22 @@ const mockModule = {
   Auth: {
     isAvailable: jest.fn(() => true),
     cancelPending: jest.fn(async () => undefined),
-    authenticate: jest.fn(async () => ({ accessToken: 'token-abc' })),
+    authenticate: jest.fn(
+      async (): Promise<{
+        accessToken: string;
+        refreshToken?: string | null;
+        expirationDate?: number;
+        scopes?: string[];
+      }> => ({ accessToken: 'token-abc' }),
+    ),
+    refresh: jest.fn(
+      async (): Promise<{
+        accessToken: string;
+        refreshToken?: string | null;
+        expirationDate?: number;
+        scopes?: string[];
+      }> => ({ accessToken: 'token-abc' }),
+    ),
   },
   AppRemote: {
     connect: jest.fn(async () => undefined),
@@ -55,7 +129,15 @@ const mockModule = {
     pause: jest.fn(async () => undefined),
     skipNext: jest.fn(async () => undefined),
     skipPrevious: jest.fn(async () => undefined),
+    play: jest.fn(async () => undefined),
     addListener: jest.fn(addListener),
+  },
+  Content: {
+    getRecommendedContentItems: jest.fn(async () => []),
+    getChildren: jest.fn(async (): Promise<unknown[]> => []),
+  },
+  SpotifyURI: {
+    unsafe: jest.fn((uri: string) => uri),
   },
 };
 
@@ -79,7 +161,10 @@ afterAll(() => {
 
 import {
   connectSpotify,
+  getContentChildren,
+  getFitnessContent,
   isSpotifySupported,
+  playSpotifyContent,
   spotifyPause,
   spotifyResume,
   spotifySkipNext,
@@ -87,6 +172,7 @@ import {
   useSpotifyPlayer,
   __resetSpotifyModuleCacheForTests,
 } from './spotifyRemote';
+import type { SpotifyContentItem } from './spotifyRemote';
 
 /** One `playerStateChange` payload, shaped like the library's `PlayerState`. */
 function playerState(over: { name?: string; artist?: string; paused?: boolean } = {}) {
@@ -103,12 +189,41 @@ function playerState(over: { name?: string; artist?: string; paused?: boolean } 
 beforeEach(() => {
   __resetSpotifyModuleCacheForTests();
   for (const key of Object.keys(listeners)) delete listeners[key];
+  mockAppStateChangeHandler = null;
   jest.clearAllMocks();
   mockModule.Auth.isAvailable.mockReturnValue(true);
   mockModule.Auth.authenticate.mockResolvedValue({ accessToken: 'token-abc' });
+  mockModule.Auth.refresh.mockResolvedValue({ accessToken: 'token-abc' });
   mockModule.AppRemote.isConnected.mockReturnValue(false);
   mockModule.AppRemote.connect.mockResolvedValue(undefined);
+  mockModule.Player.play.mockResolvedValue(undefined);
+  mockModule.Content.getRecommendedContentItems.mockResolvedValue([]);
+  mockModule.Content.getChildren.mockResolvedValue([]);
+  mockModule.SpotifyURI.unsafe.mockImplementation((uri: string) => uri);
+  // No stored session by default — every existing test below exercises the "nothing to resume,
+  // fall straight through to interactive auth" path exactly as before this file gained one.
+  mockLoadStoredSpotifySession.mockResolvedValue(null);
+  mockSaveStoredSpotifySession.mockResolvedValue(undefined);
+  mockClearStoredSpotifySession.mockResolvedValue(undefined);
 });
+
+/** One raw item shaped like the library's own `ContentItem` — what `Content.*` mocks resolve with,
+ *  before `spotifyRemote.ts` trims it down to `SpotifyContentItem`. */
+function rawContentItem(over: Partial<SpotifyContentItem> = {}) {
+  return {
+    title: 'Power Hour',
+    subtitle: 'Workout Mix',
+    contentDescription: null,
+    identifier: 'item-1',
+    uri: 'spotify:playlist:abc123',
+    imageIdentifier: null,
+    isAvailableOffline: false,
+    isPlayable: true,
+    isContainer: false,
+    isPinned: false,
+    ...over,
+  };
+}
 
 describe('connectSpotify', () => {
   it('authenticates with only the scopes App Remote actually needs, then attaches', async () => {
@@ -163,6 +278,122 @@ describe('connectSpotify', () => {
 
     await expect(connectSpotify()).resolves.toBe('Spotify didn’t respond.');
   });
+
+  it('persists a freshly granted session that carries a refresh token', async () => {
+    mockModule.Auth.authenticate.mockResolvedValueOnce({
+      accessToken: 'new-access-token',
+      refreshToken: 'new-refresh-token',
+      expirationDate: 1_700_000_000_000,
+      scopes: ['app-remote-control', 'user-read-playback-state'],
+    });
+
+    await connectSpotify();
+
+    expect(mockSaveStoredSpotifySession).toHaveBeenCalledWith({
+      accessToken: 'new-access-token',
+      refreshToken: 'new-refresh-token',
+      expirationDate: 1_700_000_000_000,
+      scopes: ['app-remote-control', 'user-read-playback-state'],
+    });
+  });
+
+  it('does not persist a session with no refresh token — nothing there could ever be resumed', async () => {
+    mockModule.Auth.authenticate.mockResolvedValueOnce({
+      accessToken: 'new-access-token',
+      refreshToken: null,
+      expirationDate: 1_700_000_000_000,
+      scopes: ['app-remote-control'],
+    });
+
+    await connectSpotify();
+
+    expect(mockSaveStoredSpotifySession).not.toHaveBeenCalled();
+  });
+});
+
+describe('connectSpotify — resuming a persisted session', () => {
+  it('reuses a still-fresh stored access token directly, with no interactive auth and no refresh call', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+
+    await expect(connectSpotify()).resolves.toBeNull();
+
+    expect(mockModule.AppRemote.connect).toHaveBeenCalledWith('stored-access-token');
+    expect(mockModule.Auth.refresh).not.toHaveBeenCalled();
+    expect(mockModule.Auth.authenticate).not.toHaveBeenCalled();
+  });
+
+  it('silently refreshes an expired stored token, then connects — still no interactive auth', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(
+      storedSession({ expirationDate: Date.now() - 1000 }),
+    );
+    mockModule.Auth.refresh.mockResolvedValue({
+      accessToken: 'renewed-access-token',
+      refreshToken: 'renewed-refresh-token',
+      expirationDate: Date.now() + 60 * 60 * 1000,
+      scopes: ['app-remote-control', 'user-read-playback-state'],
+    });
+
+    await expect(connectSpotify()).resolves.toBeNull();
+
+    expect(mockModule.Auth.refresh).toHaveBeenCalledWith({
+      refreshToken: 'stored-refresh-token',
+      tokenRefreshURL: 'https://us-central1-roamfit.cloudfunctions.net/spotifyTokenRefresh',
+      scopes: ['app-remote-control', 'user-read-playback-state'],
+    });
+    expect(mockSaveStoredSpotifySession).toHaveBeenCalledWith(
+      expect.objectContaining({ accessToken: 'renewed-access-token' }),
+    );
+    expect(mockModule.AppRemote.connect).toHaveBeenCalledWith('renewed-access-token');
+    expect(mockModule.Auth.authenticate).not.toHaveBeenCalled();
+  });
+
+  it('wakes Spotify with the resumed token when it is not running, still without interactive auth', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+    mockModule.AppRemote.connect.mockRejectedValueOnce(new FakeSpotifyError('CONNECTION_FAILED'));
+
+    await expect(connectSpotify()).resolves.toBeNull();
+
+    expect(mockModule.AppRemote.authorizeAndPlay).toHaveBeenCalledWith('stored-access-token');
+    expect(mockModule.Auth.authenticate).not.toHaveBeenCalled();
+  });
+
+  it('clears a dead refresh token and falls back to interactive auth', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(
+      storedSession({ expirationDate: Date.now() - 1000 }),
+    );
+    mockModule.Auth.refresh.mockRejectedValueOnce(new FakeSpotifyError('REFRESH_TOKEN_EXPIRED'));
+
+    await expect(connectSpotify()).resolves.toBeNull();
+
+    expect(mockClearStoredSpotifySession).toHaveBeenCalled();
+    expect(mockModule.Auth.authenticate).toHaveBeenCalled();
+  });
+
+  it('leaves a merely-unreachable stored session alone and falls back to interactive auth', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(
+      storedSession({ expirationDate: Date.now() - 1000 }),
+    );
+    mockModule.Auth.refresh.mockRejectedValueOnce(new FakeSpotifyError('NETWORK_ERROR'));
+
+    await expect(connectSpotify()).resolves.toBeNull();
+
+    expect(mockClearStoredSpotifySession).not.toHaveBeenCalled();
+    expect(mockModule.Auth.authenticate).toHaveBeenCalled();
+  });
+
+  it('surfaces Premium-required immediately from a resumed connect, without a pointless interactive retry', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+    mockModule.AppRemote.connect.mockRejectedValueOnce(new FakeSpotifyError('PREMIUM_REQUIRED'));
+
+    await expect(connectSpotify()).resolves.toBe('Spotify Premium is needed to control playback.');
+    expect(mockModule.Auth.authenticate).not.toHaveBeenCalled();
+  });
+
+  it('falls back to interactive auth when there is nothing stored at all', async () => {
+    await expect(connectSpotify()).resolves.toBeNull();
+
+    expect(mockModule.Auth.authenticate).toHaveBeenCalled();
+  });
 });
 
 describe('transport calls', () => {
@@ -182,6 +413,130 @@ describe('transport calls', () => {
     mockModule.Player.skipNext.mockRejectedValueOnce(new FakeSpotifyError('PREMIUM_REQUIRED'));
 
     await expect(spotifySkipNext()).resolves.toBe('Spotify Premium is needed to control playback.');
+  });
+});
+
+describe('getFitnessContent', () => {
+  const freshSession = {
+    accessToken: 'tok',
+    refreshToken: 'r',
+    expirationDate: Date.now() + 3600_000,
+    scopes: [],
+  };
+  const playlist = (id: string, name: string) => ({
+    id,
+    uri: `spotify:playlist:${id}`,
+    name,
+    owner: { display_name: 'Spotify' },
+  });
+  let fetchMock: jest.Mock;
+
+  beforeEach(() => {
+    mockLoadStoredSpotifySession.mockResolvedValue(freshSession);
+    fetchMock = jest.fn();
+    (global as unknown as { fetch: jest.Mock }).fetch = fetchMock;
+  });
+
+  it('searches playlists with the stored token, keeps fitness-named ones, and dedupes', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        playlists: {
+          items: [null, playlist('a', 'Power Workout'), playlist('b', 'Chill Evening Vibes')],
+        },
+      }),
+    });
+
+    const result = await getFitnessContent();
+
+    expect(fetchMock.mock.calls[0][0]).toContain('api.spotify.com/v1/search?type=playlist');
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer tok');
+    expect(result).toEqual({
+      items: [
+        {
+          title: 'Power Workout',
+          subtitle: 'Spotify',
+          identifier: 'a',
+          uri: 'spotify:playlist:a',
+          isPlayable: true,
+          // A playlist is a container of tracks — previewable via `getContentChildren` over App
+          // Remote, no further network call of ours.
+          isContainer: true,
+        },
+      ],
+      error: null,
+    });
+  });
+
+  it('asks to reconnect when there is no stored session', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(null);
+
+    const result = await getFitnessContent();
+
+    expect(result).toEqual({ items: [], error: 'Reconnect Spotify to browse workout playlists.' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('reports a failed search instead of throwing', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 429 });
+
+    const result = await getFitnessContent();
+
+    expect(result).toEqual({ items: [], error: 'Couldn’t reach Spotify to find playlists.' });
+  });
+});
+
+describe('getContentChildren', () => {
+  it("drills into an item, passing the item's own uri through to the SDK", async () => {
+    mockModule.Content.getChildren.mockResolvedValue([rawContentItem({ identifier: 'child' })]);
+    const parent: SpotifyContentItem = {
+      title: 'Cardio',
+      subtitle: null,
+      identifier: 'folder',
+      uri: 'spotify:playlist:folder-uri',
+      isPlayable: false,
+      isContainer: true,
+    };
+
+    const result = await getContentChildren(parent);
+
+    expect(mockModule.Content.getChildren).toHaveBeenCalledWith(
+      expect.objectContaining({ uri: 'spotify:playlist:folder-uri' }),
+    );
+    expect(result.items).toEqual([expect.objectContaining({ identifier: 'child' })]);
+    expect(result.error).toBeNull();
+  });
+
+  it('reports a failure instead of throwing', async () => {
+    mockModule.Content.getChildren.mockRejectedValueOnce(new FakeSpotifyError('CONNECTION_LOST'));
+
+    const result = await getContentChildren({
+      title: 'Cardio',
+      subtitle: null,
+      identifier: 'folder',
+      uri: 'spotify:playlist:folder-uri',
+      isPlayable: false,
+      isContainer: true,
+    });
+
+    expect(result).toEqual({ items: [], error: 'Lost the connection to Spotify.' });
+  });
+});
+
+describe('playSpotifyContent', () => {
+  it('plays the given uri via an unvalidated SpotifyURI, since it already came from the SDK', async () => {
+    await expect(playSpotifyContent('spotify:playlist:abc123')).resolves.toBeNull();
+
+    expect(mockModule.SpotifyURI.unsafe).toHaveBeenCalledWith('spotify:playlist:abc123');
+    expect(mockModule.Player.play).toHaveBeenCalledWith('spotify:playlist:abc123');
+  });
+
+  it('reports Premium-required rather than letting it escape into a render', async () => {
+    mockModule.Player.play.mockRejectedValueOnce(new FakeSpotifyError('PREMIUM_REQUIRED'));
+
+    await expect(playSpotifyContent('spotify:track:xyz')).resolves.toBe(
+      'Spotify Premium is needed to control playback.',
+    );
   });
 });
 
@@ -322,5 +677,86 @@ describe('useSpotifyPlayer', () => {
     // Finishing a workout must not stop the music — the connection belongs to the app, not to the
     // screen that happened to open it.
     expect(mockModule.AppRemote.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('silently resumes a stored session on mount, without ever showing "connecting"', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+
+    const { result } = await renderHook(() => useSpotifyPlayer());
+
+    await waitFor(() =>
+      expect(mockModule.AppRemote.connect).toHaveBeenCalledWith('stored-access-token'),
+    );
+    // Nothing about this path is a user action, so it must never claim to be "connecting" —
+    // the real state comes from the `connectionStateChange` listener once `connect()` lands.
+    expect(result.current.connectionState).not.toBe('connecting');
+  });
+
+  it('never wakes Spotify from the silent mount-time resume', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+    mockModule.AppRemote.connect.mockRejectedValue(new FakeSpotifyError('CONNECTION_FAILED'));
+
+    await renderHook(() => useSpotifyPlayer());
+    await waitFor(() => expect(mockModule.AppRemote.connect).toHaveBeenCalled());
+
+    expect(mockModule.AppRemote.authorizeAndPlay).not.toHaveBeenCalled();
+  });
+
+  it('does nothing on mount when already connected', async () => {
+    mockModule.AppRemote.isConnected.mockReturnValue(true);
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+
+    await renderHook(() => useSpotifyPlayer());
+    // Give any stray microtask a turn before asserting the negative.
+    await act(async () => {});
+
+    expect(mockModule.AppRemote.connect).not.toHaveBeenCalled();
+  });
+
+  it('resumes again when the app returns to the foreground after the connection dropped', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+    await renderHook(() => useSpotifyPlayer());
+    await waitFor(() => expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(1));
+
+    // The App Remote link dropped (a phone call, another app, the screen locking) and the app is
+    // now back in front — this is the event the user currently has to notice and re-tap Connect
+    // for; it should instead just work.
+    await act(async () => mockAppStateChangeHandler?.('active'));
+
+    await waitFor(() => expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(2));
+  });
+
+  it('does not attempt a foreground resume while already connected', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+    await renderHook(() => useSpotifyPlayer());
+    await waitFor(() => expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(1));
+    mockModule.AppRemote.isConnected.mockReturnValue(true);
+
+    await act(async () => mockAppStateChangeHandler?.('active'));
+    await act(async () => {});
+
+    expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a transition to the background — only "active" is a resume opportunity', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+    await renderHook(() => useSpotifyPlayer());
+    await waitFor(() => expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(1));
+
+    await act(async () => mockAppStateChangeHandler?.('background'));
+    await act(async () => {});
+
+    expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(1);
+  });
+
+  it('removes the AppState subscription on unmount', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+    const { unmount } = await renderHook(() => useSpotifyPlayer());
+    await waitFor(() => expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(1));
+
+    await unmount();
+    await act(async () => mockAppStateChangeHandler?.('active'));
+
+    expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(1);
   });
 });

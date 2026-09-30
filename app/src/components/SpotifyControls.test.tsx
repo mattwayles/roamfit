@@ -14,14 +14,43 @@
  * at a component that is fine. The trigger was three un-awaited presses one case earlier.
  */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import SpotifyControls from './SpotifyControls';
-import { useSpotifyPlayer } from '../lib/spotifyRemote';
-import type { SpotifyPlayer } from '../lib/spotifyRemote';
+import {
+  useSpotifyPlayer,
+  getFitnessContent,
+  getContentChildren,
+  playSpotifyContent,
+} from '../lib/spotifyRemote';
+import type { SpotifyContentItem, SpotifyPlayer } from '../lib/spotifyRemote';
 
-jest.mock('../lib/spotifyRemote', () => ({ useSpotifyPlayer: jest.fn() }));
+jest.mock('../lib/spotifyRemote', () => ({
+  useSpotifyPlayer: jest.fn(),
+  getFitnessContent: jest.fn(),
+  getContentChildren: jest.fn(),
+  playSpotifyContent: jest.fn(),
+}));
 
 const mockedHook = useSpotifyPlayer as jest.MockedFunction<typeof useSpotifyPlayer>;
+const mockedGetFitnessContent = getFitnessContent as jest.MockedFunction<typeof getFitnessContent>;
+const mockedGetContentChildren = getContentChildren as jest.MockedFunction<
+  typeof getContentChildren
+>;
+const mockedPlaySpotifyContent = playSpotifyContent as jest.MockedFunction<
+  typeof playSpotifyContent
+>;
+
+function contentItem(over: Partial<SpotifyContentItem> = {}): SpotifyContentItem {
+  return {
+    title: 'Power Hour',
+    subtitle: 'Workout Mix',
+    identifier: 'item-1',
+    uri: 'spotify:playlist:abc123',
+    isPlayable: true,
+    isContainer: false,
+    ...over,
+  };
+}
 
 const actions = {
   connect: jest.fn(),
@@ -45,7 +74,12 @@ function player(over: Partial<SpotifyPlayer> = {}): SpotifyPlayer {
   };
 }
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockedGetFitnessContent.mockResolvedValue({ items: [contentItem()], error: null });
+  mockedGetContentChildren.mockResolvedValue({ items: [], error: null });
+  mockedPlaySpotifyContent.mockResolvedValue(null);
+});
 
 describe('SpotifyControls', () => {
   it('renders nothing at all when there is no native module', async () => {
@@ -173,5 +207,210 @@ describe('SpotifyControls', () => {
 
     expect(screen.getByTestId('spotify-error')).toBeTruthy();
     expect(screen.getByTestId('spotify-play-pause')).toBeTruthy();
+  });
+});
+
+describe('SpotifyControls browse sheet — Spotify\'s curated "fitness" feed', () => {
+  it('loads the fitness feed and shows it the moment the browse button is pressed', async () => {
+    mockedGetFitnessContent.mockResolvedValue({
+      items: [contentItem({ identifier: 'a', title: 'Power Hour' })],
+      error: null,
+    });
+    mockedHook.mockReturnValue(player());
+    await render(<SpotifyControls />);
+
+    await fireEvent.press(screen.getByTestId('spotify-browse'));
+
+    expect(mockedGetFitnessContent).toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByTestId('spotify-browse-item-a')).toBeTruthy());
+    expect(screen.getByText('Power Hour')).toBeTruthy();
+    expect(screen.getByText('Workout Mix')).toBeTruthy();
+  });
+
+  it('says so when Spotify has nothing to offer, rather than showing an empty sheet', async () => {
+    mockedGetFitnessContent.mockResolvedValue({ items: [], error: null });
+    mockedHook.mockReturnValue(player());
+    await render(<SpotifyControls />);
+
+    await fireEvent.press(screen.getByTestId('spotify-browse'));
+
+    await waitFor(() =>
+      expect(screen.getByText('No workout picks available right now.')).toBeTruthy(),
+    );
+  });
+
+  it('plays a playable item on tap and closes the sheet', async () => {
+    mockedGetFitnessContent.mockResolvedValue({
+      items: [contentItem({ identifier: 'a', isPlayable: true, isContainer: false })],
+      error: null,
+    });
+    mockedHook.mockReturnValue(player());
+    await render(<SpotifyControls />);
+    await fireEvent.press(screen.getByTestId('spotify-browse'));
+    await waitFor(() => expect(screen.getByTestId('spotify-browse-item-a')).toBeTruthy());
+
+    await fireEvent.press(screen.getByTestId('spotify-browse-item-a'));
+
+    expect(mockedPlaySpotifyContent).toHaveBeenCalledWith('spotify:playlist:abc123');
+    await waitFor(() => expect(screen.queryByTestId('spotify-browse-item-a')).toBeNull());
+  });
+
+  it('drills into a container on tap when it cannot be played directly', async () => {
+    mockedGetFitnessContent.mockResolvedValue({
+      items: [
+        contentItem({
+          identifier: 'folder',
+          title: 'Cardio',
+          isPlayable: false,
+          isContainer: true,
+        }),
+      ],
+      error: null,
+    });
+    mockedGetContentChildren.mockResolvedValue({
+      items: [contentItem({ identifier: 'child', title: 'Sprint Mix' })],
+      error: null,
+    });
+    mockedHook.mockReturnValue(player());
+    await render(<SpotifyControls />);
+    await fireEvent.press(screen.getByTestId('spotify-browse'));
+    await waitFor(() => expect(screen.getByTestId('spotify-browse-item-folder')).toBeTruthy());
+
+    await fireEvent.press(screen.getByTestId('spotify-browse-item-folder'));
+
+    expect(mockedGetContentChildren).toHaveBeenCalledWith(
+      expect.objectContaining({ identifier: 'folder' }),
+    );
+    await waitFor(() => expect(screen.getByTestId('spotify-browse-item-child')).toBeTruthy());
+    expect(screen.getByText('Sprint Mix')).toBeTruthy();
+  });
+
+  it('offers a separate "see inside" tap for an item that is both playable and a container', async () => {
+    mockedGetFitnessContent.mockResolvedValue({
+      items: [
+        contentItem({
+          identifier: 'playlist',
+          title: 'Power Hour',
+          isPlayable: true,
+          isContainer: true,
+        }),
+      ],
+      error: null,
+    });
+    mockedGetContentChildren.mockResolvedValue({
+      items: [contentItem({ identifier: 'track-1', title: 'Track One' })],
+      error: null,
+    });
+    mockedHook.mockReturnValue(player());
+    await render(<SpotifyControls />);
+    await fireEvent.press(screen.getByTestId('spotify-browse'));
+    await waitFor(() => expect(screen.getByTestId('spotify-browse-item-playlist')).toBeTruthy());
+
+    // The row itself plays (the more common intent for something both playable and browsable)...
+    await fireEvent.press(screen.getByTestId('spotify-browse-item-playlist'));
+    expect(mockedPlaySpotifyContent).toHaveBeenCalledWith('spotify:playlist:abc123');
+    expect(mockedGetContentChildren).not.toHaveBeenCalled();
+  });
+
+  it('a container also playable still offers its own drill-in chevron', async () => {
+    mockedGetFitnessContent.mockResolvedValue({
+      items: [
+        contentItem({
+          identifier: 'playlist',
+          title: 'Power Hour',
+          isPlayable: true,
+          isContainer: true,
+        }),
+      ],
+      error: null,
+    });
+    mockedGetContentChildren.mockResolvedValue({
+      items: [contentItem({ identifier: 'track-1', title: 'Track One' })],
+      error: null,
+    });
+    mockedHook.mockReturnValue(player());
+    await render(<SpotifyControls />);
+    await fireEvent.press(screen.getByTestId('spotify-browse'));
+    await waitFor(() => expect(screen.getByTestId('spotify-browse-drill-playlist')).toBeTruthy());
+
+    await fireEvent.press(screen.getByTestId('spotify-browse-drill-playlist'));
+
+    await waitFor(() => expect(screen.getByTestId('spotify-browse-item-track-1')).toBeTruthy());
+    expect(mockedPlaySpotifyContent).not.toHaveBeenCalled();
+  });
+
+  it('walks back up one level at a time rather than straight to the root', async () => {
+    mockedGetFitnessContent.mockResolvedValue({
+      items: [
+        contentItem({
+          identifier: 'folder',
+          title: 'Cardio',
+          isPlayable: false,
+          isContainer: true,
+        }),
+      ],
+      error: null,
+    });
+    mockedGetContentChildren.mockResolvedValue({
+      items: [contentItem({ identifier: 'child', title: 'Sprint Mix' })],
+      error: null,
+    });
+    mockedHook.mockReturnValue(player());
+    await render(<SpotifyControls />);
+    await fireEvent.press(screen.getByTestId('spotify-browse'));
+    await waitFor(() => expect(screen.getByTestId('spotify-browse-item-folder')).toBeTruthy());
+    await fireEvent.press(screen.getByTestId('spotify-browse-item-folder'));
+    await waitFor(() => expect(screen.getByTestId('spotify-browse-item-child')).toBeTruthy());
+
+    await fireEvent.press(screen.getByTestId('spotify-browse-back'));
+
+    await waitFor(() => expect(screen.getByTestId('spotify-browse-item-folder')).toBeTruthy());
+    expect(screen.queryByTestId('spotify-browse-item-child')).toBeNull();
+  });
+
+  it('closes on the × without needing to walk back through every level first', async () => {
+    mockedHook.mockReturnValue(player());
+    await render(<SpotifyControls />);
+    await fireEvent.press(screen.getByTestId('spotify-browse'));
+    await waitFor(() => expect(screen.getByTestId('spotify-browse-close')).toBeTruthy());
+
+    await fireEvent.press(screen.getByTestId('spotify-browse-close'));
+
+    expect(screen.queryByTestId('spotify-browse-close')).toBeNull();
+  });
+
+  it('shows the error inline and keeps the sheet open rather than failing silently', async () => {
+    mockedGetFitnessContent.mockResolvedValue({
+      items: [],
+      error: 'Spotify’s workout picks aren’t available right now.',
+    });
+    mockedHook.mockReturnValue(player());
+    await render(<SpotifyControls />);
+
+    await fireEvent.press(screen.getByTestId('spotify-browse'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('spotify-browse-error').props.children).toBe(
+        'Spotify’s workout picks aren’t available right now.',
+      ),
+    );
+  });
+
+  it('surfaces a play failure (e.g. Premium required) without closing the sheet', async () => {
+    mockedPlaySpotifyContent.mockResolvedValue('Spotify Premium is needed to control playback.');
+    mockedHook.mockReturnValue(player());
+    await render(<SpotifyControls />);
+    await fireEvent.press(screen.getByTestId('spotify-browse'));
+    await waitFor(() => expect(screen.getByTestId('spotify-browse-item-item-1')).toBeTruthy());
+
+    await fireEvent.press(screen.getByTestId('spotify-browse-item-item-1'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('spotify-browse-error').props.children).toBe(
+        'Spotify Premium is needed to control playback.',
+      ),
+    );
+    // Still open — a failed play attempt is not "task complete."
+    expect(screen.getByTestId('spotify-browse-item-item-1')).toBeTruthy();
   });
 });

@@ -105,12 +105,15 @@ own developer dashboard and a dev-client rebuild, which is the one part nobody b
 Five minutes, all of it in `docs/SPOTIFY-SETUP.md`. Until then the bar renders nothing and the app
 is exactly as it was. The device run is genuinely unproven: nothing under Jest can exercise a real
 auth bounce, a real IPC connection, or a real track skip.
-- **Spotify: no token swap server, so you reconnect once per app launch.** The controls use iOS's
-implicit flow, which needs no backend and returns an access token good for about an hour — longer
-than a workout, which is the window that matters. The code+swap flow would persist a session across
-launches but needs an endpoint holding the client secret, and `functions/` has never been deployed
-against a real project (see above), so the music controls were deliberately not made to depend on
-it. Revisit if reconnecting turns out to be annoying in practice.
+- **Spotify: session persistence + silent resume landed, device-unverified.** User-reported:
+reconnecting on every app launch, every workout, and every backgrounding (phone call, another app,
+screen lock) made the feature feel broken. Fixed in `spotifySession.ts` (Keychain-persisted refresh
+token) + `spotifyRemote.ts`'s `resumeSpotifySession` (tried first by `connectSpotify`, and by
+`useSpotifyPlayer` on mount and app-foreground) — see that file's header for the full mechanics.
+Jest-verified only (auth bounces and IPC can't run under Jest, per the existing note above): a real
+device pass is owed for the actual claims — a still-fresh token reconnects with zero network after
+backgrounding, an expired one refreshes silently with no interactive screen, and a fresh install
+after a device restart still resumes without re-authenticating.
 - **Spotify: no Settings toggle and no per-workout hide.** The bar renders nothing when the native
 module is absent, so a non-Spotify build is unaffected — but a Spotify user who wants a silent
 session has no way to hide it short of not connecting. Add a toggle if the row proves to be

@@ -22,6 +22,7 @@
       "expo-audio",
       "expo-notifications",
       "expo-location",
+      "expo-secure-store",
       [
         "@kingstinct/react-native-healthkit",
         {
