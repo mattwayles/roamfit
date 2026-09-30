@@ -8,14 +8,13 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
 ### Done
 - [x] Design spec written — `docs/DESIGN.md`
 - [x] A1 deps installed via `npx expo install` (react-native-svg 15.15.4, @expo/vector-icons 15.0.2,
-  @expo-google-fonts/barlow + barlow-condensed 0.4.1, @react-navigation/bottom-tabs 7.20.0)
+  @expo-google-fonts/barlow + barlow-condensed 0.4.1, @react-navigation/bottom-tabs 7.20.0) — eda9578
 - [x] A2 theme tokens `app/src/theme/` (colors, typography, layout, fonts, navTheme) + tests — 590daee
-- [x] A3 fonts via `useFonts` in App.tsx, app.json dark/splash/bg, `app/__mocks__/expo-font.js`, `lib/hypeCopy.ts` + tests
-- [x] A4 ui primitives `app/src/ui/` + tests, `lib/haptics.ts`, `lib/seed.ts`, Jest mock for @expo/vector-icons
-
+- [x] A3 fonts via `useFonts` in App.tsx, app.json dark/splash/bg, `app/__mocks__/expo-font.js`, `lib/hypeCopy.ts` + tests — 9f59347
+- [x] A4 ui primitives `app/src/ui/` + tests, `lib/haptics.ts`, `lib/seed.ts`, Jest mock for @expo/vector-icons — 0864abd
 - [x] A5 navigation shell: root stack -> `Tabs` (Today/Field Guide, custom `TabBar`), `NavigatorScreenParams` /
   `CompositeScreenProps` types, `homeReset()`, dark nav theme, `StatusBar style="light"`; every
-  `navigate/reset` to Home fixed + tests updated (see the A5 commit)
+  `navigate/reset` to Home fixed + tests updated — 19dd1fb
 
 ### In progress
 - Phase B (Active Workout, DESIGN.md §5.7 + the components it renders). Nothing started; Phase A is
