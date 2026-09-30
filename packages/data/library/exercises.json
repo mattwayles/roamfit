@@ -4359,7 +4359,7 @@
       ],
       "equipment": "band",
       "band": "B2",
-      "anchor": "stance",
+      "anchor": "anchor-mid",
       "anchor_alt": null,
       "anchor_class": "band_tension",
       "unilateral": true,
@@ -4373,7 +4373,7 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [],
-      "setup": "Stand on the band with one foot, both hands together at the sternum. Press straight out and resist the diagonal pull. Switch feet to switch sides.",
+      "setup": "Anchor at chest height, stand side-on with a staggered stance. Press hands straight out from sternum and resist the twist. Switch stance and facing to switch sides.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Staggered-Stance+Pallof+Press+proper+form+tutorial"
     },
     {
