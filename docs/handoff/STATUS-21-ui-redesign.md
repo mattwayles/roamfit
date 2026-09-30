@@ -21,7 +21,7 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
 - [x] B2 Workout shell: own top bar, session SegmentedBar, section/paused/Progress chips, nudge Sheet,
   header hidden, legacy scene made opt-in per screen — f9c1b3c
 - [x] B3-B5 reps hero, timed ring hero, lagoon rest hero + Up next, Disclosure/DemoMedia cards, coach
-  toast, `WorkoutScreen.presentation.test.tsx` — 959dac4 (+ follow-up polish commit)
+  toast, `WorkoutScreen.presentation.test.tsx` — 959dac4, polish a440480
 
 ### In progress
 - Phase C (Today + Journey, DESIGN.md §5.1, §5.2, §5.11 disclaimer gate). Not started. Phase B
