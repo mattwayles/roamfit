@@ -24,6 +24,9 @@ export interface ScreenProps {
   scroll?: boolean;
   /** Lets a screen freeze the scroll view while a drag gesture owns the touch (Approval reorder). */
   scrollEnabled?: boolean;
+  /** Scroll content up out of the keyboard's way (iOS `automaticallyAdjustKeyboardInsets`), for a
+   *  screen with a text field low on the page. */
+  adjustForKeyboard?: boolean;
   footer?: React.ReactNode;
   edges?: readonly Edge[];
   /** Apply the bottom inset (default true). Off when a tab bar sits below. */
@@ -40,6 +43,7 @@ export interface ScreenProps {
 export function Screen({
   scroll = false,
   scrollEnabled = true,
+  adjustForKeyboard = false,
   footer,
   edges = ['left', 'right'],
   safeBottom = true,
@@ -66,6 +70,7 @@ export function Screen({
         <ScrollView
           style={styles.flex}
           scrollEnabled={scrollEnabled}
+          automaticallyAdjustKeyboardInsets={adjustForKeyboard}
           keyboardShouldPersistTaps="handled"
           contentInsetAdjustmentBehavior="never"
           refreshControl={refreshControl}

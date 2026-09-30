@@ -282,7 +282,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     });
   });
 
-  it('a skipped set gets its own light-blue square, distinct from a completed (green) one', async () => {
+  it('a skipped set gets its own quiet outlined square, distinct from a completed (ember-filled) one', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -413,7 +413,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     });
   });
 
-  it('shows every set for an exercise not yet reached, as an empty-space glyph, and lets you jump ahead to any of them', async () => {
+  it('shows every set for an exercise not yet reached, as a dashed square, and lets you jump ahead to any of them', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -461,11 +461,14 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
 
     await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
     const block = within(screen.getByTestId(`summary-${untouched.exerciseId}`));
-    // Every set gets a square — the empty-space glyph, not a "not reached" label.
-    expect(block.getByText('Set 1')).toBeTruthy();
-    expect(block.getByText('Set 2')).toBeTruthy();
-    expect(block.getAllByText('⬜').length).toBeGreaterThanOrEqual(2);
+    // Every set gets a square — a dashed outline, not a "not reached" text label (the state is
+    // in its accessibility label only).
+    expect(block.getByLabelText('Set 1 — not reached')).toBeTruthy();
+    expect(block.getByLabelText('Set 2 — not reached')).toBeTruthy();
     expect(block.queryByText(/not reached/i)).toBeNull();
+    const flatStyle = (testID: string) =>
+      StyleSheet.flatten(screen.getByTestId(testID).props.style);
+    expect(flatStyle(`summary-set-${untouched.id}-0`)).toMatchObject({ borderStyle: 'dashed' });
     const bg = (testID: string): unknown =>
       StyleSheet.flatten(screen.getByTestId(testID).props.style)?.backgroundColor;
     expect(bg(`summary-set-${untouched.id}-0`)).toBe(bg(`summary-set-${untouched.id}-1`));
@@ -477,7 +480,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     });
   });
 
-  it("shows an in-square chip for a main set's own recorded feedback, and editing it from Summary updates just that set — before FINISH, not after", async () => {
+  it("shows a colored dot under a main set's own recorded feedback, and editing it from Summary updates just that set — before FINISH, not after", async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -546,15 +549,16 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     );
 
     await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
-    // Each set's chip shows its own answer, as emoji rather than a text label; before FINISH, so
-    // this is mid-workout editing, not a post-completion retrospective feature.
+    // Each set's dot carries its own answer (named in its accessibility label; the labeled chips
+    // live in the edit sheet); before FINISH, so this is mid-workout editing, not a
+    // post-completion retrospective feature.
     expect(screen.queryByTestId('finish-button')).toBeNull();
     // Fetch the freshly-logged rows (mainEntry above predates the logSet calls).
     const freshEntry = () =>
       sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === mainEntry.id)!;
     const set0Log = freshEntry().setLogs.find((l) => l.setIndex === 0)!;
-    expect(screen.getByText('Too hard')).toBeTruthy(); // set 0
-    expect(screen.getByText('Too easy')).toBeTruthy(); // set 1
+    expect(screen.getByLabelText('Set 1 felt: Too hard')).toBeTruthy(); // set 0
+    expect(screen.getByLabelText('Set 2 felt: Too easy')).toBeTruthy(); // set 1
 
     // Editing set 0's chip touches only set 0.
     await fireEvent.press(screen.getByTestId(`summary-feedback-difficulty-${set0Log.id}`));
@@ -570,11 +574,12 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     expect(updatedSet0.difficultyFeedback).toBe('just_right');
     // Set 1's own answer is untouched — this is the whole point of the change.
     expect(updatedSet1.difficultyFeedback).toBe('too_easy');
-    // The chip on screen reflects the edit immediately, without navigating away and back.
-    expect(screen.getByText('Just right')).toBeTruthy();
+    // The dot on screen reflects the edit immediately, without navigating away and back.
+    expect(screen.getByLabelText('Set 1 felt: Just right')).toBeTruthy();
+    expect(screen.queryByLabelText('Set 1 felt: Too hard')).toBeNull();
   });
 
-  it('shows a placeholder chip for a logged set with no feedback yet, and tapping it records one retroactively', async () => {
+  it('shows a hollow placeholder dot for a logged set with no feedback yet, and tapping it records one retroactively', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -641,7 +646,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
 
     const updatedSet0 = freshEntry().setLogs.find((l) => l.setIndex === 0)!;
     expect(updatedSet0.difficultyFeedback).toBe('too_easy');
-    expect(screen.getByText('Too easy')).toBeTruthy();
+    expect(screen.getByLabelText('Set 1 felt: Too easy')).toBeTruthy();
     expect(screen.queryByTestId(`summary-feedback-placeholder-${set0Log.id}`)).toBeNull();
   });
 

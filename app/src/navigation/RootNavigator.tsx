@@ -31,11 +31,7 @@ export default function RootNavigator(): React.JSX.Element {
         component={WorkoutScreen}
         options={{ headerShown: false, gestureEnabled: false }}
       />
-      <Stack.Screen
-        name="Summary"
-        component={SummaryScreen}
-        options={{ title: 'SUMMARY', ...legacyLightContent }}
-      />
+      <Stack.Screen name="Summary" component={SummaryScreen} options={{ title: '' }} />
       <Stack.Screen
         name="Settings"
         component={SettingsScreen}

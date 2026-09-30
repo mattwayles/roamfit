@@ -33,9 +33,17 @@ the record of what was completed and why.
   with the new cards (the dragged card should glow and paint over the next section), the band dropdown
   overlapping the next card, the add-exercise `Sheet` list height, and the number-pad "Done" bar.
   Deviations from DESIGN.md §5.5/§5.6 are in `docs/handoff/STATUS-21-ui-redesign.md`.
-- **Unify the number-pad "Done" accessory.** `components/KeyboardDoneBar.tsx` (Approval) duplicates the
-  bars `WorkoutScreen` (`RepsAccessoryBar`) and `PinnedNote`/`SummaryScreen` each carry. Fold them into
-  the shared component in the phase-G sweep.
+- **Unify the number-pad "Done" accessory.** `components/KeyboardDoneBar.tsx` (Approval and Summary's
+  Trail notes) duplicates the bars `WorkoutScreen` (`RepsAccessoryBar`) and `PinnedNote` each still
+  carry. Fold them into the shared component in the phase-G sweep.
+- **Golden Hour Debrief + Completion are Jest-verified only** (same `npm run ios` dev-client rebuild
+  owed as the items above). Check on a device: Debrief rows with 30pt squares across 5-6 sets and long
+  exercise names (the squares wrap at 62% of the row), the 8pt feedback dots' tap targets, the dashed
+  `lineStrong` outline legibility, the Trail notes field with the keyboard up (scroll insets + Done bar),
+  and — the important one — the Completion page: headline + stat chips + first highlight above the fold on
+  a 6.1" phone, the glow orbs' warmth against `bg`, the gold sunburst, the stamped highlight card, and the
+  breathing glow behind "Heck yes!". Deviations from DESIGN.md §5.8/§5.9 are in
+  `docs/handoff/STATUS-21-ui-redesign.md`.
 - **"This week" strip shows blank cells at a month edge.** It is derived from the Logbook's
   month-only `buildCalendarWeeks`, so the days of the week that fall in the neighbouring month are
   empty placeholders (up to 6 on the 1st/last of a month). Fixing it needs `buildCalendarDays` to

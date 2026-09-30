@@ -29,19 +29,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
+  ActivityIndicator,
   Animated,
-  InputAccessoryView,
-  Keyboard,
-  Modal,
   Pressable,
   ScrollView,
   Share,
   StyleSheet,
-  Text,
   TextInput,
   View,
   useWindowDimensions,
   type LayoutChangeEvent,
+  type ViewStyle,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -74,8 +72,31 @@ import HighlightCard from '../components/HighlightCard';
 import FeedbackControls, { type Difficulty } from '../components/FeedbackControls';
 import AnimatedStatCounter from '../components/AnimatedStatCounter';
 import BandChip from '../components/BandChip';
-import { colors, glow, gutter, radius, space } from '../theme';
-import { Button, Chip, Txt } from '../ui';
+import KeyboardDoneBar from '../components/KeyboardDoneBar';
+import {
+  colors,
+  glow,
+  gutter,
+  radius,
+  section,
+  setState,
+  space,
+  type,
+  type AccentName,
+} from '../theme';
+import {
+  Button,
+  Card,
+  Chip,
+  Enter,
+  Icon,
+  PressableScale,
+  Screen,
+  SectionHeader,
+  Sheet,
+  StatTile,
+  Txt,
+} from '../ui';
 import { useInsets } from '../ui/useInsets';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Summary'>;
@@ -88,25 +109,6 @@ type SquareStatus = 'completed' | 'skipped' | 'not_reached';
 function squareStatus(log: sessionsRepo.SetLogRecord | undefined): SquareStatus {
   return log?.status ?? 'not_reached';
 }
-
-/** The emoji each set square shows under its "Set N" label — a neutral glyph for every status,
- *  never a warning (invariant 4: a skipped set is a choice, and a not-yet-reached one hasn't
- *  happened yet, neither is a problem to flag). */
-function statusEmoji(status: SquareStatus): string {
-  if (status === 'completed') return '✅';
-  if (status === 'skipped') return '⏭';
-  return '⬜';
-}
-
-/**
- * The set square's fill — reusing the app's own palette (the same green/blue/slate tokens Home
- * already uses) rather than inventing a parallel one for this screen.
- */
-const SQUARE_COLORS: Record<SquareStatus, { bg: string; text: string }> = {
-  completed: { bg: '#16a34a', text: '#ffffff' },
-  skipped: { bg: '#dbeafe', text: '#1e3a8a' },
-  not_reached: { bg: '#e2e8f0', text: '#334155' },
-};
 
 /** How many set lines to render for an entry: `entry.sets` normally, but never fewer than
  *  whatever is actually logged — a real set log always gets a line, even one logged past the
@@ -122,18 +124,35 @@ const DIFFICULTY_LABEL: Record<Difficulty, string> = {
   too_hard: 'Too hard',
 };
 
-/** A color per answer, not a neutral chip for all three — amber/green/red reads at a glance,
- *  the same way the set squares' own status fill does. Light background + a dark same-hue text,
- *  matching the app's other badges/chips (e.g. Home's mastery badge, the skipped square). */
-const DIFFICULTY_COLORS: Record<Difficulty, { bg: string; text: string }> = {
-  too_easy: { bg: '#fde68a', text: '#713f12' },
-  just_right: { bg: '#dcfce7', text: '#166534' },
-  too_hard: { bg: '#fee2e2', text: '#991b1b' },
+/** The same three tones as accent names, for the legacy whole-stage `Chip`. */
+const DIFFICULTY_CHIP_TONE: Record<Difficulty, AccentName> = {
+  too_easy: 'lagoon',
+  just_right: 'ember',
+  too_hard: 'summit',
 };
 
-/** Neutral fill for the "no feedback yet" placeholder chip — same slate the not-yet-reached
- *  square itself uses, so it reads as "nothing recorded" rather than as a fourth answer. */
-const PLACEHOLDER_CHIP_COLORS = { bg: '#e2e8f0', text: '#475569' };
+/** One tone per answer, the same three the rest screen's `FeedbackControls` fill with (Too easy =
+ *  lagoon, Just right = ember, Too hard = summit). On the debrief it is a small dot under the set's
+ *  square; the labeled chip lives in the edit sheet, and the accessibility label names the answer.
+ *  No red anywhere — "too hard" is information, not an error (invariant 4). */
+const DIFFICULTY_TONE: Record<Difficulty, string> = {
+  too_easy: colors.lagoon,
+  just_right: colors.ember,
+  too_hard: colors.summit,
+};
+
+/** How each square is drawn (DESIGN.md §5.8): completed = ember fill, skipped = a quiet `text3`
+ *  outline, not reached = a dashed outline. (The dashed one uses `lineStrong`, one step brighter
+ *  than the spec's `line`, so an unreached set stays findable on the `bg` night surface.) */
+const SQUARE_STYLE: Record<SquareStatus, ViewStyle> = {
+  completed: { backgroundColor: setState.completed, borderColor: setState.completed },
+  skipped: { backgroundColor: 'transparent', borderColor: setState.skipped },
+  not_reached: {
+    backgroundColor: 'transparent',
+    borderColor: colors.lineStrong,
+    borderStyle: 'dashed',
+  },
+};
 
 /**
  * §8.1 feedback: per SET, for every section (migration 0017 gave `main` this first; warm-up and
@@ -205,6 +224,9 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     entryId: string;
     setIndex: number | null;
   } | null>(null);
+  // Whether the edit sheet is showing. `editingFeedback` is left set when it closes, so the sheet's
+  // content is still there while it slides away.
+  const [editorOpen, setEditorOpen] = useState(false);
   // The completion screen's choreography state (see the effect that drives it below).
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const buttonOpacity = useRef(new Animated.Value(0)).current;
@@ -286,19 +308,23 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     navigation.setOptions({
       gestureEnabled: false,
       headerLeft: () => (
-        <Pressable
+        <PressableScale
           testID="summary-back"
+          haptic={false}
+          accessibilityRole="button"
+          accessibilityLabel="Back to workout"
           onPress={() =>
             navigation.replace(
               'Workout',
               frontier ? { sessionId } : { sessionId, reviewFromSummary: true },
             )
           }
-          style={styles.headerBackButton}
+          style={styles.headerBack}
           hitSlop={8}
         >
-          <Text style={styles.headerBackButtonText}>‹ Back</Text>
-        </Pressable>
+          <Icon name="back" size={22} color="text" />
+          <Txt variant="bodyStrong">Back</Txt>
+        </PressableScale>
       ),
     });
   }, [navigation, sessionId, session, finished, frontier]);
@@ -480,7 +506,12 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     }).start();
   };
 
-  if (!session) return <View style={styles.centered} />;
+  if (!session)
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator color={colors.ember} />
+      </View>
+    );
 
   const jumpToSet = (entryId: string, setIndex: number) => {
     navigation.replace('Workout', { sessionId, jumpTo: { entryId, setIndex } });
@@ -740,341 +771,388 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   };
 
   const retrospectiveAccessoryId = 'retrospective-accessory';
+  const activeEntries = session.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
+  const backToWorkout = () =>
+    navigation.replace(
+      'Workout',
+      frontier ? { sessionId } : { sessionId, reviewFromSummary: true },
+    );
+  const openFeedbackEditor = (entryId: string, setIndex: number | null) => {
+    setEditingFeedback({ entryId, setIndex });
+    setEditorOpen(true);
+  };
+  const editingExerciseName = editingFeedbackEntry
+    ? (library.exercises.find((e) => e.id === editingFeedbackEntry.exerciseId)?.name ??
+      editingFeedbackEntry.exerciseId)
+    : '';
 
   return (
     <>
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-      >
-        <Text style={styles.heading}>
-          {session.focus} · {session.targetMinutes} min · {session.difficulty}
-        </Text>
-
-        {session.entries
-          .filter((e) => e.entryStatus !== 'removed_at_approval')
-          .map((entry) => (
-            <View key={entry.id} style={styles.entryBlock} testID={`summary-${entry.exerciseId}`}>
-              <Text style={styles.entryName}>
-                {library.exercises.find((e) => e.id === entry.exerciseId)?.name ?? entry.exerciseId}
-              </Text>
-              {/* One square per set in the plan, not just the ones with a log — a set nobody has
-                reached yet used to have no line at all, which made it impossible to jump ahead
-                to it from here. `jumpToSet` already accepted any setIndex < entry.sets
-                (WorkoutScreen's jumpTo never restricted itself to sets already reached); this
-                just wasn't offering the tap target. Styled after the Home screen's calendar
-                heatmap cells (same rounded-square shape, same green/neutral fill logic), scaled
-                up — a set is a much less numerous, much more consequential thing to tap than a
-                calendar day, and it now also carries its own feedback chip, so it needs the extra
-                room.
-                Every set's feedback lives on its own set_logs row (migration 0017 — sets of the
-                same exercise can genuinely feel different), so its chip renders *inside* the
-                square, scoped to exactly that set; tapping it opens the editor for that one set
-                rather than the square's own jump-to-this-set press — nested Pressables each with
-                their own `onPress` (the chip's, not just the square's), so a tap on the chip is
-                the chip's alone. */}
-              <View style={styles.setSquareRow}>
-                {Array.from({ length: setLineCount(entry) }, (_, setIndex) => {
-                  const log = entry.setLogs.find((l) => l.setIndex === setIndex);
-                  const status = squareStatus(log);
-                  const colors = SQUARE_COLORS[status];
-                  return (
-                    <Pressable
-                      key={log?.id ?? `${entry.id}-${setIndex}`}
-                      testID={log ? `summary-set-${log.id}` : `summary-set-${entry.id}-${setIndex}`}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Set ${setIndex + 1} — ${status.replace('_', ' ')}`}
-                      onPress={() => jumpToSet(entry.id, setIndex)}
-                      style={[styles.setSquare, { backgroundColor: colors.bg }]}
-                    >
-                      <Text style={[styles.setSquareLabel, { color: colors.text }]}>
-                        Set {setIndex + 1}
-                      </Text>
-                      <Text style={styles.setSquareEmoji}>{statusEmoji(status)}</Text>
-                      {/* A `main` set's own feedback — nested inside the square's own Pressable
-                          rather than a sibling, since a chip has to win over the square's own
-                          jump-to-this-set press when tapped: each chip carries its own `onPress`,
-                          which the touch responder gives priority to over the square underneath
-                          it. */}
-                      {log && log.difficultyFeedback && (
-                        <View style={styles.setSquareFeedbackRow}>
-                          <Pressable
-                            testID={`summary-feedback-difficulty-${log.id}`}
-                            hitSlop={4}
-                            onPress={() => setEditingFeedback({ entryId: entry.id, setIndex })}
-                            style={[
-                              styles.setSquareFeedbackChip,
-                              { backgroundColor: DIFFICULTY_COLORS[log.difficultyFeedback].bg },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.setSquareFeedbackChipText,
-                                { color: DIFFICULTY_COLORS[log.difficultyFeedback].text },
-                              ]}
-                            >
-                              {DIFFICULTY_LABEL[log.difficultyFeedback]}
-                            </Text>
-                          </Pressable>
-                        </View>
-                      )}
-                      {/* A logged set (completed or skipped) that never got an answer on the rest
-                          screen — the rest screen only ever asks once, so there was previously no
-                          way back to it. `recordSetFeedback` no-ops without a set_logs row, so this
-                          only offers the tap target once a log actually exists (`not_reached` sets
-                          get nothing to tap, same as before). */}
-                      {log && !log.difficultyFeedback && (
-                        <View style={styles.setSquareFeedbackRow}>
-                          <Pressable
-                            testID={`summary-feedback-placeholder-${log.id}`}
-                            hitSlop={4}
-                            onPress={() => setEditingFeedback({ entryId: entry.id, setIndex })}
-                            style={[
-                              styles.setSquareFeedbackChip,
-                              { backgroundColor: PLACEHOLDER_CHIP_COLORS.bg },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.setSquareFeedbackChipText,
-                                { color: PLACEHOLDER_CHIP_COLORS.text },
-                              ]}
-                            >
-                              + Feedback
-                            </Text>
-                          </Pressable>
-                        </View>
-                      )}
-                    </Pressable>
-                  );
-                })}
-              </View>
-              {/* Legacy only: a whole-stage answer (`recordSectionFeedback`) from a session
-                recorded before warm-up/cool-down got their own per-set rest timer and feedback.
-                Nothing writes a new one — every entry's feedback is per-set now (rendered inside
-                each square above) — but a session that already has one still shows and can still
-                be edited here. */}
-              {entry.section !== 'main' && entry.difficultyFeedback && (
-                <View style={styles.feedbackChipRow}>
-                  <Pressable
-                    testID={`summary-feedback-difficulty-${entry.id}`}
-                    style={[
-                      styles.feedbackChip,
-                      { backgroundColor: DIFFICULTY_COLORS[entry.difficultyFeedback].bg },
-                    ]}
-                    onPress={() => setEditingFeedback({ entryId: entry.id, setIndex: null })}
-                  >
-                    <Text
-                      style={[
-                        styles.feedbackChipText,
-                        { color: DIFFICULTY_COLORS[entry.difficultyFeedback].text },
-                      ]}
-                    >
-                      {DIFFICULTY_LABEL[entry.difficultyFeedback]}
-                    </Text>
-                  </Pressable>
-                </View>
-              )}
-            </View>
-          ))}
-
-        {!frontier && (
-          <>
-            <Text style={styles.sectionLabel}>Retrospective (optional)</Text>
-            <TextInput
-              testID="retrospective-input"
-              style={styles.retrospectiveInput}
-              value={retrospective}
-              onChangeText={setRetrospective}
-              placeholder="How did that feel?"
-              multiline
-              inputAccessoryViewID={retrospectiveAccessoryId}
+      <Screen
+        scroll
+        adjustForKeyboard
+        contentStyle={styles.debrief}
+        footer={
+          <View style={styles.footer}>
+            {!frontier && (
+              <Button
+                testID="finish-button"
+                label="Finish"
+                size="lg"
+                haptic={false}
+                onPress={handleFinish}
+              />
+            )}
+            {/* The session is still `active` in the DB at this point — nothing is finalized until
+              FINISH is tapped — so going back to it is genuinely resuming, not reopening
+              something already closed. Gone once FINISH is tapped (the completion screen has no
+              equivalent button): completeSession has run by then and there is nothing active left
+              to return to. A still-in-progress workout (frontier not null — this is a real-time
+              progress check, not the end-of-workout screen) simply resumes at the front edge, and
+              there "Back to workout" is the one primary button; only the fully-logged, pre-FINISH
+              case needs `reviewFromSummary` to land on the last set instead of bouncing straight
+              back here (see WorkoutScreen's review-mode handling). */}
+            <Button
+              testID="back-to-workout"
+              label="Back to workout"
+              variant={frontier ? 'primary' : 'quiet'}
+              size={frontier ? 'lg' : 'md'}
+              onPress={backToWorkout}
             />
-            {/* `InputAccessoryView` is iOS-only, which is the only platform this app ships on. A
-              plain `returnKeyType="done"` would have to double as "insert newline" on a multiline
-              field, so it can't also mean "dismiss the keyboard" without giving up typing
-              paragraph breaks. This gives the keyboard its own explicit Done button without
-              taking that away. */}
-            <InputAccessoryView nativeID={retrospectiveAccessoryId}>
-              <View style={styles.keyboardAccessory}>
-                <Pressable
-                  testID="retrospective-done"
-                  onPress={() => Keyboard.dismiss()}
-                  style={styles.keyboardAccessoryButton}
-                >
-                  <Text style={styles.keyboardAccessoryButtonText}>Done</Text>
-                </Pressable>
-              </View>
-            </InputAccessoryView>
+          </View>
+        }
+      >
+        <Enter index={0} style={styles.titleBlock}>
+          <Txt variant="eyebrow" color="ember">
+            Debrief
+          </Txt>
+          <Txt variant="h1" accessibilityRole="header">
+            {focusLabel(session.focus)} · {session.targetMinutes} min
+          </Txt>
+        </Enter>
 
-            <Pressable testID="finish-button" style={styles.finishButton} onPress={handleFinish}>
-              <Text style={styles.finishButtonText}>FINISH</Text>
-            </Pressable>
-          </>
+        {/* Additive counts of what happened, never "of planned" (invariant 4). Reps and timed holds
+            are different units, so the third tile shows reps when there are any and only falls back
+            to hold seconds for a session that has none. */}
+        {completionStats && (
+          <Enter index={1} style={styles.tileRow}>
+            <StatTile
+              testID="debrief-stat-sets"
+              size="h1"
+              tone="ember"
+              value={completionStats.setsCompleted}
+              label="Sets done"
+              style={styles.tile}
+            />
+            <StatTile
+              testID="debrief-stat-exercises"
+              size="h1"
+              tone="gold"
+              value={completionStats.exercisesTrained}
+              label="Exercises"
+              style={styles.tile}
+            />
+            <StatTile
+              testID="debrief-stat-reps"
+              size="h1"
+              tone="lagoon"
+              value={
+                completionStats.totalReps > 0 || completionStats.totalSeconds === 0
+                  ? completionStats.totalReps
+                  : `${completionStats.totalSeconds}s`
+              }
+              label={
+                completionStats.totalReps > 0 || completionStats.totalSeconds === 0
+                  ? 'Reps'
+                  : 'Hold time'
+              }
+              style={styles.tile}
+            />
+          </Enter>
         )}
 
-        {/* The session is still `active` in the DB at this point — nothing is finalized until
-          FINISH is tapped above — so going back to it is genuinely resuming, not reopening
-          something already closed. Gone once FINISH is tapped (the `finished` screens below have
-          no equivalent button): completeSession has run by then and there is nothing active left
-          to return to. A still-in-progress workout (frontier not null — this is a real-time
-          progress check, not the end-of-workout screen) simply resumes at the front edge; only
-          the fully-logged, pre-FINISH case needs `reviewFromSummary` to land on the last set
-          instead of bouncing straight back here (see WorkoutScreen's review-mode handling). */}
-        <Pressable
-          testID="back-to-workout"
-          style={styles.backButton}
-          onPress={() =>
-            navigation.replace(
-              'Workout',
-              frontier ? { sessionId } : { sessionId, reviewFromSummary: true },
-            )
-          }
-        >
-          <Text style={styles.backButtonText}>Back to workout</Text>
-        </Pressable>
-      </ScrollView>
+        <Enter index={2} style={styles.legend} testID="debrief-legend">
+          <LegendItem status="completed" label="done" />
+          <LegendItem status="skipped" label="skipped" />
+          <LegendItem status="not_reached" label="not reached" />
+        </Enter>
+
+        <Enter index={3}>
+          <Card padding="none">
+            {activeEntries.map((entry, i) => (
+              <EntryRow
+                key={entry.id}
+                entry={entry}
+                name={
+                  library.exercises.find((e) => e.id === entry.exerciseId)?.name ?? entry.exerciseId
+                }
+                last={i === activeEntries.length - 1}
+                onJump={(setIndex) => jumpToSet(entry.id, setIndex)}
+                onEditFeedback={(setIndex) => openFeedbackEditor(entry.id, setIndex)}
+              />
+            ))}
+          </Card>
+        </Enter>
+
+        {!frontier && (
+          <Enter index={4}>
+            <Card padding="md" style={styles.notes}>
+              <SectionHeader title="Trail notes" icon="pin" tone="gold" />
+              <TextInput
+                testID="retrospective-input"
+                style={styles.notesInput}
+                value={retrospective}
+                onChangeText={setRetrospective}
+                placeholder="What felt great? Anything to tweak next time?"
+                placeholderTextColor={colors.text3}
+                selectionColor={colors.ember}
+                keyboardAppearance="dark"
+                multiline
+                inputAccessoryViewID={retrospectiveAccessoryId}
+              />
+              {/* A multiline field's return key has to mean "newline", so it can't also mean
+                  "dismiss the keyboard" — the shared bar gives the keyboard its own explicit Done
+                  without taking paragraph breaks away. */}
+              <KeyboardDoneBar nativeID={retrospectiveAccessoryId} testID="retrospective-done" />
+            </Card>
+          </Enter>
+        )}
+      </Screen>
 
       {/* Editing an already-recorded feedback answer, at any point before FINISH — same controls
-          the rest/stage page shows, reopened here rather than requiring a walk back through the
-          workout. Same backdrop-dialog shape as Home's day-marker edit popup, for one consistent
-          "edit something in place from a summary view" pattern across the app. */}
-      <Modal
-        visible={editingFeedbackEntry !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEditingFeedback(null)}
+          the rest page shows, reopened here rather than requiring a walk back through the workout.
+          `editingFeedback` is kept after closing (only `editorOpen` flips) so the sheet's content
+          survives its exit animation. */}
+      <Sheet
+        testID="feedback-edit-sheet"
+        visible={editorOpen && editingFeedbackEntry !== null}
+        onClose={() => setEditorOpen(false)}
+        title={
+          editingFeedback?.setIndex !== null
+            ? `${editingExerciseName} — Set ${(editingFeedback?.setIndex ?? 0) + 1}`
+            : editingFeedbackEntry?.section === 'warmup'
+              ? 'Warm-up'
+              : 'Cool-down'
+        }
       >
-        <Pressable style={styles.feedbackBackdrop} onPress={() => setEditingFeedback(null)}>
-          <Pressable style={styles.feedbackDialog} onPress={() => {}}>
-            {editingFeedbackEntry && (
-              <>
-                <Text style={styles.feedbackDialogTitle}>
-                  {editingFeedback?.setIndex !== null
-                    ? `${
-                        library.exercises.find((e) => e.id === editingFeedbackEntry.exerciseId)
-                          ?.name ?? editingFeedbackEntry.exerciseId
-                      } — Set ${(editingFeedback?.setIndex ?? 0) + 1}`
-                    : editingFeedbackEntry.section === 'warmup'
-                      ? 'Warm-up'
-                      : 'Cool-down'}
-                </Text>
-                <FeedbackControls
-                  difficulty={editingFeedbackDifficulty}
-                  onDifficultyChange={handleEditDifficultyChange}
-                />
-              </>
-            )}
-            <Pressable
-              testID="feedback-edit-done"
-              style={styles.feedbackDialogDone}
-              onPress={() => setEditingFeedback(null)}
-            >
-              <Text style={styles.feedbackDialogDoneText}>Done</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        <View style={styles.sheetBody}>
+          <Txt variant="small" color="text2">
+            How did that set feel?
+          </Txt>
+          <FeedbackControls
+            difficulty={editingFeedbackDifficulty}
+            onDifficultyChange={handleEditDifficultyChange}
+          />
+          <Button
+            testID="feedback-edit-done"
+            label="Done"
+            variant="secondary"
+            size="md"
+            onPress={() => setEditorOpen(false)}
+          />
+        </View>
+      </Sheet>
     </>
   );
 }
 
+// -- Debrief pieces ---------------------------------------------------------------------------
+
+function LegendItem({ status, label }: { status: SquareStatus; label: string }): React.JSX.Element {
+  return (
+    <View style={styles.legendItem}>
+      <View style={[styles.legendSwatch, SQUARE_STYLE[status]]} />
+      <Txt variant="caption" color="text2">
+        {label}
+      </Txt>
+    </View>
+  );
+}
+
+/**
+ * One exercise: its name on the left, a wrapping run of 30pt set squares on the right. One square
+ * per set in the plan, not just the ones with a log — a set nobody has reached yet still gets a
+ * tap target, because `jumpToSet` accepts any `setIndex < entry.sets` (WorkoutScreen's `jumpTo`
+ * never restricted itself to sets already reached).
+ *
+ * Every set's feedback lives on its own `set_logs` row (migration 0017 — sets of the same exercise
+ * can genuinely feel different), so the dot under a square is scoped to exactly that set, and
+ * tapping it opens the editor for that one set rather than the square's own jump-to-this-set press.
+ * A logged set with no answer yet shows a hollow dot instead: the rest screen only asks once, so
+ * this is the way back to it (`recordSetFeedback` no-ops without a row, so unreached sets get none).
+ */
+function EntryRow({
+  entry,
+  name,
+  last,
+  onJump,
+  onEditFeedback,
+}: {
+  entry: sessionsRepo.SessionEntryRecord;
+  name: string;
+  last: boolean;
+  onJump: (setIndex: number) => void;
+  onEditFeedback: (setIndex: number | null) => void;
+}): React.JSX.Element {
+  const railColor = (section as Record<string, string>)[entry.section] ?? colors.ember;
+  return (
+    <View
+      testID={`summary-${entry.exerciseId}`}
+      style={[styles.entryRow, !last && styles.entryRowDivider]}
+    >
+      <View style={[styles.rail, { backgroundColor: railColor }]} />
+      <View style={styles.entryName}>
+        <Txt variant="h3" numberOfLines={2}>
+          {name}
+        </Txt>
+        {/* Legacy only: a whole-stage answer (`recordSectionFeedback`) from a session recorded
+            before warm-up/cool-down got their own per-set rest timer and feedback. Nothing writes
+            a new one, but a session that already has one still shows it and can still edit it. */}
+        {entry.section !== 'main' && entry.difficultyFeedback && (
+          <Chip
+            testID={`summary-feedback-difficulty-${entry.id}`}
+            size="sm"
+            label={DIFFICULTY_LABEL[entry.difficultyFeedback]}
+            tone={DIFFICULTY_CHIP_TONE[entry.difficultyFeedback]}
+            onPress={() => onEditFeedback(null)}
+          />
+        )}
+      </View>
+      <View style={styles.squares}>
+        {Array.from({ length: setLineCount(entry) }, (_, setIndex) => {
+          const log = entry.setLogs.find((l) => l.setIndex === setIndex);
+          const status = squareStatus(log);
+          const count =
+            log?.status === 'completed' ? (log.repsActual ?? log.secondsActual ?? null) : null;
+          const feedback = log?.difficultyFeedback ?? null;
+          return (
+            <View key={log?.id ?? `${entry.id}-${setIndex}`} style={styles.setColumn}>
+              <PressableScale
+                testID={log ? `summary-set-${log.id}` : `summary-set-${entry.id}-${setIndex}`}
+                haptic={false}
+                accessibilityRole="button"
+                accessibilityLabel={`Set ${setIndex + 1} — ${status.replace('_', ' ')}`}
+                hitSlop={{ top: 6, left: 5, right: 5 }}
+                onPress={() => onJump(setIndex)}
+                style={[styles.square, SQUARE_STYLE[status]]}
+              >
+                {status === 'completed' ? (
+                  count !== null ? (
+                    <Txt
+                      variant="eyebrow"
+                      color="ink"
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.6}
+                      style={styles.squareCount}
+                    >
+                      {count}
+                    </Txt>
+                  ) : (
+                    <Icon name="check" size={16} color="ink" />
+                  )
+                ) : null}
+              </PressableScale>
+              <View style={styles.dotSlot}>
+                {log && (
+                  <PressableScale
+                    testID={
+                      feedback
+                        ? `summary-feedback-difficulty-${log.id}`
+                        : `summary-feedback-placeholder-${log.id}`
+                    }
+                    haptic={false}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      feedback
+                        ? `Set ${setIndex + 1} felt: ${DIFFICULTY_LABEL[feedback]}`
+                        : `Set ${setIndex + 1}: add how it felt`
+                    }
+                    hitSlop={{ top: 2, bottom: 8, left: 8, right: 8 }}
+                    onPress={() => onEditFeedback(setIndex)}
+                    style={
+                      feedback
+                        ? [styles.dot, { backgroundColor: DIFFICULTY_TONE[feedback] }]
+                        : [styles.dot, styles.dotEmpty]
+                    }
+                  />
+                )}
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const SQUARE = 30;
+
 const styles = StyleSheet.create({
-  centered: { flex: 1 },
-  container: { padding: 20, gap: 12 },
-  heading: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
-  entryBlock: { gap: 6 },
-  entryName: { fontSize: 15, fontWeight: '600', color: '#0f172a' },
-  // Sized well past the Home screen's calendar-heatmap cells (§14.1.6's ~40px flex cells) — a
-  // set square is a much rarer, much more deliberate tap than a calendar day, and (for `main`)
-  // now also has to fit its own feedback chips, so it earns a bigger target still than the plain
-  // label+emoji version did. Same shape language otherwise: rounded square, color-coded fill,
-  // centered content.
-  setSquareRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  setSquare: {
-    width: 92,
-    height: 92,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 4,
-  },
-  setSquareLabel: { fontSize: 13, fontWeight: '700' },
-  setSquareEmoji: { fontSize: 22, marginTop: 2 },
-  // A `main` set's own feedback, inside the square — a small colored chip (color carries the
-  // answer at a glance, same as the square's own status fill), so it costs the square only a
-  // little extra room even with a real label instead of a bare glyph.
-  setSquareFeedbackRow: { flexDirection: 'row', gap: 4, marginTop: 2 },
-  setSquareFeedbackChip: { borderRadius: 999, paddingVertical: 2, paddingHorizontal: 6 },
-  setSquareFeedbackChipText: { fontSize: 8, fontWeight: '700', textAlign: 'center' },
-  feedbackChipRow: { flexDirection: 'row', gap: 8 },
-  feedbackChip: {
-    borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  feedbackChipText: { fontSize: 13, fontWeight: '600' },
-  feedbackBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  feedbackDialog: {
-    width: '100%',
-    maxWidth: 360,
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  feedbackDialogTitle: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
-  feedbackDialogDone: {
-    alignSelf: 'flex-end',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  feedbackDialogDoneText: { fontSize: 14, fontWeight: '700', color: '#1d4ed8' },
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#64748b', marginTop: 12 },
-  retrospectiveInput: {
-    backgroundColor: '#f1f5f9',
-    borderRadius: 12,
-    padding: 12,
-    minHeight: 60,
-    fontSize: 14,
-  },
-  finishButton: {
-    marginTop: 16,
-    backgroundColor: '#111',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    minHeight: 60,
-    justifyContent: 'center',
-  },
-  finishButtonText: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  backButton: {
-    marginTop: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  backButtonText: { color: '#2563eb', fontSize: 15, fontWeight: '700' },
-  headerBackButton: { paddingHorizontal: 8, paddingVertical: 6 },
-  headerBackButtonText: { color: '#2563eb', fontSize: 16, fontWeight: '600' },
-  keyboardAccessory: {
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+
+  // -- debrief
+  headerBack: { flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingRight: space.sm },
+  debrief: { paddingTop: space.sm, gap: space.lg },
+  titleBlock: { gap: space.xs },
+  tileRow: { flexDirection: 'row', gap: space.sm },
+  tile: { flex: 1, minWidth: 0, padding: space.md },
+  legend: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: space.xs + 2 },
+  legendSwatch: { width: 12, height: 12, borderRadius: 4, borderWidth: 1.5 },
+  entryRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    backgroundColor: '#f1f5f9',
-    padding: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#cbd5e1',
+    alignItems: 'flex-start',
+    gap: space.md,
+    paddingVertical: space.md,
+    paddingLeft: space.lg,
+    paddingRight: space.md,
   },
-  keyboardAccessoryButton: { paddingHorizontal: 12, paddingVertical: 6 },
-  keyboardAccessoryButtonText: { color: '#2563eb', fontSize: 16, fontWeight: '700' },
+  entryRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
+  // A 3pt strip in the section's colour (gold warm-up / ember main / lagoon cool-down), so the
+  // rows read as the route they walked without a section header eating a line.
+  rail: {
+    position: 'absolute',
+    left: 0,
+    top: space.md,
+    bottom: space.md,
+    width: 3,
+    borderTopRightRadius: 2,
+    borderBottomRightRadius: 2,
+  },
+  entryName: { flex: 1, minWidth: 96, gap: space.xs, paddingTop: 4 },
+  squares: { flexShrink: 0, maxWidth: '62%', flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  setColumn: { alignItems: 'center', width: SQUARE },
+  square: {
+    width: SQUARE,
+    height: SQUARE,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  squareCount: { letterSpacing: 0 },
+  // Reserved even for a set with no dot, so every square in a wrapped row lines up.
+  dotSlot: { height: 16, alignItems: 'center', justifyContent: 'center' },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  dotEmpty: { borderWidth: 1.5, borderColor: colors.text3 },
+  notes: { gap: space.md },
+  notesInput: {
+    ...type.body,
+    minHeight: 76,
+    color: colors.text,
+    backgroundColor: colors.surface2,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: space.md,
+    paddingTop: space.md,
+    paddingBottom: space.md,
+    textAlignVertical: 'top',
+  },
+  footer: { gap: space.xs },
+  sheetBody: { gap: space.lg },
+
   // The completion celebration (invariant 4/§1.1 in reverse — the one screen meant to be loud),
   // re-skinned into Golden Hour (DESIGN.md §5.9): `bg` night base under the glow orbs, gold
   // accents, no violet. Spacing is tight so headline + stats + the first highlight sit above the
