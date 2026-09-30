@@ -823,7 +823,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
         }
       >
         <Enter index={0} style={styles.titleBlock}>
-          <Txt variant="eyebrow" color="ember">
+          <Txt variant="eyebrow" color="gold">
             Debrief
           </Txt>
           <Txt variant="h1" accessibilityRole="header">

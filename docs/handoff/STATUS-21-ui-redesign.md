@@ -59,8 +59,9 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
   (`rep-count-done`, `pinned-note-done`, `retrospective-done` unchanged); BACKLOG item removed
 
 ### In progress
-- Phase G, increment G5: consistency pass across Home/Journey/Exercises/ExerciseDetail/Generate/Approval/Workout/Summary/Settings (headers,
-  gutters, section titles, eyebrow colors, card padding, button sizes, Enter animations); then G6 docs (BACKLOG consolidation + this file).
+- Phase G, increment G5 (in this commit): consistency pass. Changed: title eyebrows follow the mood (Basecamp + Summit gold, Ignition ember:
+  Journey summit->gold, Debrief ember->gold), Spotify browse loading is an ember spinner. Then G6 docs (BACKLOG consolidation + this file,
+  incl. the Phase G reference with grep before/after and the larger inconsistencies to report).
 
 ### Next (sequential — each phase is one agent run, several small commits)
 - **G. Sweep** (§5.11, §7 "zero off-system surfaces") — grep for raw hex/fontSize/fontWeight/

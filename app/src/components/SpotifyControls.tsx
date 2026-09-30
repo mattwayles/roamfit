@@ -32,7 +32,7 @@
  * (`playSpotifyContent`) — both over App Remote, no further network call of ours either way.
  */
 import React, { useState } from 'react';
-import { FlatList, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, View, useWindowDimensions } from 'react-native';
 import {
   getContentChildren,
   getFitnessContent,
@@ -237,9 +237,9 @@ export default function SpotifyControls(): React.JSX.Element | null {
         )}
 
         {browseLoading ? (
-          <Txt testID="spotify-browse-loading" variant="small" color="text2" style={styles.empty}>
-            Loading…
-          </Txt>
+          <View testID="spotify-browse-loading" accessibilityLabel="Loading" style={styles.empty}>
+            <ActivityIndicator color={colors.ember} />
+          </View>
         ) : currentLevel && currentLevel.items.length === 0 && !browseError ? (
           <Txt variant="small" color="text2" style={styles.empty}>
             No workout picks available right now.
