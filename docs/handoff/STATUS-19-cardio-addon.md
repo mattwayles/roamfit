@@ -6,17 +6,15 @@ sprinkles cardio exercises through a strength workout, evenly spaced. The existi
 renamed "Cardio Only" and the add-on is disabled while it is selected.
 
 ### Done
-- (none yet)
+- [x] Increment 1 (engine) — a62340c
+- [x] Increment 2 (UI) — Generate label 'Cardio Only', `cardio-addon-toggle` checkbox (disabled +
+  unticked on Cardio Only, choice restored on switching back), request carries `cardioAddOn`.
 
 ### In progress
-- Increment 1 (engine): `GenerationRequest.cardioAddOn`; in `pipeline.ts` draw N conditioning
-  exercises via a second `selectMain` (focus 'cardio'), prescribe them, reserve their time out of
-  the strength budget (added to the `warmupSec` arg of `fitMainEntries`), interleave evenly into
-  `fit.main`. Test in `packages/engine/src/cardioAddOn.test.ts`.
+- Nothing. Not verified on a device/simulator, Jest only.
 
 ### Next
-- Increment 2 (UI): Generate label 'Cardio' -> 'Cardio Only', checkbox `cardio-addon-toggle`,
-  disabled when focus is cardio, pass `cardioAddOn` in the request. Update GenerateScreen tests.
+- (optional) tune `cardioAddOnCount` after using it for real.
 
 ### Decisions / gotchas
 - Working tree was dirty with unrelated uncommitted work (engine selection/timefit/difficulty

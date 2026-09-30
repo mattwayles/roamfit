@@ -8,6 +8,7 @@
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { exerciseLibrary, isCardioExercise } from '@roamfit/data';
 import { sessionsRepo, usersRepo } from '@roamfit/store';
 import { DEFAULT_ANCHORS_AVAILABLE } from '@roamfit/engine';
 import GenerateScreen from './GenerateScreen';
@@ -133,13 +134,78 @@ describe('§10.2 Generate screen', () => {
       () => expect(screen.getByTestId('focus-picker-option-cardio')).toBeTruthy(),
       WAIT_OPTS,
     );
-    expect(screen.getByText('Cardio')).toBeTruthy();
+    expect(screen.getByText('Cardio Only')).toBeTruthy();
 
     fireEvent.press(screen.getByTestId('focus-picker-option-cardio'));
     await waitFor(() => expect(screen.queryByTestId('focus-picker-list')).toBeNull(), WAIT_OPTS);
-    // The closed field now reads "Cardio", confirming the selection round-tripped rather than
+    // The closed field now reads "Cardio Only", confirming the selection round-tripped rather than
     // just closing the list.
-    expect(screen.getByText('Cardio')).toBeTruthy();
+    expect(screen.getByText('Cardio Only')).toBeTruthy();
+  });
+
+  it('track 19: the cardio add-on is an unticked checkbox that generates cardio between strength work', async () => {
+    const { navigation, getDb } = renderScreen();
+    await waitFor(() => expect(screen.getByTestId('cardio-addon-toggle')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByTestId('cardio-addon-toggle').props.accessibilityState.checked).toBe(false);
+    expect(screen.getByTestId('cardio-addon-checkbox').props.children).toBe('');
+
+    fireEvent.press(screen.getByTestId('cardio-addon-toggle'));
+    await waitFor(
+      () =>
+        expect(screen.getByTestId('cardio-addon-toggle').props.accessibilityState.checked).toBe(
+          true,
+        ),
+      WAIT_OPTS,
+    );
+    fireEvent.press(screen.getByTestId('generate-button'));
+
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalled(), WAIT_OPTS);
+    const { sessionId } = navigation.replace.mock.calls[0][1] as { sessionId: string };
+    const main = sessionsRepo
+      .getSession(getDb(), sessionId)!
+      .entries.filter((e) => e.section === 'main');
+    const isCardio = main.map((e) =>
+      isCardioExercise(exerciseLibrary.exercises.find((x) => x.id === e.exerciseId)!),
+    );
+    expect(isCardio.some(Boolean)).toBe(true);
+    expect(isCardio.some((c) => !c)).toBe(true);
+  });
+
+  it('track 19: the cardio add-on is disabled and unticked for Cardio Only, and comes back after', async () => {
+    renderScreen();
+    await waitFor(() => expect(screen.getByTestId('cardio-addon-toggle')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('cardio-addon-toggle'));
+    await waitFor(
+      () =>
+        expect(screen.getByTestId('cardio-addon-toggle').props.accessibilityState.checked).toBe(
+          true,
+        ),
+      WAIT_OPTS,
+    );
+
+    fireEvent.press(screen.getByTestId('focus-picker'));
+    await waitFor(
+      () => expect(screen.getByTestId('focus-picker-option-cardio')).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    fireEvent.press(screen.getByTestId('focus-picker-option-cardio'));
+    await waitFor(() => {
+      const state = screen.getByTestId('cardio-addon-toggle').props.accessibilityState;
+      expect(state.disabled).toBe(true);
+      expect(state.checked).toBe(false);
+    }, WAIT_OPTS);
+
+    fireEvent.press(screen.getByTestId('focus-picker'));
+    await waitFor(
+      () => expect(screen.getByTestId('focus-picker-option-legs')).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    fireEvent.press(screen.getByTestId('focus-picker-option-legs'));
+    await waitFor(() => {
+      const state = screen.getByTestId('cardio-addon-toggle').props.accessibilityState;
+      expect(state.disabled).toBe(false);
+      expect(state.checked).toBe(true);
+    }, WAIT_OPTS);
   });
 
   it('the recovery-week option shows an unticked checkbox until it is chosen', async () => {

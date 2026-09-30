@@ -35,7 +35,7 @@ const FOCUS_LABELS: Record<Focus, string> = {
   abs: 'Core',
   legs: 'Legs',
   full: 'Full body',
-  cardio: 'Cardio',
+  cardio: 'Cardio Only',
 };
 const DIFFICULTY_OPTIONS: Difficulty[] = ['easy', 'medium', 'hard'];
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {
@@ -115,6 +115,12 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
   // here. Either way it's just a request flag until the user taps Generate — never applied
   // silently, per the brief's "always available as a manual toggle" requirement.
   const [recoveryWeek, setRecoveryWeek] = useState(route.params?.recoveryWeek ?? false);
+  // Track 19 — weave a few cardio moves through a strength workout. The Cardio Only focus is
+  // already all cardio, so the box is disabled (and reads unticked) there; the choice itself is
+  // kept, so switching back to a strength focus restores it.
+  const [cardioAddOn, setCardioAddOn] = useState(false);
+  const cardioAddOnDisabled = focus === 'cardio';
+  const cardioAddOnActive = cardioAddOn && !cardioAddOnDisabled;
   // §15 "offline share" instrumentation only — never read by generation logic itself, and never
   // awaited on the critical path (invariant 1): a best-effort background reading, undefined until
   // it resolves, in which case `generate()` simply logs nothing for this session (see
@@ -163,7 +169,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
       const { plan, comebackTier, recoveryWeekManual } = generate(db, {
         library,
         families,
-        request: { focus, difficulty, targetMinutes: minutes },
+        request: { focus, difficulty, targetMinutes: minutes, cardioAddOn: cardioAddOnActive },
         clock,
         rng: createRng(seedFromString(utcInstant)),
         utcInstant,
@@ -182,7 +188,18 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
     } finally {
       setGenerating(false);
     }
-  }, [db, library, families, focus, difficulty, minutes, recoveryWeek, online, navigation]);
+  }, [
+    db,
+    library,
+    families,
+    focus,
+    difficulty,
+    minutes,
+    recoveryWeek,
+    cardioAddOnActive,
+    online,
+    navigation,
+  ]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -275,6 +292,37 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
             })}
           </View>
         ))}
+
+      <Pressable
+        testID="cardio-addon-toggle"
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: cardioAddOnActive, disabled: cardioAddOnDisabled }}
+        accessibilityLabel="Cardio add-on"
+        disabled={cardioAddOnDisabled}
+        style={[
+          styles.recoveryToggle,
+          cardioAddOnActive && styles.recoveryToggleOn,
+          cardioAddOnDisabled && styles.toggleDisabled,
+        ]}
+        onPress={() => setCardioAddOn((v) => !v)}
+      >
+        <Text
+          testID="cardio-addon-checkbox"
+          style={[styles.checkbox, cardioAddOnActive && styles.checkboxOn]}
+        >
+          {cardioAddOnActive ? '\u2713' : ''}
+        </Text>
+        <View style={styles.recoveryToggleLabels}>
+          <Text style={[styles.recoveryToggleText, cardioAddOnActive && styles.recoveryToggleTextOn]}>
+            Cardio add-on
+          </Text>
+          <Text style={styles.recoveryToggleSubtitle}>
+            {cardioAddOnDisabled
+              ? 'Not needed for a Cardio Only workout.'
+              : 'Cardio moves spaced through your strength work.'}
+          </Text>
+        </View>
+      </Pressable>
 
       {/* A checkbox, not a card that changes its own label: with only the wording to go on it was
           not obvious this was an option you had *not* taken. The box states that directly. */}
@@ -375,6 +423,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  toggleDisabled: { opacity: 0.5 },
   recoveryToggleLabels: { flex: 1, gap: 2 },
   recoveryToggleOn: { backgroundColor: '#e0f2fe' },
   recoveryToggleText: { fontSize: 14, fontWeight: '700', color: '#334155' },
