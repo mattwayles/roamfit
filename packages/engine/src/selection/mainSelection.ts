@@ -73,11 +73,35 @@ function overlaps(a: readonly string[], b: ReadonlySet<string>): boolean {
   return a.some((x) => b.has(x));
 }
 
+function sameMuscleSet(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((m) => b.includes(m));
+}
+
+/**
+ * User-reported: a 60-minute upper session drew both `bicep-curl` and `single-arm-curl` — same
+ * pattern, same primary (biceps) and secondary (forearms) muscles, same equipment, same setup;
+ * the only difference is one arm at a time instead of both. That's not variety, it's the same
+ * exercise counted twice (and, per `expandOptionalSlots`, exactly the situation a duplicate-
+ * pattern filler slot produces once a focus's small accessory-pattern list is exhausted — see
+ * `ACCESSORY_PATTERNS_BY_FOCUS`). A genuine variant (e.g. `hammer-curl`'s grip change, or
+ * `reverse-curl`'s different primary muscle) is unaffected — this only catches the case where
+ * *everything* matches except the unilateral flag, which is specifically "the same lift, split
+ * across two slots" rather than a different movement.
+ */
+function isMovementTwin(a: Exercise, b: Exercise): boolean {
+  if (a.id === b.id) return false;
+  if (a.pattern !== b.pattern) return false;
+  if (a.equipment !== b.equipment) return false;
+  if (a.unilateral === b.unilateral) return false;
+  return sameMuscleSet(a.primary, b.primary) && sameMuscleSet(a.secondary, b.secondary);
+}
+
 function eligibleForSlot(
   candidates: readonly Candidate[],
   slot: TemplateSlot,
   usedIds: ReadonlySet<string>,
   overWorked: ReadonlySet<string>,
+  usedExercises: readonly Exercise[] = [],
 ): Candidate[] {
   return candidates.filter((c) => {
     if (usedIds.has(c.exercise.id)) return false;
@@ -86,6 +110,7 @@ function eligibleForSlot(
     // OVER-WORKED: never as primary mover — a candidate whose *primary* muscle is over-worked
     // is excluded outright, not merely deprioritized.
     if (overlaps(c.exercise.primary, overWorked)) return false;
+    if (usedExercises.some((u) => isMovementTwin(c.exercise, u))) return false;
     return slot.patterns.includes(c.exercise.pattern);
   });
 }
@@ -178,6 +203,9 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
 
   const candidates = buildCandidates(difficultyEligiblePool, 'main', ctx);
   const usedIds = new Set<string>();
+  // Parallel to `usedIds`, but full `Exercise` objects — `eligibleForSlot` needs the actual
+  // primary/secondary/equipment/unilateral fields to catch a movement twin, not just the id.
+  const usedExercises: Exercise[] = [];
   const picks: SelectedMain[] = [];
   const patternGaps: PatternGapNote[] = [];
 
@@ -190,7 +218,7 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
   };
 
   for (const slot of slots) {
-    let eligible = eligibleForSlot(candidates, slot, usedIds, overWorked);
+    let eligible = eligibleForSlot(candidates, slot, usedIds, overWorked, usedExercises);
     // SOFT COOLDOWN only to fill an otherwise-uncoverable slot: if any preferred candidate
     // exists, drop soft-tier ones from contention; only fall back to soft when preferred is empty.
     const preferredOnly = eligible.filter((c) => c.tier === 'preferred');
@@ -206,10 +234,17 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
           'main',
           ctx,
         ).filter((c) => c.exercise.equipment === 'band');
-        const relaxedEligible = eligibleForSlot(relaxedCandidates, slot, usedIds, overWorked);
+        const relaxedEligible = eligibleForSlot(
+          relaxedCandidates,
+          slot,
+          usedIds,
+          overWorked,
+          usedExercises,
+        );
         if (relaxedEligible.length > 0) {
           const chosen = pickBest(relaxedEligible, st, rng);
           usedIds.add(chosen.exercise.id);
+          usedExercises.push(chosen.exercise);
           if (chosen.isNovel) st.noveltyUsed = true;
           if (overlaps(chosen.exercise.primary, recoveryMuscles)) st.recoveryUsed = true;
           picks.push({
@@ -233,6 +268,7 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
 
     const chosen = pickBest(eligible, st, rng);
     usedIds.add(chosen.exercise.id);
+    usedExercises.push(chosen.exercise);
     if (chosen.isNovel) st.noveltyUsed = true;
     const touchesRecovery = overlaps(chosen.exercise.primary, recoveryMuscles);
     if (touchesRecovery) st.recoveryUsed = true;
@@ -246,17 +282,26 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
     });
   }
 
-  applyNoveltyPass(picks, candidates, usedIds, overWorked, st);
-  applyAggregatePass(picks, candidates, usedIds, overWorked, st, 'preferred');
+  applyNoveltyPass(picks, candidates, usedIds, usedExercises, overWorked, st);
+  applyAggregatePass(picks, candidates, usedIds, usedExercises, overWorked, st, 'preferred');
   // Track 14 — cardio is exempt from the ≥50% band ratio (user decision): a cardio session is
   // reasonably all-bodyweight (jumping jacks, burpees, sprints in place), and forcing half of it
   // onto a band would fight the format rather than serve variety the way the ratio does for a
   // strength focus. The PATTERN GAP band exception a few lines above this function is unaffected
   // either way — it only ever fires for a `horizontal_pull`/`vertical_pull` slot, which a cardio
   // template never has.
-  if (focus !== 'cardio') applyAggregatePass(picks, candidates, usedIds, overWorked, st, 'band');
+  if (focus !== 'cardio')
+    applyAggregatePass(picks, candidates, usedIds, usedExercises, overWorked, st, 'band');
 
   return { picks, patternGaps };
+}
+
+/** Swap helpers below replace one pick's exercise for another of the same slot's patterns — the
+ *  replacement must not be a movement twin (see `isMovementTwin`) of any *other* already-used
+ *  exercise. The pick's own current exercise is excluded from that check since it's the one
+ *  being replaced. */
+function otherUsedExercises(usedExercises: readonly Exercise[], excludeId: string): Exercise[] {
+  return usedExercises.filter((u) => u.id !== excludeId);
 }
 
 /** §5.2 — include ≥1 novelty exercise whenever one fits a slot, if the greedy fill didn't
@@ -265,11 +310,13 @@ function applyNoveltyPass(
   picks: SelectedMain[],
   candidates: readonly Candidate[],
   usedIds: Set<string>,
+  usedExercises: Exercise[],
   overWorked: ReadonlySet<string>,
   st: ScoreState,
 ): void {
   if (st.noveltyUsed || picks.length === 0) return;
   for (const pick of picks) {
+    const others = otherUsedExercises(usedExercises, pick.exercise.id);
     const alt = candidates.find(
       (c) =>
         c.isNovel &&
@@ -277,11 +324,14 @@ function applyNoveltyPass(
         c.tier !== 'blocked' &&
         !c.isSuppressed &&
         !overlaps(c.exercise.primary, overWorked) &&
-        pick.slotPatterns.includes(c.exercise.pattern),
+        pick.slotPatterns.includes(c.exercise.pattern) &&
+        !others.some((u) => isMovementTwin(c.exercise, u)),
     );
     if (alt) {
       usedIds.delete(pick.exercise.id);
       usedIds.add(alt.exercise.id);
+      const idx = usedExercises.findIndex((u) => u.id === pick.exercise.id);
+      if (idx !== -1) usedExercises[idx] = alt.exercise;
       pick.exercise = alt.exercise;
       pick.candidate = alt;
       st.noveltyUsed = true;
@@ -297,6 +347,7 @@ function applyAggregatePass(
   picks: SelectedMain[],
   candidates: readonly Candidate[],
   usedIds: Set<string>,
+  usedExercises: Exercise[],
   overWorked: ReadonlySet<string>,
   st: ScoreState,
   kind: 'preferred' | 'band',
@@ -315,6 +366,7 @@ function applyAggregatePass(
       kind === 'preferred' ? p.candidate.tier !== 'preferred' : p.exercise.equipment !== 'band',
     );
     if (!victim) break;
+    const others = otherUsedExercises(usedExercises, victim.exercise.id);
     const alt = candidates.find(
       (c) =>
         !usedIds.has(c.exercise.id) &&
@@ -322,11 +374,14 @@ function applyAggregatePass(
         !c.isSuppressed &&
         !overlaps(c.exercise.primary, overWorked) &&
         victim.slotPatterns.includes(c.exercise.pattern) &&
-        (kind === 'preferred' ? c.tier === 'preferred' : c.exercise.equipment === 'band'),
+        (kind === 'preferred' ? c.tier === 'preferred' : c.exercise.equipment === 'band') &&
+        !others.some((u) => isMovementTwin(c.exercise, u)),
     );
     if (!alt) break;
     usedIds.delete(victim.exercise.id);
     usedIds.add(alt.exercise.id);
+    const idx = usedExercises.findIndex((u) => u.id === victim.exercise.id);
+    if (idx !== -1) usedExercises[idx] = alt.exercise;
     victim.exercise = alt.exercise;
     victim.candidate = alt;
   }

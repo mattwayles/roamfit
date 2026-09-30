@@ -509,4 +509,89 @@ describe('§5.2 selection rules', () => {
     ]);
     expect(result.picks.length).toBe(1);
   });
+
+  // User-reported: a session drew both `bicep-curl` and `single-arm-curl` — same pattern, same
+  // primary/secondary muscles, same equipment, only the unilateral flag differs. Two slots can
+  // legitimately share a pattern (`expandOptionalSlots` cycles back through a focus's small
+  // accessory-pattern list once the base template exhausts it), but the two picks for it should
+  // still be two different exercises, not the same lift split across the session.
+  describe('movement twins — a same-pattern slot never doubles up on the same lift', () => {
+    const bicepCurl = ex({
+      id: 'bicep-curl',
+      pattern: 'elbow_flexion',
+      primary: ['biceps'],
+      secondary: ['forearms'],
+      unilateral: false,
+    });
+    const singleArmCurl = ex({
+      id: 'single-arm-curl',
+      pattern: 'elbow_flexion',
+      primary: ['biceps'],
+      secondary: ['forearms'],
+      unilateral: true,
+    });
+    const hammerCurl = ex({
+      id: 'hammer-curl',
+      pattern: 'elbow_flexion',
+      primary: ['biceps'],
+      secondary: ['forearms'],
+      unilateral: false,
+    });
+
+    it('skips the unilateral twin of an already-picked exercise in favor of a real alternative', () => {
+      const result = selectMain({
+        slots: [slot('s1', 'elbow_flexion'), slot('s2', 'elbow_flexion')],
+        pool: [bicepCurl, singleArmCurl, hammerCurl],
+        poolIgnoringEquipment: [bicepCurl, singleArmCurl, hammerCurl],
+        userState: userState(),
+        today: TODAY,
+        rng: rng(),
+        focus: 'upper',
+        equipmentPreference: 'any',
+        requestedDifficulty: 'medium',
+      });
+      const ids = result.picks.map((p) => p.exercise.id);
+      expect(ids).toHaveLength(2);
+      expect(ids).not.toEqual(expect.arrayContaining(['bicep-curl', 'single-arm-curl']));
+    });
+
+    it('still fills the slot with the twin when it is genuinely the only exercise left', () => {
+      const result = selectMain({
+        slots: [slot('s1', 'elbow_flexion'), slot('s2', 'elbow_flexion')],
+        pool: [bicepCurl, singleArmCurl],
+        poolIgnoringEquipment: [bicepCurl, singleArmCurl],
+        userState: userState(),
+        today: TODAY,
+        rng: rng(),
+        focus: 'upper',
+        equipmentPreference: 'any',
+        requestedDifficulty: 'medium',
+      });
+      // Required slots never go unfilled just to avoid a duplicate — the second slot is simply
+      // dropped as a soft PATTERN GAP rather than resolved by the twin.
+      expect(result.picks).toHaveLength(1);
+    });
+
+    it('a genuine variant (different primary muscle) is unaffected by the twin rule', () => {
+      const reverseCurl = ex({
+        id: 'reverse-curl',
+        pattern: 'elbow_flexion',
+        primary: ['forearms'],
+        secondary: ['biceps'],
+        unilateral: false,
+      });
+      const result = selectMain({
+        slots: [slot('s1', 'elbow_flexion'), slot('s2', 'elbow_flexion')],
+        pool: [bicepCurl, reverseCurl],
+        poolIgnoringEquipment: [bicepCurl, reverseCurl],
+        userState: userState(),
+        today: TODAY,
+        rng: rng(),
+        focus: 'upper',
+        equipmentPreference: 'any',
+        requestedDifficulty: 'medium',
+      });
+      expect(result.picks.map((p) => p.exercise.id).sort()).toEqual(['bicep-curl', 'reverse-curl']);
+    });
+  });
 });
