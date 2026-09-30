@@ -8,6 +8,7 @@
  * for a specific exercise searches for it first, exactly as a user would.
  */
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { exerciseLibrary } from '@roamfit/data';
@@ -67,8 +68,9 @@ describe('the exercise library', () => {
   it('opens from the Field Guide tab and lists the whole library', async () => {
     await openExercises();
     expect(screen.getByTestId('exercise-count')).toHaveTextContent(
-      `${exerciseLibrary.exercises.length} of ${exerciseLibrary.exercises.length} exercises`,
+      `${exerciseLibrary.exercises.length} moves`,
     );
+    expect(screen.getByText('Field guide')).toBeTruthy();
   });
 
   it('lists alphabetically — the first rendered card is the alphabetically first exercise', async () => {
@@ -88,9 +90,9 @@ describe('the exercise library', () => {
     expect(screen.getByText(PUSH_UP.name)).toBeTruthy();
     // banded-push-up's primary muscle in the bundled library.
     expect(screen.getAllByText('Chest').length).toBeGreaterThan(0);
-    expect(screen.getByTestId(`exercise-card-count-${PUSH_UP.id}`)).toHaveTextContent(
-      '2× completed',
-    );
+    // The ember ×N chip (its accessibility label spells it out as "2× completed").
+    expect(screen.getByTestId(`exercise-card-count-${PUSH_UP.id}`)).toHaveTextContent('×2');
+    expect(screen.getByLabelText('2× completed')).toBeTruthy();
   });
 
   it('says "Not done yet" for an exercise never performed, without any red or scolding copy', async () => {
@@ -102,6 +104,18 @@ describe('the exercise library', () => {
         'Not done yet',
       );
     }
+  });
+
+  it('keeps the live count singular for one move', async () => {
+    await openExercises();
+    await search('banded push-up');
+    const shown = Number(screen.getByTestId('exercise-count').props.children[0]);
+    expect(shown).toBeGreaterThan(0);
+    await fireEvent.press(screen.getByTestId('toggle-filters'));
+    await waitFor(() => expect(screen.getByTestId('filter-panel')).toBeTruthy());
+    await fireEvent.press(screen.getByTestId('filter-performed-performed'));
+    await waitFor(() => expect(screen.getByTestId('exercise-count')).toHaveTextContent('1 move'));
+    expect(screen.getByTestId('exercise-count')).not.toHaveTextContent('moves');
   });
 
   it('searches by name, ignoring punctuation', async () => {
@@ -117,6 +131,8 @@ describe('the exercise library', () => {
     await openExercises();
     await search('zzzznothing');
     expect(screen.getByTestId('exercise-empty')).toBeTruthy();
+    expect(screen.getByText('No moves match yet')).toBeTruthy();
+    expect(screen.getByTestId('exercise-count')).toHaveTextContent('0 moves');
   });
 
   it('isolates the exercises that still need a video, and excludes one that has a link', async () => {
@@ -152,6 +168,9 @@ describe('the exercise library', () => {
     await search(other.name);
     expect(screen.getByTestId(`exercise-card-disabled-${other.id}`)).toBeTruthy();
     expect(screen.queryByTestId(`exercise-card-disabled-${PUSH_UP.id}`)).toBeNull();
+    // ...and the row itself steps back to half strength (DESIGN.md §5.3).
+    const row = screen.getByTestId(`exercise-card-${other.id}`);
+    expect(StyleSheet.flatten(row.props.style).opacity).toBe(0.5);
   });
 
   it('filters by a library dimension, and counts what is applied', async () => {
@@ -159,9 +178,7 @@ describe('the exercise library', () => {
     await openFilters();
     await fireEvent.press(screen.getByTestId('filter-equipment-bodyweight'));
 
-    await waitFor(() =>
-      expect(screen.getByTestId('toggle-filters')).toHaveTextContent('Filters (1)'),
-    );
+    await waitFor(() => expect(screen.getByTestId('filters-badge')).toHaveTextContent('1'));
     const shown = Number(screen.getByTestId('exercise-count').props.children[0]);
     expect(shown).toBe(
       exerciseLibrary.exercises.filter((e) => e.equipment === 'bodyweight').length,
@@ -170,20 +187,38 @@ describe('the exercise library', () => {
     await fireEvent.press(screen.getByTestId('clear-filters'));
     await waitFor(() =>
       expect(screen.getByTestId('exercise-count')).toHaveTextContent(
-        `${exerciseLibrary.exercises.length} of ${exerciseLibrary.exercises.length} exercises`,
+        `${exerciseLibrary.exercises.length} moves`,
       ),
     );
+    expect(screen.queryByTestId('filters-badge')).toBeNull();
+  });
+
+  it('shows applied filters inline — removable chips, a quick focus chip and a clear-all', async () => {
+    await openExercises();
+    await openFilters();
+    await fireEvent.press(screen.getByTestId('filter-equipment-bodyweight'));
+    await fireEvent.press(screen.getByTestId('filters-done'));
+
+    // The equipment filter has no quick chip, so it surfaces as a removable one.
+    await waitFor(() =>
+      expect(screen.getByTestId('active-filter-equipment-bodyweight')).toBeTruthy(),
+    );
+    await fireEvent.press(screen.getByTestId('quick-filter-focus-legs'));
+    await waitFor(() => expect(screen.getByTestId('filters-badge')).toHaveTextContent('2'));
+
+    await fireEvent.press(screen.getByTestId('active-filter-equipment-bodyweight'));
+    await waitFor(() => expect(screen.getByTestId('filters-badge')).toHaveTextContent('1'));
+
+    await fireEvent.press(screen.getByTestId('clear-filters-inline'));
+    await waitFor(() => expect(screen.queryByTestId('filters-badge')).toBeNull());
+    expect(screen.queryByTestId('clear-filters-inline')).toBeNull();
   });
 
   it('narrows to the exercises you have actually completed', async () => {
     await openExercises();
     await openFilters();
     await fireEvent.press(screen.getByTestId('filter-performed-performed'));
-    await waitFor(() =>
-      expect(screen.getByTestId('exercise-count')).toHaveTextContent(
-        `1 of ${exerciseLibrary.exercises.length} exercises`,
-      ),
-    );
+    await waitFor(() => expect(screen.getByTestId('exercise-count')).toHaveTextContent('1 move'));
     expect(screen.getByTestId(`exercise-card-${PUSH_UP.id}`)).toBeTruthy();
   });
 
@@ -196,7 +231,7 @@ describe('the exercise library', () => {
     await fireEvent.press(screen.getByTestId('clear-search'));
     await waitFor(() =>
       expect(screen.getByTestId('exercise-count')).toHaveTextContent(
-        `${exerciseLibrary.exercises.length} of ${exerciseLibrary.exercises.length} exercises`,
+        `${exerciseLibrary.exercises.length} moves`,
       ),
     );
     expect(screen.getByTestId('exercise-search').props.value).toBe('');

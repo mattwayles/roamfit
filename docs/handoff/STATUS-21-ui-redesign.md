@@ -43,7 +43,11 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
   `SummaryScreen.presentation.test.tsx` — b53f55a
 
 ### In progress
-- Phase E is complete and `npm run check` is green. Next agent: Phase F (below).
+- **Phase F (Field Guide, Exercise detail, Settings)** in progress, three increments, one commit each:
+  F1 Field Guide (`ExercisesScreen.tsx`, header hidden in `Tabs.tsx`, `FOCUS_TONE` moved to
+  `lib/focusLabels.ts`, Icon names `up`/`down`/`fitness`); F2 Exercise detail; F3 Settings + delete the
+  legacy light-scene mechanism in `navigation/screenOptions.ts`. Decision: Field Guide header scrolls with
+  the list (it is the FlatList's `ListHeaderComponent`); filters live in a `Sheet` with testID `filter-panel`.
 
 ### Next (sequential — each phase is one agent run, several small commits)
 - **F. Field Guide + Exercise detail + Settings** (§5.3, §5.4, §5.10).
