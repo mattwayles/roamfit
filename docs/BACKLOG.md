@@ -16,6 +16,10 @@ the record of what was completed and why.
 
 ## Desired Fixes
 
+- **Golden Hour Workout screen is Jest-verified only.** Run `npm run ios` (dev-client rebuild for
+  `react-native-svg`) and walk a session: top-bar clock width, hero vs the fold on a 6.1" phone,
+  timed ring with the flanking -/+ at its lower corners, rest ring pulse, paused dim, toast position.
+  Details and deliberate deviations from DESIGN.md §5.7 are in `docs/handoff/STATUS-21-ui-redesign.md`.
 - **Ladder rungs with no sibling exercises**, so they repeat every session at that level: `horizontal_push` l7–l9, `horizontal_pull` l4–l8, `anti_extension` l4 and l6. All are high rungs nobody currently occupies — fill them when someone gets there.
 - **A band exercise at a bodyweight-anchored rung has a frozen band.** Progression state is tracked
 against the level's *anchor* (`currentExercise` in `progression/rules.ts` resolves

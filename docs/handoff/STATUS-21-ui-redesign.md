@@ -16,23 +16,18 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
   `CompositeScreenProps` types, `homeReset()`, dark nav theme, `StatusBar style="light"`; every
   `navigate/reset` to Home fixed + tests updated — 19dd1fb
 
+- [x] B1 shared Workout components restyled to tokens (AnchorBadge, BandChip/Picker, FeedbackControls,
+  PinnedNote, DemoMedia, SpotifyControls, AbandonSessionButton -> Sheet) + tiny ui extensions — 0e05c27
+- [x] B2 Workout shell: own top bar, session SegmentedBar, section/paused/Progress chips, nudge Sheet,
+  header hidden, legacy scene made opt-in per screen — f9c1b3c
+- [x] B3-B5 reps hero, timed ring hero, lagoon rest hero + Up next, Disclosure/DemoMedia cards, coach
+  toast, `WorkoutScreen.presentation.test.tsx` — 959dac4 (+ follow-up polish commit)
+
 ### In progress
-- Phase B (Active Workout, DESIGN.md §5.7 + the components it renders). Increment plan (each its
-  own commit, `npm run check` green at each):
-  - [x] B1 (0e05c27) shared components restyled to tokens (AnchorBadge, BandChip, BandPicker, FeedbackControls,
-    PinnedNote, DemoMedia, SpotifyControls, AbandonSessionButton -> Sheet), + tiny ui extensions
-    (Icon names anchor/music/previous/video/external, Pips `filled` may be boolean[], Chip
-    `accessible` when labelled).
-  - [x] B2 (f9c1b3c) WorkoutScreen shell: hide native header, own top bar + SegmentedBar + section chip, paused
-    dim/PAUSED chip, paused-nudge Sheet, RootNavigator: legacyLightContent becomes opt-in per legacy
-    screen (Workout opts out), goHome/reviewFromSummary tests move from header to screen.
-  - [x] B3-B5 (this commit) reps hero + toast/haptics, timed ring hero, rest hero + Up next,
-    Disclosure card, new `WorkoutScreen.presentation.test.tsx`. B4 timed hero. B5 rest hero + Up next + Disclosure. B6 sweep
-    (no raw hex/fontSize/glyphs), status + backlog.
+- Phase C (Today + Journey, DESIGN.md §5.1, §5.2, §5.11 disclaimer gate). Not started. Phase B
+  (Active Workout) is complete and `npm run check` is green.
 
 ### Next (sequential — each phase is one agent run, several small commits)
-- **B. Active Workout** (§5.7) + the components it renders: AnchorBadge, BandChip, BandPicker,
-  FeedbackControls, PinnedNote, DemoMedia, SpotifyControls, AbandonSessionButton (→ Sheet).
 - **C. Today + Journey** (§5.1, §5.2, §5.11 disclaimer gate) — split HomeScreen, add Journey tab,
   move board/logbook/passport/muscle/lifetime tests to Journey.
 - **D. Generate + Plan/Approval** (§5.5, §5.6) — replace OptionPicker usage.
@@ -110,8 +105,80 @@ longer resolves. `open-exercises` on Home still works (sibling tab navigate).
 `headerTransparent`, so content is not pushed under the header). Tab screens still get a tab-navigator
 header (with the old titles in caps) so Home/Exercises keep their top inset; phases C/F set
 `headerShown: false` and draw their own headers with `<Screen edges={['top','left','right']}
-safeBottom={false}>`. Workout keeps its native header for now (its Pause/Stop/Home controls are
-`setOptions` header items) — phase B replaces it. **Un-migrated screens sit on the old light scene
-color** via `legacyLightContent` (stack `contentStyle`) / `legacyLightScene` (tab `sceneStyle`) in
-`navigation/screenOptions.ts` (`LEGACY_SCENE = '#f2f2f2'`). When a phase migrates a screen, give it
-`<Screen>` and delete that override for it (phase G removes the constants once none remain).
+safeBottom={false}>`. **Workout is migrated (phase B): `headerShown: false`, no legacy scene.** **Un-migrated screens
+sit on the old light scene color**: `legacyLightContent` (stack `contentStyle`) is now **opt-in per
+screen** in `navigation/RootNavigator.tsx` (Generate, Approval, Summary, Settings, ExerciseDetail
+spread it into their own `options`); `legacyLightScene` (tab `sceneStyle`) is still on the tabs.
+When a phase migrates a screen, give it `<Screen>` and delete its spread (phase G removes the
+constants once none remain).
+
+### Phase B reference (Active Workout) — for phases C-G
+
+**What the screen is now** (`WorkoutScreen.tsx`): `<Screen edges top/left/right padded={false}>` >
+top bar (home `IconButton` `workout-home` | `hero` clock `workout-elapsed`, `adjustsFontSizeToFit` |
+pause `pause-workout` + abandon `abandon-button`) > `SegmentedBar` (one segment per active entry,
+filled by *completed* sets, glow + color = current section) > `ScrollView` `workout-scroll`
+(Spotify pill, section `Chip` + PAUSED chip + Progress/Done `Chip` `view-progress`/`review-done`,
+swap notice, PinnedNote, phase view, How-to `Disclosure` card, `DemoMedia` card) > `Toast` (absolute,
+bottom). Section tones: warm-up gold, main ember, cool-down lagoon (`SECTION_TONE`). The header
+`setOptions` wiring is gone; the goHome / review-from-Summary tests now find those controls on the
+screen. The Progress/Done control is a sky `Chip` in the meta row, not a header item.
+
+**Toast lives on the screen, not the set view.** A completed set swaps to the rest page in the same
+tick, so anything the set view owned would unmount before it could be read. `announceCompletion()`
+(in `commitSetAndRest`) picks the pool: the set *before* the session's final set -> `lastSet`
+("Last set. Empty the tank." is a nudge for what's next, never said after the end); closing set of an
+exercise -> `exerciseComplete`; else `setComplete`. Seed `${entry.id}:${setIndex}`. Rest line seed
+is `${restingEntryId}:${restingSetIndex}` from the `rest` pool. Haptics: COMPLETE SET fires
+`haptics.medium()` (closing set of an exercise: `success()`); the final-3-seconds light haptic on
+hold and rest countdowns already comes from `workoutAudio.cueCount()` (audio + `hapticTick`), so
+the new pulse is visual only (`usePulse`, dropped under Reduce Motion, stopped on unmount).
+
+**Pips pop on the rest page, not the set page.** The pip for the set just done is rendered on the
+rest hero (`rest-pips`), mounted unfilled and filled 150ms later so `Pips` pops it. `Pips` now takes
+`filled: number | boolean[]`; the workout passes flags (only `completed` fills — a skipped set stays
+an empty dot).
+
+**Shared components — how they look/behave now (Approval/Summary/Detail/Home phases must account):**
+- All still default exports with unchanged props + testIDs. They now import tokens and `../ui`.
+- `BandChip`: dark `surface2` pill + a color **dot** (`band-chip-B2-dot` carries the tension color,
+  `band-chip-B2` no longer has the band color as its background). `textColorOn`/`textToneOn` now
+  return `ink`/`text` tokens. `NEUTRAL_BAND_COLOR` is the missing-record fallback.
+- `BandPicker`: `compact` = chip + chevron; `field` (Approval's Sets/Reps/Rest row) keeps the
+  band-color-filled 36pt trigger with a `caption` "BAND" label above; options stay filled swatches
+  (selected = 3px `text` ring); the `field` dropdown is a `surface3` panel with a border (no shadow).
+- `AnchorBadge`: sky `Chip` with the anchor (link) icon; `alignSelf: flex-start` (was centered).
+- `FeedbackControls`: pill segment, selected fills lagoon / ember / summit with `ink` text; **no
+  built-in label** — the caller adds "How did that set feel?" (Summary still needs its own).
+- `PinnedNote`: gold-tinted card, compact single row while empty (pin, field, pencil), eyebrow appears
+  once there's text, `surface2` well, keyboard accessory = `surface2` bar + ember "Done".
+- `DemoMedia` and the Workout `Disclosure` are each their own `Card` (header row with chevron), so
+  callers must not wrap them in another card. Offline `DemoMedia` still renders `null`.
+- `SpotifyControls`: one compact `surface` pill; Spotify green survives only as the 28pt brand dot
+  (`SPOTIFY_GREEN`, commented). Browse is now a `Sheet` (`spotify-browse-sheet`).
+- `AbandonSessionButton`: **both** variants open a `Sheet` (`abandon-sheet`, content `abandon-confirm-row`);
+  "Keep going" (`abandon-confirm-cancel`) is the primary button, "Discard" (`abandon-confirm-yes`) is
+  secondary. The `text` variant is a `quiet` `Button` (used by Home and Approval, which are still on
+  the light legacy scene — its `text2` label is low-contrast there until phases C/D migrate them).
+  A Sheet unmounts after its exit animation: tests that assert "closed" must `waitFor`.
+- `ui/` extensions made in phase B: `IconButton` size `xl` (64pt), `Pips` flag lists, `Chip`
+  `accessible` when it has an `accessibilityLabel`, Icon names `anchor` `music` `previous` `video`
+  `external`.
+
+**Deviations from DESIGN.md §5.7** (all deliberate):
+- The rep counter is `mega` (112) and is bigger than the `hero` (64) elapsed clock. The clock is the
+  biggest thing in the top bar and the biggest header type; the numeral is the centerpiece by spec.
+- Level chip reads `LVL 3/7 · HORIZONTAL PUSH` (kept the "of N" the old badge carried).
+- PAUSED chip sits beside the section chip under the bar, not "next to the clock" (no room in a
+  `hero`-clock bar).
+- Set nav: Undo / Swap / Skip are the only prev/next controls (they carry the `rewind-set` /
+  `swap-set` / `skip-set` testIDs); the spec's extra "prev/next set chevrons" in the set row would
+  duplicate them, so the set row is just pips + "Set N of M". Forward reads "Next" when stepped back.
+- Timed caption sits under the ring (spec), the flanking -/+ sit at the ring's lower corners (a
+  240pt ring plus two 56pt buttons does not fit a 350pt card side by side).
+- Rest hero also shows pips for the set just done (the place the "pip pop" can actually be seen).
+- `SegmentedBar` fills on *completed* sets only, so skipped sets leave a segment quiet.
+
+**Not verified on a device/simulator** (Jest only; `react-native-svg` still needs the dev-client
+rebuild). Layout was reasoned, not seen: top-bar clock width, hero height vs the fold on a 6.1"
+phone, flanking -/+ corner placement, hero dim. First thing to check after `npm run ios`.

@@ -1025,6 +1025,14 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
+        {/* Sits with the session-level controls (timer, pause, stop) rather than with the
+            exercise content, because that is what it is: something about this whole workout, not
+            about this set. Above the phase view so it is in the same place during a set and
+            during a rest — rest is when a user actually reaches for it, and a control that moves
+            between the two moments is a control you have to look for. Renders nothing at all when
+            there is no Spotify, so a user who doesn't use it never pays the row. */}
+        <SpotifyControls />
+
         <View style={styles.metaRow}>
           <Chip label={SECTION_LABEL[sessionSection] ?? entry.section} tone={sectionTone} />
           {paused && <PausedChip />}
@@ -1041,14 +1049,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             onPress={() => navigation.replace('Summary', { sessionId })}
           />
         </View>
-
-        {/* Sits with the session-level controls (timer, pause, stop) rather than with the
-            exercise content, because that is what it is: something about this whole workout, not
-            about this set. Above the phase view so it is in the same place during a set and
-            during a rest — rest is when a user actually reaches for it, and a control that moves
-            between the two moments is a control you have to look for. Renders nothing at all when
-            there is no Spotify, so a user who doesn't use it never pays the row. */}
-        <SpotifyControls />
 
         {swapNotice != null && (
           <Animated.View
@@ -2080,7 +2080,7 @@ function TimedExercise({
       ? `${Math.floor(circleValue / 60)}:${String(circleValue % 60).padStart(2, '0')}`
       : circleValue;
 
-  // Short enough to sit inside a 216pt ring on one line, at every phase.
+  // Short enough to sit on one line under the ring, at every phase.
   const circleCaption = !started
     ? 'Tap to start'
     : inGetReady
@@ -2191,15 +2191,6 @@ function TimedExercise({
                   {ringUnit}
                 </Txt>
               )}
-              <Txt
-                variant="caption"
-                testID="timed-caption"
-                color={stopped ? 'sky' : 'text2'}
-                align="center"
-                numberOfLines={1}
-              >
-                {circleCaption}
-              </Txt>
             </ProgressRing>
           </PressableScale>
         </Animated.View>
@@ -2228,6 +2219,17 @@ function TimedExercise({
           </>
         )}
       </View>
+
+      {/* What a tap means right now, under the ring rather than crammed inside it. */}
+      <Txt
+        variant="eyebrow"
+        testID="timed-caption"
+        color={stopped ? 'sky' : 'text2'}
+        align="center"
+        numberOfLines={1}
+      >
+        {circleCaption}
+      </Txt>
 
       {/* The one thing a tap cannot say. Quiet, and only once there is a hold to end. */}
       {inHold && (
