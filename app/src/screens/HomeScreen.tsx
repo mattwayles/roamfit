@@ -80,28 +80,30 @@ import { requestLocationPermission } from '../lib/geocode';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
-/** §14.1.6 — the one-letter marker shown on a trained calendar day: a focus letter, or 'Q' for a
+/** §14.1.6 — the emoji marker shown on a trained calendar day: one per focus, or a stopwatch for a
  *  Quick Session (§9.5), which is otherwise indistinguishable from a regular full-body session
  *  since it always requests 'full'. */
-const FOCUS_LETTER: Record<Focus, string> = {
-  full: 'F',
-  upper: 'U',
-  abs: 'A',
-  legs: 'L',
-  cardio: 'C',
+const FOCUS_EMOJI: Record<Focus, string> = {
+  full: '🏋️',
+  upper: '💪',
+  abs: '🔥',
+  legs: '🦵',
+  cardio: '🏃',
 };
-const QUICK_LETTER = 'Q';
+const QUICK_EMOJI = '⏱️';
+const TRAVEL_EMOJI = '✈️';
 
-/** Options offered by the calendar day-marker edit popup, in the order they're listed. */
-const DAY_MARKER_OPTIONS: { marker: DayMarker; label: string }[] = [
-  { marker: 'none', label: 'No workout' },
-  { marker: 'travel', label: 'Travel day' },
-  { marker: 'quick', label: 'Quick workout' },
-  { marker: 'full', label: 'Full-body workout' },
-  { marker: 'upper', label: 'Upper-body workout' },
-  { marker: 'abs', label: 'Abs workout' },
-  { marker: 'legs', label: 'Legs workout' },
-  { marker: 'cardio', label: 'Cardio workout' },
+/** Options offered by the calendar day-marker edit popup, in the order they're listed. `emoji` is
+ *  '' for 'none', which the popup renders as a blank untrained square rather than a symbol. */
+const DAY_MARKER_OPTIONS: { marker: DayMarker; label: string; emoji: string }[] = [
+  { marker: 'none', label: 'No workout', emoji: '' },
+  { marker: 'travel', label: 'Travel day', emoji: TRAVEL_EMOJI },
+  { marker: 'quick', label: 'Quick workout', emoji: QUICK_EMOJI },
+  { marker: 'full', label: 'Full-body workout', emoji: FOCUS_EMOJI.full },
+  { marker: 'upper', label: 'Upper-body workout', emoji: FOCUS_EMOJI.upper },
+  { marker: 'abs', label: 'Abs workout', emoji: FOCUS_EMOJI.abs },
+  { marker: 'legs', label: 'Legs workout', emoji: FOCUS_EMOJI.legs },
+  { marker: 'cardio', label: 'Cardio workout', emoji: FOCUS_EMOJI.cardio },
 ];
 
 interface HomeData {
@@ -114,6 +116,7 @@ interface HomeData {
   passport: PassportSummary;
   calendarDays: CalendarDay[];
   calendarMonthLabel: string;
+  todayLocalDate: string;
   muscleBalance: MuscleBalanceRow[];
   lifetimeCounters: LifetimeCounters;
 }
@@ -191,6 +194,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       passport,
       calendarDays,
       calendarMonthLabel: monthLabelForLocalDate(clock.today),
+      todayLocalDate: clock.today,
       muscleBalance,
       lifetimeCounters,
     });
@@ -536,10 +540,13 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       </Pressable>
 
       {/* §14.1.6 calendar heatmap — untrained days are neutral squares, never omitted or red.
-          A trained day shows a letter for the focus it trained (F/U/A/L); a travel day shows a
-          plane icon instead. Every marker is hand-editable (tap to open the popup below) so a
-          workout logged outside RoamFit, or a travel day missed at the time, can still be
-          reflected here. */}
+          A trained day shows an emoji for the focus it trained; a travel day shows a plane emoji
+          on a light gray background (darker than the untrained gray, but never the workout
+          green) so the two are never confused at a glance. Today's cell gets a thicker border,
+          not a color, so it reads
+          clearly without looking like a workout state. Every marker is hand-editable (tap to open
+          the popup below) so a workout logged outside RoamFit, or a travel day missed at the
+          time, can still be reflected here. */}
       {stats.lifetimeSessionCount > 0 && (
         <View testID="calendar-heatmap">
           <View style={styles.calendarHeaderRow}>
@@ -584,7 +591,10 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
                         styles.calendarCell,
                         day.marker === 'none'
                           ? styles.calendarCellUntrained
-                          : styles.calendarCellWorkout,
+                          : day.marker === 'travel'
+                            ? styles.calendarCellTravel
+                            : styles.calendarCellWorkout,
+                        day.localDate === data.todayLocalDate && styles.calendarCellToday,
                       ]}
                       onPress={() => setEditingDay(day.localDate)}
                     >
@@ -597,15 +607,15 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
                         {Number(day.localDate.split('-')[2])}
                       </Text>
                       {day.marker === 'travel' && (
-                        <Text style={styles.calendarCellTransitIcon}>✈</Text>
+                        <Text style={styles.calendarCellEmoji}>{TRAVEL_EMOJI}</Text>
                       )}
                       {day.marker === 'quick' && (
-                        <Text style={styles.calendarCellLetter}>{QUICK_LETTER}</Text>
+                        <Text style={styles.calendarCellEmoji}>{QUICK_EMOJI}</Text>
                       )}
                       {day.marker !== 'none' &&
                         day.marker !== 'travel' &&
                         day.marker !== 'quick' && (
-                          <Text style={styles.calendarCellLetter}>{FOCUS_LETTER[day.marker]}</Text>
+                          <Text style={styles.calendarCellEmoji}>{FOCUS_EMOJI[day.marker]}</Text>
                         )}
                     </Pressable>
                   ),
@@ -659,6 +669,9 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
                 style={styles.dayMarkerOption}
                 onPress={() => editingDay != null && handleSetDayMarker(editingDay, option.marker)}
               >
+                {option.emoji !== '' && (
+                  <Text style={styles.dayMarkerOptionEmoji}>{option.emoji}</Text>
+                )}
                 <Text style={styles.dayMarkerOptionText}>{option.label}</Text>
               </Pressable>
             ))}
@@ -1155,6 +1168,8 @@ const styles = StyleSheet.create({
   },
   calendarCellUntrained: { backgroundColor: '#e2e8f0' },
   calendarCellWorkout: { backgroundColor: '#16a34a' },
+  calendarCellTravel: { backgroundColor: '#cbd5e1' },
+  calendarCellToday: { borderWidth: 2, borderColor: '#1e293b' },
   calendarCellDateNumber: {
     position: 'absolute',
     top: 2,
@@ -1164,8 +1179,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.85)',
   },
   calendarCellDateNumberUntrained: { color: '#64748b' },
-  calendarCellTransitIcon: { fontSize: 11, lineHeight: 14, color: '#475569' },
-  calendarCellLetter: { fontSize: 10, lineHeight: 14, fontWeight: '700', color: '#ffffff' },
+  calendarCellEmoji: { fontSize: 22, lineHeight: 26 },
   dayMarkerBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
@@ -1185,13 +1199,17 @@ const styles = StyleSheet.create({
   },
   dayMarkerTitle: { fontSize: 13, fontWeight: '700', color: '#334155', marginBottom: 4 },
   dayMarkerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 12,
     minHeight: 44,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     backgroundColor: '#e2e8f0',
   },
+  dayMarkerOptionEmoji: { fontSize: 18, lineHeight: 22 },
   dayMarkerOptionText: { fontSize: 14, fontWeight: '600', color: '#334155' },
   muscleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   muscleLabel: { width: 90, fontSize: 12, color: '#334155', fontWeight: '600' },
