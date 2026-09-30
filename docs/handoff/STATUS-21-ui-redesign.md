@@ -7,9 +7,12 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
 
 ### Done
 - [x] Design spec written — `docs/DESIGN.md`
+- [x] A1 deps installed via `npx expo install` (react-native-svg 15.15.4, @expo/vector-icons 15.0.2,
+  @expo-google-fonts/barlow + barlow-condensed 0.4.1, @react-navigation/bottom-tabs 7.20.0)
 
 ### In progress
-- Phase A (foundation)
+- Phase A (foundation), running as small commits: deps -> theme -> fonts/app.json -> hypeCopy ->
+  ui primitives -> nav shell. Next action: theme tokens in `app/src/theme/`.
 
 ### Next (sequential — each phase is one agent run, several small commits)
 - **A. Foundation** — deps (`npx expo install react-native-svg @expo/vector-icons

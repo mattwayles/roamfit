@@ -11,8 +11,12 @@
     "test": "jest"
   },
   "dependencies": {
+    "@expo-google-fonts/barlow": "^0.4.1",
+    "@expo-google-fonts/barlow-condensed": "^0.4.1",
+    "@expo/vector-icons": "^15.0.2",
     "@kingstinct/react-native-healthkit": "^14.1.0",
     "@op-engineering/op-sqlite": "^18.1.4",
+    "@react-navigation/bottom-tabs": "^7.20.0",
     "@react-navigation/native": "^7.3.18",
     "@react-navigation/native-stack": "^7.18.10",
     "@roamfit/data": "^0.0.1",
@@ -36,6 +40,7 @@
     "react-native": "0.86.3",
     "react-native-safe-area-context": "^5.9.1",
     "react-native-screens": "^4.27.0",
+    "react-native-svg": "15.15.4",
     "react-native-webview": "13.16.1"
   },
   "devDependencies": {
