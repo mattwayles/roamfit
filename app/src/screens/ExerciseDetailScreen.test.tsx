@@ -13,6 +13,7 @@
  * un-awaited event simply has not been dispatched yet by the time the next line asserts.
  */
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
@@ -29,6 +30,8 @@ import { StoreProvider } from '../state/StoreContext';
 import { getDb } from '../db';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { getNetworkStatus } from '../lib/networkStatus';
+import { topoLoops } from '../ui';
+import { tints } from '../theme';
 
 jest.mock('../lib/networkStatus', () => ({ getNetworkStatus: jest.fn() }));
 const mockGetNetworkStatus = getNetworkStatus as jest.MockedFunction<typeof getNetworkStatus>;
@@ -256,5 +259,73 @@ describe('the exercise detail page', () => {
     expect(screen.getByTestId('detail-progress-summary')).toHaveTextContent(
       'No sessions logged yet — this is where your history lands.',
     );
+  });
+
+  it('opens on a hero seeded by the exercise id, with the name, subtitle and a back button', async () => {
+    const exercise = await openDetail(PUSH_UP.name);
+
+    // The travel-map texture is deterministic from the id: the same exercise always gets the same
+    // contour lines. (The tab screens stay mounted underneath, so look through every pattern.)
+    const seeded = topoLoops(exercise.id).paths[0];
+    expect(screen.getAllByTestId('topo-pattern-loop-0').map((n) => n.props.d)).toContain(seeded);
+    expect(screen.getByText(/^Chest · Horizontal push$/)).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('detail-back'));
+    await waitFor(() => expect(screen.queryByTestId('detail-name')).toBeNull());
+  });
+
+  it('presents enable/disable as a switch row that reads on when the move is in workouts', async () => {
+    const exercise = await openDetail(PUSH_UP.name);
+    exerciseStateRepo.setDisabled(getDb(), exercise.id, false, nowUtcInstant());
+    await openDetail(PUSH_UP.name);
+
+    const row = screen.getByTestId('toggle-exercise-disabled');
+    expect(row.props.accessibilityState.checked).toBe(true);
+    expect(screen.getByText('Currently appears in workouts')).toBeTruthy();
+
+    // The switch itself toggles the same veto.
+    await fireEvent.press(screen.getByTestId('toggle-exercise-disabled-switch'));
+    await waitFor(() =>
+      expect(screen.getByTestId('toggle-exercise-disabled').props.accessibilityState.checked).toBe(
+        false,
+      ),
+    );
+    expect(screen.getByText('Currently hidden from workouts')).toBeTruthy();
+    expect(exerciseStateRepo.getExerciseState(getDb(), exercise.id)?.disabledAt).not.toBeNull();
+
+    await fireEvent.press(screen.getByTestId('toggle-exercise-disabled'));
+    await waitFor(() =>
+      expect(
+        exerciseStateRepo.getExerciseState(getDb(), exercise.id)?.disabledAt ?? null,
+      ).toBeNull(),
+    );
+  });
+
+  it('shows the details as a spec grid with the library id last, and gains as chips', async () => {
+    const exercise = exerciseLibrary.exercises.find((e) => e.id === improvedExerciseId)!;
+    await openDetail(exercise.name);
+
+    expect(screen.getByTestId('detail-field-Equipment')).toBeTruthy();
+    expect(screen.getByTestId('detail-field-Library id')).toHaveTextContent(
+      new RegExp(exercise.id),
+    );
+
+    // An improved dimension is an ember chip with first -> best; the rest are neutral.
+    const best = screen.getByTestId('detail-gain-Best set');
+    expect(best).toHaveTextContent(/→/);
+    expect(StyleSheet.flatten(best.props.style).backgroundColor).toBe(tints.ember);
+  });
+
+  it('greets an exercise with no history with an encouraging empty state, and "Not yet"', async () => {
+    const untouched = exerciseLibrary.exercises.find(
+      (e) =>
+        e.id !== improvedExerciseId &&
+        exerciseStateRepo.getExerciseState(getDb(), e.id) === null &&
+        exerciseLibrary.exercises.filter((other) => other.name.includes(e.name)).length === 1,
+    )!;
+    await openDetail(untouched.name);
+
+    expect(screen.getByText('Your progress starts here')).toBeTruthy();
+    expect(screen.getByTestId('detail-last-performed')).toHaveTextContent(/^Not yet/);
   });
 });

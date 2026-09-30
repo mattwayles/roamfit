@@ -37,10 +37,12 @@ export default function RootNavigator(): React.JSX.Element {
         component={SettingsScreen}
         options={{ title: 'SETTINGS', ...legacyLightContent }}
       />
+      {/* The detail page opens on a full-bleed focus-colour hero and draws its own back button over
+          it; the edge-swipe back gesture stays on. */}
       <Stack.Screen
         name="ExerciseDetail"
         component={ExerciseDetailScreen}
-        options={{ title: 'EXERCISE', ...legacyLightContent }}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

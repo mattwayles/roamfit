@@ -16,6 +16,8 @@ export interface EmptyStateProps {
   actionLabel?: string;
   onAction?: () => void;
   testID?: string;
+  /** Id on the body line, for a caller whose tests read that copy (Exercise detail's progress). */
+  bodyTestID?: string;
 }
 
 export function EmptyState({
@@ -26,6 +28,7 @@ export function EmptyState({
   actionLabel,
   onAction,
   testID,
+  bodyTestID,
 }: EmptyStateProps): React.JSX.Element {
   return (
     <Card testID={testID} style={styles.card}>
@@ -33,7 +36,7 @@ export function EmptyState({
       <Txt variant="h3" align="center">
         {title}
       </Txt>
-      <Txt variant="small" color="text2" align="center">
+      <Txt variant="small" color="text2" align="center" testID={bodyTestID}>
         {body}
       </Txt>
       {actionLabel && onAction ? (

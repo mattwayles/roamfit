@@ -13,11 +13,16 @@
  * or a level: the engine owns those, and this screen only reports what already happened.
  *
  * Every field is shown by default. The user asked for all of it up front, on the understanding
- * that whatever turns out to be noise gets trimmed later — so the "Details" table below is
- * deliberately exhaustive rather than curated.
+ * that whatever turns out to be noise gets trimmed later — so the "Details" grid below is
+ * deliberately exhaustive rather than curated. Only its *presentation* is friendlier: a full-bleed
+ * focus-colour hero, stat tiles, section cards and a two-column spec grid instead of one long wall
+ * of label/value text (DESIGN.md §5.4).
+ *
+ * The native header is off: the hero runs to the top of the screen and carries its own back
+ * button. The edge-swipe back gesture is untouched.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { exerciseCatalogRepo, exerciseStateRepo, remoteConfigRepo } from '@roamfit/store';
@@ -28,6 +33,8 @@ import { useStore } from '../state/StoreContext';
 import { localDateFromDate, nowUtcInstant } from '../lib/localClock';
 import DemoMedia from '../components/DemoMedia';
 import PinnedNote from '../components/PinnedNote';
+import { EmptyState } from '../components/EmptyState';
+import { IconBadge } from '../components/IconBadge';
 import { formatToken, primaryMuscleLabel } from '../lib/exerciseCatalog';
 import {
   buildExerciseProgress,
@@ -37,6 +44,33 @@ import {
   unitLabel,
 } from '../lib/exerciseProgress';
 import type { ChartPoint } from '../lib/exerciseProgress';
+import { FOCUS_TONE } from '../lib/focusLabels';
+import {
+  accentGradient,
+  colors,
+  gutter,
+  radius,
+  space,
+  type AccentName,
+  type ColorName,
+  type GradientColors,
+} from '../theme';
+import {
+  Card,
+  Chip,
+  Enter,
+  Gradient,
+  Icon,
+  IconButton,
+  PressableScale,
+  Screen,
+  StatTile,
+  Switch,
+  TopoPattern,
+  Txt,
+  type IconName,
+} from '../ui';
+import { useInsets } from '../ui/useInsets';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseDetail'>;
 
@@ -44,6 +78,18 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseDetail'>;
  *  enough to see a trend on a phone; the gain rows below are computed over *all* of it, so nothing
  *  earned is dropped just because it scrolled off the chart. */
 const CHART_WINDOW = 12;
+
+/** Hero gradient per focus tone. Cardio's rose has no themed gradient (it is an identity color,
+ *  not a CTA one), so it borrows the rose -> ember pair from tokens. */
+function heroGradient(tone: AccentName): GradientColors {
+  return accentGradient[tone] ?? [colors.rose, colors.emberDeep];
+}
+
+/** Text color on the hero: `ink` on the bright gradients; the violet `summit` gradient is dark
+ *  enough that `ink` would fall under AA, so it takes paper white. */
+function heroInk(tone: AccentName): ColorName {
+  return tone === 'summit' ? 'text' : 'ink';
+}
 
 interface DetailData {
   catalog: exerciseCatalogRepo.ExerciseCatalogState;
@@ -57,6 +103,7 @@ interface DetailData {
 
 export default function ExerciseDetailScreen({ route, navigation }: Props): React.JSX.Element {
   const { db, library, families } = useStore();
+  const insets = useInsets();
   const { exerciseId } = route.params;
   const exercise = useMemo(
     () => library.exercises.find((e) => e.id === exerciseId) ?? null,
@@ -79,10 +126,6 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
   }, [db, exerciseId]);
 
   useFocusEffect(useCallback(() => load(), [load]));
-
-  React.useEffect(() => {
-    if (exercise) navigation.setOptions({ title: exercise.name });
-  }, [exercise, navigation]);
 
   // The same store calls the workout screen makes — see this file's header for why that matters.
   const handleAssignVideo = (videoId: string) => {
@@ -136,165 +179,237 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
 
   if (!exercise) {
     return (
-      <View style={styles.centered}>
-        <Text testID="exercise-missing" style={styles.body}>
-          That exercise isn’t in the library any more.
-        </Text>
-      </View>
+      <Screen edges={['top', 'left', 'right']} contentStyle={styles.missing}>
+        <EmptyState
+          testID="exercise-missing"
+          icon="search"
+          tone="gold"
+          title="That exercise isn’t in the library any more."
+          body="The Field Guide has plenty more to explore."
+          actionLabel="Back to the guide"
+          onAction={() => navigation.goBack()}
+        />
+      </Screen>
     );
   }
 
   const progress = buildExerciseProgress(data?.history ?? [], exercise.metric);
   const chart = progress.chart.slice(-CHART_WINDOW);
+  const tone = FOCUS_TONE[exercise.focus[0] ?? 'full'];
+  const ink = heroInk(tone);
+  const timesCompleted = data?.catalog.timesCompleted ?? 0;
+  const lastPerformedAt = data?.catalog.lastPerformedAt ?? null;
+  const enabled = !(data?.disabled ?? false);
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
-      automaticallyAdjustKeyboardInsets
-    >
-      <View>
-        <Text testID="detail-name" style={styles.name}>
-          {exercise.name}
-        </Text>
-        <Text style={styles.subtitle}>
-          {primaryMuscleLabel(exercise)} · {formatToken(exercise.pattern)}
-        </Text>
-        {exercise.aliases.length > 0 && (
-          <Text style={styles.aliases}>Also called {exercise.aliases.join(', ')}</Text>
-        )}
-      </View>
-
-      <View style={styles.statRow}>
-        <Stat
-          testID="detail-times-completed"
-          value={String(data?.catalog.timesCompleted ?? 0)}
-          label={
-            (data?.catalog.timesCompleted ?? 0) === 1 ? 'session completed' : 'sessions completed'
-          }
-        />
-        {data?.catalog.lastPerformedAt && (
-          <Stat
-            testID="detail-last-performed"
-            value={formatLocalDate(data.catalog.lastPerformedAt)}
-            label="last performed"
+    <Screen scroll padded={false} adjustForKeyboard testID="exercise-detail-screen">
+      <View style={[styles.hero, { paddingTop: insets.top + space.md }]}>
+        <Gradient colors={heroGradient(tone)} angle={150} />
+        <TopoPattern seed={exercise.id} strength={1.6} />
+        <View style={styles.heroBar}>
+          <IconButton
+            testID="detail-back"
+            icon="back"
+            accessibilityLabel="Back"
+            onPress={() => navigation.goBack()}
           />
-        )}
+        </View>
+        <View style={styles.heroText}>
+          <Txt
+            testID="detail-name"
+            variant="display"
+            color={ink}
+            numberOfLines={3}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
+          >
+            {exercise.name}
+          </Txt>
+          <Txt variant="bodyStrong" color={ink}>
+            {primaryMuscleLabel(exercise)} · {formatToken(exercise.pattern)}
+          </Txt>
+          {exercise.aliases.length > 0 && (
+            <Txt variant="small" color={ink} style={styles.aliases}>
+              Also called {exercise.aliases.join(', ')}
+            </Txt>
+          )}
+        </View>
       </View>
 
-      {/* The note the user wrote for themselves about this movement — the same one the workout
-          screen shows above the exercise, on the same per-exercise row. */}
-      <PinnedNote note={data?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
+      <View style={styles.body}>
+        <Enter index={0} style={styles.statRow}>
+          <StatTile
+            testID="detail-times-completed"
+            style={styles.stat}
+            value={timesCompleted}
+            label={timesCompleted === 1 ? 'session completed' : 'sessions completed'}
+            icon="flame"
+            tone="ember"
+          />
+          <StatTile
+            testID="detail-last-performed"
+            style={styles.stat}
+            value={lastPerformedAt ? formatLocalDate(lastPerformedAt) : 'Not yet'}
+            label="last performed"
+            icon="time"
+            tone="gold"
+          />
+        </Enter>
 
-      {/* Permanent, explicit user veto — never appears in any generated workout while on.
-          Distinct from the system's own temporary suppression, which has no UI of its own.
-          Deliberately loud: this is the one control on this screen that removes an exercise
-          from every future workout, so it gets the visual weight a decision like that deserves
-          rather than blending in with the smaller settings around it. */}
-      <Pressable
-        testID="toggle-exercise-disabled"
-        accessibilityRole="button"
-        accessibilityLabel={
-          data?.disabled
-            ? 'Enable this exercise — it will appear in workouts again'
-            : 'Disable this exercise — it will never be suggested again'
-        }
-        style={[
-          styles.disableToggle,
-          data?.disabled ? styles.enableToggle : styles.disableToggleOn,
-        ]}
-        onPress={handleToggleDisabled}
-      >
-        <Text style={styles.disableToggleText}>{data?.disabled ? 'Enable' : 'Disable'}</Text>
-        <Text style={styles.disableToggleSubtext}>
-          {data?.disabled ? 'Currently hidden from workouts' : 'Currently appears in workouts'}
-        </Text>
-      </Pressable>
+        {/* The note the user wrote for themselves about this movement — the same one the workout
+            screen shows above the exercise, on the same per-exercise row. */}
+        <Enter index={1}>
+          <PinnedNote note={data?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
+        </Enter>
 
-      <Section label="How to">
-        <Text testID="detail-setup" style={styles.body}>
-          {exercise.setup}
-        </Text>
-      </Section>
+        <Enter index={2}>
+          <Card padding="md" style={styles.card}>
+            <CardHeader icon="guide" tone="gold" title="How to" />
+            <Txt testID="detail-setup" variant="body" color="text2">
+              {exercise.setup}
+            </Txt>
+          </Card>
+        </Enter>
 
-      <Section label="Demo">
-        <DemoMedia
-          videoSearchQuery={exercise.video_search}
-          userVideoId={data?.userVideoId ?? null}
-          curatedVideoId={data?.curatedVideoId ?? null}
-          videoDemoted={data?.videoDemoted ?? false}
-          onAssignVideo={handleAssignVideo}
-          onClearVideo={handleClearVideo}
-          // The §8.3 "demo expanded" signal is a fact about an entry in a session; browsing the
-          // library is not a session, and there is no entry to attach it to. Nothing to record.
-          onExpand={() => {}}
-          onReportIssue={handleReportVideoIssue}
-          onPlayerError={handlePlayerError}
-          defaultOpen
-        />
-      </Section>
+        {/* DemoMedia is its own card with its own "Demo" header row. */}
+        <Enter index={3}>
+          <DemoMedia
+            videoSearchQuery={exercise.video_search}
+            userVideoId={data?.userVideoId ?? null}
+            curatedVideoId={data?.curatedVideoId ?? null}
+            videoDemoted={data?.videoDemoted ?? false}
+            onAssignVideo={handleAssignVideo}
+            onClearVideo={handleClearVideo}
+            // The §8.3 "demo expanded" signal is a fact about an entry in a session; browsing the
+            // library is not a session, and there is no entry to attach it to. Nothing to record.
+            onExpand={() => {}}
+            onReportIssue={handleReportVideoIssue}
+            onPlayerError={handlePlayerError}
+            defaultOpen
+          />
+        </Enter>
 
-      <Section label="Progress">
-        <Text testID="detail-progress-summary" style={styles.body}>
-          {progressSummary(progress)}
-        </Text>
+        <Enter index={4}>
+          {chart.length === 0 ? (
+            <EmptyState
+              icon="trendingUp"
+              tone="summit"
+              title="Your progress starts here"
+              body={progressSummary(progress)}
+              bodyTestID="detail-progress-summary"
+            />
+          ) : (
+            <Card padding="md" style={styles.card}>
+              <CardHeader icon="trendingUp" tone="summit" title="Progress" />
+              <Txt testID="detail-progress-summary" variant="bodyStrong">
+                {progressSummary(progress)}
+              </Txt>
 
-        {chart.length > 0 && (
-          <View testID="detail-chart" style={styles.chart}>
-            <Text style={styles.chartCaption}>
-              Best set per session
-              {progress.chart.length > chart.length ? ` · last ${CHART_WINDOW}` : ''}
-            </Text>
-            <Chart points={chart} unit={progress.unit} />
-          </View>
-        )}
+              <View testID="detail-chart" style={styles.chart}>
+                <Txt variant="caption" color="text3">
+                  Best set per session
+                  {progress.chart.length > chart.length ? ` · last ${CHART_WINDOW}` : ''}
+                </Txt>
+                <Chart points={chart} unit={progress.unit} />
+              </View>
 
-        {gainLines(progress).map((line) => (
-          <View key={line.label} style={styles.gainRow} testID={`detail-gain-${line.label}`}>
-            <Text style={styles.gainLabel}>{line.label}</Text>
-            <Text style={[styles.gainDetail, line.improved && styles.gainDetailUp]}>
-              {line.improved ? '▲ ' : ''}
-              {line.detail}
-            </Text>
-          </View>
-        ))}
-      </Section>
+              <View style={styles.gains}>
+                {gainLines(progress).map((line) => (
+                  <Chip
+                    key={line.label}
+                    testID={`detail-gain-${line.label}`}
+                    label={`${line.label} · ${line.detail}`}
+                    tone={line.improved ? 'ember' : 'neutral'}
+                    icon={line.improved ? 'trendingUp' : undefined}
+                    wrap
+                  />
+                ))}
+              </View>
+            </Card>
+          )}
+        </Enter>
 
-      <Section label="Details">
-        <Detail label="Focus" value={exercise.focus.map(formatToken).join(', ')} />
-        <Detail label="Movement pattern" value={formatToken(exercise.pattern)} />
-        <Detail label="Primary muscles" value={exercise.primary.map(formatToken).join(', ')} />
-        <Detail
-          label="Secondary muscles"
-          value={exercise.secondary.map(formatToken).join(', ') || 'None'}
-        />
-        <Detail label="Equipment" value={formatToken(exercise.equipment)} />
-        <Detail label="Band range" value={exercise.band ?? 'Bodyweight'} />
-        <Detail
-          label="Anchor"
-          value={
-            exercise.anchor_alt
-              ? `${formatToken(exercise.anchor)} or ${formatToken(exercise.anchor_alt)}`
-              : formatToken(exercise.anchor)
-          }
-        />
-        <Detail label="Anchor class" value={formatToken(exercise.anchor_class)} />
-        <Detail label="Sides" value={exercise.unilateral ? 'One side at a time' : 'Both sides'} />
-        <Detail label="Metric" value={formatToken(exercise.metric)} />
-        {exercise.default_seconds != null && (
-          <Detail label="Default hold" value={`${exercise.default_seconds}s`} />
-        )}
-        <Detail label="Difficulty" value={formatToken(exercise.difficulty)} />
-        <Detail label="Tier" value={formatToken(exercise.tier)} />
-        <Detail label="Sections" value={exercise.roles.map(formatToken).join(', ')} />
-        <Detail label="Progression" value={progressionLabel(exercise, families)} />
-        <Detail
-          label="Contraindications"
-          value={exercise.contraindications.map(formatToken).join(', ') || 'None'}
-        />
-        <Detail label="Library id" value={exercise.id} />
-      </Section>
-    </ScrollView>
+        <Enter index={5}>
+          <Card padding="md" style={styles.card}>
+            <CardHeader icon="info" tone="sky" title="Details" />
+            <View style={styles.grid}>
+              <Spec label="Focus" value={exercise.focus.map(formatToken).join(', ')} />
+              <Spec label="Movement pattern" value={formatToken(exercise.pattern)} />
+              <Spec label="Primary muscles" value={exercise.primary.map(formatToken).join(', ')} />
+              <Spec
+                label="Secondary muscles"
+                value={exercise.secondary.map(formatToken).join(', ') || 'None'}
+              />
+              <Spec label="Equipment" value={formatToken(exercise.equipment)} />
+              <Spec label="Band range" value={exercise.band ?? 'Bodyweight'} />
+              <Spec
+                label="Anchor"
+                value={
+                  exercise.anchor_alt
+                    ? `${formatToken(exercise.anchor)} or ${formatToken(exercise.anchor_alt)}`
+                    : formatToken(exercise.anchor)
+                }
+              />
+              <Spec label="Anchor class" value={formatToken(exercise.anchor_class)} />
+              <Spec
+                label="Sides"
+                value={exercise.unilateral ? 'One side at a time' : 'Both sides'}
+              />
+              <Spec label="Metric" value={formatToken(exercise.metric)} />
+              {exercise.default_seconds != null && (
+                <Spec label="Default hold" value={`${exercise.default_seconds}s`} />
+              )}
+              <Spec label="Difficulty" value={formatToken(exercise.difficulty)} />
+              <Spec label="Tier" value={formatToken(exercise.tier)} />
+              <Spec label="Sections" value={exercise.roles.map(formatToken).join(', ')} />
+              <Spec label="Progression" value={progressionLabel(exercise, families)} wide />
+              <Spec
+                label="Contraindications"
+                value={exercise.contraindications.map(formatToken).join(', ') || 'None'}
+                wide
+              />
+            </View>
+            <Txt testID="detail-field-Library id" variant="caption" color="text3">
+              Library id · {exercise.id}
+            </Txt>
+          </Card>
+        </Enter>
+
+        {/* Permanent, explicit user veto — never appears in any generated workout while off.
+            Distinct from the system's own temporary suppression, which has no UI of its own.
+            It is the one control here that removes an exercise from every future workout, so it
+            gets a full-width card of its own at the very bottom rather than blending into the
+            details above — but no red: turning a move off is the user's call, not an error. */}
+        <Enter index={6}>
+          <PressableScale
+            testID="toggle-exercise-disabled"
+            accessibilityRole="switch"
+            accessibilityLabel={
+              enabled
+                ? 'Disable this exercise — it will never be suggested again'
+                : 'Enable this exercise — it will appear in workouts again'
+            }
+            accessibilityState={{ checked: enabled }}
+            onPress={handleToggleDisabled}
+            style={styles.toggleCard}
+          >
+            <IconBadge icon="barbell" tone={enabled ? 'ember' : 'gold'} size={40} />
+            <View style={styles.toggleLabels}>
+              <Txt variant="h3">Use in workouts</Txt>
+              <Txt variant="caption" color="text2">
+                {enabled ? 'Currently appears in workouts' : 'Currently hidden from workouts'}
+              </Txt>
+            </View>
+            <Switch
+              testID="toggle-exercise-disabled-switch"
+              value={enabled}
+              onValueChange={handleToggleDisabled}
+              accessibilityLabel="Use in workouts"
+            />
+          </PressableScale>
+        </Enter>
+      </View>
+    </Screen>
   );
 }
 
@@ -315,8 +430,9 @@ function progressionLabel(
 
 /**
  * A horizontal bar per session, oldest at the top. Deliberately not a line chart: this needs no
- * measured layout, no SVG and no charting dependency, it reads at a glance on a phone, and every
- * bar carries its own date and value so the picture is never the only way to get the number.
+ * measured layout, no charting dependency, it reads at a glance on a phone, and every bar carries
+ * its own date and value so the picture is never the only way to get the number. The fill is the
+ * sunrise gradient (at most a dozen SVGs, and only on this page).
  */
 function Chart({
   points,
@@ -330,108 +446,116 @@ function Chart({
     <View style={styles.chartBody}>
       {points.map((point, i) => (
         <View key={`${point.localDate}-${i}`} style={styles.chartRow}>
-          <Text style={styles.chartDate}>{formatLocalDate(point.localDate)}</Text>
+          <Txt variant="caption" color="text3" style={styles.chartDate}>
+            {formatLocalDate(point.localDate)}
+          </Txt>
           <View style={styles.chartTrack}>
-            <View style={[styles.chartFill, { width: `${(point.value / max) * 100}%` }]} />
+            <View style={[styles.chartFill, { width: `${(point.value / max) * 100}%` }]}>
+              <Gradient radius={radius.pill} angle={90} />
+            </View>
           </View>
-          <Text style={styles.chartValue}>{unitLabel(unit, point.value)}</Text>
+          <Txt variant="caption" color="text2" align="right" style={styles.chartValue}>
+            {unitLabel(unit, point.value)}
+          </Txt>
         </View>
       ))}
     </View>
   );
 }
 
-function Section({
-  label,
-  children,
+/** Section-card header: an accent icon and an eyebrow label (matches `DemoMedia`'s own header). */
+function CardHeader({
+  icon,
+  tone,
+  title,
 }: {
-  label: string;
-  children: React.ReactNode;
+  icon: IconName;
+  tone: AccentName;
+  title: string;
 }): React.JSX.Element {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionLabel}>{label}</Text>
-      {children}
+    <View style={styles.cardHeader}>
+      <Icon name={icon} size={16} color={tone} style={styles.cardHeaderIcon} />
+      <Txt variant="eyebrow" color="text2" accessibilityRole="header">
+        {title}
+      </Txt>
     </View>
   );
 }
 
-function Stat({
-  testID,
+/** One tile of the Details grid: eyebrow label over a `bodyStrong` value. `wide` spans both columns
+ *  (long values: muscle lists, the ladder rung, contraindications). */
+function Spec({
+  label,
   value,
-  label,
+  wide = false,
 }: {
-  testID: string;
-  value: string;
   label: string;
+  value: string;
+  wide?: boolean;
 }): React.JSX.Element {
   return (
-    <View style={styles.stat} testID={testID}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
-function Detail({ label, value }: { label: string; value: string }): React.JSX.Element {
-  return (
-    <View style={styles.detailRow} testID={`detail-field-${label}`}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
+    <View style={[styles.spec, wide && styles.specWide]} testID={`detail-field-${label}`}>
+      <Txt variant="eyebrow" color="text3">
+        {label}
+      </Txt>
+      <Txt variant="bodyStrong">{value}</Txt>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  container: { padding: 20, gap: 20, paddingBottom: 64 },
-  name: { fontSize: 24, fontWeight: '800', color: '#0f172a' },
-  subtitle: { fontSize: 14, color: '#475569', marginTop: 2 },
-  aliases: { fontSize: 12, color: '#94a3b8', marginTop: 4 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  rowLabel: { fontSize: 14, flexShrink: 1, paddingRight: 12, color: '#334155' },
-  disableToggle: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    paddingVertical: 16,
+  missing: { paddingTop: space.huge, justifyContent: 'center' },
+  hero: {
+    overflow: 'hidden',
+    paddingHorizontal: gutter,
+    paddingBottom: space.xxl,
+    borderBottomLeftRadius: radius.xl,
+    borderBottomRightRadius: radius.xl,
+  },
+  heroBar: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: space.xl },
+  heroText: { gap: space.xs },
+  aliases: { opacity: 0.8 },
+  body: { paddingHorizontal: gutter, paddingTop: space.xl, gap: space.lg },
+  statRow: { flexDirection: 'row', gap: space.md },
+  stat: { flex: 1, minWidth: 0 },
+  card: { gap: space.md },
+  cardHeader: { flexDirection: 'row', alignItems: 'center' },
+  cardHeaderIcon: { marginRight: space.sm - 2 },
+  chart: { gap: space.sm },
+  chartBody: { gap: space.sm },
+  chartRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  chartDate: { width: 52 },
+  chartTrack: {
+    flex: 1,
+    height: 12,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface2,
+    overflow: 'hidden',
+  },
+  chartFill: { height: 12 },
+  chartValue: { width: 64 },
+  gains: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  spec: {
+    flexGrow: 1,
+    flexBasis: '47%',
+    minWidth: 0,
     gap: 2,
+    padding: space.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface2,
   },
-  disableToggleOn: { backgroundColor: '#dc2626' },
-  enableToggle: { backgroundColor: '#16a34a' },
-  disableToggleText: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
-  disableToggleSubtext: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.85)' },
-  statRow: { flexDirection: 'row', gap: 24 },
-  stat: { gap: 2 },
-  statValue: { fontSize: 24, fontWeight: '800', color: '#0f172a' },
-  statLabel: { fontSize: 11, color: '#64748b' },
-  section: { gap: 8 },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  body: { fontSize: 14, lineHeight: 20, color: '#334155' },
-  chart: { gap: 6 },
-  chartCaption: { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
-  chartBody: { gap: 6 },
-  chartRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  chartDate: { width: 52, fontSize: 11, color: '#64748b' },
-  chartTrack: { flex: 1, height: 12, borderRadius: 6, backgroundColor: '#e2e8f0' },
-  chartFill: { height: 12, borderRadius: 6, backgroundColor: '#1d4ed8' },
-  chartValue: { width: 64, fontSize: 11, color: '#334155', textAlign: 'right', fontWeight: '600' },
-  gainRow: {
+  specWide: { flexBasis: '100%' },
+  toggleCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
+    gap: space.md,
+    padding: space.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
-  gainLabel: { fontSize: 13, color: '#475569' },
-  gainDetail: { fontSize: 13, fontWeight: '700', color: '#0f172a' },
-  gainDetailUp: { color: '#15803d' },
-  detailRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  detailLabel: { width: 132, fontSize: 12, color: '#64748b' },
-  detailValue: { flex: 1, fontSize: 12, color: '#0f172a', fontWeight: '600' },
+  toggleLabels: { flex: 1, gap: 2 },
 });
