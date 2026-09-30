@@ -269,7 +269,10 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     shareSpy.mockRestore();
 
     await fireEvent.press(screen.getByTestId('return-home'));
-    expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'Home' }] });
+    expect(navigation.reset).toHaveBeenCalledWith({
+      index: 0,
+      routes: [{ name: 'Tabs', params: { screen: 'Home' } }],
+    });
   });
 
   it('a skipped set gets its own light-blue square, distinct from a completed (green) one', async () => {

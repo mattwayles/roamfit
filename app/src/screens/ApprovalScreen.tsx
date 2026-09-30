@@ -48,6 +48,7 @@ import type {
 } from '@roamfit/data';
 import type { BandId } from '@roamfit/engine';
 import type { RootStackParamList } from '../navigation/types';
+import { homeReset } from '../navigation/routes';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import AbandonSessionButton from '../components/AbandonSessionButton';
@@ -440,7 +441,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
    * Same call `WorkoutScreen`'s in-workout abandon and `SummaryScreen`'s FINISH already use. */
   const handleAbandon = () => {
     sessionsRepo.discardSession(db, sessionId, {}, nowUtcInstant());
-    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+    navigation.reset(homeReset());
   };
 
   return (

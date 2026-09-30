@@ -13,17 +13,15 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
 - [x] A3 fonts via `useFonts` in App.tsx, app.json dark/splash/bg, `app/__mocks__/expo-font.js`, `lib/hypeCopy.ts` + tests
 - [x] A4 ui primitives `app/src/ui/` + tests, `lib/haptics.ts`, `lib/seed.ts`, Jest mock for @expo/vector-icons
 
+- [x] A5 navigation shell: root stack -> `Tabs` (Today/Field Guide, custom `TabBar`), `NavigatorScreenParams` /
+  `CompositeScreenProps` types, `homeReset()`, dark nav theme, `StatusBar style="light"`; every
+  `navigate/reset` to Home fixed + tests updated (see the A5 commit)
+
 ### In progress
-- Phase A (foundation), running as small commits: deps -> theme -> fonts/app.json -> hypeCopy ->
-  ui primitives -> nav shell. Next action: navigation shell (RootNavigator + Tabs + types + fix navigate/reset calls + tests).
+- Phase B (Active Workout, DESIGN.md §5.7 + the components it renders). Nothing started; Phase A is
+  complete and `npm run check` is green.
 
 ### Next (sequential — each phase is one agent run, several small commits)
-- **A. Foundation** — deps (`npx expo install react-native-svg @expo/vector-icons
-  @expo-google-fonts/barlow @expo-google-fonts/barlow-condensed @react-navigation/bottom-tabs`),
-  `app/src/theme/` tokens (§2), `app/src/ui/` primitives (§3) with tests, font loading in
-  `App.tsx`, `app/src/lib/hypeCopy.ts` (§6) with tests, navigation shell (§4: root stack + tabs
-  Today/Field Guide — Journey tab is added in phase C), dark nav theme, StatusBar light,
-  `app.json` dark + splash bg, jest mocks if svg/fonts/icons need them.
 - **B. Active Workout** (§5.7) + the components it renders: AnchorBadge, BandChip, BandPicker,
   FeedbackControls, PinnedNote, DemoMedia, SpotifyControls, AbandonSessionButton (→ Sheet).
 - **C. Today + Journey** (§5.1, §5.2, §5.11 disclaimer gate) — split HomeScreen, add Journey tab,
@@ -45,3 +43,66 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
 - Code comments record earlier user-requested behaviors (elapsed clock biggest on Workout, How-to
   open by default, next unlock's exercise never named, one-tap swap, pause keeps screen editable,
   difficulty chips use text labels). Keep those behaviors; restyle freely.
+
+### Phase A reference (for phases B-G)
+
+**Native rebuild owed.** `react-native-svg` is native: run `npm run ios` (dev-client rebuild + pod
+install) before trying the redesign on a device/simulator. Not done in Phase A (Jest is the gate;
+no native build was attempted). Fonts/icons/tabs are JS-only. `app.json` also gained
+`userInterfaceStyle: dark`, `backgroundColor` and a `splash` block (bg `#0B0E13`) that only take
+effect after `expo prebuild`/rebuild. `expo-splash-screen` is not installed (no new deps), so
+`App.tsx` holds a blank `bg` `<View>` until `useFonts` resolves (a font *error* falls through to
+system fonts instead of bricking launch).
+
+**Imports.** Screens import tokens from `../theme` and components from `../ui` (one barrel each).
+Haptics: `haptics.selection/light/medium/heavy/success()` from `lib/haptics.ts` (re-exported from
+`ui`); `workoutAudio`'s `hapticX` helpers delegate to it. Seeded visuals/copy share `lib/seed.ts`
+(`hashSeed`, `seededRng`).
+
+**Theme (`app/src/theme`)**: `colors` (+ `ColorName`, `AccentName`), `tints.ember` etc. (+
+`withAlpha(hex, a)`), semantic maps `section`, `focus`, `setState`, `dayMarker`, `trainedColor(focusKey)`,
+`gradients` (+ `accentGradient`), `type` (TextStyles; `type.display` ...), `fontFamily`, `space`, `gutter`,
+`radius`, `glow(color)`, `motion`, `navTheme`, `fontAssets`. Big numerals (`mega`/`hero`) get
+`tabular-nums` and Txt caps their Dynamic Type at 1.3. Uppercase is baked into the variant style
+(`display/h1/h2/eyebrow/button`), so navigation titles (native header, no textTransform) are
+written in caps in the stack options.
+
+**Primitives (`app/src/ui`)**: Txt{variant,color,upper,align}, Icon{name,size,color} (semantic
+`iconMap`, decorative unless `accessibilityLabel`), Gradient{colors,angle,radius}, TopoPattern{seed,strength},
+Screen{scroll,footer,edges,safeBottom,padded}, Card{variant,gradient|tone,seed,padding,onPress},
+Button{label,variant,size,icon,iconRight,loading,disabled,fullWidth,haptic}, IconButton{icon,
+accessibilityLabel,size,variant,tone,label}, PressableScale{haptic,scaleTo}, Chip{label,tone,selected,
+icon,leading,size,onPress}, Eyebrow / SectionHeader{title,icon,tone,actionLabel,onAction},
+ProgressRing{progress,size,stroke,gradient,trackColor,animate,children}, SegmentedBar{values,activeIndex,
+color}, Pips{count,filled,current,color}, StatTile{value,label,icon,tone,size}, Stamp{title,subtitle,seed,
+tone,size} (+ `stampSpec(seed)`), Switch{value,onValueChange}, Sheet{visible,onClose,title,dismissable},
+Toast{message,triggerKey,duration,onDone}, Enter{index} (the `enter` motion, extra), `useReduceMotion()`.
+testIDs: Sheet `sheet`/`sheet-backdrop`; Toast `toast`; ProgressRing `progress-ring`(`-arc`);
+SegmentedBar `segmented-bar-segment-i`/`-fill-i`; Pips `pips-i`/`-dot`/`-ring`; all accept `testID`
+overrides.
+
+**Jest.** No svg mock was needed: react-native-svg renders `RNSVG*` host elements under jest-expo
+(testIDs and props like `d`, `strokeDashoffset` are queryable). `app/__mocks__/expo-font.js` keeps the
+real module but `useFonts` returns `[true, null]`. `app/__mocks__/@expo/vector-icons.js` renders a host
+`<Text name=... />` (real one setStates asynchronously -> act() noise). RNTL v14 is fully async
+(`await render/fireEvent/renderHook`); decorative icons are a11y-hidden, so query them with
+`{ hidden: true }`. `ui/test-utils.ts` has `ready`, `flat`, `WAIT`.
+
+**Navigation.** `RootStackParamList` = Tabs, Generate, Approval, Workout, Summary, Settings,
+ExerciseDetail. `TabParamList` = Home, Exercises (route names unchanged; labels "Today"/"Field
+Guide" live in `TAB_META` in `navigation/TabBar.tsx` — adding Journey = one `TabParamList` key, one
+`TAB_META` row, one `<Tab.Screen>` in `Tabs.tsx`). Type pattern: flow screens use
+`NativeStackScreenProps<RootStackParamList, 'X'>` (or `RootScreenProps<'X'>`); tab screens use
+`TabScreenProps<'Home'>` (composite, so `navigate('Generate')` still type-checks). "Go home" =
+`navigation.reset(homeReset())` or `navigate('Tabs', { screen: 'Home' })`; a bare `'Home'` no
+longer resolves. `open-exercises` on Home still works (sibling tab navigate).
+
+**Headers / backgrounds.** Stack + tab headers use `bg` fill, no shadow, `h2` face (not
+`headerTransparent`, so content is not pushed under the header). Tab screens still get a tab-navigator
+header (with the old titles in caps) so Home/Exercises keep their top inset; phases C/F set
+`headerShown: false` and draw their own headers with `<Screen edges={['top','left','right']}
+safeBottom={false}>`. Workout keeps its native header for now (its Pause/Stop/Home controls are
+`setOptions` header items) — phase B replaces it. **Un-migrated screens sit on the old light scene
+color** via `legacyLightContent` (stack `contentStyle`) / `legacyLightScene` (tab `sceneStyle`) in
+`navigation/screenOptions.ts` (`LEGACY_SCENE = '#f2f2f2'`). When a phase migrates a screen, give it
+`<Screen>` and delete that override for it (phase G removes the constants once none remain).

@@ -48,6 +48,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { completeSession, milestonesRepo, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { CompleteSessionResult } from '@roamfit/store';
 import type { RootStackParamList } from '../navigation/types';
+import { homeReset } from '../navigation/routes';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
 import { findCurrentEntry, type Section } from '../lib/sessionProgress';
@@ -652,7 +653,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                 style={styles.doneFinishButton}
                 onPress={() => {
                   hapticHeavy();
-                  navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+                  navigation.reset(homeReset());
                 }}
               >
                 <Text style={styles.doneFinishButtonText}>Heck yes! 💪</Text>

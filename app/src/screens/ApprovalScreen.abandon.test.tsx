@@ -82,7 +82,11 @@ describe('§10.10 abandon a pending workout, driven from Approval', () => {
     await fireEvent.press(screen.getByTestId('abandon-confirm-yes'));
 
     await waitFor(
-      () => expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'Home' }] }),
+      () =>
+        expect(navigation.reset).toHaveBeenCalledWith({
+          index: 0,
+          routes: [{ name: 'Tabs', params: { screen: 'Home' } }],
+        }),
       WAIT_OPTS,
     );
     expect(sessionsRepo.getPendingSession(db)).toBeNull();

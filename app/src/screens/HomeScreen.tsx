@@ -31,7 +31,6 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   generate,
   levelUpFamily,
@@ -48,7 +47,7 @@ import type { Focus, ProgressionFamilyId } from '@roamfit/data';
 import { assessComeback, createRng, seedFromString } from '@roamfit/engine';
 import { pickQuickSessionDifficulty, pickQuickSessionFocus } from '../lib/quickSession';
 import type { ProgressionState } from '@roamfit/engine';
-import type { RootStackParamList } from '../navigation/types';
+import type { TabScreenProps } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { findCurrentEntry } from '../lib/sessionProgress';
@@ -78,7 +77,7 @@ import {
 import { runOpportunisticSync } from '../lib/opportunisticSync';
 import { requestLocationPermission } from '../lib/geocode';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+type Props = TabScreenProps<'Home'>;
 
 /** §14.1.6 — the emoji marker shown on a trained calendar day: one per focus, or a stopwatch for a
  *  Quick Session (§9.5), which is otherwise indistinguishable from a regular full-body session

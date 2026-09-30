@@ -47,6 +47,7 @@ import type { BandId } from '@roamfit/engine';
 import type { SwapAlternative } from '@roamfit/engine';
 import type { Anchor, AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import type { RootStackParamList } from '../navigation/types';
+import { homeReset } from '../navigation/routes';
 import { useStore } from '../state/StoreContext';
 import { localDateFromDate, nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import {
@@ -394,7 +395,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           accessibilityLabel="Pause and go to Home"
           onPress={() => {
             sessionsRepo.pauseSession(db, sessionId, nowUtcInstant());
-            navigation.navigate('Home');
+            navigation.navigate('Tabs', { screen: 'Home' });
           }}
           style={styles.headerBackButton}
           hitSlop={8}
@@ -581,7 +582,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       { abandonedEntryId: entry.id, abandonedSetIndex: setIndex },
       nowUtcInstant(),
     );
-    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+    navigation.reset(homeReset());
   };
 
   /**

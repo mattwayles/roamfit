@@ -1,0 +1,85 @@
+/**
+ * Custom bottom tab bar (DESIGN.md §4): `surface` with a top hairline; active tab = ember icon +
+ * eyebrow label and a small ember tick on the top edge; inactive = `text3`. To add a tab, add its
+ * route to `TabParamList` and one row to `TAB_META` — nothing else here changes.
+ */
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { PressableScale, Icon, Txt } from '../ui';
+import { useInsets } from '../ui/useInsets';
+import { colors, glow, space } from '../theme';
+import type { IconName } from '../ui';
+import type { TabParamList } from './types';
+
+export const TAB_META: Record<keyof TabParamList, { label: string; icon: IconName }> = {
+  Home: { label: 'Today', icon: 'today' },
+  Exercises: { label: 'Field Guide', icon: 'guide' },
+};
+
+export function TabBar({ state, navigation }: BottomTabBarProps): React.JSX.Element {
+  const insets = useInsets();
+  return (
+    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }]}>
+      {state.routes.map((route, index) => {
+        const meta = TAB_META[route.name as keyof TabParamList];
+        const focused = state.index === index;
+        const color = focused ? 'ember' : 'text3';
+
+        const onPress = () => {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+          if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+        };
+
+        return (
+          <PressableScale
+            key={route.key}
+            testID={`tab-${route.name}`}
+            accessibilityRole="tab"
+            accessibilityLabel={meta?.label ?? route.name}
+            accessibilityState={{ selected: focused }}
+            onPress={onPress}
+            onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
+            haptic={focused ? false : 'selection'}
+            scaleTo={0.94}
+            style={styles.tab}
+          >
+            {focused ? <View style={styles.tick} /> : null}
+            <Icon name={meta?.icon ?? 'dot'} size={24} color={color} />
+            <Txt variant="eyebrow" color={color} style={styles.label} numberOfLines={1}>
+              {meta?.label ?? route.name}
+            </Txt>
+          </PressableScale>
+        );
+      })}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.line,
+    paddingTop: space.sm,
+  },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 48, paddingTop: 2 },
+  tick: {
+    position: 'absolute',
+    top: -space.sm,
+    width: 28,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.ember,
+    ...glow(colors.ember),
+    shadowOpacity: 0.7,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  label: { marginTop: 3 },
+});

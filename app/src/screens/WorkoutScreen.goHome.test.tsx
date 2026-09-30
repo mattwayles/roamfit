@@ -73,7 +73,7 @@ describe('top-left Home nav item on an active workout', () => {
 
     fireEvent.press(headerView.getByTestId('workout-home'));
 
-    expect(navigation.navigate).toHaveBeenCalledWith('Home');
+    expect(navigation.navigate).toHaveBeenCalledWith('Tabs', { screen: 'Home' });
     // Paused, not discarded — the session is still the app's pending session and still active.
     const afterGoHome = sessionsRepo.getSession(db, sessionId)!;
     expect(afterGoHome.pausedAt).not.toBeNull();

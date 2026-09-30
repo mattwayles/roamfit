@@ -18,10 +18,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { exerciseCatalogRepo } from '@roamfit/store';
 import type { Exercise } from '@roamfit/data';
-import type { RootStackParamList } from '../navigation/types';
+import type { TabScreenProps } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import {
   activeFilterCount,
@@ -41,7 +40,7 @@ import type {
   VideoFilter,
 } from '../lib/exerciseCatalog';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Exercises'>;
+type Props = TabScreenProps<'Exercises'>;
 
 type CatalogState = exerciseCatalogRepo.ExerciseCatalogState;
 
