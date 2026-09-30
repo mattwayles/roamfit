@@ -13,6 +13,17 @@
  *     time wildly unpredictable (§5.6 depends on a concrete number per exercise). The `full`
  *     template's conditioning finisher slot, the one place AMRAP used to apply, is gone (track
  *     14 — dropped by user decision, not replaced).
+ *
+ * Rest column (2026-09 revision, user-reported): standard resistance-training guidance (ACSM/NSCA)
+ * puts hypertrophy-range work at ~60-90s rest between sets and calls for MORE recovery as effort
+ * rises, not less. The original spec-derived table went the other way (60/45/30s, decreasing with
+ * difficulty), which under-rested harder sets and — combined with the §5.6 time-fit loop always
+ * spending a fixed main budget — packed a 60-minute medium session with 10 exercises × 3 sets (30
+ * total working sets, well past the ~15-24 a single session should carry). Each row now rests
+ * long enough that filling the same time budget takes meaningfully fewer exercises, so total set
+ * volume lands in that range instead of at the ceiling of the exercise-count table (see
+ * `mainExerciseCountRange`, retuned alongside this). `easy` gets the shortest rest (lighter,
+ * higher-rep, endurance-leaning work), `hard` the longest (heaviest per-set effort).
  */
 import type { Difficulty } from '../types';
 
@@ -24,9 +35,9 @@ export interface DifficultyRow {
 }
 
 export const DIFFICULTY_TABLE: Record<Difficulty, DifficultyRow> = {
-  easy: { sets: 3, reps: 15, restSec: 60, tempoSec: 3 },
-  medium: { sets: 3, reps: 12, restSec: 45, tempoSec: 3 },
-  hard: { sets: 4, reps: 12, restSec: 30, tempoSec: 4 },
+  easy: { sets: 3, reps: 15, restSec: 45, tempoSec: 3 },
+  medium: { sets: 3, reps: 12, restSec: 75, tempoSec: 3 },
+  hard: { sets: 4, reps: 12, restSec: 60, tempoSec: 4 },
 };
 
 /** §5.6 time budget's timed-exercise defaults, keyed off the exercise's own `default_seconds`

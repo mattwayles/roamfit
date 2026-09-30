@@ -64,13 +64,22 @@ export function timedExerciseSec(params: {
  * `longSessionSetsMultiplier`, which is where most of the extra time in a long session comes
  * from. Filling 120 minutes with exercise count alone would need ~25 movements, which is what
  * this sanity check exists to prevent.
+ *
+ * 2026-09 revision (user-reported): the 45/60-minute tiers came down one notch each, alongside
+ * the `DIFFICULTY_TABLE` rest-interval increase in the same change. Even with longer rest between
+ * sets, a 60-minute medium session was still reaching for 9-10 main exercises (27-30 working
+ * sets) — past the ~15-24 total working sets a single session should carry per standard
+ * resistance-training guidance. Capping supply here, not just relying on the rest bump, keeps
+ * that ceiling from creeping back up as soon as any per-exercise timing changes elsewhere.
+ * >60-minute tiers are untouched: `longSessionSetsMultiplier` already carries a long session's
+ * extra volume through sets, not exercise count, per ADR 0013's own reasoning above.
  */
 export function mainExerciseCountRange(targetMinutes: number): [number, number] {
   if (targetMinutes <= 15) return [3, 4];
   if (targetMinutes <= 20) return [4, 5];
   if (targetMinutes <= 30) return [5, 6];
-  if (targetMinutes <= 45) return [7, 8];
-  if (targetMinutes <= 60) return [8, 10];
+  if (targetMinutes <= 45) return [6, 7];
+  if (targetMinutes <= 60) return [7, 8];
   if (targetMinutes <= 90) return [10, 14];
   return [12, 16];
 }

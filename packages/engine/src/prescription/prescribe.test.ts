@@ -66,13 +66,13 @@ describe('§5.4 prescription', () => {
       requestedDifficulty: 'easy',
       recoveryTreatment: false,
     });
-    expect(easy).toMatchObject({ sets: 3, repTarget: 15, restSec: 60, tempoSec: 3 });
+    expect(easy).toMatchObject({ sets: 3, repTarget: 15, restSec: 45, tempoSec: 3 });
     const hard = prescribeAccessory({
       exercise: bwPush,
       requestedDifficulty: 'hard',
       recoveryTreatment: false,
     });
-    expect(hard).toMatchObject({ sets: 4, repTarget: 12, restSec: 30, tempoSec: 4 });
+    expect(hard).toMatchObject({ sets: 4, repTarget: 12, restSec: 60, tempoSec: 4 });
   });
 
   // Track 14 — CARDIO_INTERVAL_TABLE, not DIFFICULTY_TABLE, prescribes a conditioning exercise.

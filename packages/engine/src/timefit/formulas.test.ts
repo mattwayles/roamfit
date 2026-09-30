@@ -62,7 +62,7 @@ describe('§5.6 time budget formulas', () => {
     expect(mainExerciseCountRange(15)).toEqual([3, 4]);
     expect(mainExerciseCountRange(20)).toEqual([4, 5]);
     expect(mainExerciseCountRange(30)).toEqual([5, 6]);
-    expect(mainExerciseCountRange(45)).toEqual([7, 8]);
-    expect(mainExerciseCountRange(60)).toEqual([8, 10]);
+    expect(mainExerciseCountRange(45)).toEqual([6, 7]);
+    expect(mainExerciseCountRange(60)).toEqual([7, 8]);
   });
 });

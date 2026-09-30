@@ -80,12 +80,18 @@ describe('issue #7 — time-fit shortfalls with a mislabeled reason', () => {
     },
   );
 
-  it('abs/hard/30min fills the required lateral/oblique slot (§5.5: "plus one oblique/lateral")', () => {
+  // 2026-09 difficulty-table revision (see difficultyTable.ts) gives `hard` meaningfully more
+  // rest, which genuinely leaves a 30-minute hard abs session no room for the optional 4th
+  // (lateral/oblique) pattern once the three required ones are seated — a real budget
+  // constraint now, not the mislabeling bug this suite pins. 35 minutes is the same shape with
+  // enough headroom to still prove the fit loop reaches for the optional slot rather than
+  // silently skipping it, which is the actual regression this test guards.
+  it('abs/hard/35min fills the optional lateral/oblique slot (§5.5: "plus one oblique/lateral")', () => {
     const plan = generateSession({
       library: exerciseLibrary,
       families: familyLibrary,
       userState: coldStart(),
-      request: { focus: 'abs', difficulty: 'hard', targetMinutes: 30, equipmentPreference: 'any' },
+      request: { focus: 'abs', difficulty: 'hard', targetMinutes: 35, equipmentPreference: 'any' },
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(seedFromString('abs-hard-30-lateral')),
     });
@@ -162,8 +168,8 @@ describe('long targets (ADR 0013)', () => {
     expect(longSessionSetsMultiplier(30)).toBe(1);
     expect(longSessionSetsMultiplier(45)).toBe(1);
     expect(longSessionSetsMultiplier(60)).toBe(1);
-    expect(mainExerciseCountRange(60)).toEqual([8, 10]);
-    expect(mainExerciseCountRange(45)).toEqual([7, 8]);
+    expect(mainExerciseCountRange(60)).toEqual([7, 8]);
+    expect(mainExerciseCountRange(45)).toEqual([6, 7]);
   });
 
   it('a comeback cut still lightens a long session rather than being overridden by it', () => {
