@@ -16,7 +16,9 @@ import {
   monthLabelForLocalDate,
   nextUnlockHero,
   overWorkedMuscles,
-  weekContaining,
+  weekWindow,
+  monthWindow,
+  addDaysToLocalDate,
 } from './dashboard';
 import type { sessionsRepo } from '@roamfit/store';
 
@@ -376,31 +378,91 @@ describe('§14.1.8 lifetime counters — monotonic, permanent', () => {
   });
 });
 
-describe('weekContaining — the Today tab\'s "This week" strip', () => {
-  const days = (today: string) => buildCalendarDays([], today, new Set());
+describe('the Today tab\'s "This week" strip window', () => {
+  const week = (today: string) =>
+    buildCalendarDays([], today, new Set(), new Map(), weekWindow(today)).map((d) => d.localDate);
 
-  it('returns the Sun–Sat week of the calendar grid that holds today', () => {
-    // 2026-09-29 is a Tuesday: its week is Sun 09-27 .. Sat 10-03, but the grid only holds
-    // September, so the October cells are null placeholders (no new date math, invariant 6).
-    const weeks = buildCalendarWeeks(days('2026-09-29'));
-    const week = weekContaining(weeks, '2026-09-29');
-    expect(week).toHaveLength(7);
-    expect(week.map((d) => d?.localDate ?? null)).toEqual([
+  it('is the 7 real Sun-Sat days around today', () => {
+    // 2026-05-14 is a Thursday.
+    expect(week('2026-05-14')).toEqual([
+      '2026-05-10',
+      '2026-05-11',
+      '2026-05-12',
+      '2026-05-13',
+      '2026-05-14',
+      '2026-05-15',
+      '2026-05-16',
+    ]);
+  });
+
+  it('runs into the next month at the end of a month (no blank cells)', () => {
+    // 2026-09-29 is a Tuesday: Sun 09-27 .. Sat 10-03.
+    expect(week('2026-09-29')).toEqual([
       '2026-09-27',
       '2026-09-28',
       '2026-09-29',
       '2026-09-30',
-      null,
-      null,
-      null,
+      '2026-10-01',
+      '2026-10-02',
+      '2026-10-03',
     ]);
   });
 
-  it('is a full week mid-month, and empty when today is not in the grid', () => {
-    const weeks = buildCalendarDays([], '2026-05-14', new Set());
-    const week = weekContaining(buildCalendarWeeks(weeks), '2026-05-14');
-    expect(week.every((d) => d !== null)).toBe(true);
-    expect(week[4]!.localDate).toBe('2026-05-14');
-    expect(weekContaining(buildCalendarWeeks(weeks), '2026-06-01')).toEqual([]);
+  it('runs back into the previous month at the start of a month', () => {
+    // 2026-05-01 is a Friday: Sun 04-26 .. Sat 05-02.
+    expect(week('2026-05-01')).toEqual([
+      '2026-04-26',
+      '2026-04-27',
+      '2026-04-28',
+      '2026-04-29',
+      '2026-04-30',
+      '2026-05-01',
+      '2026-05-02',
+    ]);
+  });
+
+  it('crosses a year boundary and a leap day', () => {
+    // 2026-12-31 is a Thursday. 2028-03-01 is a Wednesday, 2028 is a leap year.
+    expect(week('2026-12-31')[0]).toBe('2026-12-27');
+    expect(week('2026-12-31')[6]).toBe('2027-01-02');
+    expect(week('2028-03-01')).toEqual([
+      '2028-02-27',
+      '2028-02-28',
+      '2028-02-29',
+      '2028-03-01',
+      '2028-03-02',
+      '2028-03-03',
+      '2028-03-04',
+    ]);
+  });
+
+  it('carries real markers on the days in the neighbouring month', () => {
+    // Today is Tue 09-29; the trained session is Fri 10-02 and the travel day is Sun 09-27.
+    const days = buildCalendarDays(
+      [summary('2026-10-02', { focus: 'legs' })],
+      '2026-09-29',
+      new Set(['2026-09-27']),
+      new Map([['2026-10-03', 'quick']]),
+      weekWindow('2026-09-29'),
+    );
+    expect(days).toHaveLength(7);
+    const marker = (d: string) => days.find((x) => x.localDate === d)!.marker;
+    expect(marker('2026-09-27')).toBe('travel');
+    expect(marker('2026-09-30')).toBe('none');
+    expect(marker('2026-10-02')).toBe('legs');
+    expect(marker('2026-10-03')).toBe('quick');
+  });
+
+  it('leaves the default (Logbook) window as the whole calendar month', () => {
+    const days = buildCalendarDays([], '2026-09-29', new Set());
+    expect(days).toHaveLength(30);
+    expect(days[0].localDate).toBe('2026-09-01');
+    expect(days[29].localDate).toBe('2026-09-30');
+    expect(monthWindow('2028-02-10')).toEqual({ from: '2028-02-01', to: '2028-02-29' });
+  });
+
+  it('addDaysToLocalDate works on local_date strings only', () => {
+    expect(addDaysToLocalDate('2026-03-08', 1)).toBe('2026-03-09'); // a US DST change day
+    expect(addDaysToLocalDate('2026-01-01', -1)).toBe('2025-12-31');
   });
 });

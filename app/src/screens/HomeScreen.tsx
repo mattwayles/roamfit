@@ -33,12 +33,7 @@ import { findCurrentEntry, sessionCompletionFraction } from '../lib/sessionProgr
 import { greetingFor } from '../lib/hypeCopy';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import { DISCLAIMER_TEXT } from './SettingsScreen';
-import {
-  buildCalendarWeeks,
-  nextUnlockHero,
-  weekContaining,
-  WEEKDAY_LABELS,
-} from '../lib/dashboard';
+import { nextUnlockHero, WEEKDAY_LABELS } from '../lib/dashboard';
 import { markerLabel } from '../lib/dayMarkers';
 import { useDashboardData } from '../lib/useDashboardData';
 import {
@@ -197,9 +192,8 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     );
   }
 
-  const { pending, stats, user, board, comebackTier, calendarDays, todayLocalDate } = data;
+  const { pending, stats, user, board, comebackTier, weekDays: week, todayLocalDate } = data;
   const suggestRecoveryWeek = statsRepo.shouldSuggestRecoveryWeek(stats);
-  const week = weekContaining(buildCalendarWeeks(calendarDays), todayLocalDate);
 
   // §13.3 — the medical disclaimer must be shown on first launch, blocking, before any other
   // screen content. `hasAcknowledgedDisclaimer` is a one-way flag (usersRepo.acknowledgeDisclaimer)
@@ -422,8 +416,9 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       </Enter>
 
       {/* The strip is a window onto the Logbook: same markers, same tints (`DayCell`), derived from
-          `buildCalendarWeeks` so all calendar math stays on `local_date` (invariant 6). Markers
-          only — never a count of days without a workout (invariant 4). */}
+          `buildCalendarDays` over `weekWindow` (always the 7 real days, neighbouring month included;
+          all calendar math stays on `local_date`, invariant 6). Markers only — never a count of
+          days without a workout (invariant 4). */}
       {week.length > 0 && (
         <Enter index={next()} style={styles.weekBlock}>
           <SectionHeader
@@ -435,16 +430,16 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           />
           <View testID="week-strip" style={styles.weekRow}>
             {week.map((day, i) => (
-              <View key={day?.localDate ?? `blank-${i}`} style={styles.weekDay}>
+              <View key={day.localDate} style={styles.weekDay}>
                 <Txt variant="caption" color="text3">
                   {WEEKDAY_LABELS[i]}
                 </Txt>
                 <DayCell
                   day={day}
                   size={40}
-                  isToday={day?.localDate === todayLocalDate}
-                  testID={day ? `week-day-${day.localDate}` : undefined}
-                  accessibilityLabel={day ? `${markerLabel(day.marker)} — open Journey` : undefined}
+                  isToday={day.localDate === todayLocalDate}
+                  testID={`week-day-${day.localDate}`}
+                  accessibilityLabel={`${markerLabel(day.marker)} — open Journey`}
                   onPress={() => navigation.navigate('Journey')}
                 />
               </View>

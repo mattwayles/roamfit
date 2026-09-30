@@ -50,11 +50,13 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
 - [x] F3 Settings (`SettingsScreen.tsx`, §5.10) + `SettingsScreen.test.tsx`; `legacyLightScene` / `legacyLightContent` /
   `LEGACY_SCENE` deleted from `navigation/screenOptions.ts` (nothing used them) — 08c9174
 
+- [x] G1 sweep: Workout loading spinners ember, intentional literals commented — bc25bbe
+- [x] G2 week strip always the 7 real days: `addDaysToLocalDate` / `monthWindow` / `weekWindow` + a `window` param on
+  `buildCalendarDays`, `DashboardData.weekDays`, `weekContaining` deleted, month-boundary tests, BACKLOG item removed
+
 ### In progress
-- Phase G, increment G1 (sweep): grep baseline saved (see "Phase G reference"), fixing Workout's un-tinted loading
-  spinners, commenting the intentional literals (Spotify dot, Menlo, emoji markers). Then, in order: G2 week strip
-  (`lib/dashboard.ts` + `HomeScreen.tsx`), G3 `HypeHeadline` stamped shadow, G4 `KeyboardDoneBar` fold-in, G5
-  consistency pass, G6 docs (BACKLOG + this file).
+- Phase G, increment G3: `HypeHeadline` stamped shadow (`app/src/components/HypeHeadline.tsx`, keep slam/timeline untouched, keep
+  SummaryScreen tests green). Then G4 `KeyboardDoneBar` fold-in, G5 consistency pass, G6 docs (BACKLOG + this file).
 
 ### Next (sequential — each phase is one agent run, several small commits)
 - **G. Sweep** (§5.11, §7 "zero off-system surfaces") — grep for raw hex/fontSize/fontWeight/

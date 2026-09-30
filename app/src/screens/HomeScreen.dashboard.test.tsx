@@ -8,7 +8,7 @@
  */
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider } from '../state/StoreContext';
 import { greetingFor } from '../lib/hypeCopy';
@@ -56,7 +56,8 @@ describe('§14.2 cold start — Today is never empty', () => {
     expect(screen.getByTestId('next-unlock-ring')).toBeTruthy();
 
     // The week strip shows neutral cells, never a tally.
-    expect(screen.getByTestId('week-strip')).toBeTruthy();
+    // Always seven real days, even at a month edge (the neighbouring month's days are real cells).
+    expect(within(screen.getByTestId('week-strip')).getAllByTestId(/^week-day-/)).toHaveLength(7);
     expect(screen.queryByText(/this week/i, { exact: false })).not.toBeNull(); // the section label
     expect(screen.queryByText(/^0\b/)).toBeNull();
   });

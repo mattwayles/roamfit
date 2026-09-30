@@ -36,6 +36,7 @@ import {
   buildPassportSummary,
   buildProgressionBoard,
   monthLabelForLocalDate,
+  weekWindow,
   type CalendarDay,
   type FamilyBoardEntry,
   type LifetimeCounters,
@@ -54,6 +55,8 @@ export interface DashboardData {
   isTravelDayToday: boolean;
   passport: PassportSummary;
   calendarDays: CalendarDay[];
+  /** The seven real days (Sun-Sat) of today's week, month boundaries included. */
+  weekDays: CalendarDay[];
   calendarMonthLabel: string;
   todayLocalDate: string;
   muscleBalance: MuscleBalanceRow[];
@@ -102,6 +105,15 @@ export function loadDashboardData(
     travelLocalDates,
     manualDayMarkers,
   );
+  // Same builder, wider window: the strip is the 7 real days of this week, so at a month edge it
+  // reaches into the neighbouring month instead of borrowing the Logbook's month-only grid.
+  const weekDays = buildCalendarDays(
+    completedSessions,
+    clock.today,
+    travelLocalDates,
+    manualDayMarkers,
+    weekWindow(clock.today),
+  );
   const muscleBalance = buildMuscleBalanceRows(statsRepo.hardSetsByMuscle14d(db, clock.today));
   const milestones = milestonesRepo.getAllMilestones(db);
   const lifetimeCounters = buildLifetimeCounters(
@@ -122,6 +134,7 @@ export function loadDashboardData(
     isTravelDayToday: travelLocalDates.has(clock.today),
     passport,
     calendarDays,
+    weekDays,
     calendarMonthLabel: monthLabelForLocalDate(clock.today),
     todayLocalDate: clock.today,
     muscleBalance,

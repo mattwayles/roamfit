@@ -224,31 +224,53 @@ export function buildCalendarWeeks(days: CalendarDay[]): (CalendarDay | null)[][
   return weeks;
 }
 
-/** The Sun–Sat week of `buildCalendarWeeks` output that holds `todayLocalDate` — the Today tab's
- *  "This week" strip. Derived from the calendar's own layout (invariant 6: no new date math), so
- *  at a month edge the days that fall in the neighbouring month are `null` placeholders, exactly
- *  like the partial weeks of the Logbook grid. Empty when today isn't in the window. */
-export function weekContaining(
-  weeks: (CalendarDay | null)[][],
-  todayLocalDate: string,
-): (CalendarDay | null)[] {
-  return weeks.find((w) => w.some((d) => d?.localDate === todayLocalDate)) ?? [];
+/** `localDate` shifted by `days` (negative = earlier), as another `local_date`. Pure calendar
+ *  arithmetic on the date's own year/month/day components (`Date.UTC` is only a proleptic-Gregorian
+ *  calculator here — no instant, no timezone, no DST is ever involved), so it is invariant-6 safe. */
+export function addDaysToLocalDate(localDate: string, days: number): string {
+  const [y, m, d] = localDate.split('-').map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d + days));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
 
-/** §14.1.6 calendar heatmap — every day of `today`'s calendar month (1st through the month's last
- *  day), one entry per calendar day (including untrained ones, so the caller can render them
- *  neutrally rather than simply omitting them, which would look like a gap — this applies to
- *  days later in the month than today too, so the grid always shows the whole month rather than
- *  growing day by day). `travelLocalDates` are the dates §9.3's "I'm in Transit" was tapped for
- *  (`signalsRepo.getSignalEventsByType(db, 'travel_day')`, mapped to `localDate`), so an untrained
- *  travel day can be marked as one rather than looking like any other empty day. `manualMarkers`
- *  are the hand-set overrides from `manualDayMarkersRepo`, keyed by `localDate` — they take
- *  precedence over every derived signal, since re-tagging a day is a deliberate correction. */
+/** An inclusive run of `local_date`s that `buildCalendarDays` should produce entries for. */
+export interface CalendarWindow {
+  from: string;
+  to: string;
+}
+
+/** The whole calendar month `localDate` falls in — the Journey Logbook's window. */
+export function monthWindow(localDate: string): CalendarWindow {
+  const [y, m] = localDate.split('-').map(Number);
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const prefix = `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}`;
+  return { from: `${prefix}-01`, to: `${prefix}-${String(daysInMonth).padStart(2, '0')}` };
+}
+
+/** The Sun–Sat week `localDate` falls in — the Today tab's "This week" strip window. It ignores
+ *  month edges on purpose: the week is seven real days, whichever months they belong to. */
+export function weekWindow(localDate: string): CalendarWindow {
+  const from = addDaysToLocalDate(localDate, -localDateDayOfWeek(localDate));
+  return { from, to: addDaysToLocalDate(from, 6) };
+}
+
+/** §14.1.6 calendar heatmap — every day of `window` (default: `today`'s calendar month, 1st
+ *  through the month's last day), one entry per calendar day (including untrained ones, so the
+ *  caller can render them neutrally rather than simply omitting them, which would look like a
+ *  gap — this applies to days later in the month than today too, so the grid always shows the
+ *  whole month rather than growing day by day). The Today tab passes `weekWindow(today)` to get
+ *  its seven real days, neighbouring month included. `travelLocalDates` are the dates §9.3's
+ *  "I'm in Transit" was tapped for (`signalsRepo.getSignalEventsByType(db, 'travel_day')`, mapped
+ *  to `localDate`), so an untrained travel day can be marked as one rather than looking like any
+ *  other empty day. `manualMarkers` are the hand-set overrides from `manualDayMarkersRepo`, keyed
+ *  by `localDate` — they take precedence over every derived signal, since re-tagging a day is a
+ *  deliberate correction. */
 export function buildCalendarDays(
   sessions: DashboardSessionSummary[],
   today: string,
   travelLocalDates: ReadonlySet<string>,
   manualMarkers: ReadonlyMap<string, DayMarker> = new Map(),
+  window: CalendarWindow = monthWindow(today),
 ): CalendarDay[] {
   const byDate = new Map<
     string,
@@ -275,12 +297,13 @@ export function buildCalendarDays(
       }
     }
   }
-  const [y, m] = today.split('-').map(Number);
-  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
   const out: CalendarDay[] = [];
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const date = new Date(Date.UTC(y, m - 1, day));
-    const localDate = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+  // `from`/`to` are inclusive `local_date` strings; ISO dates compare correctly as strings.
+  for (
+    let localDate = window.from;
+    localDate <= window.to;
+    localDate = addDaysToLocalDate(localDate, 1)
+  ) {
     const trained = byDate.get(localDate);
     const inTransit = travelLocalDates.has(localDate);
     const manualMarker = manualMarkers.get(localDate) ?? null;
