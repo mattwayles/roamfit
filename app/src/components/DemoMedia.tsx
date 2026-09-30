@@ -106,11 +106,9 @@ export interface DemoMediaProps {
    *  focus and scrolls the block clear — "components render, screens decide", as above. */
   onInputFocus?: () => void;
   /**
-   * Silence the video's own audio. The active workout screen sets this whenever Spotify is
-   * connected — the video and Spotify fight for the same iOS audio session (see
-   * `spotifyRemote.ts`'s header), so playing music and hearing the demo are mutually exclusive by
-   * construction. Defaults to false for call sites with no workout around them (the exercise
-   * detail screen), where a demo video is simply the thing the user came to watch.
+   * Silence the video's own audio. On by default everywhere: the demo is a silent movement
+   * reference, and an unmuted watch page takes over the shared iOS audio session and interrupts the
+   * user's music (Spotify or otherwise). Pass false only where the sound is the point.
    */
   muted?: boolean;
 }
@@ -127,7 +125,7 @@ export default function DemoMedia({
   onPlayerError,
   defaultOpen,
   onInputFocus,
-  muted = false,
+  muted = true,
 }: DemoMediaProps): React.JSX.Element | null {
   const webviewRef = useRef<WebView>(null);
   const [open, setOpen] = useState(defaultOpen);

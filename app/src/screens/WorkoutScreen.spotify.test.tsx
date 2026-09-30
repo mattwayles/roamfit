@@ -223,7 +223,7 @@ describe('Spotify controls on the active workout screen', () => {
   }, 20000);
 });
 
-describe('demo video muting follows the Spotify connection, not a manual button', () => {
+describe('demo video is always muted, whatever the Spotify connection', () => {
   async function withCuratedVideo(seed: string) {
     const { db, sessionId, exerciseId } = await sessionOnRepsEntry(seed);
     remoteConfigRepo.applyRemoteVideoConfig(db, {
@@ -236,21 +236,16 @@ describe('demo video muting follows the Spotify connection, not a manual button'
     return { sessionId };
   }
 
-  it('mutes the demo video while Spotify is connected, so the two never fight for the audio session', async () => {
-    mockedHook.mockReturnValue(player({ connectionState: 'connected' }));
-    const { sessionId } = await withCuratedVideo('spotify-mutes-demo-seed');
-    await renderWorkout(sessionId);
+  it.each(['connected', 'disconnected'] as const)(
+    'mutes the demo video while Spotify is %s',
+    async (connectionState) => {
+      mockedHook.mockReturnValue(player({ connectionState }));
+      const { sessionId } = await withCuratedVideo(`demo-muted-${connectionState}-seed`);
+      await renderWorkout(sessionId);
 
-    const webview = await waitFor(() => screen.getByTestId('demo-media-webview'), WAIT_OPTS);
-    expect(webview.props.injectedJavaScript).toContain('__roamfitMuted = true');
-  }, 20000);
-
-  it('leaves the demo video audible when Spotify is not connected', async () => {
-    mockedHook.mockReturnValue(player({ connectionState: 'disconnected' }));
-    const { sessionId } = await withCuratedVideo('spotify-disconnected-demo-seed');
-    await renderWorkout(sessionId);
-
-    const webview = await waitFor(() => screen.getByTestId('demo-media-webview'), WAIT_OPTS);
-    expect(webview.props.injectedJavaScript).toContain('__roamfitMuted = false');
-  }, 20000);
+      const webview = await waitFor(() => screen.getByTestId('demo-media-webview'), WAIT_OPTS);
+      expect(webview.props.injectedJavaScript).toContain('__roamfitMuted = true');
+    },
+    20000,
+  );
 });

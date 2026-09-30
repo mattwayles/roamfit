@@ -119,9 +119,9 @@ describe('DemoMedia', () => {
   describe('muting the demo video with the workout', () => {
     const online = () => mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
 
-    it('injects a mute of the page’s own media when the workout is muted', async () => {
+    it('injects a mute of the page’s own media', async () => {
       online();
-      const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9', muted: true });
+      const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
       const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
 
       // A watch page takes no player parameters (see the component header), so the only lever is
@@ -136,11 +136,11 @@ describe('DemoMedia', () => {
       }
     });
 
-    it('leaves the video audible by default — a demo the user tapped play on is not a cue tone', async () => {
+    it('mutes the video by default, so it never interrupts the user’s music', async () => {
       online();
       const { renderer } = await renderOpen({ curatedVideoId: 'abc123XYZ_9' });
       const webview = renderer.root.findByProps({ testID: 'demo-media-webview' });
-      expect(webview.props.injectedJavaScript).toContain('__roamfitMuted = false');
+      expect(webview.props.injectedJavaScript).toContain('__roamfitMuted = true');
     });
 
     it('re-asserts the mixing audio session once the page has loaded', async () => {
