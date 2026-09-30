@@ -1,202 +1,82 @@
 /**
- * §10.1 Home / §14.1 Dashboard — one screen: resumable session or Today card, Quick Session,
- * Last 30 days (with the "I'm in transit" button), Next Unlock, then (scrolling) progression
- * board, passport, calendar, muscle balance, lifetime counters, estimate accuracy. §10.1 and
- * §14.1 originally gave an identical ordering, so this stayed one screen rather than splitting
- * into a separate "Dashboard" screen — see STATUS-5-motivation.md's "Key findings."
+ * §10.1 Home, now the **Today** tab (DESIGN.md §5.1): wordmark + greeting + Settings, banners,
+ * the sunrise hero card (resumable session or "ready to move?"), Quick Session and In transit
+ * tiles, a "This week" strip and the Next Unlock card. The long-term half of the old Home
+ * (lifetime totals, progression board, calendar, passport, muscle balance) lives on the Journey
+ * tab (`JourneyScreen`); both read through `useDashboardData`.
  *
- * §14.2 zero-session requirement: the progression board and Next Unlock must both render before
- * the user has ever generated a session. `ensureProgressionStatesInitialized`
- * is called here (idempotent store call, not new persistence logic) so a fresh install has
- * starting-level progression rows to show without waiting for a first generation.
+ * §14.2 zero-session requirement: the Next Unlock card must render before the user has ever
+ * generated a session — `useDashboardData` runs `ensureProgressionStatesInitialized` (idempotent
+ * store call, not new persistence logic) so a fresh install has starting-level progression rows
+ * to show without waiting for a first generation.
  *
  * Governing rule (§14, §1.1): every element accumulates monotonically or points at a concrete
- * next action. No daily streaks, no red/empty styling on untrained days, no guilt copy anywhere
- * on this screen — see the wave brief's "grep for shame" done-criterion.
+ * next action. No daily streaks, no red/empty styling on untrained days, no guilt copy and no
+ * "0 this week" style counts anywhere on this screen — see the wave brief's "grep for shame"
+ * done-criterion. The week strip shows markers only, never a tally of what didn't happen.
  *
  * All state comes from `@roamfit/store` repositories and `@roamfit/engine` pure functions; the
  * only "decision" made in this file is which screen to route to and how to lay data out, never
  * what to generate, prescribe, or flag as over-worked (that's `dashboard.ts` calling straight
  * into the engine).
  */
-import React, { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import {
-  generate,
-  levelUpFamily,
-  levelDownFamily,
-  manualDayMarkersRepo,
-  milestonesRepo,
-  progressionStateRepo,
-  sessionsRepo,
-  signalsRepo,
-  statsRepo,
-  usersRepo,
-} from '@roamfit/store';
-import type { Focus, ProgressionFamilyId } from '@roamfit/data';
-import { assessComeback, createRng, seedFromString } from '@roamfit/engine';
+import { generate, sessionsRepo, statsRepo, usersRepo } from '@roamfit/store';
+import { createRng, seedFromString } from '@roamfit/engine';
 import { pickQuickSessionDifficulty, pickQuickSessionFocus } from '../lib/quickSession';
-import type { ProgressionState } from '@roamfit/engine';
 import type { TabScreenProps } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
-import { findCurrentEntry } from '../lib/sessionProgress';
+import { findCurrentEntry, sessionCompletionFraction } from '../lib/sessionProgress';
+import { greetingFor } from '../lib/hypeCopy';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import { DISCLAIMER_TEXT } from './SettingsScreen';
 import {
-  buildCalendarDays,
   buildCalendarWeeks,
-  buildLifetimeCounters,
-  buildMuscleBalanceRows,
-  buildPassportSummary,
-  buildProgressionBoard,
-  monthLabelForLocalDate,
   nextUnlockHero,
+  weekContaining,
   WEEKDAY_LABELS,
-  type CalendarDay,
-  type DayMarker,
-  type FamilyBoardEntry,
-  type LifetimeCounters,
-  type MuscleBalanceRow,
-  type PassportSummary,
 } from '../lib/dashboard';
+import { markerLabel } from '../lib/dayMarkers';
+import { useDashboardData } from '../lib/useDashboardData';
 import {
   ensureNotificationPermission,
   scheduleMotivationNotifications,
 } from '../lib/motivationNotifications';
 import { runOpportunisticSync } from '../lib/opportunisticSync';
-import { requestLocationPermission } from '../lib/geocode';
+import { colors, radius, space, withAlpha, type AccentName } from '../theme';
+import {
+  Button,
+  Card,
+  Chip,
+  Enter,
+  Icon,
+  IconButton,
+  PressableScale,
+  ProgressRing,
+  Screen,
+  SectionHeader,
+  TopoPattern,
+  Txt,
+  type IconName,
+} from '../ui';
+import { DayCell } from '../components/DayCell';
+import { IconBadge } from '../components/IconBadge';
 
 type Props = TabScreenProps<'Home'>;
 
-/** §14.1.6 — the emoji marker shown on a trained calendar day: one per focus, or a stopwatch for a
- *  Quick Session (§9.5), which is otherwise indistinguishable from a regular full-body session
- *  since it always requests 'full'. */
-const FOCUS_EMOJI: Record<Focus, string> = {
-  full: '🏋️',
-  upper: '💪',
-  abs: '🔥',
-  legs: '🦵',
-  cardio: '🏃',
-};
-const QUICK_EMOJI = '⏱️';
-const TRAVEL_EMOJI = '✈️';
-
-/** Options offered by the calendar day-marker edit popup, in the order they're listed. `emoji` is
- *  '' for 'none', which the popup renders as a blank untrained square rather than a symbol. */
-const DAY_MARKER_OPTIONS: { marker: DayMarker; label: string; emoji: string }[] = [
-  { marker: 'none', label: 'No workout', emoji: '' },
-  { marker: 'travel', label: 'Travel day', emoji: TRAVEL_EMOJI },
-  { marker: 'quick', label: 'Quick workout', emoji: QUICK_EMOJI },
-  { marker: 'full', label: 'Full-body workout', emoji: FOCUS_EMOJI.full },
-  { marker: 'upper', label: 'Upper-body workout', emoji: FOCUS_EMOJI.upper },
-  { marker: 'abs', label: 'Abs workout', emoji: FOCUS_EMOJI.abs },
-  { marker: 'legs', label: 'Legs workout', emoji: FOCUS_EMOJI.legs },
-  { marker: 'cardio', label: 'Cardio workout', emoji: FOCUS_EMOJI.cardio },
-];
-
-interface HomeData {
-  pending: sessionsRepo.SessionRecord | null;
-  stats: statsRepo.RolledUpStatsRecord;
-  user: usersRepo.UserRecord;
-  board: FamilyBoardEntry[];
-  comebackTier: 'none' | 'week' | 'reset';
-  recentTzChangeToday: boolean;
-  passport: PassportSummary;
-  calendarDays: CalendarDay[];
-  calendarMonthLabel: string;
-  todayLocalDate: string;
-  muscleBalance: MuscleBalanceRow[];
-  lifetimeCounters: LifetimeCounters;
-}
-
 export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   const { db, library, families } = useStore();
-  const [data, setData] = useState<HomeData | undefined>(undefined);
+  const { data, reload } = useDashboardData();
   const [startingQuick, setStartingQuick] = useState(false);
   const [travelDismissed, setTravelDismissed] = useState(false);
-  /** ADR 0012 — one-line result of the last board level-up or level-down. Informational only:
-   *  never blocks, never nags, replaced rather than stacked (invariant 4). */
-  const [levelUpNotice, setLevelUpNotice] = useState<string | null>(null);
-  /** Which family row is showing its "are you sure" step, if any. One at a time. */
-  const [confirmingLevelUp, setConfirmingLevelUp] = useState<ProgressionFamilyId | null>(null);
-  /** Same shape as `confirmingLevelUp`, for the symmetric "too hard — level down" button. */
-  const [confirmingLevelDown, setConfirmingLevelDown] = useState<ProgressionFamilyId | null>(null);
-  /** §14.1.6 — the calendar day currently showing its marker-edit popup, if any (localDate). */
-  const [editingDay, setEditingDay] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    const clock = nowEngineClock();
-    progressionStateRepo.ensureProgressionStatesInitialized(
-      db,
-      families,
-      library.exercises,
-      clock.today,
-    );
-    const user = usersRepo.ensureUser(db, nowUtcInstant());
-    const stats = statsRepo.ensureStats(db, nowUtcInstant());
-    const states: Record<ProgressionFamilyId, ProgressionState> =
-      progressionStateRepo.getAllProgressionStates(db);
-    const board = buildProgressionBoard(library, families, states);
-    const history = sessionsRepo.getHistoryForGeneration(db);
-    const comebackTier = assessComeback(history, clock.today).tier;
-    // §9.3 auto-suggest — consumes the tz_change signal Wave 3 already records (§8.3/users.ts's
-    // `observeTzId`, called every generation). "Today" is a same-session heuristic: the most
-    // recent tz_change event's local_date is today's. There's no persisted per-day dismissal
-    // state (no schema for it), so a dismissal only lasts this screen visit — noted as a scope
-    // simplification in STATUS-5-motivation.md rather than built out with new schema this wave.
-    const tzChangeEvents = signalsRepo.getSignalEventsByType(db, 'tz_change');
-    const latestTzChange = tzChangeEvents[tzChangeEvents.length - 1];
-    const recentTzChangeToday = latestTzChange?.localDate === clock.today;
-
-    const completedSessions = sessionsRepo.getCompletedSessionsForDashboard(db);
-    const passport = buildPassportSummary(completedSessions);
-    // §9.3 — every date "I'm in Transit" was tapped for, so the heatmap below can mark an
-    // untrained travel day rather than show it as a plain empty square.
-    const travelLocalDates = new Set(
-      signalsRepo.getSignalEventsByType(db, 'travel_day').map((e) => e.localDate),
-    );
-    const manualDayMarkers = manualDayMarkersRepo.getManualDayMarkers(db);
-    const calendarDays = buildCalendarDays(
-      completedSessions,
-      clock.today,
-      travelLocalDates,
-      manualDayMarkers,
-    );
-    const muscleBalance = buildMuscleBalanceRows(statsRepo.hardSetsByMuscle14d(db, clock.today));
-    const milestones = milestonesRepo.getAllMilestones(db);
-    const lifetimeCounters = buildLifetimeCounters(
-      stats.lifetimeSessionCount,
-      stats.lifetimeTotalMinutes,
-      passport,
-      milestones.filter((m) => m.type === 'level_up').length,
-      milestones.filter((m) => m.type === 'best_set_pr').length,
-    );
-
-    setData({
-      pending: sessionsRepo.getPendingSession(db),
-      stats,
-      user,
-      board,
-      comebackTier,
-      recentTzChangeToday,
-      passport,
-      calendarDays,
-      calendarMonthLabel: monthLabelForLocalDate(clock.today),
-      todayLocalDate: clock.today,
-      muscleBalance,
-      lifetimeCounters,
-    });
+    const fresh = reload();
+    const { user, stats, board } = fresh;
+    const todayLocalDate = fresh.todayLocalDate;
 
     // Daily motivation pool — re-derive the rolling schedule on every Home open (cheap,
     // idempotent by fixed identifier; same opportunistic-refresh pattern as `runOpportunisticSync`
@@ -206,88 +86,25 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     // be adaptive about yet shouldn't be prompted for notification permission or nagged at all,
     // consistent with §1.1's "never punish/never pressure" register extended to onboarding.
     if (user.hasEverCompletedSession) {
-      const alreadyCompletedToday = stats.lastSessionLocalDate === clock.today;
-      const isTravelDayToday = travelLocalDates.has(clock.today);
+      const alreadyCompletedToday = stats.lastSessionLocalDate === todayLocalDate;
+      const isTravelDayToday = fresh.isTravelDayToday;
       void ensureNotificationPermission().then(() =>
         scheduleMotivationNotifications({
           motivationEnabled: user.notificationPrefs.motivationEnabled ?? true,
           motivationTimes: user.notificationPrefs.motivationTimes ?? ['18:00'],
           quietHoursEnabled: user.notificationPrefs.quietHoursEnabled ?? true,
           motivationContext: { hero: nextUnlockHero(board), weekStreak: stats.weekStreak },
-          todayLocalDate: clock.today,
+          todayLocalDate,
           skipToday: alreadyCompletedToday || isTravelDayToday,
         }),
       );
     }
-  }, [db, library, families]);
-
-  /**
-   * ADR 0012 — the user says a rung is below them, so raise it. One rung per tap and repeatable,
-   * because the cold start is level 1 and someone already training taps until the exercise on the
-   * board looks like something they would actually do.
-   *
-   * Everything real happens in `levelUpFamily` (which is the engine's work, via the store); this
-   * only decides what to say about the outcome and reloads the board.
-   */
-  const handleLevelUp = (entry: FamilyBoardEntry) => {
-    setConfirmingLevelUp(null);
-    const result = levelUpFamily(
-      db,
-      {
-        familyId: entry.familyId,
-        library,
-        families,
-        clock: nowEngineClock(),
-        rng: createRng(seedFromString(nowUtcInstant())),
-      },
-      nowUtcInstant(),
-    );
-    if (result.status === 'levelled_up') {
-      setLevelUpNotice(`${entry.familyName}: now at ${result.exerciseName}.`);
-    } else if (result.status === 'at_max') {
-      setLevelUpNotice(`${entry.familyName} is already at the top of its ladder — nice.`);
-    } else if (result.status === 'no_eligible_exercise') {
-      setLevelUpNotice(`The next ${entry.familyName} level needs an anchor you don't have set up.`);
-    }
-    load();
-  };
-
-  /**
-   * The symmetric counterpart to `handleLevelUp` — the user says a rung is above them, so drop
-   * it. Same shape, same reasoning, opposite direction: `levelDownFamily` is the engine's work
-   * via the store, and this only decides what to say about the outcome and reloads the board.
-   */
-  const handleLevelDown = (entry: FamilyBoardEntry) => {
-    setConfirmingLevelDown(null);
-    const result = levelDownFamily(
-      db,
-      {
-        familyId: entry.familyId,
-        library,
-        families,
-        clock: nowEngineClock(),
-        rng: createRng(seedFromString(nowUtcInstant())),
-      },
-      nowUtcInstant(),
-    );
-    if (result.status === 'levelled_down') {
-      setLevelUpNotice(`${entry.familyName}: now at ${result.exerciseName}.`);
-    } else if (result.status === 'at_min') {
-      setLevelUpNotice(`${entry.familyName} is already at the bottom of its ladder.`);
-    } else if (result.status === 'no_eligible_exercise') {
-      setLevelUpNotice(
-        `The prior ${entry.familyName} level needs an anchor you don't have set up.`,
-      );
-    }
-    load();
-  };
+  }, [reload]);
 
   useFocusEffect(
     useCallback(() => {
       load();
       setTravelDismissed(false);
-      setConfirmingLevelUp(null);
-      setConfirmingLevelDown(null);
       // §11.3 — fire-and-forget. Never awaited by render, never blocks Home from showing local
       // data first (invariant 1); reloads afterward only so an applied change (a resolved
       // geocode, a curated video id) shows up without the user having to background/foreground
@@ -305,6 +122,14 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   );
 
   const hero = useMemo(() => (data ? nextUnlockHero(data.board) : null), [data]);
+  const greeting = useMemo(() => greetingFor(new Date()), [data]);
+
+  // §13.3 — the first-launch disclaimer is blocking. While it is up, take the tab bar away too so
+  // nothing else in the app is reachable behind it (`TabBar` honors `tabBarStyle.display`).
+  const gateUp = data !== undefined && !data.user.hasAcknowledgedDisclaimer;
+  useLayoutEffect(() => {
+    navigation.setOptions({ tabBarStyle: gateUp ? { display: 'none' } : undefined });
+  }, [navigation, gateUp]);
 
   const handleQuickSession = useCallback(() => {
     setStartingQuick(true);
@@ -360,54 +185,21 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     load();
   }, [db, load]);
 
-  /** §14.1.6 — a hand-set correction to one calendar day's marker: a workout that happened
-   *  outside RoamFit, or a travel day that went unlogged at the time. Purely a display override —
-   *  it never creates or edits a `sessions` row or a `travel_day` signal, so it can't be confused
-   *  with a real logged workout anywhere else in the app. */
-  const handleSetDayMarker = useCallback(
-    (localDate: string, marker: DayMarker) => {
-      manualDayMarkersRepo.setManualDayMarker(db, localDate, marker, nowUtcInstant());
-      setEditingDay(null);
-      load();
-    },
-    [db, load],
-  );
-
   const handleRecoveryWeekAccept = useCallback(() => {
     navigation.navigate('Generate', { recoveryWeek: true });
   }, [navigation]);
 
-  const handleSharePassport = useCallback(() => {
-    if (!data) return;
-    const { cities, countries, sessionsAbroad } = data.passport;
-    void Share.share({
-      message: `RoamFit — trained in ${cities.length} ${cities.length === 1 ? 'city' : 'cities'} and ${countries.length} ${countries.length === 1 ? 'country' : 'countries'} (${sessionsAbroad} ${sessionsAbroad === 1 ? 'session' : 'sessions'} abroad).`,
-    });
-  }, [data]);
-
   if (data === undefined) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator />
+      <View style={styles.loading}>
+        <ActivityIndicator color={colors.ember} />
       </View>
     );
   }
 
-  const {
-    pending,
-    stats,
-    user,
-    board,
-    comebackTier,
-    passport,
-    calendarDays,
-    calendarMonthLabel,
-    muscleBalance,
-    lifetimeCounters,
-  } = data;
+  const { pending, stats, user, board, comebackTier, calendarDays, todayLocalDate } = data;
   const suggestRecoveryWeek = statsRepo.shouldSuggestRecoveryWeek(stats);
-  const isZeroSession = stats.lifetimeSessionCount === 0;
-  const calendarWeeks = buildCalendarWeeks(calendarDays);
+  const week = weekContaining(buildCalendarWeeks(calendarDays), todayLocalDate);
 
   // §13.3 — the medical disclaimer must be shown on first launch, blocking, before any other
   // screen content. `hasAcknowledgedDisclaimer` is a one-way flag (usersRepo.acknowledgeDisclaimer)
@@ -415,815 +207,469 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   // sibling gap — there was no settings screen at all before this wave).
   if (!user.hasAcknowledgedDisclaimer) {
     return (
-      <View style={styles.centered} testID="disclaimer-gate">
-        <ScrollView contentContainerStyle={styles.disclaimerGateContent}>
-          <Text style={styles.appName}>RoamFit</Text>
-          <Text style={styles.body} testID="disclaimer-gate-text">
-            {DISCLAIMER_TEXT}
-          </Text>
-          <Pressable
-            testID="disclaimer-acknowledge"
-            style={styles.primaryButton}
-            onPress={() => {
-              usersRepo.acknowledgeDisclaimer(db, nowUtcInstant());
-              load();
-            }}
-          >
-            <Text style={styles.primaryButtonText}>I understand</Text>
-          </Pressable>
-        </ScrollView>
+      <View style={styles.gate} testID="disclaimer-gate">
+        <TopoPattern seed="roamfit-gate" strength={0.6} />
+        <Screen
+          scroll
+          edges={['top', 'left', 'right', 'bottom']}
+          contentStyle={styles.gateContent}
+          style={styles.gateScreen}
+        >
+          <Enter index={0}>
+            <Txt variant="hero" color="ember" style={styles.wordmark}>
+              ROAMFIT
+            </Txt>
+            <Txt variant="eyebrow" color="gold">
+              Train anywhere.
+            </Txt>
+          </Enter>
+          <Enter index={1}>
+            <Card>
+              <Txt variant="body" color="text2" testID="disclaimer-gate-text">
+                {DISCLAIMER_TEXT}
+              </Txt>
+            </Card>
+          </Enter>
+          <Enter index={2}>
+            <Button
+              testID="disclaimer-acknowledge"
+              label="I understand"
+              size="lg"
+              haptic="medium"
+              onPress={() => {
+                usersRepo.acknowledgeDisclaimer(db, nowUtcInstant());
+                load();
+              }}
+            />
+          </Enter>
+        </Screen>
       </View>
     );
   }
 
+  let stagger = 0;
+  const next = () => stagger++;
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.headerRow}>
-        <Text style={styles.appName}>RoamFit</Text>
-        <View style={styles.headerLinks}>
-          <Pressable testID="open-exercises" onPress={() => navigation.navigate('Exercises')}>
-            <Text style={styles.settingsLink}>Exercises</Text>
-          </Pressable>
-          <Pressable testID="open-settings" onPress={() => navigation.navigate('Settings')}>
-            <Text style={styles.settingsLink}>Settings</Text>
-          </Pressable>
+    <Screen
+      scroll
+      edges={['top', 'left', 'right']}
+      safeBottom={false}
+      testID="today-screen"
+      contentStyle={styles.content}
+    >
+      <Enter index={next()} style={styles.header}>
+        <View style={styles.headerText}>
+          <Txt variant="h1" color="ember">
+            RoamFit
+          </Txt>
+          <Txt variant="small" color="text2" testID="today-greeting">
+            {greeting}
+          </Txt>
         </View>
-      </View>
+        <IconButton
+          testID="open-settings"
+          icon="settings"
+          accessibilityLabel="Settings"
+          onPress={() => navigation.navigate('Settings')}
+        />
+      </Enter>
 
       {comebackTier !== 'none' && (
-        <View testID="comeback-banner" style={styles.infoBanner}>
-          <Text style={styles.infoBannerText}>Welcome back — let&apos;s ease in.</Text>
-        </View>
+        <Enter index={next()}>
+          <BannerCard
+            testID="comeback-banner"
+            icon="sparkles"
+            tone="lagoon"
+            title="Welcome back — let's ease in."
+          />
+        </Enter>
       )}
 
       {data.recentTzChangeToday && !travelDismissed && (
-        <View testID="travel-suggest-banner" style={styles.infoBanner}>
-          <Text style={styles.infoBannerText}>Looks like you traveled.</Text>
-          <View style={styles.travelSuggestRow}>
-            <Pressable
-              testID="travel-suggest-accept"
-              onPress={() => {
-                handleTravelDay();
-                setTravelDismissed(true);
-              }}
-            >
-              <Text style={styles.infoBannerAction}>Mark today as a travel day</Text>
-            </Pressable>
-            <Pressable testID="travel-suggest-dismiss" onPress={() => setTravelDismissed(true)}>
-              <Text style={styles.infoBannerDismiss}>Not this time</Text>
-            </Pressable>
-          </View>
-        </View>
+        <Enter index={next()}>
+          <BannerCard
+            testID="travel-suggest-banner"
+            icon="airplane"
+            tone="sky"
+            title="Looks like you traveled."
+          >
+            <View style={styles.bannerActions}>
+              <Button
+                testID="travel-suggest-accept"
+                label="Mark today as a travel day"
+                size="sm"
+                variant="secondary"
+                onPress={() => {
+                  handleTravelDay();
+                  setTravelDismissed(true);
+                }}
+              />
+              <Button
+                testID="travel-suggest-dismiss"
+                label="Not this time"
+                size="sm"
+                variant="quiet"
+                onPress={() => setTravelDismissed(true)}
+              />
+            </View>
+          </BannerCard>
+        </Enter>
       )}
 
       {suggestRecoveryWeek && (
-        <Pressable
-          testID="recovery-week-banner"
-          style={styles.infoBanner}
-          onPress={handleRecoveryWeekAccept}
-        >
-          <Text style={styles.infoBannerText}>
-            Recovery week — lighter loads, same consistency.
-          </Text>
-          <Text style={styles.infoBannerSubtitle}>Tap to build one today</Text>
-        </Pressable>
+        <Enter index={next()}>
+          <BannerCard
+            testID="recovery-week-banner"
+            icon="leaf"
+            tone="lagoon"
+            title="Recovery week — lighter loads, same consistency."
+            subtitle="Tap to build one today"
+            onPress={handleRecoveryWeekAccept}
+          />
+        </Enter>
       )}
 
-      {pending ? (
-        <>
-          <Pressable
-            testID="resume-card"
-            style={[styles.card, styles.resumeCard]}
-            onPress={() =>
-              navigation.navigate(pending.status === 'active' ? 'Workout' : 'Approval', {
-                sessionId: pending.id,
-              })
-            }
-          >
-            <Text style={styles.cardEyebrow}>Resume session</Text>
-            <Text style={styles.cardTitle}>
-              {pending.focus} · {pending.targetMinutes} min · {pending.difficulty}
-            </Text>
-            <Text style={styles.cardSubtitle}>
-              {pending.status === 'active' ? 'In progress — tap to continue' : 'Ready to approve'}
-            </Text>
-          </Pressable>
-          <AbandonSessionButton onConfirm={handleAbandonPending} label="Abandon and start fresh" />
-        </>
-      ) : (
-        <Pressable
-          testID="today-card"
-          style={[styles.card, styles.todayCard]}
-          onPress={() => navigation.navigate('Generate')}
-        >
-          <Text style={styles.cardEyebrow}>Today</Text>
-          <Text style={styles.cardTitle}>Generate a session</Text>
-          <Text style={styles.cardSubtitle}>Pick your time, anchors, focus, and difficulty.</Text>
-        </Pressable>
-      )}
-
-      <Pressable
-        testID="quick-session-button"
-        style={styles.quickButton}
-        onPress={handleQuickSession}
-        disabled={startingQuick || !!pending}
-      >
-        {startingQuick ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
+      <Enter index={next()}>
+        {pending ? (
           <>
-            <Text style={styles.quickButtonTitle}>Quick Session</Text>
-            <Text style={styles.quickButtonSubtitle}>~7 min · no pickers</Text>
-          </>
-        )}
-      </Pressable>
-
-      {/* §14.1.6 calendar heatmap — untrained days are neutral squares, never omitted or red.
-          A trained day shows an emoji for the focus it trained; a travel day shows a plane emoji
-          on a light gray background (darker than the untrained gray, but never the workout
-          green) so the two are never confused at a glance. Today's cell gets a thicker border,
-          not a color, so it reads
-          clearly without looking like a workout state. Every marker is hand-editable (tap to open
-          the popup below) so a workout logged outside RoamFit, or a travel day missed at the
-          time, can still be reflected here. */}
-      {stats.lifetimeSessionCount > 0 && (
-        <View testID="calendar-heatmap">
-          <View style={styles.calendarHeaderRow}>
-            <Text style={styles.sectionLabel}>{calendarMonthLabel}</Text>
-            <Pressable
-              testID="travel-day-button"
-              style={styles.travelButton}
-              onPress={handleTravelDay}
+            <Card
+              testID="resume-card"
+              variant="hero"
+              seed={pending.id}
+              style={styles.hero}
+              onPress={() =>
+                navigation.navigate(pending.status === 'active' ? 'Workout' : 'Approval', {
+                  sessionId: pending.id,
+                })
+              }
             >
-              <Text style={styles.travelButtonIcon}>✈</Text>
-              <Text style={styles.travelButtonText}>I&apos;m in transit</Text>
-            </Pressable>
-          </View>
-          <View style={styles.calendarWeekdayRow}>
-            {WEEKDAY_LABELS.map((label, i) => (
-              <Text key={i} style={styles.calendarWeekdayLabel}>
-                {label}
-              </Text>
-            ))}
-          </View>
-          <View style={styles.calendarGrid}>
-            {calendarWeeks.map((week, weekIndex) => (
-              <View key={weekIndex} style={styles.calendarRow}>
-                {week.map((day, dayIndex) =>
-                  day === null ? (
-                    <View key={dayIndex} style={styles.calendarCell} />
-                  ) : (
-                    <Pressable
-                      key={day.localDate}
-                      testID={`calendar-day-${day.localDate}`}
-                      accessibilityRole="button"
-                      accessibilityLabel={
-                        day.marker === 'travel'
-                          ? 'Travel day — tap to edit'
-                          : day.marker === 'none'
-                            ? 'No workout — tap to edit'
-                            : day.marker === 'quick'
-                              ? 'Quick workout — tap to edit'
-                              : `${day.marker} workout — tap to edit`
-                      }
-                      style={[
-                        styles.calendarCell,
-                        day.marker === 'none'
-                          ? styles.calendarCellUntrained
-                          : day.marker === 'travel'
-                            ? styles.calendarCellTravel
-                            : styles.calendarCellWorkout,
-                        day.localDate === data.todayLocalDate && styles.calendarCellToday,
-                      ]}
-                      onPress={() => setEditingDay(day.localDate)}
-                    >
-                      <Text
-                        style={[
-                          styles.calendarCellDateNumber,
-                          day.marker === 'none' && styles.calendarCellDateNumberUntrained,
-                        ]}
-                      >
-                        {Number(day.localDate.split('-')[2])}
-                      </Text>
-                      {day.marker === 'travel' && (
-                        <Text style={styles.calendarCellEmoji}>{TRAVEL_EMOJI}</Text>
-                      )}
-                      {day.marker === 'quick' && (
-                        <Text style={styles.calendarCellEmoji}>{QUICK_EMOJI}</Text>
-                      )}
-                      {day.marker !== 'none' &&
-                        day.marker !== 'travel' &&
-                        day.marker !== 'quick' && (
-                          <Text style={styles.calendarCellEmoji}>{FOCUS_EMOJI[day.marker]}</Text>
-                        )}
-                    </Pressable>
-                  ),
-                )}
+              <View style={styles.heroTop}>
+                <Txt variant="eyebrow" color="ink">
+                  {pending.status === 'active' ? 'Resume' : 'Ready to start'}
+                </Txt>
+                <Txt variant="display" color="ink" numberOfLines={2} adjustsFontSizeToFit>
+                  {pending.focus} · {pending.targetMinutes} min
+                </Txt>
+                <Chip label={pending.difficulty} size="sm" />
+              </View>
+              <View style={styles.heroBottom}>
+                {pending.status === 'active' ? (
+                  <ResumeProgress fraction={sessionCompletionFraction(pending)} />
+                ) : null}
+                <Txt variant="small" color="ink">
+                  {pending.status === 'active'
+                    ? 'In progress — tap to continue'
+                    : 'Ready to approve'}
+                </Txt>
+              </View>
+            </Card>
+            <AbandonSessionButton
+              onConfirm={handleAbandonPending}
+              label="Abandon and start fresh"
+            />
+          </>
+        ) : (
+          <Card
+            testID="today-card"
+            variant="hero"
+            seed="today"
+            style={styles.hero}
+            onPress={() => navigation.navigate('Generate')}
+          >
+            <View style={styles.heroTop}>
+              <Txt variant="eyebrow" color="ink">
+                Today
+              </Txt>
+              <Txt variant="display" color="ink">
+                Ready to move?
+              </Txt>
+              <Txt variant="small" color="ink">
+                Pick your time, focus and gear — we&apos;ll build the rest.
+              </Txt>
+            </View>
+            <View style={styles.heroPill}>
+              <Txt variant="button" color="sun">
+                Build a session
+              </Txt>
+              <Icon name="arrowRight" size={20} color="sun" />
+            </View>
+          </Card>
+        )}
+      </Enter>
+
+      <Enter index={next()} style={styles.tiles}>
+        <ActionTile
+          testID="quick-session-button"
+          icon="bolt"
+          tone="gold"
+          title="Quick session"
+          subtitle="7 min · zero decisions"
+          loading={startingQuick}
+          disabled={startingQuick || !!pending}
+          onPress={handleQuickSession}
+        />
+        <ActionTile
+          testID="travel-day-button"
+          icon="airplane"
+          tone="sky"
+          title="In transit"
+          subtitle={
+            data.isTravelDayToday ? "Today's marked. Safe travels." : 'Mark today as travel'
+          }
+          onPress={handleTravelDay}
+        />
+      </Enter>
+
+      {/* The strip is a window onto the Logbook: same markers, same tints (`DayCell`), derived from
+          `buildCalendarWeeks` so all calendar math stays on `local_date` (invariant 6). Markers
+          only — never a count of days without a workout (invariant 4). */}
+      {week.length > 0 && (
+        <Enter index={next()} style={styles.weekBlock}>
+          <SectionHeader
+            title="This week"
+            icon="today"
+            actionLabel="Open Journey"
+            onAction={() => navigation.navigate('Journey')}
+            testID="week-header"
+          />
+          <View testID="week-strip" style={styles.weekRow}>
+            {week.map((day, i) => (
+              <View key={day?.localDate ?? `blank-${i}`} style={styles.weekDay}>
+                <Txt variant="caption" color="text3">
+                  {WEEKDAY_LABELS[i]}
+                </Txt>
+                <DayCell
+                  day={day}
+                  size={40}
+                  isToday={day?.localDate === todayLocalDate}
+                  testID={day ? `week-day-${day.localDate}` : undefined}
+                  accessibilityLabel={day ? `${markerLabel(day.marker)} — open Journey` : undefined}
+                  onPress={() => navigation.navigate('Journey')}
+                />
               </View>
             ))}
           </View>
-        </View>
+        </Enter>
       )}
 
       {hero ? (
-        <View testID="next-unlock-hero" style={styles.heroCard}>
-          <Text style={styles.heroEyebrow}>Next Unlock</Text>
-          {/* Names the movement function ("Horizontal Push"), not an exercise. Not the one being
-              unlocked (ADR 0014 — that is the reveal), and not the current one either: the
-              current exercise is precisely what the unlock replaces, so headlining it dates the
-              copy the moment the unlock lands. The pattern is true either side of the rung
-              change, and titles the board row below, so hero and row read as one subject. */}
-          <Text style={styles.heroTitle}>
-            {hero.familyName} — {hero.sessionsRemaining}{' '}
-            {hero.sessionsRemaining === 1 ? 'session' : 'sessions'} to next level
-          </Text>
-        </View>
+        <Enter index={next()}>
+          <Card
+            testID="next-unlock-hero"
+            padding="md"
+            onPress={() => navigation.navigate('Journey')}
+            style={styles.unlock}
+          >
+            <ProgressRing
+              testID="next-unlock-ring"
+              progress={hero.progress}
+              size={64}
+              stroke={7}
+              accessibilityLabel={`${hero.sessionsRemaining} ${hero.sessionsRemaining === 1 ? 'session' : 'sessions'} to your next level`}
+            >
+              <Txt variant="h2">{hero.sessionsRemaining}</Txt>
+            </ProgressRing>
+            <View style={styles.unlockText}>
+              <Txt variant="eyebrow" color="summit">
+                Next unlock
+              </Txt>
+              {/* Names the movement function ("Horizontal Push"), not an exercise. Not the one
+                  being unlocked (ADR 0014 — that is the reveal), and not the current one either:
+                  the current exercise is precisely what the unlock replaces, so headlining it
+                  dates the copy the moment the unlock lands. The pattern is true either side of
+                  the rung change, and titles the Trail on Journey, so hero and trail read as one
+                  subject. */}
+              <Txt variant="h2">{hero.familyName}</Txt>
+              <Txt variant="small" color="text2">
+                {hero.sessionsRemaining} {hero.sessionsRemaining === 1 ? 'session' : 'sessions'} to
+                your next level
+              </Txt>
+            </View>
+            <Icon name="chevronRight" size={20} color="text3" />
+          </Card>
+        </Enter>
       ) : (
         board.length > 0 && (
-          <View testID="next-unlock-hero" style={styles.heroCard}>
-            <Text style={styles.heroEyebrow}>Next Unlock</Text>
-            <Text style={styles.heroTitle}>
-              Every family is at Mastery — keep chasing best sets on the board below.
-            </Text>
-          </View>
+          <Enter index={next()}>
+            <Card
+              testID="next-unlock-hero"
+              padding="md"
+              onPress={() => navigation.navigate('Journey')}
+              style={styles.unlock}
+            >
+              <IconBadge icon="trophy" tone="gold" size={64} />
+              <View style={styles.unlockText}>
+                <Txt variant="eyebrow" color="gold">
+                  Next unlock
+                </Txt>
+                <Txt variant="small" color="text2">
+                  Every family is at Mastery — keep chasing best sets on your Trails.
+                </Txt>
+              </View>
+              <Icon name="chevronRight" size={20} color="text3" />
+            </Card>
+          </Enter>
         )
       )}
-
-      {/* §14.1.6 — the day-marker edit popup. Same modal-overlay pattern as
-          `AbandonSessionButton`'s icon variant: a dismissing backdrop behind a tap-swallowing
-          dialog, since a calendar cell has no room to show options in place. */}
-      <Modal
-        visible={editingDay !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEditingDay(null)}
-      >
-        <Pressable style={styles.dayMarkerBackdrop} onPress={() => setEditingDay(null)}>
-          <Pressable style={styles.dayMarkerDialog} onPress={() => {}}>
-            <Text style={styles.dayMarkerTitle}>{editingDay}</Text>
-            {DAY_MARKER_OPTIONS.map((option) => (
-              <Pressable
-                key={option.marker}
-                testID={`day-marker-option-${option.marker}`}
-                style={styles.dayMarkerOption}
-                onPress={() => editingDay != null && handleSetDayMarker(editingDay, option.marker)}
-              >
-                {option.emoji !== '' && (
-                  <Text style={styles.dayMarkerOptionEmoji}>{option.emoji}</Text>
-                )}
-                <Text style={styles.dayMarkerOptionText}>{option.label}</Text>
-              </Pressable>
-            ))}
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      <Text style={styles.sectionLabel}>Progression board</Text>
-      {isZeroSession && (
-        <Text testID="first-session-explanation" style={styles.firstSessionNote}>
-          You&apos;re starting at the bottom of each ladder — tap too easy or too hard any time to
-          move a level.
-        </Text>
-      )}
-      <View testID="progression-board" style={styles.board}>
-        {levelUpNotice != null && (
-          <Text testID="board-level-up-notice" style={styles.boardLevelUpNotice}>
-            {levelUpNotice}
-          </Text>
-        )}
-        {board.map((entry) => (
-          <View key={entry.familyId} style={styles.boardRow} testID={`board-row-${entry.familyId}`}>
-            {/* Two columns: identity on the left, status on the right. The unlock count sits
-                directly beneath the level chip it belongs to, so the whole right edge reads as
-                one answer to "where am I and how close am I". */}
-            <View style={styles.boardTopRow}>
-              <View style={styles.boardIdentity}>
-                <Text style={styles.boardFamilyName}>{entry.familyName}</Text>
-                <Text style={styles.boardExerciseName}>{entry.exerciseName}</Text>
-              </View>
-
-              <View style={styles.boardStatus}>
-                {entry.isMastery ? (
-                  <View style={styles.masteryBadge}>
-                    <Text style={styles.masteryBadgeText}>Mastery</Text>
-                  </View>
-                ) : (
-                  <View style={styles.levelBadge}>
-                    <Text style={styles.levelBadgeText}>
-                      Level {entry.ordinal.n} of {entry.ordinal.of}
-                    </Text>
-                  </View>
-                )}
-
-                {/* ADR 0014 — how close you are, made the loudest thing on the row. The next
-                    exercise is deliberately not named: the unlock is the reward, and printing it
-                    here spends that for nothing. */}
-                {!entry.isMastery && entry.sessionsToNextLevel !== null && (
-                  <View style={styles.unlockBlock}>
-                    <Text
-                      style={styles.unlockCount}
-                      testID={`board-sessions-left-${entry.familyId}`}
-                    >
-                      {entry.sessionsToNextLevel}
-                    </Text>
-                    <Text style={styles.unlockCaption}>
-                      {entry.sessionsToNextLevel === 1 ? 'session' : 'sessions'}
-                      {'\n'}to next level
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {entry.isMastery ? (
-              <Text style={styles.boardUnlockLine}>
-                At the top of this ladder — micro-progression keeps running.
-              </Text>
-            ) : (
-              entry.sessionsToNextLevel !== null &&
-              entry.sessionsInLevel !== null &&
-              entry.sessionsInLevel > 0 && (
-                <View
-                  style={styles.progressTrack}
-                  testID={`board-progress-${entry.familyId}`}
-                  accessibilityRole="progressbar"
-                  accessibilityValue={{
-                    min: 0,
-                    max: entry.sessionsInLevel,
-                    now: entry.sessionsInLevel - entry.sessionsToNextLevel,
-                  }}
-                >
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${Math.round(
-                          ((entry.sessionsInLevel - entry.sessionsToNextLevel) /
-                            entry.sessionsInLevel) *
-                            100,
-                        )}%`,
-                      },
-                    ]}
-                  />
-                </View>
-              )
-            )}
-
-            {/* ADR 0012 — raise or drop the rung from the board, before generating anything. The
-                board is where a ladder position is actually shown, and a level is a property of
-                the user rather than of any one session, so this is the place to correct it.
-                Nothing to offer up at the top of a ladder (§6.7 Mastery) or down at the bottom. */}
-            <View style={styles.boardLevelButtonsRow}>
-              {!entry.isMastery &&
-                confirmingLevelDown !== entry.familyId &&
-                (confirmingLevelUp === entry.familyId ? (
-                  /* Two-step confirm, same shape as `AbandonSessionButton`'s. Warranted because a
-                     level change resets this level's micro-progression to the new rung's floor.
-                     Row-scoped, so only the row you tapped is ever in this state. */
-                  <View
-                    style={styles.levelUpConfirmBox}
-                    testID={`board-level-up-confirm-${entry.familyId}`}
-                  >
-                    <Text style={styles.levelUpConfirmText}>
-                      Move {entry.familyName} up a level? The next rung is harder, and your progress
-                      toward this unlock starts over.
-                    </Text>
-                    <View style={styles.levelUpConfirmButtons}>
-                      <Pressable
-                        testID={`board-level-up-cancel-${entry.familyId}`}
-                        style={styles.levelUpCancelButton}
-                        onPress={() => setConfirmingLevelUp(null)}
-                      >
-                        <Text style={styles.levelUpCancelText}>Not yet</Text>
-                      </Pressable>
-                      <Pressable
-                        testID={`board-level-up-confirm-yes-${entry.familyId}`}
-                        style={styles.levelUpConfirmButton}
-                        onPress={() => handleLevelUp(entry)}
-                      >
-                        <Text style={styles.levelUpConfirmButtonText}>Level up</Text>
-                      </Pressable>
-                    </View>
-                  </View>
-                ) : (
-                  <Pressable
-                    testID={`board-level-up-${entry.familyId}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${entry.exerciseName} is too easy — move up a level`}
-                    style={styles.boardLevelUpButton}
-                    onPress={() => setConfirmingLevelUp(entry.familyId)}
-                  >
-                    <Text style={styles.boardLevelUpText} numberOfLines={1}>
-                      Too easy — level up
-                    </Text>
-                  </Pressable>
-                ))}
-
-              {/* Symmetric "too hard" control — same two-step confirm shape, opposite direction.
-                  Never a punishing framing (invariant 4): dropping a rung is exactly as neutral a
-                  correction as raising one, just phrased for the other direction. */}
-              {!entry.isBaseLevel &&
-                confirmingLevelUp !== entry.familyId &&
-                (confirmingLevelDown === entry.familyId ? (
-                  <View
-                    style={styles.levelUpConfirmBox}
-                    testID={`board-level-down-confirm-${entry.familyId}`}
-                  >
-                    <Text style={styles.levelUpConfirmText}>
-                      Move {entry.familyName} down a level? The prior rung is easier, and your
-                      progress toward this unlock starts over.
-                    </Text>
-                    <View style={styles.levelUpConfirmButtons}>
-                      <Pressable
-                        testID={`board-level-down-cancel-${entry.familyId}`}
-                        style={styles.levelUpCancelButton}
-                        onPress={() => setConfirmingLevelDown(null)}
-                      >
-                        <Text style={styles.levelUpCancelText}>Not yet</Text>
-                      </Pressable>
-                      <Pressable
-                        testID={`board-level-down-confirm-yes-${entry.familyId}`}
-                        style={styles.levelUpConfirmButton}
-                        onPress={() => handleLevelDown(entry)}
-                      >
-                        <Text style={styles.levelUpConfirmButtonText}>Level down</Text>
-                      </Pressable>
-                    </View>
-                  </View>
-                ) : (
-                  <Pressable
-                    testID={`board-level-down-${entry.familyId}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${entry.exerciseName} is too hard — move down a level`}
-                    style={styles.boardLevelDownButton}
-                    onPress={() => setConfirmingLevelDown(entry.familyId)}
-                  >
-                    <Text style={styles.boardLevelDownText} numberOfLines={1}>
-                      Too hard — level down
-                    </Text>
-                  </Pressable>
-                ))}
-            </View>
-          </View>
-        ))}
-      </View>
-
-      {/* §9.6 Passport — opt-in, strings only, appears once there's something to pin (§14.2). */}
-      {user.passportEnabled && passport.cities.length > 0 ? (
-        <View testID="passport-section" style={styles.passportCard}>
-          <Text style={styles.sectionLabel}>Passport</Text>
-          <Text style={styles.passportHeadline}>
-            You&apos;ve trained in {passport.cities.length}{' '}
-            {passport.cities.length === 1 ? 'city' : 'cities'} and {passport.countries.length}{' '}
-            {passport.countries.length === 1 ? 'country' : 'countries'}
-          </Text>
-          <Text style={styles.passportSubtitle}>
-            {passport.sessionsAbroad} {passport.sessionsAbroad === 1 ? 'session' : 'sessions'}{' '}
-            abroad · {passport.cities.slice(0, 6).join(' · ')}
-            {passport.cities.length > 6 ? '…' : ''}
-          </Text>
-          <Pressable testID="share-passport" onPress={handleSharePassport}>
-            <Text style={styles.shareLink}>Share</Text>
-          </Pressable>
-        </View>
-      ) : (
-        !user.passportEnabled &&
-        stats.lifetimeSessionCount > 0 && (
-          <Pressable
-            testID="passport-opt-in"
-            style={styles.passportOptIn}
-            onPress={() => {
-              usersRepo.updateUser(db, { passportEnabled: true }, nowUtcInstant());
-              // Fire-and-forget, same as `runOpportunisticSync` below — the queued
-              // `passport_geocode` jobs are what actually retry the lookup; this just gives the
-              // very first one a granted permission to find instead of failing once for free.
-              void requestLocationPermission();
-              load();
-            }}
-          >
-            <Text style={styles.passportOptInText}>
-              Turn on Passport to pin the cities you train in
-            </Text>
-          </Pressable>
-        )
-      )}
-
-      {/* §14.1.7 muscle balance — the hero volume metric, hard sets per muscle, trailing 14 days.
-          OVER-WORKED is informational only, styled identically to every other row (§1.1). */}
-      {muscleBalance.length > 0 && (
-        <View testID="muscle-balance">
-          <Text style={styles.sectionLabel}>Muscle balance · trailing 14 days</Text>
-          {muscleBalance.map((row) => {
-            const maxSets = muscleBalance[0].hardSets || 1;
-            return (
-              <View key={row.muscle} style={styles.muscleRow} testID={`muscle-row-${row.muscle}`}>
-                <Text style={styles.muscleLabel}>{row.muscle}</Text>
-                <View style={styles.muscleBarTrack}>
-                  <View
-                    style={[
-                      styles.muscleBarFill,
-                      { width: `${Math.min(100, (row.hardSets / maxSets) * 100)}%` },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.muscleSets}>
-                  {row.hardSets}
-                  {row.overWorked ? ' · over-worked' : ''}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-      )}
-
-      {/* §14.1.8 lifetime counters — monotonic, permanent. */}
-      {stats.lifetimeSessionCount > 0 && (
-        <View testID="lifetime-counters" style={styles.countersGrid}>
-          <Counter label="Sessions" value={lifetimeCounters.sessions} />
-          <Counter label="Minutes" value={lifetimeCounters.totalMinutes} />
-          <Counter label="Cities" value={lifetimeCounters.cities} />
-          <Counter label="Countries" value={lifetimeCounters.countries} />
-          <Counter label="Levels gained" value={lifetimeCounters.levelsGained} />
-          <Counter label="Best sets" value={lifetimeCounters.bestSets} />
-        </View>
-      )}
-
-      {/* §14.1.9 estimate-accuracy trust-builder — small, quiet. */}
-      {stats.estimateAccuracyEma !== null && (
-        <Text testID="estimate-accuracy" style={styles.estimateAccuracyText}>
-          Your sessions finish within {Math.round(stats.estimateAccuracyEma * 100)}% of the
-          estimate.
-        </Text>
-      )}
-    </ScrollView>
+    </Screen>
   );
 }
 
-function Counter({ label, value }: { label: string; value: number }): React.JSX.Element {
+/** Banner as an icon card: a tinted icon circle, the same copy, an optional action row. */
+function BannerCard({
+  testID,
+  icon,
+  tone,
+  title,
+  subtitle,
+  onPress,
+  children,
+}: {
+  testID: string;
+  icon: IconName;
+  tone: AccentName;
+  title: string;
+  subtitle?: string;
+  onPress?: () => void;
+  children?: React.ReactNode;
+}): React.JSX.Element {
   return (
-    <View style={styles.counterCell}>
-      <Text style={styles.counterValue}>{value}</Text>
-      <Text style={styles.counterLabel}>{label}</Text>
+    <Card testID={testID} padding="md" onPress={onPress} style={styles.banner}>
+      <IconBadge icon={icon} tone={tone} />
+      <View style={styles.bannerText}>
+        <Txt variant="bodyStrong">{title}</Txt>
+        {subtitle ? (
+          <Txt variant="small" color={tone}>
+            {subtitle}
+          </Txt>
+        ) : null}
+        {children}
+      </View>
+    </Card>
+  );
+}
+
+/** Thin ink progress bar on the sunrise hero: sets done over sets planned (only ever grows). */
+function ResumeProgress({ fraction }: { fraction: number }): React.JSX.Element {
+  return (
+    <View
+      testID="resume-progress"
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel="Session progress"
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(fraction * 100) }}
+      style={styles.progressTrack}
+    >
+      <View style={[styles.progressFill, { width: `${Math.round(fraction * 100)}%` }]} />
     </View>
   );
 }
 
+/** Square-ish two-up tile: icon in a tinted circle, condensed title, one small line. */
+function ActionTile({
+  testID,
+  icon,
+  tone,
+  title,
+  subtitle,
+  onPress,
+  disabled,
+  loading,
+}: {
+  testID: string;
+  icon: IconName;
+  tone: AccentName;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}): React.JSX.Element {
+  return (
+    <PressableScale
+      testID={testID}
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityLabel={`${title}. ${subtitle}`}
+      style={[styles.tile, disabled && styles.tileDisabled]}
+    >
+      {loading ? (
+        <View style={styles.tileSpinner}>
+          <ActivityIndicator color={colors[tone]} />
+        </View>
+      ) : (
+        <IconBadge icon={icon} tone={tone} />
+      )}
+      <View>
+        <Txt variant="h2">{title}</Txt>
+        <Txt variant="small" color="text2">
+          {subtitle}
+        </Txt>
+      </View>
+    </PressableScale>
+  );
+}
+
 const styles = StyleSheet.create({
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { padding: 20, gap: 16, paddingBottom: 48 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  appName: { fontSize: 20, fontWeight: '700', color: '#111' },
-  headerLinks: { flexDirection: 'row', gap: 16, alignItems: 'center' },
-  settingsLink: { fontSize: 14, color: '#1d4ed8', fontWeight: '600' },
-  disclaimerGateContent: { padding: 24, gap: 16, alignItems: 'stretch' },
-  body: { fontSize: 14, lineHeight: 20, color: '#334155' },
-  primaryButton: {
-    backgroundColor: '#111',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-  },
-  primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  card: { borderRadius: 16, padding: 20, gap: 4 },
-  todayCard: { backgroundColor: '#111' },
-  resumeCard: { backgroundColor: '#1d4ed8' },
-  cardEyebrow: { color: '#cbd5e1', fontSize: 12, fontWeight: '600', textTransform: 'uppercase' },
-  cardTitle: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  cardSubtitle: { color: '#e2e8f0', fontSize: 14 },
-  quickButton: {
-    backgroundColor: '#16a34a',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    minHeight: 64,
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+  content: { paddingTop: space.lg, paddingBottom: space.huge + space.xxl, gap: space.xl },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerText: { flex: 1 },
+  gate: { flex: 1, backgroundColor: colors.bg },
+  gateScreen: { backgroundColor: 'transparent' },
+  gateContent: {
+    flexGrow: 1,
     justifyContent: 'center',
+    gap: space.xxl,
+    paddingVertical: space.xxl,
   },
-  quickButtonTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  quickButtonSubtitle: { color: '#dcfce7', fontSize: 13 },
-  shareLink: { fontSize: 12, color: '#2563eb', fontWeight: '700', marginTop: 4 },
-  calendarHeaderRow: {
+  wordmark: { textAlign: 'left' },
+  banner: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
+  bannerText: { flex: 1, gap: 2, paddingTop: 2 },
+  bannerActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: space.sm,
+    marginTop: space.sm,
   },
-  travelButton: {
-    backgroundColor: '#f1f5f9',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  hero: { minHeight: 220, justifyContent: 'space-between', gap: space.lg },
+  heroTop: { gap: space.xs, alignItems: 'flex-start' },
+  heroBottom: { gap: space.sm },
+  heroPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 44,
-    justifyContent: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: colors.ink,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.xl,
+    height: 48,
+    gap: space.sm,
   },
-  travelButtonIcon: { fontSize: 16 },
-  travelButtonText: { fontSize: 11, color: '#334155', fontWeight: '600' },
-  infoBanner: {
-    backgroundColor: '#eff6ff',
-    borderRadius: 12,
-    padding: 14,
-    gap: 2,
-  },
-  infoBannerText: { color: '#1e3a8a', fontSize: 14, fontWeight: '700' },
-  infoBannerSubtitle: { color: '#3b82f6', fontSize: 12, fontWeight: '600' },
-  travelSuggestRow: { flexDirection: 'row', gap: 16, marginTop: 4 },
-  infoBannerAction: { color: '#1d4ed8', fontSize: 13, fontWeight: '700' },
-  infoBannerDismiss: { color: '#64748b', fontSize: 13, fontWeight: '600' },
-  heroCard: {
-    backgroundColor: '#fefce8',
-    borderRadius: 16,
-    padding: 18,
-    gap: 4,
-  },
-  heroEyebrow: {
-    color: '#a16207',
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  heroTitle: { color: '#713f12', fontSize: 16, fontWeight: '700' },
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#64748b', marginTop: 8 },
-  firstSessionNote: { fontSize: 13, color: '#64748b', fontStyle: 'italic', marginTop: -8 },
-  board: { gap: 10 },
-  boardRow: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 14,
-    padding: 14,
-    gap: 4,
-  },
-  boardFamilyName: { fontSize: 13, fontWeight: '700', color: '#334155' },
-  levelBadge: {
-    backgroundColor: '#e2e8f0',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  levelBadgeText: { fontSize: 11, fontWeight: '700', color: '#334155' },
-  masteryBadge: {
-    backgroundColor: '#fde68a',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  masteryBadgeText: { fontSize: 11, fontWeight: '700', color: '#713f12' },
-  boardExerciseName: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
-  boardUnlockLine: { fontSize: 12, color: '#64748b' },
-  boardLevelButtonsRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  boardLevelUpButton: {
-    flex: 1,
-    minHeight: 36,
-    borderRadius: 8,
-    backgroundColor: '#dbeafe',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
-  boardLevelUpText: { fontSize: 13, fontWeight: '600', color: '#1d4ed8' },
-  boardLevelDownButton: {
-    flex: 1,
-    minHeight: 36,
-    borderRadius: 8,
-    backgroundColor: '#ffedd5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
-  boardLevelDownText: { fontSize: 13, fontWeight: '600', color: '#c2410c' },
-  levelUpConfirmBox: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 12,
-    gap: 10,
-  },
-  levelUpConfirmText: { fontSize: 13, color: '#334155', lineHeight: 18 },
-  levelUpConfirmButtons: { flexDirection: 'row', gap: 10 },
-  levelUpCancelButton: {
-    flex: 1,
-    borderRadius: 8,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#e2e8f0',
-  },
-  levelUpCancelText: { fontSize: 13, fontWeight: '700', color: '#334155' },
-  levelUpConfirmButton: {
-    flex: 1,
-    borderRadius: 8,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1d4ed8',
-  },
-  levelUpConfirmButtonText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  boardTopRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  boardIdentity: { flex: 1 },
-  boardStatus: { alignItems: 'flex-end' },
-  unlockBlock: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
-  unlockCount: { fontSize: 34, fontWeight: '800', color: '#0f172a', lineHeight: 38 },
-  unlockCaption: { fontSize: 12, color: '#475569', lineHeight: 16, textAlign: 'right' },
   progressTrack: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#e2e8f0',
-    marginTop: 8,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: withAlpha(colors.ink, 0.22),
     overflow: 'hidden',
   },
-  progressFill: { height: 8, borderRadius: 4, backgroundColor: '#1d4ed8' },
-  boardLevelUpNotice: { fontSize: 13, color: '#1d4ed8', paddingBottom: 4 },
-  passportCard: {
-    backgroundColor: '#f0fdf4',
-    borderRadius: 16,
-    padding: 16,
-    gap: 4,
-  },
-  passportHeadline: { fontSize: 16, fontWeight: '700', color: '#14532d' },
-  passportSubtitle: { fontSize: 12, color: '#166534' },
-  passportOptIn: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 14,
-  },
-  passportOptInText: { fontSize: 13, fontWeight: '600', color: '#334155' },
-  calendarWeekdayRow: { flexDirection: 'row', gap: 6, marginTop: 8 },
-  calendarWeekdayLabel: {
+  progressFill: { height: 6, borderRadius: 3, backgroundColor: colors.ink },
+  tiles: { flexDirection: 'row', gap: space.md },
+  tile: {
     flex: 1,
-    textAlign: 'center',
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#94a3b8',
-  },
-  calendarGrid: { gap: 6, marginTop: 4 },
-  calendarRow: { flexDirection: 'row', gap: 6 },
-  calendarCell: {
-    flex: 1,
-    aspectRatio: 1,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  calendarCellUntrained: { backgroundColor: '#e2e8f0' },
-  calendarCellWorkout: { backgroundColor: '#16a34a' },
-  calendarCellTravel: { backgroundColor: '#cbd5e1' },
-  calendarCellToday: { borderWidth: 2, borderColor: '#1e293b' },
-  calendarCellDateNumber: {
-    position: 'absolute',
-    top: 2,
-    left: 4,
-    fontSize: 9,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.85)',
-  },
-  calendarCellDateNumberUntrained: { color: '#64748b' },
-  calendarCellEmoji: { fontSize: 22, lineHeight: 26 },
-  dayMarkerBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  dayMarkerDialog: {
-    width: '100%',
-    maxWidth: 360,
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 14,
-    gap: 8,
+    minHeight: 132,
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.line,
+    padding: space.lg,
   },
-  dayMarkerTitle: { fontSize: 13, fontWeight: '700', color: '#334155', marginBottom: 4 },
-  dayMarkerOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    minHeight: 44,
-    justifyContent: 'flex-start',
-    backgroundColor: '#e2e8f0',
-  },
-  dayMarkerOptionEmoji: { fontSize: 18, lineHeight: 22 },
-  dayMarkerOptionText: { fontSize: 14, fontWeight: '600', color: '#334155' },
-  muscleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
-  muscleLabel: { width: 90, fontSize: 12, color: '#334155', fontWeight: '600' },
-  muscleBarTrack: {
-    flex: 1,
-    height: 10,
-    borderRadius: 6,
-    backgroundColor: '#e2e8f0',
-    overflow: 'hidden',
-  },
-  muscleBarFill: { height: '100%', backgroundColor: '#6366f1', borderRadius: 6 },
-  muscleSets: { width: 90, fontSize: 11, color: '#64748b', textAlign: 'right' },
-  countersGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
-  counterCell: { width: '30%', gap: 2 },
-  counterValue: { fontSize: 20, fontWeight: '800', color: '#0f172a' },
-  counterLabel: { fontSize: 11, color: '#64748b' },
-  estimateAccuracyText: { fontSize: 12, color: '#94a3b8', textAlign: 'center', marginTop: 4 },
+  tileDisabled: { opacity: 0.5 },
+  tileSpinner: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  weekBlock: { gap: space.md },
+  weekRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  weekDay: { alignItems: 'center', gap: space.xs },
+  unlock: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
+  unlockText: { flex: 1, gap: 2 },
 });

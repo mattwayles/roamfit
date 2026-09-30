@@ -122,8 +122,8 @@ async function openDetail(name: string) {
       </NavigationContainer>
     </StoreProvider>,
   );
-  await waitFor(() => expect(screen.getByTestId('open-exercises')).toBeTruthy());
-  await fireEvent.press(screen.getByTestId('open-exercises'));
+  await waitFor(() => expect(screen.getByTestId('tab-Exercises')).toBeTruthy());
+  await fireEvent.press(screen.getByTestId('tab-Exercises'));
   await waitFor(() => expect(screen.getByTestId('exercise-search')).toBeTruthy());
   await fireEvent.changeText(screen.getByTestId('exercise-search'), name);
 

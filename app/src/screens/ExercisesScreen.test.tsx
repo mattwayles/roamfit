@@ -48,8 +48,8 @@ async function openExercises() {
       </NavigationContainer>
     </StoreProvider>,
   );
-  await waitFor(() => expect(screen.getByTestId('open-exercises')).toBeTruthy());
-  await fireEvent.press(screen.getByTestId('open-exercises'));
+  await waitFor(() => expect(screen.getByTestId('tab-Exercises')).toBeTruthy());
+  await fireEvent.press(screen.getByTestId('tab-Exercises'));
   await waitFor(() => expect(screen.getByTestId('exercise-list')).toBeTruthy());
 }
 
@@ -64,7 +64,7 @@ async function search(text: string) {
 }
 
 describe('the exercise library', () => {
-  it('opens from Home and lists the whole library', async () => {
+  it('opens from the Field Guide tab and lists the whole library', async () => {
     await openExercises();
     expect(screen.getByTestId('exercise-count')).toHaveTextContent(
       `${exerciseLibrary.exercises.length} of ${exerciseLibrary.exercises.length} exercises`,

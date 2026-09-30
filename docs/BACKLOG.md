@@ -20,6 +20,17 @@ the record of what was completed and why.
   `react-native-svg`) and walk a session: top-bar clock width, hero vs the fold on a 6.1" phone,
   timed ring with the flanking -/+ at its lower corners, rest ring pulse, paused dim, toast position.
   Details and deliberate deviations from DESIGN.md §5.7 are in `docs/handoff/STATUS-21-ui-redesign.md`.
+- **Golden Hour Today + Journey are Jest-verified only** (same `npm run ios` dev-client rebuild owed
+  as the Workout item above). Check on a device: hero card height and the two-up tiles on a 6.1"
+  phone, the "This week" strip's 40pt cells across 7 columns, Trails cards with 9-node rung tracks,
+  the Logbook cell size (7 flex columns), day-marker and Adjust flows, Stamp grid wrapping with tilt,
+  the disclaimer gate with the tab bar hidden. Deviations from DESIGN.md §5.1/§5.2 are in
+  `docs/handoff/STATUS-21-ui-redesign.md`.
+- **"This week" strip shows blank cells at a month edge.** It is derived from the Logbook's
+  month-only `buildCalendarWeeks`, so the days of the week that fall in the neighbouring month are
+  empty placeholders (up to 6 on the 1st/last of a month). Fixing it needs `buildCalendarDays` to
+  cover the adjacent month (local_date math in `lib/dashboard.ts`, invariant 6), not new UTC math in
+  the screen.
 - **Ladder rungs with no sibling exercises**, so they repeat every session at that level: `horizontal_push` l7–l9, `horizontal_pull` l4–l8, `anti_extension` l4 and l6. All are high rungs nobody currently occupies — fill them when someone gets there.
 - **A band exercise at a bodyweight-anchored rung has a frozen band.** Progression state is tracked
 against the level's *anchor* (`currentExercise` in `progression/rules.ts` resolves

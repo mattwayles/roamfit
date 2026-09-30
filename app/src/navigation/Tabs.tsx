@@ -1,7 +1,7 @@
 /**
- * The tab shell: Today (Home), Journey and Field Guide (Exercises). JS-only bottom tabs with the custom
- * `TabBar`. Until each screen draws its own header (phases C/F), the tab navigator shows a header
- * so these screens keep their title and top safe-area inset.
+ * The tab shell: Today (Home), Journey and Field Guide (Exercises). JS-only bottom tabs with the
+ * custom `TabBar`. Today and Journey are migrated (own header, `bg` scene); Field Guide still
+ * shows the tab navigator's header until phase F draws its own.
  */
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -22,9 +22,13 @@ export default function Tabs(): React.JSX.Element {
       tabBar={(props) => <TabBar {...props} />}
       screenOptions={{ ...headerOptions, ...legacyLightScene, headerShown: true }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'ROAMFIT' }} />
-      {/* Journey is migrated: it draws its own header and sits on `bg`, overriding the legacy
-          light scene the not-yet-migrated tabs still inherit. */}
+      {/* Today and Journey are migrated: each draws its own header and sits on `bg`, overriding
+          the legacy light scene the not-yet-migrated tab (Field Guide) still inherits. */}
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}
+      />
       <Tab.Screen
         name="Journey"
         component={JourneyScreen}

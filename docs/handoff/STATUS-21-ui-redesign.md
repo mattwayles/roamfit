@@ -22,18 +22,18 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
   header hidden, legacy scene made opt-in per screen — f9c1b3c
 - [x] B3-B5 reps hero, timed ring hero, lagoon rest hero + Up next, Disclosure/DemoMedia cards, coach
   toast, `WorkoutScreen.presentation.test.tsx` — 959dac4, polish a440480
+- [x] C1 shared foundation: `lib/useDashboardData.ts`, `lib/dayMarkers.ts`, `weekContaining` + hero
+  `progress` in `lib/dashboard.ts`, `sessionCompletionFraction`, `DayCell` / `RungTrack` /
+  `EmptyState` / `IconBadge` / `SectionTitle` components, TabBar can hide itself — efeef13
+- [x] C2 Journey tab (`screens/JourneyScreen.tsx`, `TAB_META` row, `<Tab.Screen>`, Journey tests) — dbd06ff
+- [x] C3 HomeScreen -> Today (hero, tiles, week strip, next unlock, disclaimer gate), legacy light scene
+  removed from Home, Home tests moved/rewritten, `open-exercises` retired — see `git log` (C3 sha below)
 
 ### In progress
-- Phase C (Today + Journey). Plan, in commit order: C1 shared foundation (`lib/dayMarkers.ts`,
-  `lib/useDashboardData.ts` shared loader hook, `dashboard.ts` week-strip + hero-progress helpers,
-  `DayCell` / `RungTrack` components, TabBar hides itself when the focused screen sets
-  `tabBarStyle.display = 'none'` so the disclaimer gate is truly blocking); C2 Journey tab
-  (`screens/JourneyScreen.tsx`, `TAB_META` row, `<Tab.Screen>`, Journey tests); C3 HomeScreen ->
-  Today rewrite (hero, tiles, week strip, next unlock, gate) + move/retire old Home tests.
+- Phase D (Generate + Plan/Approval, DESIGN.md §5.5, §5.6). Not started. Phase C is complete and
+  `npm run check` is green.
 
 ### Next (sequential — each phase is one agent run, several small commits)
-- **C. Today + Journey** (§5.1, §5.2, §5.11 disclaimer gate) — split HomeScreen, add Journey tab,
-  move board/logbook/passport/muscle/lifetime tests to Journey.
 - **D. Generate + Plan/Approval** (§5.5, §5.6) — replace OptionPicker usage.
 - **E. Debrief + Completion** (§5.8, §5.9) + HighlightCard, AnimatedStatCounter, HypeHeadline,
   CelebrationBackdrop, ConfettiBurst.
@@ -186,3 +186,57 @@ an empty dot).
 **Not verified on a device/simulator** (Jest only; `react-native-svg` still needs the dev-client
 rebuild). Layout was reasoned, not seen: top-bar clock width, hero height vs the fold on a 6.1"
 phone, flanking -/+ corner placement, hero dim. First thing to check after `npm run ios`.
+
+### Phase C reference (Today + Journey) — for phases D-G
+
+**Today (`HomeScreen.tsx`, route still `Home`)**: `Screen scroll` (top/left/right, `safeBottom={false}`),
+tab header hidden, scene `bg` (Tabs.tsx overrides `legacyLightScene` for Home and Journey; Field Guide
+still inherits it — phase F). Order: header (h1 ember wordmark + `today-greeting` + gear
+`open-settings`), banners (`BannerCard`: `comeback-banner`, `travel-suggest-banner` with
+`travel-suggest-accept/-dismiss` buttons, `recovery-week-banner`), hero `Card variant="hero"`
+(`today-card`, or `resume-card` + `resume-progress` bar + `AbandonSessionButton`), two-up
+`ActionTile`s (`quick-session-button`, `travel-day-button`), `week-strip` (`week-day-YYYY-MM-DD`,
+`DayCell size=40`, tap -> Journey), `next-unlock-hero` (summit `ProgressRing` `next-unlock-ring`, tap ->
+Journey; mastery state keeps its copy). Text on the sunrise hero is `ink`.
+Loading / sync / notification / focus-effect logic is unchanged; the read moved into
+`useDashboardData` and Today's `load()` wraps `reload()` + the notification reschedule.
+
+**Journey (`JourneyScreen.tsx`)**: `journey-screen`; eyebrow + `display` "MILES SO FAR"; `lifetime-counters`
+(3x2 `StatTile`, `lifetime-sessions` ... ); Trails (`progression-board`, `board-row-${id}`, `RungTrack`
+`board-track-${id}`, `ProgressRing` `board-progress-${id}` with `board-sessions-left-${id}`, expander
+`board-adjust-${id}` -> the unchanged level up/down controls and two-step confirms; expansion is
+per-family and survives a level change so repeated taps need no re-expand); Logbook (`calendar-heatmap`,
+`calendar-day-${date}` -> `day-marker-sheet` `Sheet`, `day-marker-option-${marker}`); Passport
+(`passport-section` + `passport-stamp-${city}` + `share-passport`, `passport-opt-in`, `passport-empty`);
+`muscle-balance` gradient bars; `estimate-accuracy`. Zero sessions: `journey-empty`, `logbook-empty`,
+`passport-empty` encouraging empty states; Trails + `first-session-explanation` still render.
+Reloads on focus.
+
+**Shared**: `lib/useDashboardData.ts` (`loadDashboardData` + hook returning `{data, reload}`; `reload()`
+returns the fresh data), `lib/dayMarkers.ts` (emoji + tint + labels shared by strip and logbook),
+`components/DayCell` `RungTrack` `EmptyState` `IconBadge` `SectionTitle` (reusable by D-G).
+`TabBar` returns null when the focused screen sets `tabBarStyle: { display: 'none' }` — Today does this
+while the §13.3 disclaimer gate is up, so the gate really blocks (nothing else reachable behind it).
+
+**Deviations from DESIGN.md §5.1/§5.2 (all deliberate)**:
+- `open-exercises` (Home's "Exercises" text link) is gone: the Field Guide tab does that job. The two
+  tests that used it (`ExercisesScreen`, `ExerciseDetailScreen`) now press `tab-Exercises`.
+- The week strip is Sun-Sat (the Logbook's own week, from `buildCalendarWeeks`), not Mon-Sun, and shows
+  blank cells for days that fall in the neighbouring month (BACKLOG has the fix).
+- Copy: hero says "sessions to your next level" (spec) so the old "to next level" assertion moved to the
+  Trails ring caption; mastery chip reads "Summit" (spec) while Today's all-mastery sentence keeps
+  "Mastery"; `first-session-explanation` now says "tap Adjust on any of them" (the controls moved
+  behind Adjust, the old text would have been wrong).
+- Quick Session subtitle is "7 min · zero decisions" (spec); the generator still requests 15 target min.
+- The In transit tile changes its subtitle to "Today's marked. Safe travels." after a tap, and is always
+  available (the old button only existed once a first session was done).
+- Zero sessions: one combined encouraging card replaces the lifetime tiles, plus one each for Logbook,
+  Passport and (once a session exists but none in 14 days) muscle balance; the old code showed nothing.
+- Day-marker `Sheet` title is "September 29" (month name + day) rather than the raw date, and marks the
+  day's current marker with a check.
+
+**Tests moved**: `HomeScreen.levelUp` -> `JourneyScreen.levelUp` (taps `board-adjust-${id}` first; the ADR
+0014 hero assertion moved to `HomeScreen.nextUnlock`); `HomeScreen.dashboard` split into Today
+(gate/hero/tiles/week strip) + `JourneyScreen.dashboard` (Trails, empty states); `HomeScreen.afterSession`
+split into Today (week strip marker) + `JourneyScreen.afterSession` (lifetime, muscle balance,
+calendar, day-marker sheet, passport opt-in + stamp + reload-on-focus). New: `HomeScreen.banners`.

@@ -1,19 +1,22 @@
 /**
- * §14.2 zero-session dashboard — the state the orchestrator said it would verify independently
+ * §14.2 zero-session Today — the state the orchestrator said it would verify independently
  * ("mount it with a completely empty database and confirm it is meaningful, not empty"). This
  * file gets its own fresh on-device db (unique filename per Jest test file, see
  * `app/src/db/index.ts`'s worker/file-scoped naming) so there is no risk of a prior test's
- * session leaking in — this really is a from-scratch install.
+ * session leaking in — this really is a from-scratch install. The Trails half of the zero-session
+ * guarantee lives in `JourneyScreen.dashboard.test.tsx`.
  */
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { familyLibrary } from '@roamfit/data';
 import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider } from '../state/StoreContext';
+import { greetingFor } from '../lib/hypeCopy';
 
-describe('§14.2 cold start — the dashboard is never empty', () => {
-  it('renders the full progression board at starting levels, the first-session note, the Today card, and a real Next Unlock — with zero sessions ever run', async () => {
+const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
+
+describe('§14.2 cold start — Today is never empty', () => {
+  it('gates on the disclaimer (with no tab bar to escape through), then shows the hero, tiles, week strip and a real Next Unlock — with zero sessions ever run', async () => {
     render(
       <StoreProvider>
         <NavigationContainer>
@@ -23,28 +26,38 @@ describe('§14.2 cold start — the dashboard is never empty', () => {
     );
 
     // §13.3 — a truly from-scratch install shows the blocking first-launch disclaimer before
-    // anything else. Dismiss it exactly the way a real user would (a real tap), then proceed —
-    // this also happens to be the one test in this suite honest enough to exercise that gate.
-    await waitFor(() => expect(screen.getByTestId('disclaimer-gate')).toBeTruthy());
+    // anything else, and takes the tab bar away so no other tab is reachable behind it.
+    await waitFor(() => expect(screen.getByTestId('disclaimer-gate')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByTestId('disclaimer-gate-text')).toBeTruthy();
+    expect(screen.queryByTestId('tab-Journey')).toBeNull();
+    expect(screen.queryByTestId('tab-Exercises')).toBeNull();
+    expect(screen.queryByTestId('today-card')).toBeNull();
+
+    // Dismiss it exactly the way a real user would (a real tap) — this is also the one test in
+    // this suite honest enough to exercise that gate.
     fireEvent.press(screen.getByTestId('disclaimer-acknowledge'));
 
-    // Today card, not a resume card — nothing has ever been generated.
-    await waitFor(() => expect(screen.getByTestId('today-card')).toBeTruthy());
+    // Today card, not a resume card — nothing has ever been generated. Tabs are back.
+    await waitFor(() => expect(screen.getByTestId('today-card')).toBeTruthy(), WAIT_OPTS);
     expect(screen.queryByTestId('resume-card')).toBeNull();
+    expect(screen.queryByTestId('disclaimer-gate')).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('tab-Journey')).toBeTruthy(), WAIT_OPTS);
 
-    // First-session explanation, shown because lifetimeSessionCount is 0.
-    expect(screen.getByTestId('first-session-explanation')).toBeTruthy();
+    // Wordmark greeting and the Settings gear.
+    expect(screen.getByTestId('today-greeting').props.children).toBe(greetingFor(new Date()));
+    expect(screen.getByTestId('open-settings')).toBeTruthy();
 
-    // Next Unlock hero — a concrete, non-empty "why open tomorrow" line, not a placeholder.
-    const hero = screen.getByTestId('next-unlock-hero');
-    expect(hero).toBeTruthy();
+    // Quick Session + In transit tiles are live from the first launch.
+    expect(screen.getByTestId('quick-session-button')).toBeTruthy();
+    expect(screen.getByTestId('travel-day-button')).toBeTruthy();
 
-    // The full progression board — every family in the content library, none of them mastered
-    // (a fresh install starts at level 1, nowhere near a ladder's top).
-    for (const family of familyLibrary.families) {
-      const row = screen.getByTestId(`board-row-${family.id}`);
-      expect(row).toBeTruthy();
-    }
-    expect(screen.queryAllByText('Mastery').length).toBe(0);
+    // Next Unlock — a concrete, non-empty "why open tomorrow" card, not a placeholder.
+    expect(screen.getByTestId('next-unlock-hero')).toBeTruthy();
+    expect(screen.getByTestId('next-unlock-ring')).toBeTruthy();
+
+    // The week strip shows neutral cells, never a tally.
+    expect(screen.getByTestId('week-strip')).toBeTruthy();
+    expect(screen.queryByText(/this week/i, { exact: false })).not.toBeNull(); // the section label
+    expect(screen.queryByText(/^0\b/)).toBeNull();
   });
 });

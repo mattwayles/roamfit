@@ -1,5 +1,5 @@
 /**
- * The shell: root stack -> Tabs (Today, Field Guide) with the custom tab bar, driven through the
+ * The shell: root stack -> Tabs (Today, Journey, Field Guide) with the custom tab bar, driven through the
  * real navigator and the real on-device store like the screen tests. Also pins the `homeReset`
  * shape every flow screen uses to "go home" now that Home lives inside the `Tabs` route.
  */
@@ -33,10 +33,11 @@ async function boot() {
 }
 
 describe('navigation shell', () => {
-  it('boots on Today with the custom tab bar labelled Today / Field Guide', async () => {
+  it('boots on Today with the custom tab bar labelled Today / Journey / Field Guide', async () => {
     await boot();
     await waitFor(() => expect(screen.getByTestId('today-card')).toBeTruthy(), WAIT);
     expect(screen.getByLabelText(TAB_META.Home.label)).toBeTruthy();
+    expect(screen.getByLabelText(TAB_META.Journey.label)).toBeTruthy();
     expect(screen.getByLabelText(TAB_META.Exercises.label)).toBeTruthy();
     expect(screen.getByTestId('tab-Home').props.accessibilityState).toMatchObject({
       selected: true,
@@ -61,11 +62,19 @@ describe('navigation shell', () => {
     });
   });
 
-  it("Home's own open-exercises button still lands on the Field Guide tab", async () => {
+  it('the Journey tab sits between Today and Field Guide and Today is one tap back', async () => {
     await boot();
-    await waitFor(() => expect(screen.getByTestId('open-exercises')).toBeTruthy(), WAIT);
-    await fireEvent.press(screen.getByTestId('open-exercises'));
-    await waitFor(() => expect(screen.getByTestId('exercise-list')).toBeTruthy(), WAIT);
+    const labels = screen.getAllByRole('tab').map((t) => t.props.accessibilityLabel as string);
+    expect(labels).toEqual(['Today', 'Journey', 'Field Guide']);
+
+    await fireEvent.press(screen.getByTestId('tab-Journey'));
+    await waitFor(() => expect(screen.getByTestId('journey-screen')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('tab-Journey').props.accessibilityState).toMatchObject({
+      selected: true,
+    });
+
+    await fireEvent.press(screen.getByTestId('tab-Home'));
+    await waitFor(() => expect(screen.getByTestId('today-card')).toBeTruthy(), WAIT);
   });
 
   it('the Settings and Generate flow screens open above the tabs', async () => {

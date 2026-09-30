@@ -71,6 +71,8 @@ describe('§10.10 abandon a pending workout, driven from Home', () => {
 
     await waitFor(() => expect(screen.getByTestId('resume-card')).toBeTruthy(), WAIT_OPTS);
     await waitFor(() => expect(screen.getByTestId('abandon-button')).toBeTruthy(), WAIT_OPTS);
+    // An active session shows how far through it you are, on the hero itself.
+    expect(screen.getByTestId('resume-progress')).toBeTruthy();
 
     // --- A single tap alone must not destroy anything -------------------------------------
     await fireEvent.press(screen.getByTestId('abandon-button'));

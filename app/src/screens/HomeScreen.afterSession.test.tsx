@@ -3,7 +3,9 @@
  * zero-session and just-completed-a-session states, not just the happy middle"). Complements
  * `HomeScreen.dashboard.test.tsx` (zero-session). Drives the real store (generate -> start ->
  * logSet -> completeSession) directly rather than through the full Workout UI — this test's job
- * is Home's rendering of the result, not re-proving the workout loop (already covered elsewhere).
+ * is Today's rendering of the result, not re-proving the workout loop (already covered elsewhere).
+ * Lifetime counters, muscle balance and the calendar now live on Journey (see
+ * `JourneyScreen.afterSession.test.tsx`).
  */
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
@@ -69,8 +71,8 @@ function CompleteOneSession({ children }: { children: React.ReactNode }): React.
   return <>{children}</>;
 }
 
-describe('Home after a completed session', () => {
-  it('shows lifetime counters, muscle balance, and the calendar heatmap once there is data', async () => {
+describe('Today after a completed session', () => {
+  it("marks today's trained day in the week strip, with no counts of what didn't happen", async () => {
     render(
       <StoreProvider>
         <CompleteOneSession>
@@ -89,15 +91,17 @@ describe('Home after a completed session', () => {
       interval: 50,
     });
 
-    // Scoped to the counters card: a muscle-balance bucket can independently land on the same
-    // "1" text depending on which exercises the difficulty-eligible pool drew this session, and
-    // an unscoped query would then (correctly) fail on ambiguity rather than pin the wrong thing.
-    expect(screen.getByTestId('lifetime-counters')).toBeTruthy();
-    expect(within(screen.getByTestId('lifetime-counters')).getByText('1')).toBeTruthy(); // Sessions counter
-    expect(screen.getByTestId('muscle-balance')).toBeTruthy();
-    expect(screen.getByTestId('calendar-heatmap')).toBeTruthy();
+    // The strip carries today's trained marker (a 'full' session -> the full-body label), and
+    // is the only calendar Today shows; totals and the month grid belong to Journey.
+    const today = nowEngineClock().today;
+    const strip = screen.getByTestId('week-strip');
+    const cell = within(strip).getByTestId(`week-day-${today}`);
+    expect(cell.props.accessibilityLabel).toBe('Full-body workout — open Journey');
+    expect(screen.queryByTestId('lifetime-counters')).toBeNull();
+    expect(screen.queryByTestId('calendar-heatmap')).toBeNull();
+    expect(screen.queryByTestId('muscle-balance')).toBeNull();
 
-    // The zero-session first-session note must be gone now that a session exists.
-    expect(screen.queryByTestId('first-session-explanation')).toBeNull();
+    // Next Unlock still points somewhere concrete.
+    expect(screen.getByTestId('next-unlock-hero')).toBeTruthy();
   });
 });
