@@ -19,14 +19,15 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
 ### In progress
 - Phase B (Active Workout, DESIGN.md §5.7 + the components it renders). Increment plan (each its
   own commit, `npm run check` green at each):
-  - B1 shared components restyled to tokens (AnchorBadge, BandChip, BandPicker, FeedbackControls,
+  - [x] B1 (0e05c27) shared components restyled to tokens (AnchorBadge, BandChip, BandPicker, FeedbackControls,
     PinnedNote, DemoMedia, SpotifyControls, AbandonSessionButton -> Sheet), + tiny ui extensions
     (Icon names anchor/music/previous/video/external, Pips `filled` may be boolean[], Chip
-    `accessible` when labelled). NOW DOING THIS.
-  - B2 WorkoutScreen shell: hide native header, own top bar + SegmentedBar + section chip, paused
+    `accessible` when labelled).
+  - [x] B2 (this commit) WorkoutScreen shell: hide native header, own top bar + SegmentedBar + section chip, paused
     dim/PAUSED chip, paused-nudge Sheet, RootNavigator: legacyLightContent becomes opt-in per legacy
     screen (Workout opts out), goHome/reviewFromSummary tests move from header to screen.
-  - B3 reps hero + toast/haptics. B4 timed hero. B5 rest hero + Up next + Disclosure. B6 sweep
+  - B3 reps hero + toast/haptics (NOW: hero components below the shell are still old light-styled
+    until B3-B5 land). B4 timed hero. B5 rest hero + Up next + Disclosure. B6 sweep
     (no raw hex/fontSize/glyphs), status + backlog.
 
 ### Next (sequential — each phase is one agent run, several small commits)

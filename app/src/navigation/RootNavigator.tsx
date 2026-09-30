@@ -18,24 +18,41 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  */
 export default function RootNavigator(): React.JSX.Element {
   return (
-    <Stack.Navigator
-      initialRouteName="Tabs"
-      screenOptions={{ ...headerOptions, ...legacyLightContent }}
-    >
+    <Stack.Navigator initialRouteName="Tabs" screenOptions={headerOptions}>
       <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
-      <Stack.Screen name="Generate" component={GenerateScreen} options={{ title: 'GENERATE' }} />
-      <Stack.Screen name="Approval" component={ApprovalScreen} options={{ title: 'YOUR PLAN' }} />
+      {/* Screens not yet migrated to the design system opt in to the old light scene color via
+          `legacyLightContent`; each phase deletes it for the screens it migrates. */}
+      <Stack.Screen
+        name="Generate"
+        component={GenerateScreen}
+        options={{ title: 'GENERATE', ...legacyLightContent }}
+      />
+      <Stack.Screen
+        name="Approval"
+        component={ApprovalScreen}
+        options={{ title: 'YOUR PLAN', ...legacyLightContent }}
+      />
+      {/* Workout draws its own top bar (home / elapsed clock / pause / stop) and is migrated: no
+          native header, no legacy scene. The edge-swipe stays off so the bar is the way off it. */}
       <Stack.Screen
         name="Workout"
         component={WorkoutScreen}
-        options={{ title: 'WORKOUT', headerBackVisible: false, gestureEnabled: false }}
+        options={{ headerShown: false, gestureEnabled: false }}
       />
-      <Stack.Screen name="Summary" component={SummaryScreen} options={{ title: 'SUMMARY' }} />
-      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'SETTINGS' }} />
+      <Stack.Screen
+        name="Summary"
+        component={SummaryScreen}
+        options={{ title: 'SUMMARY', ...legacyLightContent }}
+      />
+      <Stack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ title: 'SETTINGS', ...legacyLightContent }}
+      />
       <Stack.Screen
         name="ExerciseDetail"
         component={ExerciseDetailScreen}
-        options={{ title: 'EXERCISE' }}
+        options={{ title: 'EXERCISE', ...legacyLightContent }}
       />
     </Stack.Navigator>
   );

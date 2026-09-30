@@ -288,7 +288,11 @@ describe('§10.4/§10.8 pause an active workout', () => {
       expect(entry.setLogs).toHaveLength(1);
     }, WAIT_OPTS);
     expect(sessionsRepo.getSession(db, sessionId)!.pausedAt).toBeNull();
-    expect(screen.queryByTestId('paused-completion-nudge')).toBeNull();
+    // The nudge is a sheet: it animates out, then unmounts.
+    await waitFor(
+      () => expect(screen.queryByTestId('paused-completion-nudge')).toBeNull(),
+      WAIT_OPTS,
+    );
   }, 20000);
 
   it('“stay paused” is a real answer: the set is still logged and the clock stays stopped', async () => {

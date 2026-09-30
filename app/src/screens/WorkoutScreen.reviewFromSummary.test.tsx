@@ -141,14 +141,10 @@ describe('reviewFromSummary: coming back to a fully-logged, not-yet-FINISHed wor
       </StoreProvider>,
     );
 
-    await waitFor(() => expect(navigation.setOptions).toHaveBeenCalled(), WAIT_OPTS);
-    const headerRightCall = navigation.setOptions.mock.calls
-      .filter(([opts]) => opts.headerRight != null)
-      .at(-1);
-    const { headerRight } = headerRightCall![0];
-    const headerView = await render(headerRight());
+    // The Progress / Done control lives in the screen's own bar now (the native header is hidden).
+    await waitFor(() => expect(screen.getByTestId('workout-scroll')).toBeTruthy(), WAIT_OPTS);
 
-    fireEvent.press(headerView.getByTestId('review-done'));
+    fireEvent.press(screen.getByTestId('review-done'));
     expect(navigation.replace).toHaveBeenCalledWith('Summary', { sessionId });
   }, 20000);
 
@@ -252,15 +248,11 @@ describe('the "Progress" header button — a real-time way to view the summary f
       </StoreProvider>,
     );
 
-    await waitFor(() => expect(navigation.setOptions).toHaveBeenCalled(), WAIT_OPTS);
-    const headerRightCall = navigation.setOptions.mock.calls
-      .filter(([opts]) => opts.headerRight != null)
-      .at(-1);
-    const { headerRight } = headerRightCall![0];
-    const headerView = await render(headerRight());
+    // The Progress / Done control lives in the screen's own bar now (the native header is hidden).
+    await waitFor(() => expect(screen.getByTestId('workout-scroll')).toBeTruthy(), WAIT_OPTS);
 
-    expect(headerView.queryByTestId('view-progress')).toBeNull();
-    expect(headerView.getByTestId('review-done')).toBeTruthy();
+    expect(screen.queryByTestId('view-progress')).toBeNull();
+    expect(screen.getByTestId('review-done')).toBeTruthy();
   }, 20000);
 
   it('outside review mode, a persistent "Progress" button replaces to Summary — available on any page of the active workout', async () => {
@@ -304,14 +296,10 @@ describe('the "Progress" header button — a real-time way to view the summary f
       </StoreProvider>,
     );
 
-    await waitFor(() => expect(navigation.setOptions).toHaveBeenCalled(), WAIT_OPTS);
-    const headerRightCall = navigation.setOptions.mock.calls
-      .filter(([opts]) => opts.headerRight != null)
-      .at(-1);
-    const { headerRight } = headerRightCall![0];
-    const headerView = await render(headerRight());
+    // The Progress / Done control lives in the screen's own bar now (the native header is hidden).
+    await waitFor(() => expect(screen.getByTestId('workout-scroll')).toBeTruthy(), WAIT_OPTS);
 
-    fireEvent.press(headerView.getByTestId('view-progress'));
+    fireEvent.press(screen.getByTestId('view-progress'));
     expect(navigation.replace).toHaveBeenCalledWith('Summary', { sessionId });
   }, 20000);
 });
