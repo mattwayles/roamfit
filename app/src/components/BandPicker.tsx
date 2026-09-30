@@ -21,11 +21,13 @@
  * fixed-size box — so the band control reads as one of that row's fields rather than a stray chip.
  */
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { BAND_ORDER } from '@roamfit/engine';
 import type { BandId } from '@roamfit/engine';
 import type { BandTension } from '@roamfit/store';
-import BandChip, { textColorOn } from './BandChip';
+import { colors, radius, space } from '../theme';
+import { Icon, PressableScale, Txt } from '../ui';
+import BandChip, { NEUTRAL_BAND_COLOR, textToneOn } from './BandChip';
 
 export default function BandPicker({
   band,
@@ -56,16 +58,22 @@ export default function BandPicker({
   const open = openProp ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
   const tension = tensions[band];
-  const background = tension?.color ?? '#e2e8f0';
+  // Band colours are user data (real-world tension colours), not a palette this file invents.
+  const background = tension?.color ?? NEUTRAL_BAND_COLOR;
   const label = tension?.label ?? band;
-  const textColor = textColorOn(background);
+  const tone = textToneOn(background);
   const isField = variant === 'field';
 
   return (
     <View style={isField ? [styles.fieldRoot, open && styles.fieldRootOpen] : styles.root}>
-      {isField && <Text style={styles.fieldLabel}>Band</Text>}
-      <Pressable
+      {isField && (
+        <Txt variant="caption" color="text3" upper style={styles.fieldLabel}>
+          Band
+        </Txt>
+      )}
+      <PressableScale
         testID={testID}
+        haptic="selection"
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
         accessibilityLabel={accessibilityLabel}
@@ -75,29 +83,35 @@ export default function BandPicker({
       >
         {isField ? (
           <>
-            <Text style={[styles.fieldTriggerText, { color: textColor }]} numberOfLines={1}>
+            <Txt variant="eyebrow" color={tone} numberOfLines={1} style={styles.fieldTriggerText}>
               {label}
-            </Text>
-            <Text style={[styles.fieldCaret, { color: textColor }]}>{open ? '▴' : '▾'}</Text>
+            </Txt>
+            <Icon name={open ? 'chevronUp' : 'chevronDown'} size={14} color={tone} />
           </>
         ) : (
           <>
             <BandChip band={band} tensions={tensions} />
-            <Text style={styles.caret}>{open ? '▴' : '▾'}</Text>
+            <Icon
+              name={open ? 'chevronUp' : 'chevronDown'}
+              size={18}
+              color="text2"
+              style={styles.caret}
+            />
           </>
         )}
-      </Pressable>
+      </PressableScale>
 
       {open && (
         <View style={[styles.options, isField && styles.optionsField]} testID={`${testID}-options`}>
           {BAND_ORDER.map((id) => {
             const optionTension = tensions[id];
-            const optionBackground = optionTension?.color ?? '#e2e8f0';
+            const optionBackground = optionTension?.color ?? NEUTRAL_BAND_COLOR;
             const selected = id === band;
             return (
-              <Pressable
+              <PressableScale
                 key={id}
                 testID={`${testID}-option-${id}`}
+                haptic="selection"
                 accessibilityRole="radio"
                 accessibilityState={{ selected }}
                 accessibilityLabel={optionTension?.label ?? id}
@@ -111,10 +125,10 @@ export default function BandPicker({
                   setOpen(false);
                 }}
               >
-                <Text style={[styles.optionText, { color: textColorOn(optionBackground) }]}>
+                <Txt variant="eyebrow" color={textToneOn(optionBackground)}>
                   {optionTension?.label ?? id}
-                </Text>
-              </Pressable>
+                </Txt>
+              </PressableScale>
             );
           })}
         </View>
@@ -127,47 +141,39 @@ const styles = StyleSheet.create({
   root: { alignSelf: 'flex-start' },
   // The chip is small on purpose; the tappable area around it is not. 44pt tall so it is a real
   // target found mid-set, at arm's length.
-  trigger: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingRight: 2 },
-  // Larger and bolder than a typical disclosure caret: this chip doubles as a card's only
-  // visible cue that the band is editable, so the arrow has to read as "tap me" at a glance.
-  caret: { fontSize: 18, fontWeight: '700', color: '#475569' },
+  trigger: { flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingRight: 2 },
+  // A visible caret: this chip doubles as a card's only cue that the band is editable, so the
+  // arrow has to read as "tap me" at a glance.
+  caret: { marginLeft: 4 },
 
-  // `field` variant — matches `ApprovalScreen`'s `field`/`fieldLabel`/`fieldInputRow` sizing
-  // exactly (60-wide box, same label treatment) so the band control reads as one more field in
-  // that row rather than a chip that wandered in. The trigger itself is filled with the band's
-  // colour, same as the chip it replaces, so the colour is still the thing a glance reaches for.
+  // `field` variant — matches `ApprovalScreen`'s `field`/`fieldLabel`/`fieldInputRow` sizing so the
+  // band control reads as one more field in that row rather than a chip that wandered in. The
+  // trigger itself is filled with the band's colour, so the colour is still what a glance reaches
+  // for.
   fieldRoot: {},
   // The open dropdown is an absolute overlay (below), so it needs to paint above whatever comes
   // after it in the card — the next card in the list, most often.
   fieldRootOpen: { zIndex: 20 },
-  fieldLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-    marginBottom: 2,
-  },
+  fieldLabel: { marginBottom: 2 },
   fieldTrigger: {
     height: 36,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingHorizontal: 6,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
-    // Same reason as `BandChip`'s: a pale user-chosen colour would otherwise vanish into the
-    // card behind it.
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(15, 23, 42, 0.18)',
+    // A very dark or very pale user-chosen colour would otherwise vanish into the card behind it.
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
   },
-  fieldTriggerText: { fontSize: 13, fontWeight: '800', flexShrink: 1 },
-  fieldCaret: { fontSize: 13, fontWeight: '800' },
+  fieldTriggerText: { flexShrink: 1, marginRight: 3 },
 
-  options: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingBottom: 4 },
+  options: { flexDirection: 'row', flexWrap: 'wrap', paddingBottom: space.xs, gap: 6 },
   // Positioned as an overlay rather than in-flow: the field variant sits at the card's right
   // edge, and `BAND_ORDER`'s five 44pt-minimum swatches in one row are wider than the space to
   // its left, let alone its right. Anchored to the trigger's right edge and given a bounded
   // width so it wraps onto two or three rows and stays fully on screen, however narrow the phone.
+  // No drop shadow on dark: a raised surface step and a border separate it from the card.
   optionsField: {
     position: 'absolute',
     top: '100%',
@@ -175,31 +181,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
     width: 190,
     paddingBottom: 0,
-    padding: 8,
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    padding: space.sm,
+    backgroundColor: colors.surface3,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    borderColor: colors.lineStrong,
     elevation: 6,
   },
   option: {
     minWidth: 44,
     minHeight: 44,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    // Same reason as BandChip's: a pale user-chosen colour would otherwise vanish into the card.
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(15, 23, 42, 0.18)',
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
   },
   // Colour is doing the identifying work here, so the current choice is marked by a ring rather
   // than by another colour — which would be indistinguishable from a band the user happened to
   // set to that shade.
-  optionSelected: { borderWidth: 3, borderColor: '#0f172a' },
-  optionText: { fontSize: 12, fontWeight: '800' },
+  optionSelected: { borderWidth: 3, borderColor: colors.text },
 });

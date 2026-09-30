@@ -6,28 +6,28 @@
  * because band brands differ, so this renders what the user says their bands are rather than a
  * palette invented here.
  *
+ * On the dark theme the chip itself is a neutral dark pill and the band's colour is a dot on it —
+ * the colour is data (real-world band tension colours, user-editable), the pill is chrome.
+ *
  * The label stays inside the chip. Colour alone would fail anyone who cannot distinguish two of
  * the user's bands — including the case where they have set two of them to similar colours — so
  * this is colour *plus* text, never colour instead of text.
  */
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import type { BandId } from '@roamfit/engine';
 import type { BandTension } from '@roamfit/store';
+import { colors, radius, space, type ColorName } from '../theme';
+import { Txt } from '../ui';
 
-/**
- * Whether to put dark or light text on this fill, computed from the colour rather than stored
- * beside it — the colour is user-editable, so a stored pairing would go wrong the moment someone
- * changed a fill without changing its partner. Uses the WCAG relative-luminance coefficients;
- * `#facc15` (yellow) lands dark-on-light and `#1f2937` (near-black) light-on-dark, which is the
- * behaviour this exists for.
- *
- * Falls back to dark text on anything it cannot parse, since an unreadable chip is worse than an
- * unfashionable one.
- */
-export function textColorOn(background: string): string {
+/** Which token to put on this fill: `ink` (dark) or `text` (light). Computed from the colour rather
+ *  than stored beside it — band colours are user data and user-editable, so a stored pairing would
+ *  go wrong the moment someone changed a fill without changing its partner. Uses the WCAG
+ *  relative-luminance coefficients; yellow lands `ink` and near-black lands `text`. Falls back to
+ *  `ink` on anything it cannot parse, since an unreadable chip is worse than an unfashionable one. */
+export function textToneOn(background: string): ColorName {
   const hex = /^#([0-9a-f]{6})$/i.exec(background.trim());
-  if (!hex) return '#0f172a';
+  if (!hex) return 'ink';
   const int = parseInt(hex[1], 16);
   const channel = (v: number): number => {
     const c = v / 255;
@@ -37,8 +37,16 @@ export function textColorOn(background: string): string {
     0.2126 * channel((int >> 16) & 0xff) +
     0.7152 * channel((int >> 8) & 0xff) +
     0.0722 * channel(int & 0xff);
-  return luminance > 0.45 ? '#0f172a' : '#ffffff';
+  return luminance > 0.45 ? 'ink' : 'text';
 }
+
+/** `textToneOn` resolved to the actual color. */
+export function textColorOn(background: string): string {
+  return colors[textToneOn(background)];
+}
+
+/** Fill used when a band has no tension record — a neutral, not a band color. */
+export const NEUTRAL_BAND_COLOR = colors.lineStrong;
 
 export default function BandChip({
   band,
@@ -49,32 +57,43 @@ export default function BandChip({
   tensions: Record<BandId, BandTension>;
 }): React.JSX.Element {
   const tension = tensions[band];
-  const background = tension?.color ?? '#e2e8f0';
+  const dot = tension?.color ?? NEUTRAL_BAND_COLOR;
   const label = tension?.label ?? band;
   return (
     <View
       testID={`band-chip-${band}`}
+      accessible
       accessibilityLabel={`Band ${label}`}
-      style={[styles.chip, { backgroundColor: background }]}
+      style={styles.chip}
     >
-      <Text style={[styles.text, { color: textColorOn(background) }]} numberOfLines={1}>
+      <View testID={`band-chip-${band}-dot`} style={[styles.dot, { backgroundColor: dot }]} />
+      <Txt variant="eyebrow" color="text" numberOfLines={1}>
         {label}
-      </Text>
+      </Txt>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   chip: {
-    minWidth: 30,
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    // A pale user-chosen colour would otherwise vanish into the card behind it.
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(15, 23, 42, 0.18)',
+    alignSelf: 'flex-start',
+    minHeight: 30,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.md,
+    paddingVertical: 6,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
-  text: { fontSize: 11, fontWeight: '800' },
+  // The dot is the band. A hairline ring keeps a very dark user colour visible on the dark chip.
+  dot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
+  },
 });

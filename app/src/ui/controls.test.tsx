@@ -166,6 +166,15 @@ describe('Pips', () => {
     expect(screen.getByLabelText('2 of 4 sets done')).toBeTruthy();
   });
 
+  it('takes a per-dot flag list for non-contiguous done sets (a skipped set stays empty)', async () => {
+    await render(<Pips testID="p" count={3} filled={[false, true, true]} current={0} />);
+    await ready('p');
+    expect(flat('p-0-dot').backgroundColor).toBe(colors.surface3);
+    expect(flat('p-1-dot').backgroundColor).toBe(colors.ember);
+    expect(flat('p-2-dot').backgroundColor).toBe(colors.ember);
+    expect(screen.getByLabelText('2 of 3 sets done')).toBeTruthy();
+  });
+
   it('a newly filled pip lands filled after a re-render', async () => {
     const { rerender } = await render(<Pips testID="p" count={3} filled={1} current={1} />);
     await ready('p');

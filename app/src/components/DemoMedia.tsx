@@ -40,8 +40,10 @@
  * nothing changes: opening "Demo" still loads the frame directly, same as before.
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { Keyboard, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Linking, StyleSheet, TextInput, View } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { colors, radius, space, type } from '../theme';
+import { Button, Card, Icon, PressableScale, Txt } from '../ui';
 import { buildSearchUrl, buildWatchUrl, isYouTubeUrl, resolveMediaTier } from '../lib/mediaLadder';
 import { getNetworkStatus } from '../lib/networkStatus';
 import { configureWorkoutAudioSession } from '../lib/workoutAudio';
@@ -244,22 +246,42 @@ export default function DemoMedia({
   };
 
   return (
-    <View>
-      <Pressable testID="demo-media-toggle" onPress={() => setOpen((o) => !o)}>
-        <Text style={styles.title}>{open ? '▾' : '▸'} Demo</Text>
-      </Pressable>
+    <Card padding="md">
+      <PressableScale
+        testID="demo-media-toggle"
+        accessibilityRole="button"
+        accessibilityLabel="Demo"
+        accessibilityState={{ expanded: open }}
+        style={styles.header}
+        onPress={() => setOpen((o) => !o)}
+      >
+        <View style={styles.headerTitle}>
+          <Icon name="video" size={16} color="gold" style={styles.headerIcon} />
+          <Txt variant="eyebrow" color="text2">
+            Demo
+          </Txt>
+        </View>
+        <Icon name={open ? 'chevronUp' : 'chevronDown'} size={18} color="text3" />
+      </PressableScale>
 
       {open && (
         <View style={styles.body} testID="demo-media-body">
           {needsLoadTap && !showEmbed && (
-            <Pressable
+            <PressableScale
               testID="demo-media-load"
+              accessibilityRole="button"
+              accessibilityLabel="Load video"
               style={[styles.mediaFrame, styles.loadPlaceholder]}
               onPress={() => setVideoLoadRequested(true)}
             >
-              <Text style={styles.loadTitle}>▶ Load video</Text>
-              <Text style={styles.loadSubtext}>On cellular — tap to load</Text>
-            </Pressable>
+              <Icon name="play" size={28} color="ember" />
+              <Txt variant="h2" style={styles.loadTitle}>
+                Load video
+              </Txt>
+              <Txt variant="caption" color="text3">
+                On cellular — tap to load
+              </Txt>
+            </PressableScale>
           )}
 
           {showEmbed && (
@@ -300,15 +322,26 @@ export default function DemoMedia({
               the useful action is "replace it", offered below — flagging your own pick would feed
               the demotion counter that ADR 0009 deliberately exempts user videos from. */}
           {showEmbed && ladder.tier === 'curated_embed' && (
-            <Pressable testID="demo-media-report" onPress={onReportIssue}>
-              <Text style={styles.reportLink}>This video is wrong or broken</Text>
-            </Pressable>
+            <Button
+              testID="demo-media-report"
+              label="This video is wrong or broken"
+              variant="quiet"
+              size="sm"
+              onPress={onReportIssue}
+            />
           )}
 
           {searchUrl && (
-            <Pressable testID="demo-media-search-link" onPress={() => Linking.openURL(searchUrl)}>
-              <Text style={styles.searchLink}>Watch a real person do this ↗</Text>
-            </Pressable>
+            <Button
+              testID="demo-media-search-link"
+              label="Watch a real person do this"
+              variant="secondary"
+              size="md"
+              icon="external"
+              iconRight
+              fullWidth
+              onPress={() => Linking.openURL(searchUrl)}
+            />
           )}
 
           {/* ADR 0009 — assign a video for this exercise. Sits with the search link because that
@@ -316,11 +349,11 @@ export default function DemoMedia({
               that is the only time the link above it exists and the only time the result is
               immediately visible. */}
           <View style={styles.assignBlock} testID="demo-media-assign">
-            <Text style={styles.assignLabel}>
+            <Txt variant="caption" color="text2">
               {userVideoId
                 ? 'Replace this exercise’s video'
                 : 'Use a specific video for this exercise'}
-            </Text>
+            </Txt>
             <View style={styles.assignRow}>
               <TextInput
                 testID="demo-media-url-input"
@@ -331,7 +364,9 @@ export default function DemoMedia({
                   if (urlError) setUrlError(null);
                 }}
                 placeholder="Paste a YouTube link"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.text3}
+                selectionColor={colors.ember}
+                keyboardAppearance="dark"
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
@@ -339,72 +374,75 @@ export default function DemoMedia({
                 onSubmitEditing={handleSubmitUrl}
                 onFocus={onInputFocus}
               />
-              <Pressable
+              <Button
                 testID="demo-media-url-save"
-                style={[styles.assignButton, draftUrl.trim() === '' && styles.assignButtonDisabled]}
+                label="Save"
+                variant="secondary"
+                size="md"
                 disabled={draftUrl.trim() === ''}
                 onPress={handleSubmitUrl}
-              >
-                <Text style={styles.assignButtonText}>Save</Text>
-              </Pressable>
+              />
             </View>
 
             {urlError && (
-              <Text testID="demo-media-url-error" style={styles.assignError}>
+              <Txt testID="demo-media-url-error" variant="caption" color="gold">
                 {urlError}
-              </Text>
+              </Txt>
             )}
 
             {userVideoId && (
-              <Pressable testID="demo-media-url-clear" onPress={onClearVideo}>
-                <Text style={styles.clearLink}>Remove my video for this exercise</Text>
-              </Pressable>
+              <Button
+                testID="demo-media-url-clear"
+                label="Remove my video for this exercise"
+                variant="quiet"
+                size="sm"
+                onPress={onClearVideo}
+              />
             )}
           </View>
         </View>
       )}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 14, fontWeight: '700', color: '#334155' },
-  body: { gap: 8, marginTop: 8 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 32,
+  },
+  headerTitle: { flexDirection: 'row', alignItems: 'center' },
+  headerIcon: { marginRight: space.sm },
+  body: { gap: space.md, marginTop: space.md },
   mediaFrame: {
     aspectRatio: 16 / 9,
-    borderRadius: 12,
+    borderRadius: radius.md,
     overflow: 'hidden',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.bg,
     maxHeight: 220, // §10.4: "never takes more than about a third of the screen"
   },
-  media: { flex: 1 },
-  loadPlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  loadTitle: { fontSize: 20, fontWeight: '700', color: '#334155' },
-  loadSubtext: { fontSize: 12, color: '#64748b', marginTop: 4 },
-  reportLink: { fontSize: 12, color: '#94a3b8', textDecorationLine: 'underline' },
-  assignBlock: { gap: 6, marginTop: 4 },
-  assignLabel: { fontSize: 12, color: '#64748b', fontWeight: '600' },
-  assignRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  assignInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    fontSize: 13,
-    color: '#0f172a',
-    minHeight: 44,
-  },
-  assignButton: {
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    backgroundColor: '#2563eb',
-    minHeight: 44,
+  media: { flex: 1, backgroundColor: colors.bg },
+  loadPlaceholder: {
+    alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
-  assignButtonDisabled: { backgroundColor: '#cbd5e1' },
-  assignButtonText: { fontSize: 13, fontWeight: '700', color: '#ffffff' },
-  assignError: { fontSize: 12, color: '#b45309' },
-  clearLink: { fontSize: 12, color: '#94a3b8', textDecorationLine: 'underline' },
-  searchLink: { fontSize: 13, color: '#2563eb', fontWeight: '600' },
+  loadTitle: { marginTop: space.xs },
+  assignBlock: { gap: space.sm, marginTop: space.xs },
+  assignRow: { flexDirection: 'row', gap: space.sm, alignItems: 'center' },
+  assignInput: {
+    ...type.small,
+    flex: 1,
+    color: colors.text,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.lg,
+    minHeight: 52,
+  },
 });

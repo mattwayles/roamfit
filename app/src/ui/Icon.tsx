@@ -32,6 +32,7 @@ export const iconMap = {
   swap: 'swap-horizontal',
   undo: 'arrow-undo',
   skip: 'play-skip-forward',
+  previous: 'play-skip-back',
   pause: 'pause',
   play: 'play',
   stop: 'stop',
@@ -64,6 +65,10 @@ export const iconMap = {
   barbell: 'barbell',
   leaf: 'leaf',
   water: 'water',
+  anchor: 'link',
+  music: 'musical-notes',
+  video: 'videocam',
+  external: 'open-outline',
   // movement patterns (Field Guide avatars)
   body: 'body',
   pulse: 'pulse',

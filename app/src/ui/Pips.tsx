@@ -9,7 +9,9 @@ import { useReduceMotion } from './useReduceMotion';
 
 export interface PipsProps {
   count: number;
-  filled: number;
+  /** How many dots are solid (the first N), or an explicit per-dot flag list when the done sets
+   *  are not contiguous (a skipped set in the middle stays an empty dot). */
+  filled: number | readonly boolean[];
   /** Zero-based index of the current set. */
   current?: number;
   color?: string;
@@ -91,18 +93,23 @@ export function Pips({
   style,
   testID = 'pips',
 }: PipsProps): React.JSX.Element {
+  const isFilled = (i: number) => (typeof filled === 'number' ? i < filled : filled[i] === true);
+  const doneCount =
+    typeof filled === 'number'
+      ? Math.min(filled, count)
+      : Array.from({ length: count }, (_, i) => isFilled(i)).filter(Boolean).length;
   return (
     <View
       testID={testID}
       accessible
-      accessibilityLabel={`${Math.min(filled, count)} of ${count} sets done`}
+      accessibilityLabel={`${doneCount} of ${count} sets done`}
       style={[styles.row, style]}
     >
       {Array.from({ length: count }, (_, i) => (
         <Pip
           key={i}
           testID={`${testID}-${i}`}
-          filled={i < filled}
+          filled={isFilled(i)}
           current={i === current}
           color={color}
           size={size}

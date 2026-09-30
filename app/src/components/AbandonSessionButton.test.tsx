@@ -1,8 +1,8 @@
 /**
- * The confirm step's layout, per variant. The `icon` variant sits in the Workout screen's fixed
- * `space-between` control row, where rendering the confirm box *in place of* the button stretched
- * the row and pushed the dialog off the right edge of the screen (real device report). It now
- * opens in a centered modal over the screen, leaving the row untouched underneath.
+ * The confirm step, per variant. Both variants confirm in a bottom `Sheet` over the screen and
+ * leave the trigger where it was (the `icon` variant sits in the Workout screen's top bar, where
+ * rendering the confirm box *in place of* the button once stretched the row and pushed the dialog
+ * off the right edge — real device report). The safe choice, "Keep going", is the primary button.
  *
  * (As in `BandChip.test.tsx`: under React 19 the render commits asynchronously, so each case
  * awaits a `waitFor` before touching `screen`.)
@@ -40,15 +40,22 @@ describe('AbandonSessionButton confirm step', () => {
     await waitFor(() => expect(screen.queryByTestId('abandon-confirm-row')).toBeNull(), WAIT_OPTS);
   });
 
-  it('text variant still confirms inline, replacing the link', async () => {
+  it('text variant confirms in the same sheet, and backdrop / "Keep going" both mean not yet', async () => {
     const onConfirm = jest.fn();
     render(<AbandonSessionButton onConfirm={onConfirm} />);
     await waitFor(() => expect(screen.getByTestId('abandon-button')).toBeTruthy(), WAIT_OPTS);
 
     fireEvent.press(screen.getByTestId('abandon-button'));
     await waitFor(() => expect(screen.getByTestId('abandon-confirm-row')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.queryByTestId('abandon-button')).toBeNull();
+    // The link stays put; the confirm is an overlay, not a replacement.
+    expect(screen.getByTestId('abandon-button')).toBeTruthy();
 
+    fireEvent.press(screen.getByTestId('abandon-sheet-backdrop'));
+    await waitFor(() => expect(screen.queryByTestId('abandon-confirm-row')).toBeNull(), WAIT_OPTS);
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    fireEvent.press(screen.getByTestId('abandon-button'));
+    await waitFor(() => expect(screen.getByTestId('abandon-confirm-yes')).toBeTruthy(), WAIT_OPTS);
     fireEvent.press(screen.getByTestId('abandon-confirm-yes'));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });

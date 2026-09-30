@@ -73,7 +73,12 @@ export function Chip({
     );
   }
   return (
-    <View testID={testID} accessibilityLabel={accessibilityLabel} style={containerStyle}>
+    <View
+      testID={testID}
+      accessible={accessibilityLabel != null}
+      accessibilityLabel={accessibilityLabel}
+      style={containerStyle}
+    >
       {body}
     </View>
   );

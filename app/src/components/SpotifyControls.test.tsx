@@ -376,7 +376,8 @@ describe('SpotifyControls browse sheet — Spotify\'s curated "fitness" feed', (
 
     await fireEvent.press(screen.getByTestId('spotify-browse-close'));
 
-    expect(screen.queryByTestId('spotify-browse-close')).toBeNull();
+    // The sheet animates out before it unmounts.
+    await waitFor(() => expect(screen.queryByTestId('spotify-browse-close')).toBeNull());
   });
 
   it('shows the error inline and keeps the sheet open rather than failing silently', async () => {

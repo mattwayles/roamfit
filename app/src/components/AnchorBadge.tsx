@@ -12,8 +12,8 @@
  * teaches the eye to skip the one case that matters.
  */
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 import type { Anchor } from '@roamfit/data';
+import { Chip } from '../ui';
 
 /**
  * Only the anchors that need a fixed point in the world. The three band heights are the ones this
@@ -52,41 +52,21 @@ export default function AnchorBadge({
   if (!label) return null;
   const altLabel = anchorLabel(anchorAlt);
   const text = altLabel ? `${label} or ${altLabel.toLowerCase()}` : label;
+  // Informational, not a warning: a setup fact, not something the user got wrong (invariant 4) —
+  // so a sky-tinted chip, never an alarm color. The link icon carries the meaning at a glance,
+  // which is what a control read at arm's length mid-set needs; the words are there for everyone
+  // the icon does not reach. The accessible name reads as one phrase.
   return (
-    <View style={styles.badge} testID={testID}>
-      {/* Carries the meaning on its own at a glance, which is what a control read at arm's length
-          mid-set needs; the word is there for everyone the glyph does not reach. */}
-      <Text style={styles.glyph}>⚓</Text>
-      <Text
-        style={styles.label}
-        // Read as one phrase rather than as "anchor emoji, low anchor".
-        accessibilityLabel={
-          altLabel
-            ? `Needs a ${label.toLowerCase()} or a ${altLabel.toLowerCase()}`
-            : `Needs a ${label.toLowerCase()}`
-        }
-      >
-        {text}
-      </Text>
-    </View>
+    <Chip
+      testID={testID}
+      tone="sky"
+      icon="anchor"
+      label={text}
+      accessibilityLabel={
+        altLabel
+          ? `Needs a ${label.toLowerCase()} or a ${altLabel.toLowerCase()}`
+          : `Needs a ${label.toLowerCase()}`
+      }
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  // Informational, not a warning: this is a setup fact, not something the user got wrong
-  // (invariant 4). Same slate the other read-only chips on the workout screen use.
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: '#f1f5f9',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  glyph: { fontSize: 13 },
-  label: { fontSize: 13, fontWeight: '700', color: '#334155' },
-});

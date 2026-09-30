@@ -8,11 +8,11 @@
  * no Spotify (or a build made before `expo prebuild` ran with a client ID) sees no trace of this
  * feature rather than a button that cannot work.
  *
- * **Shape: one row, 44pt targets.** It sits directly under the elapsed timer, above the exercise
- * hero, and the hero is what §10.4 says must dominate this screen — so this cannot grow into a
- * player. It is four transport buttons and a line of text, sized like the pause/mute/stop group it
- * sits beneath, and it never takes more than one row plus an error line — the browse sheet below is
- * a `Modal`, not a fifth thing competing for room in that row.
+ * **Shape: one compact dark pill row, 44pt targets.** It sits directly under the progress bar,
+ * above the exercise hero, and the hero is what §10.4 says must dominate this screen — so this
+ * cannot grow into a player. It is four transport buttons and a line of text, and it never takes
+ * more than one row plus an error line — the browse view below is a bottom `Sheet`, not a fifth
+ * thing competing for room in that row. Spotify's green appears only as the brand dot.
  *
  * **Why the whole thing is one tap away rather than always live.** Connecting can foreground the
  * Spotify app (see `connectSpotify` — waking a suspended Spotify is the ordinary path, not an
@@ -32,7 +32,7 @@
  * (`playSpotifyContent`) — both over App Remote, no further network call of ours either way.
  */
 import React, { useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, View, useWindowDimensions } from 'react-native';
 import {
   getContentChildren,
   getFitnessContent,
@@ -40,6 +40,8 @@ import {
   useSpotifyPlayer,
   type SpotifyContentItem,
 } from '../lib/spotifyRemote';
+import { colors, radius, space } from '../theme';
+import { Icon, IconButton, PressableScale, Sheet, Txt } from '../ui';
 
 /** One level of the browse stack: the items shown, and the label its header reads. The root level
  *  is always `'Workout picks'`; every level after that is named for whatever item was drilled into
@@ -64,6 +66,7 @@ export default function SpotifyControls(): React.JSX.Element | null {
     skipPrevious,
   } = useSpotifyPlayer();
 
+  const { height } = useWindowDimensions();
   const [browseStack, setBrowseStack] = useState<BrowseLevel[]>([]);
   const [browseLoading, setBrowseLoading] = useState(false);
   const [browseError, setBrowseError] = useState<string | null>(null);
@@ -119,28 +122,29 @@ export default function SpotifyControls(): React.JSX.Element | null {
   if (!available) return null;
 
   const error = lastError ? (
-    <Text testID="spotify-error" style={styles.error}>
+    <Txt testID="spotify-error" variant="caption" color="text2" style={styles.error}>
       {lastError}
-    </Text>
+    </Txt>
   ) : null;
 
   if (connectionState !== 'connected') {
     const connecting = connectionState === 'connecting';
     return (
       <View testID="spotify-controls" style={styles.block}>
-        <Pressable
+        <PressableScale
           testID="spotify-connect"
           accessibilityRole="button"
           accessibilityLabel="Connect Spotify"
           accessibilityState={{ disabled: connecting }}
           disabled={connecting}
-          style={[styles.connectButton, connecting && styles.connectButtonBusy]}
+          style={[styles.pill, styles.connectPill, connecting && styles.connectBusy]}
           onPress={connect}
         >
-          <Text style={styles.connectText}>
-            {connecting ? 'Connecting to Spotify…' : '♫  Connect Spotify'}
-          </Text>
-        </Pressable>
+          <BrandDot />
+          <Txt variant="bodyStrong" color="text" style={styles.connectText}>
+            {connecting ? 'Connecting to Spotify…' : 'Connect Spotify'}
+          </Txt>
+        </PressableScale>
         {error}
       </View>
     );
@@ -148,234 +152,192 @@ export default function SpotifyControls(): React.JSX.Element | null {
 
   return (
     <View testID="spotify-controls" style={styles.block}>
-      <View style={styles.row}>
+      <View style={[styles.pill, styles.row]}>
+        <BrandDot />
         {/* Flexible and clipped rather than wrapping: a long title must not be allowed to push
             the transport buttons off the row or grow this block to two rows. */}
         <View style={styles.trackBox}>
-          <Text testID="spotify-track" style={styles.trackName} numberOfLines={1}>
+          <Txt testID="spotify-track" variant="small" color="text" numberOfLines={1}>
             {track?.name ?? 'Connected to Spotify'}
-          </Text>
+          </Txt>
           {track != null && (
-            <Text testID="spotify-artist" style={styles.trackArtist} numberOfLines={1}>
+            <Txt testID="spotify-artist" variant="caption" color="text2" numberOfLines={1}>
               {track.artist}
-            </Text>
+            </Txt>
           )}
         </View>
 
-        <Pressable
+        <IconButton
           testID="spotify-browse"
-          accessibilityRole="button"
+          icon="barbell"
+          variant="plain"
+          tone="text2"
           accessibilityLabel="Browse Spotify's workout picks"
-          style={styles.iconButton}
           onPress={openBrowse}
-        >
-          <Text style={styles.iconText}>🏋</Text>
-        </Pressable>
-
-        <Pressable
+        />
+        <IconButton
           testID="spotify-previous"
-          accessibilityRole="button"
+          icon="previous"
+          variant="plain"
+          tone="text"
           accessibilityLabel="Previous track"
-          accessibilityState={{ disabled: !canSkipPrevious }}
           disabled={!canSkipPrevious}
-          style={[styles.iconButton, !canSkipPrevious && styles.iconButtonDisabled]}
           onPress={skipPrevious}
-        >
-          <Text style={[styles.iconText, !canSkipPrevious && styles.iconTextDisabled]}>⏮</Text>
-        </Pressable>
-
-        <Pressable
+        />
+        <IconButton
           testID="spotify-play-pause"
-          accessibilityRole="button"
+          icon={isPlaying ? 'pause' : 'play'}
+          tone="text"
           accessibilityLabel={isPlaying ? 'Pause Spotify' : 'Play Spotify'}
-          style={[styles.iconButton, styles.playButton]}
           onPress={togglePlay}
-        >
-          <Text style={[styles.iconText, styles.playText]}>{isPlaying ? '❚❚' : '▶'}</Text>
-        </Pressable>
-
-        <Pressable
+        />
+        <IconButton
           testID="spotify-next"
-          accessibilityRole="button"
+          icon="skip"
+          variant="plain"
+          tone="text"
           accessibilityLabel="Next track"
-          accessibilityState={{ disabled: !canSkipNext }}
           disabled={!canSkipNext}
-          style={[styles.iconButton, !canSkipNext && styles.iconButtonDisabled]}
           onPress={skipNext}
-        >
-          <Text style={[styles.iconText, !canSkipNext && styles.iconTextDisabled]}>⏭</Text>
-        </Pressable>
+        />
       </View>
       {error}
 
       {/* The browse sheet — a name search over Spotify's public playlists, not the user's own
-          library (the SDK has no way to list that; see the file header). Same dismissing-backdrop-
-          behind-a-tap-swallowing-dialog shape `WorkoutScreen`'s day-marker popup uses. */}
-      <Modal visible={browsing} transparent animationType="fade" onRequestClose={closeBrowse}>
-        <Pressable style={styles.browseBackdrop} onPress={closeBrowse}>
-          <Pressable style={styles.browseDialog} onPress={() => {}}>
-            <View style={styles.browseHeader}>
-              {browseStack.length > 1 ? (
-                <Pressable
-                  testID="spotify-browse-back"
-                  accessibilityRole="button"
-                  accessibilityLabel="Back"
-                  onPress={goBack}
-                  hitSlop={8}
+          library (the SDK has no way to list that; see the file header). */}
+      <Sheet visible={browsing} onClose={closeBrowse} testID="spotify-browse-sheet">
+        <View style={styles.browseHeader}>
+          {browseStack.length > 1 ? (
+            <IconButton
+              testID="spotify-browse-back"
+              icon="back"
+              variant="plain"
+              accessibilityLabel="Back"
+              onPress={goBack}
+            />
+          ) : (
+            <View style={styles.browseHeaderSpacer} />
+          )}
+          <Txt variant="h2" numberOfLines={1} style={styles.browseHeaderTitle}>
+            {currentLevel?.title ?? 'Workout picks'}
+          </Txt>
+          <IconButton
+            testID="spotify-browse-close"
+            icon="close"
+            variant="plain"
+            accessibilityLabel="Close"
+            onPress={closeBrowse}
+          />
+        </View>
+
+        {browseError && (
+          <Txt testID="spotify-browse-error" variant="caption" color="text2" style={styles.error}>
+            {browseError}
+          </Txt>
+        )}
+
+        {browseLoading ? (
+          <Txt testID="spotify-browse-loading" variant="small" color="text2" style={styles.empty}>
+            Loading…
+          </Txt>
+        ) : currentLevel && currentLevel.items.length === 0 && !browseError ? (
+          <Txt variant="small" color="text2" style={styles.empty}>
+            No workout picks available right now.
+          </Txt>
+        ) : (
+          <FlatList
+            data={currentLevel?.items ?? []}
+            style={{ maxHeight: height * 0.55 }}
+            keyExtractor={(item) => item.identifier}
+            renderItem={({ item }) => (
+              <View style={styles.browseRow}>
+                <PressableScale
+                  testID={`spotify-browse-item-${item.identifier}`}
+                  style={styles.browseRowMain}
+                  onPress={() => (item.isPlayable ? play(item) : drillIn(item))}
                 >
-                  <Text style={styles.browseHeaderChevron}>‹</Text>
-                </Pressable>
-              ) : (
-                <View style={styles.browseHeaderChevronSpacer} />
-              )}
-              <Text style={styles.browseHeaderTitle} numberOfLines={1}>
-                {currentLevel?.title ?? 'Workout picks'}
-              </Text>
-              <Pressable
-                testID="spotify-browse-close"
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-                onPress={closeBrowse}
-                hitSlop={8}
-              >
-                <Text style={styles.browseHeaderClose}>×</Text>
-              </Pressable>
-            </View>
-
-            {browseError && (
-              <Text testID="spotify-browse-error" style={styles.error}>
-                {browseError}
-              </Text>
-            )}
-
-            {browseLoading ? (
-              <Text testID="spotify-browse-loading" style={styles.browseEmptyText}>
-                Loading…
-              </Text>
-            ) : currentLevel && currentLevel.items.length === 0 && !browseError ? (
-              <Text style={styles.browseEmptyText}>No workout picks available right now.</Text>
-            ) : (
-              <FlatList
-                data={currentLevel?.items ?? []}
-                keyExtractor={(item) => item.identifier}
-                renderItem={({ item }) => (
-                  <View style={styles.browseRow}>
-                    <Pressable
-                      testID={`spotify-browse-item-${item.identifier}`}
-                      style={styles.browseRowMain}
-                      onPress={() => (item.isPlayable ? play(item) : drillIn(item))}
-                    >
-                      <Text style={styles.browseRowTitle} numberOfLines={1}>
-                        {item.title ?? 'Untitled'}
-                      </Text>
-                      {item.subtitle && (
-                        <Text style={styles.browseRowSubtitle} numberOfLines={1}>
-                          {item.subtitle}
-                        </Text>
-                      )}
-                    </Pressable>
-                    {/* Every search result is both playable and a container (a playlist, always),
-                        so both actions need their own tap target — play it now, or look inside
-                        first — rather than the chevron replacing the row's own. */}
-                    {item.isContainer && (
-                      <Pressable
-                        testID={`spotify-browse-drill-${item.identifier}`}
-                        accessibilityRole="button"
-                        accessibilityLabel={`See inside ${item.title ?? 'this item'}`}
-                        style={styles.browseRowChevronButton}
-                        onPress={() => drillIn(item)}
-                        hitSlop={8}
-                      >
-                        <Text style={styles.browseHeaderChevron}>›</Text>
-                      </Pressable>
-                    )}
-                  </View>
+                  <Txt variant="h3" numberOfLines={1}>
+                    {item.title ?? 'Untitled'}
+                  </Txt>
+                  {item.subtitle && (
+                    <Txt variant="caption" color="text2" numberOfLines={1}>
+                      {item.subtitle}
+                    </Txt>
+                  )}
+                </PressableScale>
+                {/* Every search result is both playable and a container (a playlist, always),
+                    so both actions need their own tap target — play it now, or look inside
+                    first — rather than the chevron replacing the row's own. */}
+                {item.isContainer && (
+                  <IconButton
+                    testID={`spotify-browse-drill-${item.identifier}`}
+                    icon="chevronRight"
+                    variant="plain"
+                    tone="text2"
+                    accessibilityLabel={`See inside ${item.title ?? 'this item'}`}
+                    onPress={() => drillIn(item)}
+                  />
                 )}
-              />
+              </View>
             )}
-          </Pressable>
-        </Pressable>
-      </Modal>
+          />
+        )}
+      </Sheet>
     </View>
   );
 }
 
-/** Spotify's brand green, used only as an accent on the two controls that are about Spotify
- *  specifically (connect, and play/pause). The rest of the row stays in this screen's slate
- *  palette — the exercise is the subject of this page, not the music. */
+/** Spotify's brand green, used only as the logo dot — the one place the color is about Spotify
+ *  specifically (DESIGN.md §5.11). Everything else on the row is this app's own palette. */
 const SPOTIFY_GREEN = '#1db954';
 
+function BrandDot(): React.JSX.Element {
+  return (
+    <View style={styles.brandDot}>
+      <Icon name="music" size={14} color="ink" />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  block: { gap: 6 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  // flexShrink with a zero basis, not flex: 1 — the buttons are fixed-width and must win every
-  // contest for space; this box takes exactly what is left.
-  trackBox: { flexGrow: 1, flexShrink: 1, flexBasis: 0 },
-  trackName: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
-  trackArtist: { fontSize: 12, color: '#64748b' },
-  connectButton: {
-    minHeight: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: SPOTIFY_GREEN,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  connectButtonBusy: { borderColor: '#cbd5e1' },
-  connectText: { fontSize: 14, fontWeight: '700', color: '#166534' },
-  // Same 44pt footprint as the session icon buttons on the timer row above, so the two groups
-  // read as one control area rather than two competing ones.
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#e2e8f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconText: { fontSize: 16, fontWeight: '800', color: '#334155', lineHeight: 20 },
-  playButton: { backgroundColor: SPOTIFY_GREEN },
-  playText: { color: '#fff' },
-  // Visibly unavailable rather than absent: nothing shifts under a thumb already reaching for it
-  // when an advert ends and skipping becomes possible again.
-  iconButtonDisabled: { backgroundColor: '#f1f5f9' },
-  iconTextDisabled: { color: '#cbd5e1' },
-  error: { fontSize: 12, color: '#64748b' },
-  browseBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.45)',
-    justifyContent: 'flex-end',
-  },
-  browseDialog: {
-    maxHeight: '70%',
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingTop: 12,
-    paddingBottom: 24,
-    paddingHorizontal: 16,
-  },
-  browseHeader: {
+  block: { gap: space.xs },
+  pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingBottom: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingVertical: space.xs,
+    paddingLeft: space.sm,
+    paddingRight: space.xs,
   },
-  browseHeaderChevron: { fontSize: 22, fontWeight: '700', color: '#334155', width: 24 },
-  browseHeaderChevronSpacer: { width: 24 },
-  browseHeaderTitle: { flex: 1, fontSize: 15, fontWeight: '700', color: '#0f172a' },
-  browseHeaderClose: { fontSize: 20, fontWeight: '700', color: '#64748b', width: 24 },
-  browseEmptyText: { fontSize: 13, color: '#64748b', paddingVertical: 16 },
+  row: { gap: space.xs },
+  // flexShrink with a zero basis, not flex: 1 — the buttons are fixed-width and must win every
+  // contest for space; this box takes exactly what is left.
+  trackBox: { flexGrow: 1, flexShrink: 1, flexBasis: 0, marginLeft: space.xs },
+  connectPill: { minHeight: 44, paddingRight: space.lg },
+  connectBusy: { opacity: 0.6 },
+  connectText: { marginLeft: space.md },
+  brandDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: SPOTIFY_GREEN,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  error: { paddingHorizontal: space.sm },
+  browseHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: space.sm },
+  browseHeaderSpacer: { width: 44, height: 44 },
+  browseHeaderTitle: { flex: 1, textAlign: 'center' },
+  empty: { paddingVertical: space.lg },
   browseRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 44,
+    minHeight: 52,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: colors.line,
   },
-  browseRowMain: { flex: 1, paddingVertical: 8 },
-  browseRowTitle: { fontSize: 14, fontWeight: '600', color: '#0f172a' },
-  browseRowSubtitle: { fontSize: 12, color: '#64748b' },
-  browseRowChevronButton: { paddingLeft: 8 },
+  browseRowMain: { flex: 1, paddingVertical: space.md },
 });
