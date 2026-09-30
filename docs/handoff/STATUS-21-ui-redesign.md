@@ -9,10 +9,12 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
 - [x] Design spec written — `docs/DESIGN.md`
 - [x] A1 deps installed via `npx expo install` (react-native-svg 15.15.4, @expo/vector-icons 15.0.2,
   @expo-google-fonts/barlow + barlow-condensed 0.4.1, @react-navigation/bottom-tabs 7.20.0)
+- [x] A2 theme tokens `app/src/theme/` (colors, typography, layout, fonts, navTheme) + tests — 590daee
+- [x] A3 fonts via `useFonts` in App.tsx, app.json dark/splash/bg, `app/__mocks__/expo-font.js`, `lib/hypeCopy.ts` + tests
 
 ### In progress
 - Phase A (foundation), running as small commits: deps -> theme -> fonts/app.json -> hypeCopy ->
-  ui primitives -> nav shell. Next action: fonts in App.tsx + app.json dark/splash.
+  ui primitives -> nav shell. Next action: ui primitives in `app/src/ui/` (after that: nav shell).
 
 ### Next (sequential — each phase is one agent run, several small commits)
 - **A. Foundation** — deps (`npx expo install react-native-svg @expo/vector-icons
