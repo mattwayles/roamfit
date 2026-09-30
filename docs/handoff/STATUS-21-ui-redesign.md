@@ -24,8 +24,12 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
   toast, `WorkoutScreen.presentation.test.tsx` — 959dac4, polish a440480
 
 ### In progress
-- Phase C (Today + Journey, DESIGN.md §5.1, §5.2, §5.11 disclaimer gate). Not started. Phase B
-  (Active Workout) is complete and `npm run check` is green.
+- Phase C (Today + Journey). Plan, in commit order: C1 shared foundation (`lib/dayMarkers.ts`,
+  `lib/useDashboardData.ts` shared loader hook, `dashboard.ts` week-strip + hero-progress helpers,
+  `DayCell` / `RungTrack` components, TabBar hides itself when the focused screen sets
+  `tabBarStyle.display = 'none'` so the disclaimer gate is truly blocking); C2 Journey tab
+  (`screens/JourneyScreen.tsx`, `TAB_META` row, `<Tab.Screen>`, Journey tests); C3 HomeScreen ->
+  Today rewrite (hero, tiles, week strip, next unlock, gate) + move/retire old Home tests.
 
 ### Next (sequential — each phase is one agent run, several small commits)
 - **C. Today + Journey** (§5.1, §5.2, §5.11 disclaimer gate) — split HomeScreen, add Journey tab,
