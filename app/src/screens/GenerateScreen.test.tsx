@@ -52,43 +52,41 @@ function renderScreen() {
 }
 
 describe('§10.2 Generate screen', () => {
-  it('is closed by default, showing only the current value', async () => {
+  it('lays every length out up front, with the current one selected', async () => {
     renderScreen();
     await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
 
-    // The list is not rendered until the field is opened — that is the point of a drop-down.
-    expect(screen.queryByTestId('time-picker-list')).toBeNull();
-    expect(screen.queryByTestId('time-picker-option-90')).toBeNull();
-    // ...but the current choice is legible without opening anything.
-    expect(screen.getByText('30 min')).toBeTruthy();
-    expect(screen.getByTestId('time-picker').props.accessibilityState.expanded).toBe(false);
-  });
-
-  it('opening the field lists every length, 90 and 120 included', async () => {
-    renderScreen();
-    await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
-    fireEvent.press(screen.getByTestId('time-picker'));
-
-    await waitFor(() => expect(screen.getByTestId('time-picker-list')).toBeTruthy(), WAIT_OPTS);
+    // No drop-down to open (ADR 0013's 90/120 included): every option is on screen from the start.
     for (const minutes of [15, 20, 30, 45, 60, 90, 120]) {
       expect(screen.getByTestId(`time-picker-option-${minutes}`)).toBeTruthy();
     }
-    expect(screen.getByTestId('time-picker').props.accessibilityState.expanded).toBe(true);
+    expect(screen.queryByTestId('time-picker-list')).toBeNull();
+    // ...and the current choice (the 30-minute default) is marked on its own option.
+    expect(screen.getByTestId('time-picker-option-30').props.accessibilityState.selected).toBe(
+      true,
+    );
+    expect(screen.getByTestId('time-picker-option-45').props.accessibilityState.selected).toBe(
+      false,
+    );
+    expect(screen.getByTestId('generate-recap').props.children).toBe('30 min · Full body · Medium');
   });
 
-  it('choosing an option sets it and closes the list', async () => {
+  it('choosing an option sets it, moves the selection and updates the recap', async () => {
     const { navigation, getDb } = renderScreen();
     await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
 
-    fireEvent.press(screen.getByTestId('time-picker'));
+    fireEvent.press(screen.getByTestId('time-picker-option-45'));
     await waitFor(
-      () => expect(screen.getByTestId('time-picker-option-45')).toBeTruthy(),
+      () =>
+        expect(screen.getByTestId('time-picker-option-45').props.accessibilityState.selected).toBe(
+          true,
+        ),
       WAIT_OPTS,
     );
-    fireEvent.press(screen.getByTestId('time-picker-option-45'));
-
-    await waitFor(() => expect(screen.queryByTestId('time-picker-list')).toBeNull(), WAIT_OPTS);
-    expect(screen.getByText('45 min')).toBeTruthy();
+    expect(screen.getByTestId('time-picker-option-30').props.accessibilityState.selected).toBe(
+      false,
+    );
+    expect(screen.getByTestId('generate-recap').props.children).toBe('45 min · Full body · Medium');
 
     fireEvent.press(screen.getByTestId('generate-button'));
     await waitFor(() => expect(navigation.replace).toHaveBeenCalled(), WAIT_OPTS);
@@ -96,58 +94,92 @@ describe('§10.2 Generate screen', () => {
     expect(sessionsRepo.getSession(getDb(), sessionId)!.targetMinutes).toBe(45);
   });
 
-  it('only one drop-down is open at a time', async () => {
-    renderScreen();
-    await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
-
-    fireEvent.press(screen.getByTestId('time-picker'));
-    await waitFor(() => expect(screen.getByTestId('time-picker-list')).toBeTruthy(), WAIT_OPTS);
-
-    fireEvent.press(screen.getByTestId('focus-picker'));
-    await waitFor(() => expect(screen.getByTestId('focus-picker-list')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.queryByTestId('time-picker-list')).toBeNull();
-  });
-
-  it('Focus and Difficulty are drop-downs too, with human labels rather than enum values', async () => {
+  it('each single-choice control has exactly one selected option', async () => {
     renderScreen();
     await waitFor(() => expect(screen.getByTestId('focus-picker')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.getByTestId('difficulty-picker')).toBeTruthy();
-    // Closed, the fields already read as words.
-    expect(screen.getByText('Full body')).toBeTruthy();
-    expect(screen.getByText('Medium')).toBeTruthy();
 
-    fireEvent.press(screen.getByTestId('focus-picker'));
+    fireEvent.press(screen.getByTestId('focus-picker-option-legs'));
     await waitFor(
-      () => expect(screen.getByTestId('focus-picker-option-abs')).toBeTruthy(),
+      () =>
+        expect(
+          screen.getByTestId('focus-picker-option-legs').props.accessibilityState.selected,
+        ).toBe(true),
       WAIT_OPTS,
     );
+    for (const other of ['upper', 'abs', 'full', 'cardio']) {
+      expect(
+        screen.getByTestId(`focus-picker-option-${other}`).props.accessibilityState.selected,
+      ).toBe(false);
+    }
+
+    fireEvent.press(screen.getByTestId('difficulty-picker-option-hard'));
+    await waitFor(
+      () =>
+        expect(
+          screen.getByTestId('difficulty-picker-option-hard').props.accessibilityState.selected,
+        ).toBe(true),
+      WAIT_OPTS,
+    );
+    expect(
+      screen.getByTestId('difficulty-picker-option-medium').props.accessibilityState.selected,
+    ).toBe(false);
+  });
+
+  it('Focus and Difficulty read as words, not enum values, and Difficulty is a real request', async () => {
+    const { navigation, getDb } = renderScreen();
+    await waitFor(() => expect(screen.getByTestId('focus-picker')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByTestId('difficulty-picker')).toBeTruthy();
+    // Every label is legible without opening anything, each focus with its flavor line.
+    expect(screen.getByText('Full body')).toBeTruthy();
+    expect(screen.getByText('Medium')).toBeTruthy();
     expect(screen.getByText('Core')).toBeTruthy();
+    expect(screen.getByText('Anti-everything core')).toBeTruthy();
     expect(screen.queryByText('abs')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('difficulty-picker-option-easy'));
+    await waitFor(
+      () =>
+        expect(
+          screen.getByTestId('difficulty-picker-option-easy').props.accessibilityState.selected,
+        ).toBe(true),
+      WAIT_OPTS,
+    );
+    fireEvent.press(screen.getByTestId('generate-button'));
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalled(), WAIT_OPTS);
+    const { sessionId } = navigation.replace.mock.calls[0][1] as { sessionId: string };
+    expect(sessionsRepo.getSession(getDb(), sessionId)!.difficulty).toBe('easy');
   });
 
   it('track 14: Cardio is a selectable focus, listed after the muscle-group focuses', async () => {
     renderScreen();
     await waitFor(() => expect(screen.getByTestId('focus-picker')).toBeTruthy(), WAIT_OPTS);
-    fireEvent.press(screen.getByTestId('focus-picker'));
 
-    await waitFor(
-      () => expect(screen.getByTestId('focus-picker-option-cardio')).toBeTruthy(),
-      WAIT_OPTS,
-    );
+    // Last in the grid, so the four muscle-group tiles keep their positions.
     expect(screen.getByText('Cardio Only')).toBeTruthy();
+    expect(screen.getByText('Heart rate up')).toBeTruthy();
+    const order = screen
+      .getAllByTestId(/^focus-picker-option-/)
+      .map((n) => n.props.testID as string);
+    expect(order[order.length - 1]).toBe('focus-picker-option-cardio');
 
     fireEvent.press(screen.getByTestId('focus-picker-option-cardio'));
-    await waitFor(() => expect(screen.queryByTestId('focus-picker-list')).toBeNull(), WAIT_OPTS);
-    // The closed field now reads "Cardio Only", confirming the selection round-tripped rather than
-    // just closing the list.
-    expect(screen.getByText('Cardio Only')).toBeTruthy();
+    await waitFor(
+      () =>
+        expect(
+          screen.getByTestId('focus-picker-option-cardio').props.accessibilityState.selected,
+        ).toBe(true),
+      WAIT_OPTS,
+    );
+    expect(screen.getByTestId('generate-recap').props.children).toContain('Cardio Only');
   });
 
-  it('track 19: the cardio add-on is an unticked checkbox that generates cardio between strength work', async () => {
+  it('track 19: the cardio add-on is an off switch that generates cardio between strength work', async () => {
     const { navigation, getDb } = renderScreen();
     await waitFor(() => expect(screen.getByTestId('cardio-addon-toggle')).toBeTruthy(), WAIT_OPTS);
     expect(screen.getByTestId('cardio-addon-toggle').props.accessibilityState.checked).toBe(false);
-    expect(screen.getByTestId('cardio-addon-checkbox').props.children).toBe('');
+    expect(screen.getByTestId('cardio-addon-checkbox').props.accessibilityState.checked).toBe(
+      false,
+    );
 
     fireEvent.press(screen.getByTestId('cardio-addon-toggle'));
     await waitFor(
@@ -183,23 +215,16 @@ describe('§10.2 Generate screen', () => {
       WAIT_OPTS,
     );
 
-    fireEvent.press(screen.getByTestId('focus-picker'));
-    await waitFor(
-      () => expect(screen.getByTestId('focus-picker-option-cardio')).toBeTruthy(),
-      WAIT_OPTS,
-    );
     fireEvent.press(screen.getByTestId('focus-picker-option-cardio'));
     await waitFor(() => {
       const state = screen.getByTestId('cardio-addon-toggle').props.accessibilityState;
       expect(state.disabled).toBe(true);
       expect(state.checked).toBe(false);
     }, WAIT_OPTS);
-
-    fireEvent.press(screen.getByTestId('focus-picker'));
-    await waitFor(
-      () => expect(screen.getByTestId('focus-picker-option-legs')).toBeTruthy(),
-      WAIT_OPTS,
+    expect(screen.getByTestId('cardio-addon-checkbox').props.accessibilityState.checked).toBe(
+      false,
     );
+
     fireEvent.press(screen.getByTestId('focus-picker-option-legs'));
     await waitFor(() => {
       const state = screen.getByTestId('cardio-addon-toggle').props.accessibilityState;
@@ -208,22 +233,26 @@ describe('§10.2 Generate screen', () => {
     }, WAIT_OPTS);
   });
 
-  it('the recovery-week option shows an unticked checkbox until it is chosen', async () => {
+  it('the recovery-week option shows an off switch until it is chosen', async () => {
     renderScreen();
     await waitFor(() => expect(screen.getByTestId('recovery-week-toggle')).toBeTruthy(), WAIT_OPTS);
 
     const toggle = screen.getByTestId('recovery-week-toggle');
     expect(toggle.props.accessibilityState.checked).toBe(false);
-    // The label no longer has to carry the state on its own — it stays constant either way.
+    // The label no longer has to carry the state on its own — the switch does, and it stays constant.
     expect(screen.getByText('Recovery Workout')).toBeTruthy();
-    expect(screen.getByTestId('recovery-week-checkbox').props.children).toBe('');
+    expect(screen.getByTestId('recovery-week-checkbox').props.accessibilityState.checked).toBe(
+      false,
+    );
 
     fireEvent.press(toggle);
     await waitFor(() => {
       expect(screen.getByTestId('recovery-week-toggle').props.accessibilityState.checked).toBe(
         true,
       );
-      expect(screen.getByTestId('recovery-week-checkbox').props.children).toBe('\u2713');
+      expect(screen.getByTestId('recovery-week-checkbox').props.accessibilityState.checked).toBe(
+        true,
+      );
     }, WAIT_OPTS);
     expect(screen.getByText('Recovery Workout')).toBeTruthy();
   });
@@ -233,11 +262,6 @@ describe('§10.2 Generate screen', () => {
     async (minutes) => {
       const { navigation, getDb } = renderScreen();
       await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
-      fireEvent.press(screen.getByTestId('time-picker'));
-      await waitFor(
-        () => expect(screen.getByTestId(`time-picker-option-${minutes}`)).toBeTruthy(),
-        WAIT_OPTS,
-      );
       fireEvent.press(screen.getByTestId(`time-picker-option-${minutes}`));
       // Re-query after the state update: `handleGenerate` closes over `minutes`, so pressing a
       // button element captured before the option press would run the stale closure.

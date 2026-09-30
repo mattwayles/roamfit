@@ -22,11 +22,7 @@ export default function RootNavigator(): React.JSX.Element {
       <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
       {/* Screens not yet migrated to the design system opt in to the old light scene color via
           `legacyLightContent`; each phase deletes it for the screens it migrates. */}
-      <Stack.Screen
-        name="Generate"
-        component={GenerateScreen}
-        options={{ title: 'GENERATE', ...legacyLightContent }}
-      />
+      <Stack.Screen name="Generate" component={GenerateScreen} options={{ title: '' }} />
       <Stack.Screen
         name="Approval"
         component={ApprovalScreen}

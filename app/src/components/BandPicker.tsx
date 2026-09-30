@@ -13,7 +13,7 @@
  * selection decision, which belongs to the engine (invariant 2); which band is in your bag today
  * is a fact only the user has.
  *
- * Inline rather than a modal, matching `OptionPicker`: no native dependency, and on the workout
+ * Inline rather than a modal: no native dependency, and on the workout
  * screen a sheet sliding over the set you are mid-way through is the wrong feel entirely.
  *
  * Two variants: `compact` (default, mid-workout) is a small chip-plus-caret. `field` (the approval

@@ -75,6 +75,8 @@ export const iconMap = {
   dot: 'ellipse',
   push: 'arrow-forward',
   pull: 'arrow-back',
+  walk: 'walk',
+  core: 'radio-button-on',
 } as const satisfies Record<string, Glyph>;
 
 export type IconName = keyof typeof iconMap;

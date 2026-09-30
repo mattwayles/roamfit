@@ -30,8 +30,11 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
   removed from Home, Home tests moved/rewritten, `open-exercises` retired — 08acf37
 
 ### In progress
-- Phase D (Generate + Plan/Approval, DESIGN.md §5.5, §5.6). Not started. Phase C is complete and
-  `npm run check` is green.
+- Phase D (Generate + Plan/Approval, DESIGN.md §5.5, §5.6). Plan, in commits: D1 Generate ("Ignition":
+  focus tiles, numeral time chips, flame intensity, equipment card, Switch rows, sticky footer; tests
+  address `${pickerTestID}-option-${value}`; OptionPicker deleted; legacy light override removed for
+  Generate) -> D2 Approval header/timeline/entry cards (`ApprovalScreen.tsx`, `components/KeyboardDoneBar`)
+  -> D3 Approval add-picker Sheet, sticky footer, abandon, override removed. D1 (Generate) committed; D2 starting (see Done for sha).
 
 ### Next (sequential — each phase is one agent run, several small commits)
 - **D. Generate + Plan/Approval** (§5.5, §5.6) — replace OptionPicker usage.

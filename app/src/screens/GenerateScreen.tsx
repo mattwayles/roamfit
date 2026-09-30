@@ -1,5 +1,11 @@
 /**
- * §10.2 Generate. Picker order per the brief: Time, Anchors, Focus, Difficulty. ADR 0002: no
+ * §10.2 Generate, now "Ignition" (DESIGN.md §5.5): choosing a session should feel like choosing an
+ * adventure. Focus is a grid of tiles, time a row of big numeral chips, intensity a flame segment,
+ * equipment a collapsible card of toggle rows, and the two extras are `Switch` rows; a sticky footer
+ * carries the live recap and the BUILD MY SESSION button. The drop-down `OptionPicker` this replaced
+ * is gone — every option is one tap, and each keeps a stable `${pickerTestID}-option-${value}` id.
+ *
+ * Original notes follow. ADR 0002: no
  * sub-15-minute option in this picker — Quick Session (Home screen) is the only supported short
  * path. Anchors default from the user's sticky `anchorsAvailable` (§5.3) and any change here
  * persists back through `usersRepo.updateUser`, never a local-only edit.
@@ -11,7 +17,7 @@
  * ground rule forbids. Flagged in STATUS-4-loop.md as a follow-up once such a query exists.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { Anchor, Focus } from '@roamfit/data';
 import { createRng, seedFromString } from '@roamfit/engine';
@@ -21,7 +27,29 @@ import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { getNetworkStatus } from '../lib/networkStatus';
-import OptionPicker from '../components/OptionPicker';
+import { IconBadge } from '../components/IconBadge';
+import {
+  colors,
+  focus as focusColor,
+  glow,
+  gutter,
+  radius,
+  space,
+  tints,
+  withAlpha,
+  type AccentName,
+} from '../theme';
+import {
+  Button,
+  Card,
+  Enter,
+  Icon,
+  PressableScale,
+  Screen,
+  Switch,
+  Txt,
+  type IconName,
+} from '../ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Generate'>;
 
@@ -37,12 +65,30 @@ const FOCUS_LABELS: Record<Focus, string> = {
   full: 'Full body',
   cardio: 'Cardio Only',
 };
+/** Tile icon + one-line flavor per focus (DESIGN.md §5.5). Color comes from the semantic `focus`
+ *  map; `FOCUS_TONE` is the same mapping by accent name, for `Icon`/`IconBadge` which take names. */
+const FOCUS_FLAVOR: Record<Focus, { icon: IconName; flavor: string }> = {
+  upper: { icon: 'barbell', flavor: 'Push, pull, press' },
+  abs: { icon: 'core', flavor: 'Anti-everything core' },
+  legs: { icon: 'walk', flavor: 'Squats, lunges, hinges' },
+  full: { icon: 'body', flavor: 'Head to toe' },
+  cardio: { icon: 'pulse', flavor: 'Heart rate up' },
+};
+const FOCUS_TONE: Record<Focus, AccentName> = {
+  upper: 'ember',
+  abs: 'gold',
+  legs: 'summit',
+  full: 'lagoon',
+  cardio: 'rose',
+};
 const DIFFICULTY_OPTIONS: Difficulty[] = ['easy', 'medium', 'hard'];
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   easy: 'Easy',
   medium: 'Medium',
   hard: 'Hard',
 };
+/** Flames shown over each intensity label (text labels stay: emoji-alone was rejected earlier). */
+const DIFFICULTY_FLAMES: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3 };
 /**
  * §5.3 available equipment, as a grouped checklist rather than a wrap of chips.
  *
@@ -106,10 +152,6 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
   // Collapsed by default: anchors are sticky user state (§5.3), set once and rarely revisited, so
   // they should not cost eleven rows of the picker on every generation.
   const [anchorsOpen, setAnchorsOpen] = useState(false);
-  /** Which drop-down is open, if any. Held here rather than inside each picker so opening one
-   *  closes the others — two lists open at once on a short screen is how you pick from the wrong
-   *  one. */
-  const [openPicker, setOpenPicker] = useState<'time' | 'focus' | 'difficulty' | null>(null);
   const [generating, setGenerating] = useState(false);
   // §9.9 — pre-filled by an accepted Recovery Week auto-suggestion (Home), or toggled manually
   // here. Either way it's just a request flag until the user taps Generate — never applied
@@ -201,242 +243,438 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
     navigation,
   ]);
 
+  const recap = [
+    `${minutes} min`,
+    FOCUS_LABELS[focus],
+    DIFFICULTY_LABELS[difficulty],
+    ...(cardioAddOnActive ? ['+ cardio'] : []),
+    ...(recoveryWeek ? ['recovery'] : []),
+  ].join(' · ');
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* The three single-choice fields share one row: they are the same kind of decision, they
-          each fit a third of the width once closed, and stacking them pushed the anchors and the
-          Generate button below the fold. An open list overlays what follows (see OptionPicker)
-          rather than growing the row, so the row's height never depends on which field is open. */}
-      <View style={styles.pickerRow}>
-        <View style={styles.pickerColumn}>
-          <Text style={styles.sectionLabel}>Time</Text>
-          <OptionPicker
-            testID="time-picker"
-            accessibilityLabel="Session length"
-            options={TIME_OPTIONS.map((m) => ({ value: m, label: `${m} min` }))}
-            value={minutes}
-            onChange={setMinutes}
-            open={openPicker === 'time'}
-            onOpenChange={(next) => setOpenPicker(next ? 'time' : null)}
+    <Screen
+      scroll
+      contentStyle={styles.content}
+      footer={
+        <View style={styles.footer}>
+          <Txt
+            testID="generate-recap"
+            variant="eyebrow"
+            color="text2"
+            align="center"
+            numberOfLines={1}
+          >
+            {recap}
+          </Txt>
+          <Button
+            testID="generate-button"
+            label={generating ? 'Scouting your route…' : 'Build my session'}
+            icon="bolt"
+            size="lg"
+            haptic="medium"
+            loading={generating}
+            onPress={handleGenerate}
           />
         </View>
+      }
+    >
+      <Enter index={0} style={styles.titleBlock}>
+        <Txt variant="eyebrow" color="ember">
+          New session
+        </Txt>
+        <Txt variant="display" accessibilityRole="header">
+          What are we training?
+        </Txt>
+      </Enter>
 
-        <View style={styles.pickerColumn}>
-          <Text style={styles.sectionLabel}>Focus</Text>
-          <OptionPicker
-            testID="focus-picker"
-            accessibilityLabel="Focus"
-            options={FOCUS_OPTIONS.map((f) => ({ value: f, label: FOCUS_LABELS[f] }))}
-            value={focus}
-            onChange={setFocus}
-            open={openPicker === 'focus'}
-            onOpenChange={(next) => setOpenPicker(next ? 'focus' : null)}
-          />
-        </View>
-
-        <View style={styles.pickerColumn}>
-          <Text style={styles.sectionLabel}>Difficulty</Text>
-          <OptionPicker
-            testID="difficulty-picker"
-            accessibilityLabel="Difficulty"
-            options={DIFFICULTY_OPTIONS.map((d) => ({ value: d, label: DIFFICULTY_LABELS[d] }))}
-            value={difficulty}
-            onChange={setDifficulty}
-            open={openPicker === 'difficulty'}
-            onOpenChange={(next) => setOpenPicker(next ? 'difficulty' : null)}
-          />
-        </View>
-      </View>
-
-      <Pressable
-        testID="anchors-disclosure"
-        accessibilityRole="button"
-        accessibilityState={{ expanded: anchorsOpen }}
-        style={styles.disclosure}
-        onPress={() => {
-          setOpenPicker(null);
-          setAnchorsOpen((v) => !v);
-        }}
-      >
-        <Text style={styles.disclosureText}>Available Equipment</Text>
-        <Text style={styles.disclosureCount} testID="anchors-summary">
-          {anchors.length} of {ANCHOR_COUNT} selected {anchorsOpen ? '\u25b4' : '\u25be'}
-        </Text>
-      </Pressable>
-
-      {anchorsOpen &&
-        ANCHOR_GROUPS.map((group) => (
-          <View key={group.title} style={styles.anchorGroup}>
-            <Text style={styles.anchorGroupTitle}>{group.title}</Text>
-            {group.anchors.map((a) => {
-              const selected = anchors.includes(a.value);
-              return (
-                <Pressable
-                  key={a.value}
-                  testID={`anchor-${a.value}`}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: selected }}
-                  accessibilityLabel={a.label}
-                  style={styles.anchorRow}
-                  onPress={() => toggleAnchor(a.value)}
-                >
-                  <Text style={[styles.checkbox, selected && styles.checkboxOn]}>
-                    {selected ? '\u2713' : ''}
-                  </Text>
-                  <View style={styles.anchorLabels}>
-                    <Text style={styles.anchorLabel}>{a.label}</Text>
-                    {a.hint != null && <Text style={styles.anchorHint}>{a.hint}</Text>}
+      {/* Focus: the big decision, so it gets the big tiles. Cardio is full-width and last (the
+          newest, least-habitual choice — see FOCUS_OPTIONS). */}
+      <Enter index={1} style={styles.section}>
+        <Txt variant="eyebrow" color="text3">
+          Focus
+        </Txt>
+        <View
+          testID="focus-picker"
+          accessibilityRole="radiogroup"
+          accessibilityLabel="Focus"
+          style={styles.tileGrid}
+        >
+          {FOCUS_OPTIONS.map((f) => {
+            const selected = focus === f;
+            const tone = FOCUS_TONE[f];
+            const accent = focusColor[f];
+            return (
+              <PressableScale
+                key={f}
+                testID={`focus-picker-option-${f}`}
+                accessibilityRole="radio"
+                accessibilityLabel={FOCUS_LABELS[f]}
+                accessibilityState={{ selected }}
+                onPress={() => setFocus(f)}
+                style={[
+                  styles.tile,
+                  f === 'cardio' && styles.tileWide,
+                  selected && { borderColor: accent, backgroundColor: withAlpha(accent, 0.15) },
+                  selected && glow(accent),
+                ]}
+              >
+                <IconBadge icon={FOCUS_FLAVOR[f].icon} tone={tone} size={36} />
+                <View>
+                  <Txt variant="h2">{FOCUS_LABELS[f]}</Txt>
+                  <Txt variant="caption" color="text2">
+                    {FOCUS_FLAVOR[f].flavor}
+                  </Txt>
+                </View>
+                {selected && (
+                  <View style={[styles.tileCheck, { backgroundColor: accent }]}>
+                    <Icon name="check" size={14} color="ink" />
                   </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        ))}
+                )}
+              </PressableScale>
+            );
+          })}
+        </View>
+      </Enter>
 
-      <Pressable
-        testID="cardio-addon-toggle"
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: cardioAddOnActive, disabled: cardioAddOnDisabled }}
-        accessibilityLabel="Cardio add-on"
-        disabled={cardioAddOnDisabled}
-        style={[
-          styles.recoveryToggle,
-          cardioAddOnActive && styles.recoveryToggleOn,
-          cardioAddOnDisabled && styles.toggleDisabled,
-        ]}
-        onPress={() => setCardioAddOn((v) => !v)}
-      >
-        <Text
-          testID="cardio-addon-checkbox"
-          style={[styles.checkbox, cardioAddOnActive && styles.checkboxOn]}
+      {/* Time: numerals big enough to read at arm's length. Seven chips run wider than a phone, so
+          the row scrolls, bleeding off the gutter to say so. */}
+      <Enter index={2} style={styles.section}>
+        <Txt variant="eyebrow" color="text3">
+          Time
+        </Txt>
+        <ScrollView
+          testID="time-picker"
+          accessibilityRole="radiogroup"
+          accessibilityLabel="Session length"
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.bleed}
+          contentContainerStyle={styles.timeRow}
         >
-          {cardioAddOnActive ? '\u2713' : ''}
-        </Text>
-        <View style={styles.recoveryToggleLabels}>
-          <Text style={[styles.recoveryToggleText, cardioAddOnActive && styles.recoveryToggleTextOn]}>
-            Cardio add-on
-          </Text>
-          <Text style={styles.recoveryToggleSubtitle}>
-            {cardioAddOnDisabled
+          {TIME_OPTIONS.map((m) => {
+            const selected = minutes === m;
+            return (
+              <PressableScale
+                key={m}
+                testID={`time-picker-option-${m}`}
+                accessibilityRole="radio"
+                accessibilityLabel={`${m} minutes`}
+                accessibilityState={{ selected }}
+                onPress={() => setMinutes(m)}
+                style={[
+                  styles.timeChip,
+                  selected && styles.timeChipOn,
+                  selected && glow(colors.ember),
+                ]}
+              >
+                <Txt variant="h1" color={selected ? 'ink' : 'text'}>
+                  {m}
+                </Txt>
+                <Txt variant="eyebrow" color={selected ? 'ink' : 'text3'}>
+                  min
+                </Txt>
+              </PressableScale>
+            );
+          })}
+        </ScrollView>
+      </Enter>
+
+      {/* Intensity: three segments, each showing its flames over its (kept) text label. */}
+      <Enter index={3} style={styles.section}>
+        <Txt variant="eyebrow" color="text3">
+          Intensity
+        </Txt>
+        <View
+          testID="difficulty-picker"
+          accessibilityRole="radiogroup"
+          accessibilityLabel="Difficulty"
+          style={styles.segments}
+        >
+          {DIFFICULTY_OPTIONS.map((d) => {
+            const selected = difficulty === d;
+            return (
+              <PressableScale
+                key={d}
+                testID={`difficulty-picker-option-${d}`}
+                accessibilityRole="radio"
+                accessibilityLabel={DIFFICULTY_LABELS[d]}
+                accessibilityState={{ selected }}
+                onPress={() => setDifficulty(d)}
+                style={[styles.segment, selected && styles.segmentOn]}
+              >
+                <View style={styles.flames}>
+                  {Array.from({ length: DIFFICULTY_FLAMES[d] }, (_, i) => (
+                    <Icon key={i} name="flame" size={20} color={selected ? 'ink' : 'text3'} />
+                  ))}
+                </View>
+                <Txt variant="eyebrow" color={selected ? 'ink' : 'text2'}>
+                  {DIFFICULTY_LABELS[d]}
+                </Txt>
+              </PressableScale>
+            );
+          })}
+        </View>
+      </Enter>
+
+      {/* Equipment: collapsed by default (see `anchorsOpen`). */}
+      <Enter index={4}>
+        <Card padding="md" style={styles.equipment}>
+          <PressableScale
+            testID="anchors-disclosure"
+            accessibilityRole="button"
+            accessibilityLabel="Available equipment"
+            accessibilityState={{ expanded: anchorsOpen }}
+            onPress={() => setAnchorsOpen((v) => !v)}
+            style={styles.disclosure}
+          >
+            <IconBadge icon="anchor" tone="sky" size={36} />
+            <View style={styles.disclosureLabels}>
+              <Txt variant="h3">Available equipment</Txt>
+              <Txt testID="anchors-summary" variant="caption" color="text2">
+                {anchors.length} of {ANCHOR_COUNT} selected
+              </Txt>
+            </View>
+            <Icon name={anchorsOpen ? 'chevronUp' : 'chevronDown'} size={20} color="text2" />
+          </PressableScale>
+
+          {anchorsOpen &&
+            ANCHOR_GROUPS.map((group) => (
+              <View key={group.title} style={styles.anchorGroup}>
+                <Txt variant="eyebrow" color="text3">
+                  {group.title}
+                </Txt>
+                {group.anchors.map((a) => {
+                  const selected = anchors.includes(a.value);
+                  return (
+                    <PressableScale
+                      key={a.value}
+                      testID={`anchor-${a.value}`}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
+                      accessibilityLabel={a.label}
+                      style={[styles.anchorRow, selected && styles.anchorRowOn]}
+                      onPress={() => toggleAnchor(a.value)}
+                    >
+                      <View style={[styles.anchorCheck, selected && styles.anchorCheckOn]}>
+                        {selected && <Icon name="check" size={16} color="ink" />}
+                      </View>
+                      <View style={styles.anchorLabels}>
+                        <Txt variant="bodyStrong" color={selected ? 'text' : 'text2'}>
+                          {a.label}
+                        </Txt>
+                        {a.hint != null && (
+                          <Txt variant="caption" color="text3">
+                            {a.hint}
+                          </Txt>
+                        )}
+                      </View>
+                    </PressableScale>
+                  );
+                })}
+              </View>
+            ))}
+        </Card>
+      </Enter>
+
+      {/* Extras. The switch is the state: with only wording to go on it was once unclear these were
+          options you had *not* taken. Whole row toggles, not just the switch. */}
+      <Enter index={5} style={styles.extras}>
+        <ToggleRow
+          testID="cardio-addon-toggle"
+          switchTestID="cardio-addon-checkbox"
+          icon="pulse"
+          tone="rose"
+          title="Cardio add-on"
+          subtitle={
+            cardioAddOnDisabled
               ? 'Not needed for a Cardio Only workout.'
-              : 'Cardio moves spaced through your strength work.'}
-          </Text>
-        </View>
-      </Pressable>
+              : 'Cardio moves spaced through your strength work.'
+          }
+          value={cardioAddOnActive}
+          disabled={cardioAddOnDisabled}
+          onChange={setCardioAddOn}
+        />
+        <ToggleRow
+          testID="recovery-week-toggle"
+          switchTestID="recovery-week-checkbox"
+          icon="leaf"
+          tone="lagoon"
+          title="Recovery Workout"
+          subtitle="Lighter loads, same consistency."
+          value={recoveryWeek}
+          onChange={setRecoveryWeek}
+        />
+      </Enter>
+    </Screen>
+  );
+}
 
-      {/* A checkbox, not a card that changes its own label: with only the wording to go on it was
-          not obvious this was an option you had *not* taken. The box states that directly. */}
-      <Pressable
-        testID="recovery-week-toggle"
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: recoveryWeek }}
-        accessibilityLabel="Recovery Workout"
-        style={[styles.recoveryToggle, recoveryWeek && styles.recoveryToggleOn]}
-        onPress={() => setRecoveryWeek((v) => !v)}
-      >
-        <Text
-          testID="recovery-week-checkbox"
-          style={[styles.checkbox, recoveryWeek && styles.checkboxOn]}
-        >
-          {recoveryWeek ? '\u2713' : ''}
-        </Text>
-        <View style={styles.recoveryToggleLabels}>
-          <Text style={[styles.recoveryToggleText, recoveryWeek && styles.recoveryToggleTextOn]}>
-            Recovery Workout
-          </Text>
-          <Text style={styles.recoveryToggleSubtitle}>Lighter loads, same consistency.</Text>
-        </View>
-      </Pressable>
-
-      <Pressable
-        testID="generate-button"
-        style={styles.generateButton}
-        onPress={handleGenerate}
-        disabled={generating}
-      >
-        {generating ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.generateButtonText}>Generate</Text>
-        )}
-      </Pressable>
-    </ScrollView>
+/** A `Switch` row: tinted icon, title, subtitle. The row itself is the toggle (`testID`), the
+ *  switch carries its own id (`switchTestID`) so its state can be read directly. */
+function ToggleRow({
+  testID,
+  switchTestID,
+  icon,
+  tone,
+  title,
+  subtitle,
+  value,
+  disabled = false,
+  onChange,
+}: {
+  testID: string;
+  switchTestID: string;
+  icon: IconName;
+  tone: AccentName;
+  title: string;
+  subtitle: string;
+  value: boolean;
+  disabled?: boolean;
+  onChange: (next: boolean) => void;
+}): React.JSX.Element {
+  return (
+    <PressableScale
+      testID={testID}
+      accessibilityRole="switch"
+      accessibilityLabel={title}
+      accessibilityState={{ checked: value, disabled }}
+      disabled={disabled}
+      onPress={() => onChange(!value)}
+      style={[
+        styles.toggleRow,
+        value && { backgroundColor: tints[tone] },
+        disabled && styles.disabled,
+      ]}
+    >
+      <IconBadge icon={icon} tone={tone} size={40} />
+      <View style={styles.toggleLabels}>
+        <Txt variant="h3">{title}</Txt>
+        <Txt variant="caption" color="text2">
+          {subtitle}
+        </Txt>
+      </View>
+      <Switch
+        testID={switchTestID}
+        value={value}
+        disabled={disabled}
+        onValueChange={onChange}
+        accessibilityLabel={title}
+      />
+    </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, gap: 12 },
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#64748b', marginTop: 12 },
-  // `alignItems: flex-start` so a column never stretches to match a taller neighbour, and the row
-  // paints above the anchors section so an open drop-down is not covered by it.
-  pickerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, zIndex: 10 },
-  pickerColumn: { flex: 1 },
-  disclosure: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  content: { paddingTop: space.sm, gap: space.xxl },
+  titleBlock: { gap: space.xs },
+  section: { gap: space.md },
+  footer: { gap: space.sm },
+
+  // -- focus tiles
+  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+  tile: {
+    flexBasis: '45%',
+    flexGrow: 1,
+    minHeight: 104,
     justifyContent: 'space-between',
-    backgroundColor: '#f1f5f9',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    minHeight: 48,
+    gap: space.sm,
+    padding: space.md,
+    borderRadius: radius.lg,
+    borderWidth: 2,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
   },
-  disclosureText: { fontSize: 15, fontWeight: '600', color: '#334155' },
-  disclosureCount: { fontSize: 13, color: '#64748b' },
-  anchorGroup: { gap: 2, marginTop: 4 },
-  anchorGroupTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-    marginTop: 8,
-    marginBottom: 2,
+  tileWide: { flexBasis: '100%' },
+  tileCheck: {
+    position: 'absolute',
+    top: space.sm,
+    right: space.sm,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+
+  // -- time chips (bleed off the gutter so the scroll reads as a scroll)
+  bleed: { marginHorizontal: -gutter },
+  timeRow: { paddingHorizontal: gutter, gap: space.sm },
+  timeChip: {
+    width: 76,
+    height: 88,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  timeChipOn: { backgroundColor: colors.ember, borderColor: colors.ember },
+
+  // -- intensity segments
+  segments: {
+    flexDirection: 'row',
+    padding: space.xs,
+    gap: space.xs,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  segment: {
+    flex: 1,
+    minHeight: 68,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.xs,
+    borderRadius: radius.md - space.xs,
+  },
+  segmentOn: { backgroundColor: colors.ember },
+  flames: { flexDirection: 'row', height: 22, alignItems: 'center' },
+
+  // -- equipment
+  equipment: { gap: space.md },
+  disclosure: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 44 },
+  disclosureLabels: { flex: 1 },
+  anchorGroup: { gap: space.sm, marginTop: space.sm },
   anchorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    minHeight: 44,
-    paddingHorizontal: 4,
+    gap: space.md,
+    minHeight: 52,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
-  checkbox: {
+  anchorRowOn: { borderColor: colors.ember, backgroundColor: tints.ember },
+  anchorCheck: {
     width: 24,
     height: 24,
-    lineHeight: 23,
-    textAlign: 'center',
-    borderRadius: 6,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#cbd5e1',
-    color: 'transparent',
-    fontWeight: '700',
-    overflow: 'hidden',
+    borderColor: colors.lineStrong,
   },
-  checkboxOn: { backgroundColor: '#111', borderColor: '#111', color: '#fff' },
+  anchorCheckOn: { backgroundColor: colors.ember, borderColor: colors.ember },
   anchorLabels: { flex: 1 },
-  anchorLabel: { fontSize: 15, color: '#0f172a' },
-  anchorHint: { fontSize: 12, color: '#64748b' },
-  recoveryToggle: {
-    marginTop: 16,
-    borderRadius: 14,
-    padding: 14,
-    backgroundColor: '#f1f5f9',
+
+  // -- extras
+  extras: { gap: space.md },
+  toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: space.md,
+    minHeight: 72,
+    padding: space.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
-  toggleDisabled: { opacity: 0.5 },
-  recoveryToggleLabels: { flex: 1, gap: 2 },
-  recoveryToggleOn: { backgroundColor: '#e0f2fe' },
-  recoveryToggleText: { fontSize: 14, fontWeight: '700', color: '#334155' },
-  recoveryToggleTextOn: { color: '#0369a1' },
-  recoveryToggleSubtitle: { fontSize: 12, color: '#64748b' },
-  generateButton: {
-    marginTop: 24,
-    backgroundColor: '#111',
-    borderRadius: 16,
-    padding: 18,
-    alignItems: 'center',
-    minHeight: 56,
-    justifyContent: 'center',
-  },
-  generateButtonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  toggleLabels: { flex: 1, gap: 2 },
+  disabled: { opacity: 0.5 },
 });
