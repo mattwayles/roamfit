@@ -30,6 +30,13 @@ import SummaryScreen from './SummaryScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { buildSessionCompletionStats } from '../lib/sessionStats';
+import { pickHypeHeadline } from '../lib/celebration';
+
+// A jest.fn wrapper around the real picker so the haptics test can pin the headline shape.
+jest.mock('../lib/celebration', () => {
+  const actual = jest.requireActual('../lib/celebration');
+  return { ...actual, pickHypeHeadline: jest.fn(actual.pickHypeHeadline) };
+});
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
@@ -1059,47 +1066,71 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     }
   });
 
-  it('fires the fanfare/haptic sequence exactly once when the completion screen appears', async () => {
-    let db!: ReturnType<typeof useStore>['db'];
-    render(
-      <StoreProvider>
-        <Setup onReady={(d) => (db = d)} />
-      </StoreProvider>,
-    );
-    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
-    const sessionId = await createSessionWithASkippedFirstSet(db);
+  // The headline's word count decides WHEN the first Light tick lands: an N-word headline ticks
+  // once per word except the last, so a ONE-word headline ("UNSTOPPABLE!" — one of the eight in
+  // the pool, picked from the session's random id) has no word ticks at all and its first Light
+  // comes from the stat tiles, ~450ms AFTER the Heavy slam. This test used to assert Light the
+  // instant Heavy arrived, so it failed for ~1 session id in 8 regardless of load. Both shapes are
+  // pinned here so the ordering assumption can never hide behind a lucky id again.
+  it.each([
+    ['a one-word headline (no word ticks)', 'UNSTOPPABLE!'],
+    ['a multi-word headline (a tick per word)', 'ABSOLUTE BEAST MODE!'],
+  ])(
+    'fires the fanfare/haptic sequence exactly once when the completion screen appears, with %s',
+    async (_label, headline) => {
+      const actualPick = jest.requireActual('../lib/celebration').pickHypeHeadline;
+      (pickHypeHeadline as jest.Mock).mockReturnValue(headline);
+      const notify = jest.spyOn(Haptics, 'notificationAsync');
+      const impact = jest.spyOn(Haptics, 'impactAsync');
+      try {
+        let db!: ReturnType<typeof useStore>['db'];
+        render(
+          <StoreProvider>
+            <Setup onReady={(d) => (db = d)} />
+          </StoreProvider>,
+        );
+        await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+        const sessionId = await createSessionWithASkippedFirstSet(db);
 
-    const notify = jest.spyOn(Haptics, 'notificationAsync');
-    const impact = jest.spyOn(Haptics, 'impactAsync');
+        const navigation = mockNavigation();
+        render(
+          <StoreProvider>
+            <NavigationContainer>
+              <SummaryScreen
+                navigation={navigation as never}
+                route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
+              />
+            </NavigationContainer>
+          </StoreProvider>,
+        );
 
-    const navigation = mockNavigation();
-    render(
-      <StoreProvider>
-        <NavigationContainer>
-          <SummaryScreen
-            navigation={navigation as never}
-            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
-          />
-        </NavigationContainer>
-      </StoreProvider>,
-    );
+        await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
+        await fireEvent.press(screen.getByTestId('finish-button'));
+        await waitFor(() => expect(screen.getByTestId('session-complete')).toBeTruthy(), WAIT_OPTS);
 
-    await waitFor(() => expect(screen.getByTestId('finish-button')).toBeTruthy(), WAIT_OPTS);
-    await fireEvent.press(screen.getByTestId('finish-button'));
+        // Exactly once: the arrival fanfare is the one Success on screen appearance; the next
+        // Success (the button's beat) is over a second away.
+        expect(notify).toHaveBeenCalledTimes(1);
+        expect(notify).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Success);
 
-    await waitFor(() => expect(screen.getByTestId('session-complete')).toBeTruthy(), WAIT_OPTS);
-
-    // The choreography's last beat (a Success pulse paired with the button fading in) lands at
-    // ~1300ms — wait past it, then assert the escalating sequence actually happened: at least one
-    // Light tick, one Heavy pulse, and Success notifications (the arrival cue plus the final beat).
-    await waitFor(() => expect(impact).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Heavy), {
-      timeout: 5000,
-      interval: 100,
-    });
-    expect(impact).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Light);
-    expect(notify).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Success);
-
-    notify.mockRestore();
-    impact.mockRestore();
-  });
+        // Then the escalating sequence — each beat awaited on its own, never assumed to have
+        // happened because a later one did: a Heavy slam, a Light tick (word ticks, or the stat
+        // tiles' when there is only one word), and the button's own Success at the end.
+        const eventually = { timeout: 8000, interval: 50 };
+        await waitFor(
+          () => expect(impact).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Heavy),
+          eventually,
+        );
+        await waitFor(
+          () => expect(impact).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Light),
+          eventually,
+        );
+        await waitFor(() => expect(notify.mock.calls.length).toBeGreaterThanOrEqual(2), eventually);
+      } finally {
+        (pickHypeHeadline as jest.Mock).mockImplementation(actualPick);
+        notify.mockRestore();
+        impact.mockRestore();
+      }
+    },
+  );
 });
