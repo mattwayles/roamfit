@@ -48,29 +48,38 @@ export default function PinnedNote({
 
   useEffect(() => setDraft(note ?? ''), [note]);
 
+  // Compact while empty — one row (pin, the field, a pencil) — so an unused note costs the hero
+  // below it about a line, not a card; the "your note" eyebrow appears once there is something in
+  // it. The gold card, pin and pencil are what say "this is yours, and it is editable".
   return (
     <View style={styles.sticky} testID="pinned-note">
-      <View style={styles.header}>
-        <Icon name="pin" size={14} color="gold" style={styles.pin} />
-        <Txt variant="eyebrow" color="gold">
-          Your note · tap to edit
-        </Txt>
+      {draft.length > 0 && (
+        <View style={styles.header}>
+          <Icon name="pin" size={14} color="gold" style={styles.pin} />
+          <Txt variant="eyebrow" color="gold">
+            Your note · tap to edit
+          </Txt>
+        </View>
+      )}
+      <View style={styles.well}>
+        {draft.length === 0 && <Icon name="pin" size={16} color="gold" style={styles.pin} />}
+        <TextInput
+          testID="pinned-note-input"
+          style={styles.input}
+          value={draft}
+          placeholder="Add a note for this exercise"
+          placeholderTextColor={colors.text3}
+          selectionColor={colors.gold}
+          keyboardAppearance="dark"
+          multiline
+          inputAccessoryViewID={ACCESSORY_ID}
+          onChangeText={setDraft}
+          onBlur={() => {
+            if (draft !== (note ?? '')) onChange(draft);
+          }}
+        />
+        <Icon name="edit" size={16} color="text3" />
       </View>
-      <TextInput
-        testID="pinned-note-input"
-        style={styles.input}
-        value={draft}
-        placeholder="e.g. row to the hips, not the chest"
-        placeholderTextColor={colors.text3}
-        selectionColor={colors.gold}
-        keyboardAppearance="dark"
-        multiline
-        inputAccessoryViewID={ACCESSORY_ID}
-        onChangeText={setDraft}
-        onBlur={() => {
-          if (draft !== (note ?? '')) onChange(draft);
-        }}
-      />
       <NoteAccessoryBar />
     </View>
   );
@@ -82,23 +91,28 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: withAlpha(colors.gold, 0.45),
-    padding: space.md,
+    padding: space.sm,
     gap: space.sm,
   },
   header: { flexDirection: 'row', alignItems: 'center' },
-  pin: { marginRight: 6 },
-  // Edit mode is a well: a raised `surface2` field, so it is obvious the note can be typed into.
-  input: {
-    ...type.body,
-    color: colors.text,
+  pin: { marginRight: 8 },
+  // The field is a well: a raised `surface2` field, so it is obvious the note can be typed into.
+  well: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.surface2,
     borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: space.md,
+    minHeight: 44,
+  },
+  input: {
+    ...type.body,
+    flex: 1,
+    color: colors.text,
     paddingTop: 10,
     paddingBottom: 10,
-    minHeight: 44,
   },
   accessoryBar: {
     flexDirection: 'row',

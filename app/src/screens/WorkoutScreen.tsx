@@ -8,8 +8,14 @@
  * Nothing here computes a prescription or decides an exercise; §10.4's hierarchy rule (hero =
  * name + "Set N of M" + the rep/hold target, nothing else at that size; body focus/pattern/
  * difficulty never shown) is honored by simply not reading those fields into the hero view. The
- * rep target itself is no longer a standalone line — it is what the "Reps" picker defaults to and
- * is labelled with, so it does not also get repeated as its own line above the picker.
+ * rep target itself is no longer a standalone line — it is what the rep counter defaults to, and
+ * sits under the numeral as a quiet "target" note rather than a second headline.
+ *
+ * **Presentation (docs/DESIGN.md §5.7, "Ignition").** The native header is hidden; this screen draws
+ * its own top bar (home / elapsed clock / pause / stop), a session `SegmentedBar`, and a section
+ * chip. The exercise hero is a card with a gradient border in the section's color (gold warm-up,
+ * ember main, lagoon cool-down); rest flips it to lagoon. Everything visual is a token or a `ui/`
+ * primitive — none of it reads or writes anything the store didn't already.
  *
  * **Remove set** mid-workout has no store mutation to call (only §10.3 approval-time removal
  * exists) — also not implemented. Superset "Round N of M" display is simplified to plain
@@ -30,10 +36,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Animated,
-  Pressable,
+  InputAccessoryView,
+  Keyboard,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from 'react-native';
@@ -47,26 +53,36 @@ import type { SwapAlternative } from '@roamfit/engine';
 import type { Anchor, AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import {
   colors,
+  gradients,
   gutter,
+  motion,
   radius,
   section as sectionColor,
   space,
   tints,
+  type as textStyles,
   type AccentName,
+  withAlpha,
 } from '../theme';
 import {
   Button,
+  Card,
   Chip,
+  Icon,
   IconButton,
+  Pips,
+  PressableScale,
+  ProgressRing,
   Screen,
   SegmentedBar,
   Sheet,
   Toast,
   Txt,
+  haptics,
   useReduceMotion,
 } from '../ui';
 import { useInsets } from '../ui/useInsets';
-import { exerciseComplete, lastSet, pick, setComplete } from '../lib/hypeCopy';
+import { exerciseComplete, lastSet, pick, rest as restLines, setComplete } from '../lib/hypeCopy';
 import type { RootStackParamList } from '../navigation/types';
 import { homeReset } from '../navigation/routes';
 import { useStore } from '../state/StoreContext';
@@ -136,7 +152,7 @@ function levelBadge(
   if (!family) return null;
   const index = family.levels.findIndex((l) => l.level_id === entry.progressionLevelIdAtTime);
   if (index === -1) return null;
-  return `Level ${index + 1} of ${family.levels.length}`;
+  return `Lvl ${index + 1}/${family.levels.length} · ${family.name}`;
 }
 
 export default function WorkoutScreen({ navigation, route }: Props): React.JSX.Element {
@@ -258,7 +274,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    *  whether the workout is finished, regardless of which set the user is currently looking at. */
   const frontier = session ? findCurrent(session) : null;
   /**
-   * The set on screen. Normally the front edge; while the user has stepped back with ◂◂ it is the
+   * The set on screen. Normally the front edge; while the user has stepped back with Undo it is the
    * earlier set they moved to. A rewind target that no longer exists (its entry was swapped out
    * from under it, say) silently resolves back to the front edge rather than stranding the screen.
    */
@@ -586,7 +602,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   };
 
   /**
-   * Moving around the workout without training a set: ◂◂ steps back a set, ▸▸ steps forward.
+   * Moving around the workout without training a set: Undo steps back a set, Skip/Next steps forward.
    *
    * Stepping back is pure navigation — nothing is logged and nothing already logged is deleted,
    * so a user who wants another look at the previous exercise (did I really do three sets? what
@@ -594,11 +610,11 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    * step back onto keeps whatever log it already has until they train it again, at which point
    * `logSet`'s upsert overwrites that one row — a deliberate redo, never a silent one.
    *
-   * ▸▸ therefore means two things, and says which in its accessible name:
+   * The forward control therefore means two things, and says which in its accessible name:
    *   - at the front edge (the normal case) it is the §10.5 skip it has always been: the set is
    *     logged as `skipped` and the workout moves straight on to the next one — no rest in
    *     between, see `skipSetAndAdvance`.
-   *   - while stepped back it is the mirror of ◂◂, walking forward over sets that are already
+   *   - while stepped back it is the mirror of Undo, walking forward over sets that are already
    *     logged, and it stops at the front edge rather than skipping past it. Stepping forward
    *     must never *create* skips the user did not ask for.
    */
@@ -730,7 +746,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     pauseInfo?: { pauseCount: number; pausedDurationSec: number },
   ) => {
     // Re-completing a set that already has a log (one reached via a Summary/Progress bookmark, or
-    // walked back to with ◂◂) is still a real completion — it gets its own rest page like any
+    // walked back to with Undo) is still a real completion — it gets its own rest page like any
     // other, same as a first-time completion of a jumped-to set below. `restingEntryId`/
     // `restingSetIndex`, captured right after this, point at the set just (re)completed, so the
     // rest page is never confused with the real front edge regardless of which one this was.
@@ -1095,6 +1111,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               entry={entry}
               durationDefault={secondsForSet}
               exerciseName={exercise?.name ?? entry.exerciseId}
+              levelText={levelBadge(entry, families)}
               anchor={exercise?.anchor ?? null}
               anchorAlt={exercise?.anchor_alt ?? null}
               band={bandForSet}
@@ -1116,6 +1133,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               entry={entry}
               repsDefault={repsForSet}
               exerciseName={exercise?.name ?? entry.exerciseId}
+              levelText={levelBadge(entry, families)}
               anchor={exercise?.anchor ?? null}
               anchorAlt={exercise?.anchor_alt ?? null}
               band={bandForSet}
@@ -1141,6 +1159,26 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               isFinalRest
                 ? 'Workout complete'
                 : `${exercise?.name ?? entry.exerciseId} · set ${setIndex + 1} of ${entry.sets}`
+            }
+            nextName={isFinalRest ? 'Workout complete' : (exercise?.name ?? entry.exerciseId)}
+            nextSetText={isFinalRest ? null : `Set ${setIndex + 1} of ${entry.sets}`}
+            // Deterministic per (entry, set) — the same rest always gets the same line.
+            restLine={pick(
+              restLines,
+              `${restingEntryId ?? entry.id}:${restingSetIndex ?? setIndex}`,
+            )}
+            pips={
+              restingEntry && restingSetIndex != null
+                ? {
+                    done: Array.from({ length: restingEntry.sets }, (_, i) =>
+                      restingEntry.setLogs.some(
+                        (l) => l.setIndex === i && l.status === 'completed',
+                      ),
+                    ),
+                    justDone: restingSetIndex,
+                    color: sectionColor[restingEntry.section as Section] ?? colors.ember,
+                  }
+                : null
             }
             // Rest is exactly when a user would go and rig the next anchor, so the requirement is
             // worth naming before the set rather than at the top of it. `exercise` is already the
@@ -1183,10 +1221,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
         {phase === 'exercise' && (
           <>
-            {levelBadge(entry, families) && (
-              <Text style={styles.levelBadge}>{levelBadge(entry, families)}</Text>
-            )}
-
             {/* Above the demo, and open by default every time — not only on a first-ever
                 performance. Since ADR 0008 removed the bundled figures this cue IS the offline
                 demo, so it is the one thing that must never need a tap to reach; and a user who
@@ -1270,10 +1304,225 @@ function PausedChip(): React.JSX.Element {
   );
 }
 
+/** The `pulse` motion (DESIGN.md §2): a 1 -> 1.06 loop while `active` — the final 3 seconds of any
+ *  countdown. Dropped under Reduce Motion, reset when inactive, and stopped on unmount so no loop
+ *  outlives the set. */
+function usePulse(active: boolean): Animated.Value {
+  const reduceMotion = useReduceMotion();
+  const scale = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!active || reduceMotion) {
+      scale.setValue(1);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scale, {
+          toValue: motion.pulse.to,
+          duration: motion.pulse.duration,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: motion.pulse.duration,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [active, reduceMotion, scale]);
+  return scale;
+}
+
+/** The exercise hero's shell: a card with a 2px gradient border in the section's color. While the
+ *  session clock is stopped it dims to 55% — tinted, not hidden or disabled, so the state reads at a
+ *  glance and every control inside still works. */
+function HeroCard({
+  tone,
+  paused = false,
+  children,
+}: {
+  tone: AccentName;
+  paused?: boolean;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <View style={paused ? styles.heroPaused : undefined} testID="hero-card">
+      <Card variant="accent" tone={tone} padding="md">
+        <View style={styles.heroBody}>{children}</View>
+      </Card>
+    </View>
+  );
+}
+
+/**
+ * Everything at the top of an exercise hero, shared by the reps and timed views: level chip, the
+ * exercise name (`display`, up to two lines), the set row (pips + "Set N of M"), and the setup
+ * chips — what the band goes on, right under what the exercise is, then which band to actually pick
+ * up, mid-set, without leaving this screen (and, if that is not the one in your hand, which one you
+ * really used).
+ */
+function ExerciseHeader({
+  levelText,
+  exerciseName,
+  entry,
+  setIndex,
+  setSuffix,
+  color,
+  anchor,
+  anchorAlt,
+  bandUsed,
+  bandTensions,
+  onPickBand,
+}: {
+  levelText: string | null;
+  exerciseName: string;
+  entry: sessionsRepo.SessionEntryRecord;
+  setIndex: number;
+  /** e.g. " · Side 1 of 2" for a unilateral hold. */
+  setSuffix?: string;
+  color: string;
+  /** What this exercise attaches to, for `AnchorBadge` — null for anything self-anchored, which
+   *  renders nothing. Read off the library record, not the entry: the plan stores `anchorClass`
+   *  (the §13.1 safety bucket), not the specific fixed point the user has to go and find. */
+  anchor: Anchor | null;
+  /** A second fixed point that works equally well (`Exercise.anchor_alt`) — the user should see
+   *  every safe option while they're the one deciding what to rig, not just the first one. */
+  anchorAlt: Anchor | null;
+  bandUsed: BandId | null;
+  bandTensions: Record<BandId, usersRepo.BandTension>;
+  onPickBand: (band: BandId) => void;
+}): React.JSX.Element {
+  // A skipped set is a quiet empty dot, never a filled one (invariant 4): only completed sets fill.
+  const done = Array.from({ length: entry.sets }, (_, i) =>
+    entry.setLogs.some((l) => l.setIndex === i && l.status === 'completed'),
+  );
+  return (
+    <>
+      {levelText != null && <Chip label={levelText} tone="summit" testID="level-chip" />}
+      <Txt
+        variant="display"
+        testID="exercise-name"
+        numberOfLines={2}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+      >
+        {exerciseName}
+      </Txt>
+      <View style={styles.setRow}>
+        <Pips count={entry.sets} filled={done} current={setIndex} color={color} />
+        <Txt variant="eyebrow" color="text2">
+          Set {setIndex + 1} of {entry.sets}
+          {setSuffix ?? ''}
+        </Txt>
+      </View>
+      <View style={styles.chipRow}>
+        <AnchorBadge anchor={anchor} anchorAlt={anchorAlt} />
+        {bandUsed != null && (
+          <BandPicker
+            band={bandUsed}
+            tensions={bandTensions}
+            accessibilityLabel="Band used for this set"
+            onChange={onPickBand}
+          />
+        )}
+      </View>
+    </>
+  );
+}
+
+/**
+ * The set's own controls: step back, swap, step forward — labeled `IconButton`s, shared by both
+ * hero views. Found mid-set, at arm's length, so they are targets with a word under them. The
+ * accessible names carry the meaning — including which of its two jobs the forward control is doing
+ * right now:
+ *   - at the front edge (the normal case) it is the §10.5 skip it has always been: the set is
+ *     logged as `skipped` and the workout moves straight on to the next one — no rest in
+ *     between, see `skipSetAndAdvance`.
+ *   - while stepped back it is the mirror of Undo, walking forward over sets that are already
+ *     logged, and it stops at the front edge rather than skipping past it. Stepping forward
+ *     must never *create* skips the user did not ask for.
+ */
+function SetNavRow({
+  onRewind,
+  onSwap,
+  onSkip,
+  forwardIsSkip,
+}: {
+  /** Null on the workout's very first set, where there is nothing behind to step back to. The
+   *  button stays in place, dimmed: the row does not reshuffle under a thumb already reaching
+   *  for swap. */
+  onRewind: (() => void) | null;
+  onSwap: () => void;
+  onSkip: () => void;
+  /** True at the workout's front edge, where the forward control skips the set; false while
+   *  stepped back, where it just walks forward over sets that are already logged. */
+  forwardIsSkip: boolean;
+}): React.JSX.Element {
+  return (
+    <View style={styles.actionRow}>
+      <IconButton
+        testID="rewind-set"
+        icon="undo"
+        label="Undo"
+        accessibilityLabel="Go back to the previous set"
+        disabled={onRewind === null}
+        onPress={() => onRewind?.()}
+      />
+      {/* Swap is the one control here that changes *what* you are doing rather than how this set
+          goes. */}
+      <IconButton
+        testID="swap-set"
+        icon="swap"
+        label="Swap"
+        tone="lagoon"
+        accessibilityLabel="Swap this exercise for another"
+        onPress={onSwap}
+      />
+      <IconButton
+        testID="skip-set"
+        icon="skip"
+        label={forwardIsSkip ? 'Skip' : 'Next'}
+        accessibilityLabel={forwardIsSkip ? 'Skip this set' : 'Go forward to the next set'}
+        onPress={onSkip}
+      />
+    </View>
+  );
+}
+
+/** Accessory bar id for the rep counter's number pad, which has no return key of its own. */
+const REPS_ACCESSORY_ID = 'rep-count-accessory';
+
+/** A `surface2` bar with an ember "Done" over the number pad (DESIGN.md §5.11). Memoized on its
+ *  own for the same reason `PinnedNote`'s is: an inline `InputAccessoryView` is rebuilt on every
+ *  keystroke of its parent, which shows as the keyboard chrome jittering. */
+const RepsAccessoryBar = React.memo(function RepsAccessoryBar(): React.JSX.Element {
+  return (
+    <InputAccessoryView nativeID={REPS_ACCESSORY_ID}>
+      <View style={styles.accessoryBar}>
+        <PressableScale
+          testID="rep-count-done"
+          haptic={false}
+          accessibilityRole="button"
+          accessibilityLabel="Done"
+          onPress={() => Keyboard.dismiss()}
+          hitSlop={8}
+        >
+          <Txt variant="bodyStrong" color="ember">
+            Done
+          </Txt>
+        </PressableScale>
+      </View>
+    </InputAccessoryView>
+  );
+});
+
 function RepsExercise({
   entry,
   repsDefault,
   exerciseName,
+  levelText,
   anchor,
   anchorAlt,
   band,
@@ -1289,12 +1538,11 @@ function RepsExercise({
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
-  /** What this exercise attaches to, for `AnchorBadge` — null for anything self-anchored, which
-   *  renders nothing. Read off the library record, not the entry: the plan stores `anchorClass`
-   *  (the §13.1 safety bucket), not the specific fixed point the user has to go and find. */
+  /** "Lvl 3/7 · Horizontal push" for the level chip, or null when the entry has no ladder. */
+  levelText: string | null;
+  /** What this exercise attaches to, for `AnchorBadge` — see `ExerciseHeader`. */
   anchor: Anchor | null;
-  /** A second fixed point that works equally well (`Exercise.anchor_alt`) — the user should see
-   *  every safe option while they're the one deciding what to rig, not just the first one. */
+  /** A second fixed point that works equally well (`Exercise.anchor_alt`). */
   anchorAlt: Anchor | null;
   /** The band this set starts on — the prescription, or whatever the last set actually used. */
   band: BandId | null;
@@ -1322,146 +1570,98 @@ function RepsExercise({
   // the set's own logged value when it has one, not the prescription.
   const [reps, setReps] = useState(repsDefault);
   const [bandUsed, setBandUsed] = useState(band);
+  const color = sectionColor[entry.section as Section] ?? colors.ember;
+  const tone = SECTION_TONE[entry.section as Section] ?? 'ember';
+  const closesExercise = setIndex === entry.sets - 1;
   return (
-    // Tinted, not hidden or disabled, while the session clock is stopped: the state is legible at
-    // a glance and every control still works.
-    <View style={[styles.hero, paused && styles.heroPaused]}>
-      <Text testID="exercise-name" style={styles.exerciseName}>
-        {exerciseName}
-      </Text>
-
-      {/* Fixed right under the name — the one thing above it (the name) is always exactly one
-          line, so this is the one part of the hero whose on-screen position never shifts with
-          the anchor badge, band picker, or rep count below it. Below the exercise name is where a
-          thumb quickly scanning through a set expects to find it, not wherever it happened to
-          land after however much of the rest of the hero rendered this time. */}
-      <SetNavRow
-        onRewind={onRewind}
-        onSwap={onSwap}
-        onSkip={onSkip}
-        forwardIsSkip={forwardIsSkip}
-      />
-
-      {/* What the band goes on, right under what the exercise is — the two setup facts a user
-          reads before they pick anything up, together. */}
-      <AnchorBadge anchor={anchor} anchorAlt={anchorAlt} />
-      {/* Which band to actually pick up, mid-set, without leaving this screen — and, if that is
-          not the one in your hand, which one you really used. */}
-      {bandUsed != null && (
-        <View style={styles.bandRow}>
-          <BandPicker
-            band={bandUsed}
-            tensions={bandTensions}
-            accessibilityLabel="Band used for this set"
-            onChange={(b) => {
-              setBandUsed(b);
-              onBandChange(b);
-            }}
-          />
-        </View>
-      )}
-      <Text style={styles.setOf}>
-        Set {setIndex + 1} of {entry.sets}
-      </Text>
-
-      {/* The target rep count used to repeat here as its own "N reps" line — the same number the
-          picker below already shows (it defaults to the prescription), so the two just echoed
-          each other. A "Reps" label on the picker itself says what the number means without a
-          second line saying it again. */}
-      <Text style={styles.repCounterLabel}>Reps</Text>
-      <View style={styles.repCounterRow}>
-        <Pressable
-          testID="rep-minus"
-          style={styles.repAdjustButton}
-          onPress={() => setReps((r) => Math.max(0, r - 1))}
-        >
-          <Text style={styles.repAdjustText}>−</Text>
-        </Pressable>
-        <TextInput
-          testID="rep-count"
-          style={styles.repCountInput}
-          keyboardType="number-pad"
-          value={String(reps)}
-          onChangeText={(t) => setReps(Number(t.replace(/[^0-9]/g, '')) || 0)}
+    <>
+      <HeroCard tone={tone} paused={paused}>
+        <ExerciseHeader
+          levelText={levelText}
+          exerciseName={exerciseName}
+          entry={entry}
+          setIndex={setIndex}
+          color={color}
+          anchor={anchor}
+          anchorAlt={anchorAlt}
+          bandUsed={bandUsed}
+          bandTensions={bandTensions}
+          onPickBand={(b) => {
+            setBandUsed(b);
+            onBandChange(b);
+          }}
         />
-        <Pressable
-          testID="rep-plus"
-          style={styles.repAdjustButton}
-          onPress={() => setReps((r) => r + 1)}
-        >
-          <Text style={styles.repAdjustText}>+</Text>
-        </Pressable>
-      </View>
 
-      <Pressable
-        testID="complete-set"
-        style={styles.completeButton}
-        onPress={() => onComplete(reps)}
-      >
-        <Text style={styles.completeButtonText}>COMPLETE</Text>
-      </Pressable>
-    </View>
-  );
-}
+        {/* The rep counter is the centerpiece. The target rep count used to repeat here as its own
+            "N reps" line — the same number the counter below already shows (it defaults to the
+            prescription), so it now sits under the numeral as a quiet "target" note instead of a
+            second headline. Tapping the numeral still edits it. */}
+        <View style={styles.counter}>
+          <Txt variant="eyebrow" color="text3">
+            Reps
+          </Txt>
+          <View style={styles.counterRow}>
+            <IconButton
+              testID="rep-minus"
+              icon="remove"
+              size="xl"
+              accessibilityLabel="Fewer reps"
+              onPress={() => setReps((r) => Math.max(0, r - 1))}
+            />
+            <TextInput
+              testID="rep-count"
+              style={styles.repCountInput}
+              keyboardType="number-pad"
+              keyboardAppearance="dark"
+              selectionColor={colors.ember}
+              selectTextOnFocus
+              maxFontSizeMultiplier={1.3}
+              accessibilityLabel="Reps completed"
+              inputAccessoryViewID={REPS_ACCESSORY_ID}
+              value={String(reps)}
+              onChangeText={(t) => setReps(Number(t.replace(/[^0-9]/g, '')) || 0)}
+            />
+            <IconButton
+              testID="rep-plus"
+              icon="add"
+              size="xl"
+              accessibilityLabel="More reps"
+              onPress={() => setReps((r) => r + 1)}
+            />
+          </View>
+          {entry.repTarget != null && (
+            <Txt variant="caption" color="text3">
+              target {entry.repTarget}
+            </Txt>
+          )}
+        </View>
 
-/**
- * The set's own controls: step back, swap, step forward. Shared by both hero views (reps and
- * timed) because they had drifted into two identical copies of this row.
- *
- * Same treatment as the session-level Pause/Abandon controls: found mid-set, at arm's length, so
- * targets rather than sentences. The accessible names carry the meaning — including which of its
- * two jobs ▸▸ is doing right now — and ⇄ is the same glyph the approval card uses for swap.
- */
-function SetNavRow({
-  onRewind,
-  onSwap,
-  onSkip,
-  forwardIsSkip,
-}: {
-  /** Null on the workout's very first set, where there is nothing behind to step back to. The
-   *  button stays in place, greyed: the row does not reshuffle under a thumb already reaching
-   *  for swap. */
-  onRewind: (() => void) | null;
-  onSwap: () => void;
-  onSkip: () => void;
-  /** True at the workout's front edge, where ▸▸ skips the set; false while stepped back, where it
-   *  just walks forward over sets that are already logged. */
-  forwardIsSkip: boolean;
-}): React.JSX.Element {
-  return (
-    <View style={styles.actionRow}>
-      <Pressable
-        testID="rewind-set"
-        accessibilityRole="button"
-        accessibilityLabel="Go back to the previous set"
-        accessibilityState={{ disabled: onRewind === null }}
-        style={[styles.heroIconButton, onRewind === null && styles.heroIconButtonDisabled]}
-        disabled={onRewind === null}
-        onPress={() => onRewind?.()}
-      >
-        <Text style={[styles.heroIconText, onRewind === null && styles.heroIconTextDisabled]}>
-          ◂◂
-        </Text>
-      </Pressable>
-      <Pressable
-        testID="swap-set"
-        accessibilityRole="button"
-        accessibilityLabel="Swap this exercise for another"
-        style={[styles.heroIconButton, styles.heroSwapButton]}
-        onPress={onSwap}
-      >
-        <Text style={[styles.heroIconText, styles.heroSwapText]}>⇄</Text>
-      </Pressable>
-      <Pressable
-        testID="skip-set"
-        accessibilityRole="button"
-        accessibilityLabel={forwardIsSkip ? 'Skip this set' : 'Go forward to the next set'}
-        style={styles.heroIconButton}
-        onPress={onSkip}
-      >
-        <Text style={styles.heroIconText}>▸▸</Text>
-      </Pressable>
-    </View>
+        {/* Medium impact on every completed set; the closing set of an exercise gets the bigger
+            success buzz. The coach line itself rises from the screen (see `announceCompletion`),
+            because the set view is replaced by the rest page the instant this fires. */}
+        <Button
+          testID="complete-set"
+          label="COMPLETE SET"
+          icon="check"
+          size="lg"
+          haptic={false}
+          style={styles.completeButton}
+          onPress={() => {
+            if (closesExercise) haptics.success();
+            else haptics.medium();
+            onComplete(reps);
+          }}
+        />
+
+        <SetNavRow
+          onRewind={onRewind}
+          onSwap={onSwap}
+          onSkip={onSkip}
+          forwardIsSkip={forwardIsSkip}
+        />
+      </HeroCard>
+      <RepsAccessoryBar />
+    </>
   );
 }
 
@@ -1469,6 +1669,11 @@ function SetNavRow({
  *  timers. Not spec'd as a specific number; 5s is enough to physically reposition without being
  *  long enough to feel like a second rest. */
 const SWITCH_SIDE_SEC = 5;
+
+/** The hold timer ring's diameter (DESIGN.md §5.7). */
+const RING_SIZE = 240;
+/** The rest ring is a touch smaller: it is read, not pressed. */
+const REST_RING_SIZE = 220;
 
 interface PauseInfo {
   pauseCount: number;
@@ -1479,6 +1684,7 @@ function TimedExercise({
   entry,
   durationDefault,
   exerciseName,
+  levelText,
   anchor,
   anchorAlt,
   setIndex,
@@ -1494,12 +1700,11 @@ function TimedExercise({
 }: {
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
-  /** What this exercise attaches to, for `AnchorBadge` — null for anything self-anchored, which
-   *  renders nothing. Read off the library record, not the entry: the plan stores `anchorClass`
-   *  (the §13.1 safety bucket), not the specific fixed point the user has to go and find. */
+  /** "Lvl 3/7 · Horizontal push" for the level chip, or null when the entry has no ladder. */
+  levelText: string | null;
+  /** What this exercise attaches to, for `AnchorBadge` — see `ExerciseHeader`. */
   anchor: Anchor | null;
-  /** A second fixed point that works equally well (`Exercise.anchor_alt`) — the user should see
-   *  every safe option while they're the one deciding what to rig, not just the first one. */
+  /** A second fixed point that works equally well (`Exercise.anchor_alt`). */
   anchorAlt: Anchor | null;
   setIndex: number;
   /** Per-side hold this set starts from: this set's own recorded length once it has run, else the
@@ -1900,126 +2105,154 @@ function TimedExercise({
             ? 'Resume the hold'
             : 'Pause the hold';
 
-  return (
-    <View style={[styles.hero, paused && styles.heroPaused]}>
-      <Text testID="exercise-name" style={styles.exerciseName}>
-        {exerciseName}
-      </Text>
+  const color = sectionColor[entry.section as Section] ?? colors.ember;
+  const tone = SECTION_TONE[entry.section as Section] ?? 'ember';
+  const stopped = selfPaused || paused;
 
-      {/* Fixed right under the name — see the same row in `RepsExercise` for why: it's the one
-          part of the hero whose position never shifts under the phase engine driving the ring
-          through get-ready/hold/switch-sides, or the ±5s buttons and "end early" hint coming and
-          going below it. */}
+  // How far through the current phase the ring is drawn: the hold fills as it is held, the
+  // get-ready and switch-sides gaps fill over their own few seconds, and before the start it is
+  // empty. Read off the live controllers, so it is exact rather than eased (`animate={false}`).
+  const ringProgress = !started
+    ? 0
+    : inGetReady
+      ? 1 - getReadyMs / 3000
+      : switching
+        ? 1 - switchCountdown.remainingMs / (SWITCH_SIDE_SEC * 1000)
+        : 1 - activeCountdown.remainingMs / Math.max(durationSec * 1000, 1);
+  // The `pulse` motion for the last three seconds of the hold (the count-out cue already gives
+  // each of those seconds its own light haptic — see `cueCount`).
+  const pulse = usePulse(inHold && !stopped && remainingSeconds >= 1 && remainingSeconds <= 3);
+
+  return (
+    <HeroCard tone={tone} paused={paused}>
+      <ExerciseHeader
+        levelText={levelText}
+        exerciseName={exerciseName}
+        entry={entry}
+        setIndex={setIndex}
+        setSuffix={totalSides === 2 ? ` · Side ${sideIndex + 1} of 2` : ''}
+        color={color}
+        anchor={anchor}
+        anchorAlt={anchorAlt}
+        bandUsed={bandUsed}
+        bandTensions={bandTensions}
+        onPickBand={(b) => {
+          setBandUsed(b);
+          onBandChange(b);
+        }}
+      />
+
+      <View style={styles.ringWrap}>
+        <Animated.View style={{ transform: [{ scale: pulse }] }}>
+          <PressableScale
+            testID="timed-circle"
+            accessibilityRole="button"
+            accessibilityLabel={circleLabel}
+            accessibilityHint={started ? 'Press and hold to end this hold early' : undefined}
+            // The tap that starts the hold gets the bigger START buzz; a pause/resume tap a tick.
+            haptic={
+              tapAction === 'start' ? 'success' : tapAction === 'toggle' ? 'selection' : false
+            }
+            scaleTo={0.97}
+            onPress={handleCirclePress}
+            // Ending early is a real, recorded outcome — it logs the seconds actually held — so it
+            // stays reachable at every phase the END EARLY button covered, including while the
+            // session is paused. A long press keeps it off the screen without taking it away.
+            onLongPress={started ? handleEndEarly : undefined}
+            style={styles.ring}
+          >
+            <ProgressRing
+              testID="timed-ring"
+              progress={ringProgress}
+              size={RING_SIZE}
+              stroke={14}
+              gradient={gradients.sunrise}
+              trackColor={withAlpha(color, 0.18)}
+              animate={false}
+            >
+              <Txt
+                variant="mega"
+                testID="timed-remaining"
+                color={stopped ? 'text2' : 'text'}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.5}
+                style={styles.ringNumeral}
+              >
+                {ringDisplay}
+              </Txt>
+              {ringUnit != null && (
+                <Txt
+                  variant="eyebrow"
+                  testID="timed-remaining-unit"
+                  color={stopped ? 'sky' : 'text3'}
+                  style={styles.ringUnit}
+                >
+                  {ringUnit}
+                </Txt>
+              )}
+              <Txt
+                variant="caption"
+                testID="timed-caption"
+                color={stopped ? 'sky' : 'text2'}
+                align="center"
+                numberOfLines={1}
+              >
+                {circleCaption}
+              </Txt>
+            </ProgressRing>
+          </PressableScale>
+        </Animated.View>
+
+        {/* Live only before the hold starts — once it is running, the ring itself is the control
+            (tap to pause/resume), and there is nothing left here to adjust. They flank the ring
+            from its lower corners, where the square around the circle is empty. */}
+        {!started && (
+          <>
+            <IconButton
+              testID="duration-minus"
+              icon="remove"
+              size="lg"
+              accessibilityLabel="Decrease hold time by 5 seconds"
+              style={styles.durationMinus}
+              onPress={() => adjustDuration(-5)}
+            />
+            <IconButton
+              testID="duration-plus"
+              icon="add"
+              size="lg"
+              accessibilityLabel="Increase hold time by 5 seconds"
+              style={styles.durationPlus}
+              onPress={() => adjustDuration(5)}
+            />
+          </>
+        )}
+      </View>
+
+      {/* The one thing a tap cannot say. Quiet, and only once there is a hold to end. */}
+      {inHold && (
+        <Txt testID="end-early-hint" variant="caption" color="text3" align="center">
+          Press and hold to end early
+        </Txt>
+      )}
+
       <SetNavRow
         onRewind={onRewind}
         onSwap={onSwap}
         onSkip={onSkip}
         forwardIsSkip={forwardIsSkip}
       />
-
-      {/* What the band goes on, right under what the exercise is — the two setup facts a user
-          reads before they pick anything up, together. */}
-      <AnchorBadge anchor={anchor} anchorAlt={anchorAlt} />
-      {/* Which band to actually pick up, mid-set, without leaving this screen — and, if that is
-          not the one in your hand, which one you really used. */}
-      {bandUsed != null && (
-        <View style={styles.bandRow}>
-          <BandPicker
-            band={bandUsed}
-            tensions={bandTensions}
-            accessibilityLabel="Band used for this set"
-            onChange={(b) => {
-              setBandUsed(b);
-              onBandChange(b);
-            }}
-          />
-        </View>
-      )}
-      <Text style={styles.setOf}>
-        Set {setIndex + 1} of {entry.sets}
-        {totalSides === 2 ? ` · Side ${sideIndex + 1} of 2` : ''}
-      </Text>
-
-      <View style={styles.circleRow}>
-        {/* Live only before the hold starts — once it is running, the ring itself is the
-            control (tap to pause/resume), and there is nothing left here to adjust. */}
-        {!started && (
-          <Pressable
-            testID="duration-minus"
-            accessibilityRole="button"
-            accessibilityLabel="Decrease hold time by 5 seconds"
-            style={styles.repAdjustButton}
-            onPress={() => adjustDuration(-5)}
-          >
-            <Text style={styles.repAdjustText}>−</Text>
-          </Pressable>
-        )}
-        <Pressable
-          testID="timed-circle"
-          accessibilityRole="button"
-          accessibilityLabel={circleLabel}
-          accessibilityHint={started ? 'Press and hold to end this hold early' : undefined}
-          onPress={handleCirclePress}
-          // Ending early is a real, recorded outcome — it logs the seconds actually held — so it
-          // stays reachable at every phase the END EARLY button covered, including while the
-          // session is paused. A long press keeps it off the screen without taking it away.
-          onLongPress={started ? handleEndEarly : undefined}
-          style={({ pressed }) => [
-            styles.circleTimer,
-            (selfPaused || paused) && styles.circleTimerStopped,
-            pressed && tapAction !== null && styles.circleTimerPressed,
-          ]}
-        >
-          <Text
-            testID="timed-remaining"
-            style={[
-              styles.circleTimerText,
-              (selfPaused || paused) && styles.circleTimerTextStopped,
-            ]}
-          >
-            {ringDisplay}
-          </Text>
-          {ringUnit != null && (
-            <Text
-              testID="timed-remaining-unit"
-              style={[styles.circleUnit, (selfPaused || paused) && styles.circleCaptionStopped]}
-            >
-              {ringUnit}
-            </Text>
-          )}
-          <Text
-            testID="timed-caption"
-            style={[styles.circleCaption, (selfPaused || paused) && styles.circleCaptionStopped]}
-          >
-            {circleCaption}
-          </Text>
-        </Pressable>
-        {!started && (
-          <Pressable
-            testID="duration-plus"
-            accessibilityRole="button"
-            accessibilityLabel="Increase hold time by 5 seconds"
-            style={styles.repAdjustButton}
-            onPress={() => adjustDuration(5)}
-          >
-            <Text style={styles.repAdjustText}>+</Text>
-          </Pressable>
-        )}
-      </View>
-
-      {/* The one thing a tap cannot say. Quiet, and only once there is a hold to end. */}
-      {inHold && (
-        <Text testID="end-early-hint" style={styles.circleHint}>
-          Press and hold to end early
-        </Text>
-      )}
-    </View>
+    </HeroCard>
   );
 }
 
 function RestPhase({
   restSec,
   nextLabel,
+  nextName,
+  nextSetText,
+  restLine,
+  pips,
   nextAnchor,
   nextAnchorAlt,
   nextBand,
@@ -2032,7 +2265,17 @@ function RestPhase({
   onExtend,
 }: {
   restSec: number;
+  /** The whole "up next" line — exercise, set — as the rest-complete notification says it. */
   nextLabel: string;
+  /** The same, split for the Up-next card: the exercise (or "Workout complete") ... */
+  nextName: string;
+  /** ...and which set of it, or null when there is no upcoming set. */
+  nextSetText: string | null;
+  /** The coach's line under REST, from the rest pool. */
+  restLine: string;
+  /** The set just performed, as pips: which sets of its exercise are done and which one just
+   *  landed (that pip pops in when the page opens). Null if the entry can't be resolved. */
+  pips: { done: boolean[]; justDone: number; color: string } | null;
   /** The fixed point the *next* exercise needs, or null when it needs none. */
   nextAnchor: Anchor | null;
   /** A second fixed point the next exercise works equally well from (`Exercise.anchor_alt`). */
@@ -2129,57 +2372,145 @@ function RestPhase({
     onNext();
   };
 
+  // The just-completed set's pip lands filled a beat after the page opens, so it pops in rather
+  // than simply being there. Cleared on unmount.
+  const [landed, setLanded] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setLanded(true), 150);
+    return () => clearTimeout(id);
+  }, []);
+  const pipFlags = pips ? pips.done.map((d, i) => (i === pips.justDone ? d && landed : d)) : null;
+
+  // The ring drains as rest runs out. +15s can push the remaining time past what it started at, so
+  // the denominator is the most time this rest has ever had left.
+  const remainingMs = countdown.remainingMs;
+  const mostMsRef = useRef(restSec * 1000);
+  mostMsRef.current = Math.max(mostMsRef.current, remainingMs);
+  const remainingSeconds = Math.ceil(remainingMs / 1000);
+  const pulse = usePulse(remainingSeconds >= 1 && remainingSeconds <= 3);
+
   return (
-    <View style={styles.hero}>
-      <Text style={styles.stage}>Rest</Text>
-      {/* Same ring, deliberately without the lift: rest counts itself down and nothing here is
-          pressable, so it should not look like the set timer, which is. */}
-      <View style={[styles.circleTimer, styles.circleTimerFlat]} testID="rest-circle">
-        <Text style={styles.circleTimerText} testID="rest-remaining">
-          {Math.ceil(countdown.remainingMs / 1000)}
-        </Text>
-      </View>
+    <>
+      {/* Rest is the lagoon mood: a lagoon border and ring so it is unmistakable at a glance from
+          across a room. */}
+      <Card variant="accent" tone="lagoon" padding="md" testID="rest-hero">
+        <View style={styles.restBody}>
+          <Txt variant="eyebrow" color="lagoon" align="center">
+            Rest
+          </Txt>
+          <Txt variant="h2" align="center" testID="rest-line">
+            {restLine}
+          </Txt>
+          {pips && pipFlags && (
+            <View style={styles.restPips}>
+              <Pips
+                count={pipFlags.length}
+                filled={pipFlags}
+                color={pips.color}
+                testID="rest-pips"
+              />
+              <Txt variant="eyebrow" color="text2">
+                Set {pips.justDone + 1} of {pipFlags.length} done
+              </Txt>
+            </View>
+          )}
 
-      <View style={styles.actionRow}>
-        <Pressable
-          testID="rest-minus-15"
-          style={styles.actionButton}
-          onPress={() => handleExtend(-15_000)}
-        >
-          <Text style={styles.actionButtonText}>−15s</Text>
-        </Pressable>
-        <Pressable
-          testID="rest-plus-15"
-          style={styles.actionButton}
-          onPress={() => handleExtend(15_000)}
-        >
-          <Text style={styles.actionButtonText}>+15s</Text>
-        </Pressable>
-        <Pressable testID="rest-skip" style={styles.actionButton} onPress={handleSkip}>
-          <Text style={styles.actionButtonText}>Skip</Text>
-        </Pressable>
-      </View>
+          {/* Rest counts itself down and nothing here is pressable, so it should not look like the
+              set timer, which is. */}
+          <Animated.View style={{ transform: [{ scale: pulse }] }}>
+            <ProgressRing
+              testID="rest-circle"
+              progress={mostMsRef.current > 0 ? remainingMs / mostMsRef.current : 0}
+              size={REST_RING_SIZE}
+              stroke={14}
+              gradient={gradients.lagoon}
+              trackColor={withAlpha(colors.lagoon, 0.18)}
+              animate={false}
+            >
+              <Txt
+                variant="mega"
+                testID="rest-remaining"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.5}
+                style={styles.ringNumeral}
+              >
+                {remainingSeconds}
+              </Txt>
+              <Txt variant="eyebrow" color="text3" style={styles.ringUnit}>
+                sec
+              </Txt>
+            </ProgressRing>
+          </Animated.View>
 
-      <FeedbackControls difficulty={difficulty} onDifficultyChange={onDifficultyChange} />
+          <View style={styles.pillRow}>
+            <PillButton
+              testID="rest-minus-15"
+              label="−15s"
+              accessibilityLabel="Take 15 seconds off the rest"
+              onPress={() => handleExtend(-15_000)}
+            />
+            <PillButton
+              testID="rest-plus-15"
+              label="+15s"
+              accessibilityLabel="Add 15 seconds to the rest"
+              onPress={() => handleExtend(15_000)}
+            />
+            <PillButton
+              testID="rest-skip"
+              label="Skip"
+              accessibilityLabel="Skip the rest"
+              onPress={handleSkip}
+            />
+          </View>
 
-      <Pressable testID="rest-next" style={styles.completeButton} onPress={handleNext}>
-        <Text style={styles.completeButtonText}>NEXT</Text>
-      </Pressable>
+          <Txt variant="eyebrow" color="text2" align="center" style={styles.feelLabel}>
+            How did that set feel?
+          </Txt>
+          <FeedbackControls difficulty={difficulty} onDifficultyChange={onDifficultyChange} />
 
-      <Text style={styles.nextUp}>Next up: {nextLabel}</Text>
-      <AnchorBadge anchor={nextAnchor} anchorAlt={nextAnchorAlt} testID="rest-next-anchor" />
-      {nextBand != null && (
-        <View style={styles.restNextBand} testID="rest-next-band">
-          <BandChip band={nextBand} tensions={bandTensions} />
+          <Button
+            testID="rest-next"
+            label="NEXT"
+            icon="arrowRight"
+            iconRight
+            size="lg"
+            style={styles.completeButton}
+            onPress={handleNext}
+          />
         </View>
-      )}
+      </Card>
+
+      <Card padding="md" testID="rest-up-next">
+        <View style={styles.upNext}>
+          <Txt variant="eyebrow" color="text3">
+            Up next
+          </Txt>
+          <Txt variant="h2" numberOfLines={2}>
+            {nextName}
+          </Txt>
+          {nextSetText != null && (
+            <Txt variant="small" color="text2">
+              {nextSetText}
+            </Txt>
+          )}
+          {/* Rest is exactly when a user would go and rig the next anchor, and swap to the next
+              band, so both are worth naming before the set rather than at the top of it. */}
+          <View style={styles.chipRow}>
+            <AnchorBadge anchor={nextAnchor} anchorAlt={nextAnchorAlt} testID="rest-next-anchor" />
+            {nextBand != null && (
+              <View testID="rest-next-band">
+                <BandChip band={nextBand} tensions={bandTensions} />
+              </View>
+            )}
+          </View>
+        </View>
+      </Card>
 
       {/* Same "How to" cue the exercise phase shows, read here for the *upcoming* exercise — rest
-          is prep time, so the setup text is exactly as useful here as the demo below. `hero`
-          centers its children, so this needs its own full-width stretch to match the exercise
-          phase's page-width layout rather than shrinking to its content. */}
+          is prep time, so the setup text is exactly as useful here as the demo below. */}
       {howTo && (
-        <View style={styles.restFullWidth} testID="rest-how-to-block">
+        <View testID="rest-how-to-block">
           <Disclosure title="How to" defaultOpen body={howTo} />
         </View>
       )}
@@ -2188,11 +2519,38 @@ function RestPhase({
           The exercise phase's own DemoMedia (below, in the parent) keeps its own independent
           open/closed state once the set actually starts. */}
       {demoMedia && (
-        <View style={styles.restFullWidth} testID="rest-demo-media-block">
+        <View testID="rest-demo-media-block">
           <DemoMedia {...demoMedia} defaultOpen />
         </View>
       )}
-    </View>
+    </>
+  );
+}
+
+/** −15s / +15s / Skip: a secondary pill with its label kept in natural case ("+15s", not "+15S"). */
+function PillButton({
+  testID,
+  label,
+  accessibilityLabel,
+  onPress,
+}: {
+  testID: string;
+  label: string;
+  accessibilityLabel: string;
+  onPress: () => void;
+}): React.JSX.Element {
+  return (
+    <PressableScale
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      style={styles.pill}
+      onPress={onPress}
+    >
+      <Txt variant="button" upper={false}>
+        {label}
+      </Txt>
+    </PressableScale>
   );
 }
 
@@ -2207,14 +2565,29 @@ function Disclosure({
 }): React.JSX.Element {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <View>
-      <Pressable testID="disclosure-toggle" onPress={() => setOpen((o) => !o)}>
-        <Text style={styles.disclosureTitle}>
-          {open ? '▾' : '▸'} {title}
-        </Text>
-      </Pressable>
-      {open && <Text style={styles.disclosureBody}>{body}</Text>}
-    </View>
+    <Card padding="md">
+      <PressableScale
+        testID="disclosure-toggle"
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityState={{ expanded: open }}
+        style={styles.disclosureHeader}
+        onPress={() => setOpen((o) => !o)}
+      >
+        <View style={styles.disclosureTitle}>
+          <Icon name="info" size={16} color="lagoon" style={styles.disclosureIcon} />
+          <Txt variant="eyebrow" color="text2">
+            {title}
+          </Txt>
+        </View>
+        <Icon name={open ? 'chevronUp' : 'chevronDown'} size={18} color="text3" />
+      </PressableScale>
+      {open && (
+        <Txt variant="body" color="text2" style={styles.disclosureBody}>
+          {body}
+        </Txt>
+      )}
+    </Card>
   );
 }
 
@@ -2239,6 +2612,7 @@ const styles = StyleSheet.create({
   clock: { flex: 1, textAlign: 'center' },
   segments: { marginHorizontal: gutter, marginTop: space.sm },
   scroll: { flex: 1 },
+  container: { paddingHorizontal: gutter, paddingTop: space.md, gap: space.lg },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   metaSpacer: { flex: 1 },
   pausedChip: { alignSelf: 'flex-start' },
@@ -2251,141 +2625,77 @@ const styles = StyleSheet.create({
   },
   nudge: { gap: space.md },
   nudgeButtons: { gap: space.sm, marginTop: space.sm },
-  container: { paddingHorizontal: gutter, paddingTop: space.md, gap: space.lg },
-  stage: { fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' },
-  hero: { alignItems: 'center', gap: 12 },
-  // `hero` centers its children, which would otherwise shrink the How-To/Demo blocks to their
-  // content width instead of the page-width layout the exercise phase uses. Stretching overrides
-  // just those two children; the 20px `container` padding above still supplies the page gutter.
-  restFullWidth: { alignSelf: 'stretch' },
-  // Paused, not disabled: a cool tint behind the still-live set, so the state reads at a glance
-  // without anything looking switched off.
-  heroPaused: { backgroundColor: '#f0f9ff', borderRadius: 16, paddingVertical: 12 },
-  bandRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 6 },
-  exerciseName: { fontSize: 26, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
-  setOf: { fontSize: 15, color: '#64748b' },
-  repCounterLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-    marginBottom: -4,
+
+  // -- exercise hero (shared by the reps and timed views)
+  heroPaused: { opacity: 0.55 },
+  heroBody: { gap: space.md },
+  setRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm },
+  actionRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: space.xs },
+  completeButton: { height: 72 },
+  accessoryBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    backgroundColor: colors.surface2,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.line,
   },
-  repCounterRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  repAdjustButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#e2e8f0',
+
+  // -- reps: the counter is the centerpiece
+  counter: { alignItems: 'center', gap: space.xs, paddingVertical: space.sm },
+  counterRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    alignSelf: 'stretch',
   },
-  repAdjustText: { fontSize: 22, fontWeight: '700' },
   repCountInput: {
-    fontSize: 36,
-    fontWeight: '800',
-    minWidth: 80,
+    ...textStyles.mega,
+    flex: 1,
+    height: 124,
+    padding: 0,
+    color: colors.text,
     textAlign: 'center',
   },
-  completeButton: {
-    backgroundColor: '#111',
-    borderRadius: 20,
-    paddingVertical: 22,
-    paddingHorizontal: 40,
-    minHeight: 64,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  completeButtonText: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  actionRow: { flexDirection: 'row', gap: 12, justifyContent: 'center' },
-  heroIconButton: {
-    width: 76,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: '#e2e8f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroIconText: { fontSize: 22, fontWeight: '800', color: '#334155', lineHeight: 26 },
-  // Swap is the one control here that changes *what* you are doing rather than how this set
-  // goes, so it carries the same blue the approval card gives it.
-  heroSwapButton: { backgroundColor: '#dbeafe' },
-  heroSwapText: { color: '#1d4ed8' },
-  // Rewind on the workout's first set: still there, still the same size, just visibly not
-  // offering anything — nothing moves under a thumb that was already reaching for swap.
-  heroIconButtonDisabled: { backgroundColor: '#f1f5f9' },
-  heroIconTextDisabled: { color: '#cbd5e1' },
-  actionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#f1f5f9',
+
+  // -- timed: the ring is the control
+  ringWrap: { alignSelf: 'center', width: RING_SIZE, height: RING_SIZE, marginVertical: space.sm },
+  ring: { width: RING_SIZE, height: RING_SIZE, borderRadius: RING_SIZE / 2 },
+  ringNumeral: { width: 170, textAlign: 'center' },
+  ringUnit: { marginTop: -space.sm },
+  // The ±5s buttons sit outside the ring's lower corners (the square around a circle is empty
+  // there), so the whole control still fits the card's width.
+  durationMinus: { position: 'absolute', left: -28, bottom: 0 },
+  durationPlus: { position: 'absolute', right: -28, bottom: 0 },
+
+  // -- rest
+  restBody: { gap: space.md, alignItems: 'center' },
+  restPips: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  pillRow: { flexDirection: 'row', justifyContent: 'center', gap: space.sm },
+  pill: {
     minHeight: 44,
-    justifyContent: 'center',
-  },
-  actionButtonText: { fontWeight: '600', color: '#334155' },
-  // Flanks the ring with the ±5s buttons pre-start; centered either way since they unmount once
-  // the hold begins rather than leaving an empty gap where they sat.
-  circleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'center' },
-  // The set's primary control, so it is filled and lifted rather than an outline drawn on the page
-  // — it should read as something to press from across a room. 216 leaves the caption a full line
-  // inside the stroke at every phase.
-  circleTimer: {
-    width: 216,
-    height: 216,
-    borderRadius: 108,
-    borderWidth: 6,
-    borderColor: '#111',
-    backgroundColor: '#fff',
+    minWidth: 84,
+    paddingHorizontal: space.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 18,
-    gap: 2,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 5 },
   },
-  // Stopped — the user's own pause or the session's. The same cool blue `heroPaused` uses, so a
-  // frozen clock reads the same everywhere, and still plainly on rather than switched off.
-  circleTimerStopped: { borderColor: '#0369a1', backgroundColor: '#f0f9ff' },
-  circleTimerFlat: { backgroundColor: 'transparent', shadowOpacity: 0 },
-  // Sinks slightly under the thumb. The only feedback a 216pt target needs.
-  circleTimerPressed: { transform: [{ scale: 0.97 }], shadowOpacity: 0.04 },
-  circleTimerText: {
-    fontSize: 60,
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: -1.5,
-    // Otherwise the whole number shifts sideways every time a digit changes width, once a second,
-    // for the entire hold.
-    fontVariant: ['tabular-nums'],
+  feelLabel: { marginTop: space.sm },
+  upNext: { gap: space.sm },
+
+  // -- disclosure
+  disclosureHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 32,
   },
-  circleTimerTextStopped: { color: '#075985' },
-  // Sits right under the big number, small enough that it reads as a unit on that number rather
-  // than a second line competing with the caption below it.
-  circleUnit: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#94a3b8',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    textAlign: 'center',
-    marginTop: -6,
-  },
-  circleCaption: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#94a3b8',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    textAlign: 'center',
-  },
-  circleCaptionStopped: { color: '#0369a1' },
-  circleHint: { fontSize: 13, color: '#94a3b8' },
-  levelBadge: { fontSize: 12, fontWeight: '700', color: '#64748b' },
-  nextUp: { fontSize: 13, color: '#64748b' },
-  restNextBand: { marginTop: 4 },
-  disclosureTitle: { fontSize: 14, fontWeight: '700', color: '#334155' },
-  disclosureBody: { fontSize: 13, color: '#64748b', marginTop: 4 },
+  disclosureTitle: { flexDirection: 'row', alignItems: 'center' },
+  disclosureIcon: { marginRight: space.sm },
+  disclosureBody: { marginTop: space.md },
 });
