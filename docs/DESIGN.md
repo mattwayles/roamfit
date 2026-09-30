@@ -351,17 +351,42 @@ one button.**
 
 ### 5.9 Completion (Summary, after FINISH)
 
-Keep the whole choreography (it's the part the user likes); re-skin and tighten:
-- Backdrop orbs recolored to ember/gold/summit on `bg`; sunburst rays gold at low opacity.
-- Headline in `display`/`hero` scale, `sun` color with an ember text shadow.
-- "Your 12th workout" line in `h2` text.
-- Stat tiles: 2×2 grid of `StatTile`s that fit above the fold on a 6.1" phone (tighten the
-  current vertical spacing — hero + stats + first highlight should all be visible without
-  scrolling).
-- Highlights (level ups / best sets): `Card`s with a `Stamp` on the left ("LEVEL UP", "BEST
-  SET") that stamps in with the existing reveal beat; share as an icon button.
-- Quiet milestones as small gold `Chip`s, wrapping.
-- "Heck yes! 💪" keeps its pulse; restyled as `Button lg primary`.
+**User direction (verbatim intent):** this is the one page that already has the energy the rest
+of the app lacks, and it must stay *highly* exciting, interactive and animated. The user
+specifically loves: the **stamped-on hype headline** ("BEAST MODE ACTIVATED" slamming in word by
+word), the **stat chips** counting up, the **confetti cannons and radial sunburst**, the
+**pulsating "Heck yes!" button**, and **all the haptics**. The one thing they dislike is the
+**heavy purple theme**. So: this phase is a re-skin into Golden Hour, **not** a calming-down.
+Every animation beat, sound, haptic, shake, re-burst-on-tap and Reduce Motion behavior stays
+exactly as choreographed today (`completionTimeline.ts`). Do not remove, shorten or soften any of
+them; if anything, the new palette should make them pop harder.
+
+The purple comes from: the solid `#5b21b6` screen background, the violet level bar / level chip /
+share-button text in `HighlightCard`, and the lilac stat labels in `AnimatedStatCounter`. All of
+it goes. **No violet surfaces or violet-dominant elements on this page** — `summit` is not used
+here at all.
+
+- **Background**: `bg` night base with the drifting glow orbs recolored to **ember, gold and
+  sun** (big, soft, ~35–45% opacity) so the whole screen reads as a warm sunset bloom, not a
+  flat color. Optional third orb in lagoon at low opacity for depth.
+- **Sunburst rays**: gold/sun at low opacity, still spinning.
+- **Hype headline**: keeps the stamp-in, word-by-word slam and bounce. Barlow Condensed 800,
+  `display`/`hero` scale, uppercase; words in `text` with the accent word in `sun`, and an ember
+  text-shadow glow so it looks stamped in light.
+- "You just finished your 12th workout on RoamFit!" in `h2`, then "32 min · upper" in `small`.
+- **Stat chips**: keep the tile-by-tile pop-in and count-up. 2×2 grid of `StatTile`-style
+  chips: `surface` at ~85% opacity over the glow, 1px `line` border, numerals in `hero`
+  condensed `text`, labels in `eyebrow` gold. Tighten vertical spacing so headline + stats +
+  the first highlight are visible without scrolling on a 6.1" phone.
+- **Highlights** (level ups / best sets): keep the stamped reveal beat with its own sound, haptic,
+  shake and confetti pop. Card = `surface` with a 2px `golden` gradient border; a `Stamp`
+  ("LEVEL UP" in ember / "BEST SET" in gold) on the left stamps in on the reveal; level bar
+  fills with the `sunrise` gradient; share is an `IconButton` (share icon), not violet text.
+- **Quiet milestones**: small gold `Chip`s, wrapping.
+- **Confetti**: same physics, cannons and pops, palette → ember, emberDeep, gold, sun, lagoon,
+  sky, rose, `text` white. No violet.
+- **"Heck yes! 💪"**: keeps its entrance and endless pulse, now `Button lg primary` (sunrise
+  gradient, `ink` text, glow) — the pulse should also breathe the glow.
 
 ### 5.10 Settings — Basecamp
 
