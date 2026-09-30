@@ -1,5 +1,5 @@
 ## Track: 21 — "Golden Hour" UI redesign
-Last updated: 2026-09-29
+Last updated: 2026-09-29 — **TRACK DONE (Phase G landed).** Only the device pass remains, owned by BACKLOG.
 
 User request: a complete, themed UI rewrite of **every** page to make the app approachable,
 exciting and motivating. Design is fixed in `docs/DESIGN.md` — read it in full before any phase.
@@ -52,25 +52,20 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
 
 - [x] G1 sweep: Workout loading spinners ember, intentional literals commented — bc25bbe
 - [x] G2 week strip always the 7 real days: `addDaysToLocalDate` / `monthWindow` / `weekWindow` + a `window` param on
-  `buildCalendarDays`, `DashboardData.weekDays`, `weekContaining` deleted, month-boundary tests, BACKLOG item removed
+  `buildCalendarDays`, `DashboardData.weekDays`, `weekContaining` deleted, month-boundary tests, BACKLOG item removed — c976858
 - [x] G3 `HypeHeadline` stamped punch restored: hard 3/4pt `emberDeep` copy layer (carries the ember glow) under each word, forward
   `skewX` lean, `HypeHeadline.test.tsx` — 6324061
 - [x] G4 one keyboard Done bar: `WorkoutScreen`'s `RepsAccessoryBar` and `PinnedNote`'s bar deleted, both use `KeyboardDoneBar`
-  (`rep-count-done`, `pinned-note-done`, `retrospective-done` unchanged); BACKLOG item removed
+  (`rep-count-done`, `pinned-note-done`, `retrospective-done` unchanged); BACKLOG item removed — 31870bf
+- [x] G5 consistency pass: title eyebrows follow the mood, Spotify browse loading is an ember spinner — 4786801
+- [x] G6 docs: BACKLOG consolidated (one "Golden Hour redesign — device pass owed" item, Completion native tier updated, Passport
+  replaced by its open questions, app icon/splash art added, landed/stale items deleted), this file closed
 
 ### In progress
-- Phase G, increment G5 (in this commit): consistency pass. Changed: title eyebrows follow the mood (Basecamp + Summit gold, Ignition ember:
-  Journey summit->gold, Debrief ember->gold), Spotify browse loading is an ember spinner. Then G6 docs (BACKLOG consolidation + this file,
-  incl. the Phase G reference with grep before/after and the larger inconsistencies to report).
+- Nothing. The track is complete; the next action is the device pass (BACKLOG, first item under Desired Fixes).
 
-### Next (sequential — each phase is one agent run, several small commits)
-- **G. Sweep** (§5.11, §7 "zero off-system surfaces") — grep for raw hex/fontSize/fontWeight/
-  glyph icons outside theme/ui, empty + loading states, keyboard accessories (fold `RepsAccessoryBar` /
-  `PinnedNote`'s bar into `KeyboardDoneBar`, see BACKLOG), remove dead styles, BACKLOG updates (device rebuild
-  owed, app icon art). Phase F leaves no legacy light override anywhere, so nothing to delete there.
-  Known tail for the sweep: `navigation/screenOptions.ts` reads `type.h2.fontSize` (a token, not a literal, but a
-  naive `fontSize:` grep hits it); `SettingsScreen` has one `fontFamily: 'Menlo'` for the diagnostics well (intentional:
-  monospace, per §5.10); app version in the Settings footer is still omitted (see Phase F reference).
+### Next
+- Device pass (`npm run ios`), then fix whatever the checklist turns up as normal BACKLOG work, not as a new phase.
 
 ### Decisions / gotchas
 - `react-native-svg` is native: the app needs a dev-client rebuild (`npm run ios`) after phase A.
@@ -212,7 +207,7 @@ an empty dot).
 
 **Not verified on a device/simulator** (Jest only; `react-native-svg` still needs the dev-client
 rebuild). Layout was reasoned, not seen: top-bar clock width, hero height vs the fold on a 6.1"
-phone, flanking -/+ corner placement, hero dim. First thing to check after `npm run ios`.
+phone, flanking -/+ corner placement, hero dim. First thing to check after `npm run ios` (now one consolidated BACKLOG item).
 
 ### Phase C reference (Today + Journey) — for phases D-G
 
@@ -248,8 +243,8 @@ while the §13.3 disclaimer gate is up, so the gate really blocks (nothing else 
 **Deviations from DESIGN.md §5.1/§5.2 (all deliberate)**:
 - `open-exercises` (Home's "Exercises" text link) is gone: the Field Guide tab does that job. The two
   tests that used it (`ExercisesScreen`, `ExerciseDetailScreen`) now press `tab-Exercises`.
-- The week strip is Sun-Sat (the Logbook's own week, from `buildCalendarWeeks`), not Mon-Sun, and shows
-  blank cells for days that fall in the neighbouring month (BACKLOG has the fix).
+- The week strip is Sun-Sat (the Logbook's own week), not Mon-Sun. (Phase C also showed blank cells for days in the
+  neighbouring month; Phase G fixed that: the strip is `weekWindow`, always 7 real days.)
 - Copy: hero says "sessions to your next level" (spec) so the old "to next level" assertion moved to the
   Trails ring caption; mastery chip reads "Summit" (spec) while Today's all-mastery sentence keeps
   "Mastery"; `first-session-explanation` now says "tap Adjust on any of them" (the controls moved
@@ -322,8 +317,7 @@ instead of the "~N min estimated" line; the add sheet is asserted closed via `wa
 `ApprovalScreen.presentation.test.tsx`. Everything else (reorder, entryCard, swap, abandon, candidates,
 estimate) passed unchanged.
 
-**Not verified on a device/simulator** (Jest only): see the BACKLOG item "Golden Hour Generate + Plan are
-Jest-verified only" for the checklist.
+**Not verified on a device/simulator** (Jest only): see the consolidated BACKLOG item "Golden Hour redesign — device pass owed".
 
 ### Phase E reference (Debrief + Completion) — for phases F-G
 
@@ -395,8 +389,7 @@ whole rendered tree, confetti included, for every violet the old page and the pa
 - Summary tests that used to read chip text / `✅ ⬜` glyphs now read the dots' accessibility labels
   (`getByLabelText('Set 1 felt: Too hard')`); the labeled chips exist only inside the open edit sheet.
 - `AnimatedStatCounter` now imports `../ui` (`Txt`); its old `valueStyle`/`labelStyle` props remain as overrides.
-- **Not verified on a device/simulator** (Jest only): see the BACKLOG item "Golden Hour Debrief + Completion are
-  Jest-verified only".
+- **Not verified on a device/simulator** (Jest only): see the consolidated BACKLOG item "Golden Hour redesign — device pass owed".
 
 ### Phase F reference (Field Guide + Exercise detail + Settings) — for phase G
 
@@ -458,4 +451,55 @@ VoiceOver, so tests query it `{ hidden: true }`). The Settings screen had no tes
 - A Sheet unmounts after its exit animation: tests that assert it "closed" `waitFor` (the reset test does).
 - The tab screens stay mounted under a pushed stack screen, so a test looking for `topo-pattern-*` / other shared testIDs after opening
   Exercise detail sees Today's hero too — use `getAllByTestId` (see `ExerciseDetailScreen.test.tsx`).
-- Not verified on a device/simulator (Jest only): see the BACKLOG item "Golden Hour Field Guide + Exercise detail + Settings are Jest-verified only".
+- Not verified on a device/simulator (Jest only): see the consolidated BACKLOG item "Golden Hour redesign — device pass owed".
+
+### Phase G reference (sweep, week strip, headline, Done bar, consistency, docs)
+
+**Grep before/after** (`app/src`, excluding `theme/`, `ui/`, tests; script: hex/rgb, `fontSize:`/`fontWeight:`, `fontFamily`/`letterSpacing`/
+`lineHeight`, unicode icon glyphs, `Modal`/`Alert`/`ActivityIndicator`). Phases A-F had already migrated almost everything, so the sweep
+mostly proves it and annotates the rest.
+
+| Check | Before | After |
+| --- | --- | --- |
+| Raw hex / rgb colors | 1 (`SPOTIFY_GREEN`, brand dot, already commented) | 1 (same, intentional) |
+| `fontSize:` / `fontWeight:` literals | 0 (1 false positive: `screenOptions.ts` reads `type.h2.fontSize`, a token) | 0 (the token read now has a comment) |
+| `fontFamily` literals | 1 (`'Menlo'`, diagnostics well, §5.10) | 1, commented |
+| `letterSpacing` / `lineHeight` overrides on a `Txt` variant | 5, uncommented | 5, each with a one-line why |
+| Unicode glyphs used as icons (✈ ✕ ⇄ ⠿ ▸ ▶ ❚ ✓ ✔ ★ ⭐ ...) | 0 | 0 |
+| Emoji as content | day markers (`lib/dayMarkers.ts`), "Heck yes! 💪" | same, intentional |
+| `Modal` / `Alert` outside `ui/Sheet` | 0 | 0 |
+| Loading states not an ember spinner on `bg` | 3 (Workout x2 un-tinted; Spotify browse's "Loading..." text) | 0 |
+
+**Week strip.** `buildCalendarDays` takes an optional `CalendarWindow` (`{from, to}` local_date strings; default `monthWindow(today)`, so the
+Logbook is unchanged). `weekWindow(today)` = the Sun-Sat week, month edges ignored. `loadDashboardData` builds `weekDays` with it and Today
+renders that; `weekContaining` and Today's blank-cell branch are deleted. All date arithmetic is `addDaysToLocalDate` (string in, string out, via
+`Date.UTC` component math: no instant, no timezone). Tests: `dashboard.test.ts` (mid-month, month end, month start, year end, leap day,
+markers on neighbouring-month days, default window unchanged) and a 7-cells assertion in `HomeScreen.dashboard.test.tsx`.
+
+**Headline.** Each word is a `Txt` layer stack: a hidden (`accessibilityElementsHidden`) `emberDeep` copy at +3/+4pt carrying the ember glow
+`textShadow`, the real word on top (no shadow). The copy is `left: 3, right: -3` so it is exactly as wide as the word and cannot re-wrap. A static
+`skewX(-8deg)` on an inner (non-Animated) `View` gives the forward lean; the slam/rotate/scale/opacity animation and the timeline are untouched.
+Testids `hype-word-${i}` / `hype-word-${i}-shadow` (shadow needs `{ hidden: true }`). Not seen on a device: the lean direction and the glow over
+the hard shadow are the first things to check.
+
+**Done bar.** `KeyboardDoneBar` (`nativeID`, `testID`) is the only accessory bar: Approval (`approval-number-accessory`), Summary Trail notes
+(`retrospective-done`), Workout rep counter (`rep-count-accessory` / `rep-count-done`), PinnedNote (`pinned-note-accessory` / `pinned-note-done`).
+
+**Consistency pass: changed.** Screen-title eyebrow color now follows the mood table (Basecamp + Summit gold, Ignition ember): Journey
+summit -> gold, Debrief ember -> gold (Field Guide gold and Generate ember were already right). Spotify browse loading is an ember spinner.
+**Checked and already consistent:** gutter (every screen is the 20pt `gutter` via `Screen` or an explicit `gutter`), primary CTA sizes (`lg` in
+footers/heroes, `md` secondary, `sm` inside cards and empty states), card padding (`md` inside screens, `lg` only on the gate card), `Enter`
+stagger (every screen staggers its blocks; Workout has none by design), Sheet button hierarchy (safe choice primary `lg`, the action secondary `md`).
+**Left as-is, deliberately (report, not rewrite):**
+- Two section-heading tiers: `components/SectionTitle` (h2 + icon, Journey's major sections) and `ui/SectionHeader` (eyebrow, card-level labels on
+  Today and Debrief); Generate/Settings/Approval draw bare `eyebrow text3` labels that look identical to `SectionHeader` without the icon. Detail's
+  in-card `CardHeader` is eyebrow `text2` with a toned icon (matches `DemoMedia`). Collapsing these to one component is a cross-screen refactor.
+- Title block shapes differ: Generate/Journey/Field Guide use eyebrow + `display`, Debrief eyebrow + `h1` (its title is longer), Settings `h1` alone
+  (per §5.10), Approval keeps a native "YOUR ROUTE" header with the boarding pass as its hero, Today is the wordmark.
+- Screen vertical rhythm differs a little: Today `gap: xl`, Journey sections `xxxl`, Generate/Approval/Settings `xxl`, Debrief/Detail `lg`;
+  tab screens pad the top `lg`, native-header screens `sm`.
+- Not checked on a device, so none of the above was judged visually.
+
+**Found, not fixed (behavior is frozen):** the Settings "Write workouts" toggle persists `healthWriteEnabled`, but nothing calls
+`requestHealthKitWritePermission()`, so `healthKitWriter.writeWorkout` never writes (its in-memory `authorizationRequested` flag stays false).
+BACKLOG has it.

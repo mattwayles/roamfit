@@ -16,39 +16,41 @@ the record of what was completed and why.
 
 ## Desired Fixes
 
-- **Golden Hour Workout screen is Jest-verified only.** Run `npm run ios` (dev-client rebuild for
-  `react-native-svg`) and walk a session: top-bar clock width, hero vs the fold on a 6.1" phone,
-  timed ring with the flanking -/+ at its lower corners, rest ring pulse, paused dim, toast position.
-  Details and deliberate deviations from DESIGN.md §5.7 are in `docs/handoff/STATUS-21-ui-redesign.md`.
-- **Golden Hour Today + Journey are Jest-verified only** (same `npm run ios` dev-client rebuild owed
-  as the Workout item above). Check on a device: hero card height and the two-up tiles on a 6.1"
-  phone, the "This week" strip's 40pt cells across 7 columns, Trails cards with 9-node rung tracks,
-  the Logbook cell size (7 flex columns), day-marker and Adjust flows, Stamp grid wrapping with tilt,
-  the disclaimer gate with the tab bar hidden. Deviations from DESIGN.md §5.1/§5.2 are in
-  `docs/handoff/STATUS-21-ui-redesign.md`.
-- **Golden Hour Generate + Plan are Jest-verified only** (same `npm run ios` dev-client rebuild owed as
-  the items above). Check on a device: the focus tile grid and full-width Cardio tile on a 6.1" phone,
-  the Time row's horizontal scroll off the gutter, the boarding-pass perforation notches (clipped
-  bg-colored discs), the rail + node alignment against 1-, 2- and 3-line exercise names, drag-to-reorder
-  with the new cards (the dragged card should glow and paint over the next section), the band dropdown
-  overlapping the next card, the add-exercise `Sheet` list height, and the number-pad "Done" bar.
-  Deviations from DESIGN.md §5.5/§5.6 are in `docs/handoff/STATUS-21-ui-redesign.md`.
-- **Golden Hour Debrief + Completion are Jest-verified only** (same `npm run ios` dev-client rebuild
-  owed as the items above). Check on a device: Debrief rows with 30pt squares across 5-6 sets and long
-  exercise names (the squares wrap at 62% of the row), the 8pt feedback dots' tap targets, the dashed
-  `lineStrong` outline legibility, the Trail notes field with the keyboard up (scroll insets + Done bar),
-  and — the important one — the Completion page: headline + stat chips + first highlight above the fold on
-  a 6.1" phone, the glow orbs' warmth against `bg`, the gold sunburst, the stamped highlight card, and the
-  breathing glow behind "Heck yes!". Deviations from DESIGN.md §5.8/§5.9 are in
-  `docs/handoff/STATUS-21-ui-redesign.md`.
-- **Golden Hour Field Guide + Exercise detail + Settings are Jest-verified only** (same `npm run ios` dev-client
-  rebuild owed as the items above). Check on a device: the Field Guide's header scrolling away under a 247-row
-  list, the quick chip row's horizontal scroll bleeding off the gutter, the Filters `Sheet` height with every group
-  open (and its "Show N moves" button), row heights with long names + three right-hand chips, the detail hero
-  (status bar over the gradient, bounce overscroll revealing `bg` above it, long names fitting `adjustsFontSizeToFit`,
-  the violet legs hero text contrast), the 2-column spec grid with wide tiles, the gradient chart bars, and Settings'
-  motivation time pills with five times, the dashed Add row, the Advanced disclosure and the reset `Sheet`.
-  Deviations from DESIGN.md §5.3/§5.4/§5.10 are in `docs/handoff/STATUS-21-ui-redesign.md`.
+- **Golden Hour redesign — device pass owed.** Run `npm run ios` (react-native-svg is a new native
+  dep: dev-client rebuild + pod install; `app.json`'s dark style and splash `bg` also only apply after
+  the rebuild). Every screen of the redesign is Jest-verified only — layout was reasoned, never seen.
+  Deliberate deviations from `docs/DESIGN.md` are logged per phase in
+  `docs/handoff/STATUS-21-ui-redesign.md`. Checklist, most important first:
+  1. Launch: fonts load (Barlow), no white flash between screens or behind the WebView, light status
+     bar, tab bar, the disclaimer gate with the tab bar hidden.
+  2. **Completion** (the page the user loves): the stamped headline (hard `emberDeep` 3/4pt shadow, ember
+     glow, forward lean — check the lean direction and that no long word re-wraps its copy), headline +
+     stat chips + first highlight above the fold on a 6.1" phone, orb warmth on `bg`, gold sunburst,
+     stamped highlight card, the glow breathing behind "Heck yes!".
+  3. **Active Workout**: top-bar clock width, hero vs the fold on 6.1", the timed ring with its -/+ at
+     the lower corners, rest ring pulse, paused dim, toast position, rep counter with the number pad's
+     Done bar.
+  4. **Generate + Plan**: focus tile grid with full-width Cardio, the Time row scrolling off the gutter,
+     boarding-pass notches, rail/node alignment against 1-, 2- and 3-line names, drag-to-reorder (dragged
+     card glows and paints over the next section), band dropdown over the next card, add-exercise
+     `Sheet` height, Done bar.
+  5. **Today + Journey**: hero and two-up tiles on 6.1", the week strip's seven 40pt cells (check a week
+     that spans two months: the neighbouring month's days should carry their real markers), Trails
+     cards with 9-node rung tracks, Logbook cell size, day-marker and Adjust flows, Stamp grid wrapping
+     with tilt.
+  6. **Debrief**: 30pt squares across 5-6 sets with long names (they wrap at 62% of the row), the 8pt
+     feedback dots' tap targets, dashed `lineStrong` outline legibility, Trail notes with the keyboard up.
+  7. **Field Guide, Exercise detail, Settings**: header scrolling away over 247 rows, the chip row and
+     Filters `Sheet` height, row heights with long names, the detail hero (status bar over the gradient,
+     overscroll, long names, violet legs hero text contrast), the 2-column spec grid, gradient chart
+     bars, Settings' five motivation time pills, dashed Add row, Advanced disclosure and the reset
+     `Sheet`.
+  8. Everywhere: Reduce Motion, large Dynamic Type (`mega`/`hero` are capped at 1.3), VoiceOver labels on
+     every icon-only control.
+- **App icon and splash art to match Golden Hour — needs an artist.** The splash background is `bg` and
+  the native chrome is dark, but `app/assets/icon.png` and `splash-icon.png` were not redrawn for the
+  redesign (the redesign spec put the art out of scope). Design brief: night-sky `bg`, ember-to-gold sunrise, one travel motif (topographic
+  contours or a stamp), Barlow Condensed wordmark.
 - **Show the app version in Settings' footer.** `expo-constants` is hoisted in by `expo` but not declared in
   `app/package.json`; add it (`npx expo install expo-constants`) and read `Constants.expoConfig?.version`.
 - **Ladder rungs with no sibling exercises**, so they repeat every session at that level: `horizontal_push` l7–l9, `horizontal_pull` l4–l8, `anti_extension` l4 and l6. All are high rungs nobody currently occupies — fill them when someone gets there.
@@ -111,26 +113,35 @@ sibling got drawn, which is exactly what anchoring avoids, so it needs a design 
 - **No quad stretch in the library**, so a Cardio cool-down can't target quads. Add one (and give
   it the `cardio` focus) if cardio cool-downs feel lopsided.
 
-- **Completion screen — the native-dependency tier.** Everything the built-in `Animated` API can do
-  has landed (track 17: slammed-in headline, physics confetti cannons/pops, drifting glow-orb
-  backdrop, spinning rays, level-ups folded in as stamped reveal cards with their own sound, tap
-  the headline to re-burst — see `SummaryScreen.tsx`, `lib/completionTimeline.ts`). Still open, all
-  needing a native dep + Expo dev-client rebuild: a true blurred gradient background and 60fps
-  UI-thread confetti at higher piece counts (`react-native-reanimated`), a muscle-worked
-  visualization (`react-native-svg`), hold-to-charge interactions (`react-native-gesture-handler`),
-  and a rendered branded share-card image instead of text (`react-native-view-shot`, already noted
-  below as a §9.10 scope cut).
-- **Passport Feature** - What do we want to use it for? What should it look like? What's its primary purpose?
+- **Completion screen — the remaining native-dependency tier.** Everything the built-in `Animated` API
+  can do has landed (track 17: slammed-in headline, physics confetti cannons/pops, drifting glow-orb
+  backdrop, spinning rays, level-ups folded in as stamped reveal cards with their own sound, tap the
+  headline to re-burst — see `SummaryScreen.tsx`, `lib/completionTimeline.ts`), and `react-native-svg` is
+  now installed (Golden Hour redesign). Still open: a true blurred/radial gradient backdrop
+  (`CelebrationBackdrop` still fakes the glow orbs with stacked translucent rings; an SVG
+  `RadialGradient` is now possible without a new dep), a muscle-worked visualization (SVG is available;
+  nothing built), and — each needing a new native dep and another dev-client rebuild — 60fps UI-thread
+  confetti at higher piece counts (`react-native-reanimated`), hold-to-charge interactions
+  (`react-native-gesture-handler`), and a rendered branded share-card image instead of text
+  (`react-native-view-shot`, already noted below as a §9.10 scope cut).
+- **Passport — the open questions.** It is a stamp collection now (a seeded `Stamp` per city on
+  Journey, opt-in in Settings), so "what is it for" is answered. Still undecided: (1) countries and
+  milestones (level-ups, best sets) do not get stamps yet, only cities; (2) the Share button sends a
+  plain-text line — a rendered stamp-sheet image is the natural share, but needs `react-native-view-shot`
+  (see the Completion item above).
 - **User Accounts** - **Anonymous Firebase Auth session isn't persisted.** No RN AsyncStorage backing, so cross-device continuity silently doesn't work. Zero impact on the core loop — nothing reads it on the critical path.
-- **A native iOS wheel picker** (`@react-native-picker/picker`) instead of the hand-rolled drop-down. Costs two native dependencies and an Expo dev-client rebuild; the component interface wouldn't change, so it's a clean swap if wanted.
 - **Get a second opinion on** `contraindications[]` **tagging**, especially `core_pressure` and `lower_back_extension` across the hinge, plank and hollow-hold families. This is the pregnancy hard filter — the highest-stakes judgment call in the content set, and it was made by one pass with no review.
 - **Band tensions have no editor.** `DEFAULT_BAND_TENSIONS` ships sensible colours and labels and the data model is user-editable, but Settings has no UI to change them. Band brands genuinely differ.
 - **LLM integration is not fully written:** `functions/` is written; no `LlmProxyCaller` implementation calls
 the deployed function, nothing triggers `processLlmQueue`, and there is no natural-language intake
 UI. `docs/RUNBOOK-functions-deploy.md` has never been run against a real Firebase project.
   - Using AI in workout generation based on previous retrospective input **(hold on this until we see how current progression is working)**
-- **HealthKit write has no opt-in UI.** The plumbing exists (`requestHealthKitWritePermission` +
-`healthWriteEnabled`); Settings has no toggle. Passport already has the equivalent control.
+- **HealthKit write is never authorized.** Settings has the "Write workouts" toggle (it persists
+  `healthWriteEnabled`), but nothing calls `requestHealthKitWritePermission()`, and
+  `healthKitWriter.writeWorkout` no-ops until that in-memory flag is set, so no workout is ever
+  written. Call it from `toggleHealthWrite` when turned on (and re-request on launch when already on:
+  `authorizationRequested` resets each app start). Found in the Phase G sweep; left alone because the
+  redesign froze behavior.
 - **Sync trigger is weak.** `runOpportunisticSync` fires only when the Home screen regains focus. A
 real connectivity-restored or app-foreground trigger would be better.
 - `progression_state` **/** `users` **/** `limitations` **don't sync.** Cut for scope. Would reuse the exact  
