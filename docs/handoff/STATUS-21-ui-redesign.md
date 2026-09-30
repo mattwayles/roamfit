@@ -33,7 +33,7 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
   value, legacy light override removed for Generate — f9762b4
 - [x] D2 Plan / Approval "Your route" (`ApprovalScreen.tsx`, `components/KeyboardDoneBar.tsx`,
   `lib/focusLabels.ts`, `Screen scrollEnabled`, `ApprovalScreen.presentation.test.tsx`), legacy light override
-  removed for Approval — D2_SHA
+  removed for Approval — 4eecc76
 
 ### In progress
 - Phase E (Debrief + Completion, DESIGN.md §5.8, §5.9). Not started. Phase D is complete and
