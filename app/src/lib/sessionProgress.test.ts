@@ -9,17 +9,24 @@ import {
   findCurrentEntry,
   positionsInOrder,
   samePosition,
+  sessionCompletionFraction,
   stepPosition,
 } from './sessionProgress';
 
 type Entry = SessionRecord['entries'][number];
 
-function entry(id: string, sets: number, logged: number, removed = false): Entry {
+function entry(
+  id: string,
+  sets: number,
+  logged: number,
+  removed = false,
+  status: 'completed' | 'skipped' = 'completed',
+): Entry {
   return {
     id,
     sets,
     entryStatus: removed ? 'removed_at_approval' : 'planned',
-    setLogs: Array.from({ length: logged }, (_, i) => ({ setIndex: i })),
+    setLogs: Array.from({ length: logged }, (_, i) => ({ setIndex: i, status })),
   } as unknown as Entry;
 }
 
@@ -92,5 +99,20 @@ describe('session positions', () => {
       entry: expect.objectContaining({ id: 'b' }),
       setIndex: 1,
     });
+  });
+});
+
+describe('sessionCompletionFraction', () => {
+  it('is completed sets over planned sets, ignoring removed entries', () => {
+    const s = session([entry('a', 2, 2), entry('b', 2, 0), entry('gone', 5, 0, true)]);
+    expect(sessionCompletionFraction(s)).toBe(0.5);
+  });
+
+  it('counts only completed sets — a skipped set is simply not added', () => {
+    expect(sessionCompletionFraction(session([entry('a', 4, 2, false, 'skipped')]))).toBe(0);
+  });
+
+  it('is 0 for an empty plan', () => {
+    expect(sessionCompletionFraction(session([]))).toBe(0);
   });
 });

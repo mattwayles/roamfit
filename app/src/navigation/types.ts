@@ -5,10 +5,12 @@ import type { SessionPosition } from '../lib/sessionProgress';
 
 /**
  * Bottom-tab routes (DESIGN.md §4). Route names stay `Home` / `Exercises` (they read as "Today" /
- * "Field Guide" only in the tab bar's labels — see `TabBar.tsx`); the Journey tab joins in phase C.
+ * "Field Guide" only in the tab bar's labels — see `TabBar.tsx`).
  */
 export type TabParamList = {
   Home: undefined;
+  /** The long-term story: lifetime totals, Trails (progression), Logbook, Passport, balance. */
+  Journey: undefined;
   /** The exercise library, browsable — read-only apart from assigning a demo video. */
   Exercises: undefined;
 };

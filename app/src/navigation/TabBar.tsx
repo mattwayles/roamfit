@@ -14,11 +14,22 @@ import type { TabParamList } from './types';
 
 export const TAB_META: Record<keyof TabParamList, { label: string; icon: IconName }> = {
   Home: { label: 'Today', icon: 'today' },
+  Journey: { label: 'Journey', icon: 'journey' },
   Exercises: { label: 'Field Guide', icon: 'guide' },
 };
 
-export function TabBar({ state, navigation }: BottomTabBarProps): React.JSX.Element {
+export function TabBar({
+  state,
+  descriptors,
+  navigation,
+}: BottomTabBarProps): React.JSX.Element | null {
   const insets = useInsets();
+  // A focused screen can take the bar away with `tabBarStyle: { display: 'none' }` — Today does
+  // this while the first-launch disclaimer gate is up, so nothing else is reachable behind it.
+  const focusedStyle = StyleSheet.flatten(
+    descriptors[state.routes[state.index]?.key ?? '']?.options.tabBarStyle,
+  ) as { display?: string } | undefined;
+  if (focusedStyle?.display === 'none') return null;
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }]}>
       {state.routes.map((route, index) => {

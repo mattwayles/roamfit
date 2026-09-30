@@ -16,6 +16,7 @@ import {
   monthLabelForLocalDate,
   nextUnlockHero,
   overWorkedMuscles,
+  weekContaining,
 } from './dashboard';
 import type { sessionsRepo } from '@roamfit/store';
 
@@ -93,6 +94,17 @@ describe('§6.4/§14.1.3 nextUnlockHero', () => {
     expect(hero).not.toBeNull();
     const min = Math.min(...board.map((e) => e.sessionsToNextLevel as number));
     expect(hero!.sessionsRemaining).toBe(min);
+  });
+
+  it('carries 0..1 progress through the level for the ring', () => {
+    const board = buildProgressionBoard(exerciseLibrary, familyLibrary, seedAllFamilies());
+    const hero = nextUnlockHero(board)!;
+    const closest = board.find((e) => e.sessionsToNextLevel === hero.sessionsRemaining)!;
+    expect(hero.progress).toBeGreaterThanOrEqual(0);
+    expect(hero.progress).toBeLessThanOrEqual(1);
+    expect(hero.progress).toBeCloseTo(
+      (closest.sessionsInLevel! - hero.sessionsRemaining) / closest.sessionsInLevel!,
+    );
   });
 
   it('returns null only when every family is at Mastery', () => {
@@ -361,5 +373,34 @@ describe('§14.1.8 lifetime counters — monotonic, permanent', () => {
       levelsGained: 4,
       bestSets: 7,
     });
+  });
+});
+
+describe('weekContaining — the Today tab\'s "This week" strip', () => {
+  const days = (today: string) => buildCalendarDays([], today, new Set());
+
+  it('returns the Sun–Sat week of the calendar grid that holds today', () => {
+    // 2026-09-29 is a Tuesday: its week is Sun 09-27 .. Sat 10-03, but the grid only holds
+    // September, so the October cells are null placeholders (no new date math, invariant 6).
+    const weeks = buildCalendarWeeks(days('2026-09-29'));
+    const week = weekContaining(weeks, '2026-09-29');
+    expect(week).toHaveLength(7);
+    expect(week.map((d) => d?.localDate ?? null)).toEqual([
+      '2026-09-27',
+      '2026-09-28',
+      '2026-09-29',
+      '2026-09-30',
+      null,
+      null,
+      null,
+    ]);
+  });
+
+  it('is a full week mid-month, and empty when today is not in the grid', () => {
+    const weeks = buildCalendarDays([], '2026-05-14', new Set());
+    const week = weekContaining(buildCalendarWeeks(weeks), '2026-05-14');
+    expect(week.every((d) => d !== null)).toBe(true);
+    expect(week[4]!.localDate).toBe('2026-05-14');
+    expect(weekContaining(buildCalendarWeeks(weeks), '2026-06-01')).toEqual([]);
   });
 });

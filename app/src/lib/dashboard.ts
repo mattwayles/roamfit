@@ -93,6 +93,8 @@ export interface NextUnlockHero {
    *  visibly refer to the same thing. */
   familyName: string;
   sessionsRemaining: number;
+  /** 0..1 through the current level (0 when the level's length is unknown) — fills the ring. */
+  progress: number;
 }
 
 /** §6.4/§14.1.3 — the single most-imminent unlock across every non-mastered family (fewest
@@ -105,9 +107,12 @@ export function nextUnlockHero(board: FamilyBoardEntry[]): NextUnlockHero | null
   const closest = candidates.reduce((best, e) =>
     (e.sessionsToNextLevel as number) < (best.sessionsToNextLevel as number) ? e : best,
   );
+  const remaining = closest.sessionsToNextLevel as number;
+  const total = closest.sessionsInLevel ?? 0;
   return {
     familyName: closest.familyName,
-    sessionsRemaining: closest.sessionsToNextLevel as number,
+    sessionsRemaining: remaining,
+    progress: total > 0 ? Math.min(1, Math.max(0, (total - remaining) / total)) : 0,
   };
 }
 
@@ -219,6 +224,17 @@ export function buildCalendarWeeks(days: CalendarDay[]): (CalendarDay | null)[][
   return weeks;
 }
 
+/** The Sun–Sat week of `buildCalendarWeeks` output that holds `todayLocalDate` — the Today tab's
+ *  "This week" strip. Derived from the calendar's own layout (invariant 6: no new date math), so
+ *  at a month edge the days that fall in the neighbouring month are `null` placeholders, exactly
+ *  like the partial weeks of the Logbook grid. Empty when today isn't in the window. */
+export function weekContaining(
+  weeks: (CalendarDay | null)[][],
+  todayLocalDate: string,
+): (CalendarDay | null)[] {
+  return weeks.find((w) => w.some((d) => d?.localDate === todayLocalDate)) ?? [];
+}
+
 /** §14.1.6 calendar heatmap — every day of `today`'s calendar month (1st through the month's last
  *  day), one entry per calendar day (including untrained ones, so the caller can render them
  *  neutrally rather than simply omitting them, which would look like a gap — this applies to
@@ -291,8 +307,18 @@ export function buildCalendarDays(
 }
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 /** Month name for the calendar heatmap header, derived from a `local_date` — never from a live

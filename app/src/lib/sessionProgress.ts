@@ -76,3 +76,15 @@ export function sessionCursorPosition(session: SessionRecord): SessionPosition |
   if (!entry || session.cursorSetIndex >= entry.sets) return null;
   return { entryId: session.cursorEntryId, setIndex: session.cursorSetIndex };
 }
+
+/** 0..1 — completed sets over planned sets across the live plan. Additive only (a skipped set is
+ *  simply not counted), so the resume card's bar only ever moves forward. */
+export function sessionCompletionFraction(session: SessionRecord): number {
+  let planned = 0;
+  let done = 0;
+  for (const entry of activeEntries(session)) {
+    planned += entry.sets;
+    done += entry.setLogs.filter((l) => l.status === 'completed').length;
+  }
+  return planned > 0 ? Math.min(1, done / planned) : 0;
+}
