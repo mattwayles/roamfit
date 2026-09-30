@@ -603,6 +603,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.surface2,
   },
+  // Intentional off-scale face: diagnostics output is monospace on purpose (DESIGN.md §5.10).
   mono: { fontFamily: 'Menlo' },
   footer: { alignItems: 'center', gap: 2, paddingTop: space.md },
   sheetBody: { marginBottom: space.xl },

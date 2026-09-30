@@ -74,5 +74,6 @@ const styles = StyleSheet.create({
   },
   today: { borderWidth: 2, borderColor: colors.ember },
   date: { position: 'absolute', top: 2, left: 5 },
+  // Emoji are content (the day marker), not an icon or a type size; leading keeps them centered.
   emoji: { lineHeight: 24, marginTop: 6 },
 });

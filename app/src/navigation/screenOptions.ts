@@ -9,6 +9,7 @@ export const headerOptions = {
   headerStyle: { backgroundColor: colors.bg },
   headerShadowVisible: false,
   headerTintColor: colors.text,
+  // Token references, not literals: the native header title can't be a <Txt>, so it borrows h2's face.
   headerTitleStyle: {
     fontFamily: type.h2.fontFamily,
     fontSize: type.h2.fontSize,

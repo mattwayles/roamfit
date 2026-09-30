@@ -567,6 +567,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Tracking/leading override on a Txt variant: eyebrow spacing would not fit the 16pt count badge.
   badgeText: { letterSpacing: 0, lineHeight: 16 },
   clearInline: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' },
   clearInlineText: { marginLeft: 4 },

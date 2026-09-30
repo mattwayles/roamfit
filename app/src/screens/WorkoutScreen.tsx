@@ -444,7 +444,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   if (!session) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator />
+        <ActivityIndicator color={colors.ember} />
       </View>
     );
   }
@@ -465,7 +465,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   if (!current || !entry) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator />
+        <ActivityIndicator color={colors.ember} />
       </View>
     );
   }

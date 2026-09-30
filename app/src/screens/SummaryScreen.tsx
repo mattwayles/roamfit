@@ -1131,6 +1131,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Tracking override on a Txt variant: the eyebrow's 1.6 spacing would crowd a 30pt square.
   squareCount: { letterSpacing: 0 },
   // Reserved even for a set with no dot, so every square in a wrapped row lines up.
   dotSlot: { height: 16, alignItems: 'center', justifyContent: 'center' },
@@ -1178,6 +1179,7 @@ const styles = StyleSheet.create({
   statTile: { flexBasis: '46%', flexGrow: 1 },
   bandRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   highlights: { width: '100%', gap: space.md },
+  // Wider tracking than the eyebrow token for this one heading.
   highlightsHeading: { letterSpacing: 2 },
   quietMilestones: {
     flexDirection: 'row',
