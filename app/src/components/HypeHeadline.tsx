@@ -1,15 +1,26 @@
 /**
  * The completion screen's headline, slammed in one word at a time: each word drops from oversized
  * and tilted down onto the page with a hard spring, like a stamp. Barlow Condensed 800 in `text`,
- * the last word in `sun`, every word stamped in light with an ember glow (DESIGN.md §5.9). The screen fires a haptic tick
- * per word on the same `WORD_STAGGER_MS` beat (`lib/completionTimeline.ts`), and the heavy hit +
- * confetti on the last, so the words are felt landing, not just seen. `bounce` is bumped by the screen whenever the user taps
- * the headline, for a re-slam.
+ * the last word in `sun`, stamped with a hard zero-blur `emberDeep` offset shadow and lit with a
+ * soft ember glow (DESIGN.md §5.9). React Native allows one `textShadow` per Text, so each word is
+ * two layers: a copy underneath (offset down-right, `emberDeep`, carrying the glow) and the real
+ * word on top. The copy is hidden from accessibility, so the headline still reads once. A forward
+ * lean (`skewX`, on a static wrapper — Barlow Condensed has no italic face loaded, and the native
+ * driver only needs to see the animated transforms) keeps the stamped-on feel the old headline
+ * had. The screen fires a haptic tick per word on the same `WORD_STAGGER_MS` beat
+ * (`lib/completionTimeline.ts`), and the heavy hit + confetti on the last, so the words are felt
+ * landing, not just seen. `bounce` is bumped by the screen whenever the user taps the headline,
+ * for a re-slam.
  */
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { WORD_STAGGER_MS } from '../lib/completionTimeline';
-import { colors, numeralMaxFontScale, space, type, withAlpha } from '../theme';
+import { colors, numeralMaxFontScale, space, withAlpha } from '../theme';
+import { Txt } from '../ui';
+
+/** How far the hard shadow sits down-right of the letters, in pt. */
+const STAMP_OFFSET_X = 3;
+const STAMP_OFFSET_Y = 4;
 
 function Word({
   text,
@@ -32,27 +43,43 @@ function Word({
   }, [index, land]);
 
   return (
-    <Animated.Text
-      maxFontSizeMultiplier={numeralMaxFontScale}
-      style={[
-        styles.word,
-        accent && styles.accent,
-        {
-          opacity: land.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 1, 1] }),
-          transform: [
-            { scale: land.interpolate({ inputRange: [0, 1], outputRange: [3, 1] }) },
-            {
-              rotate: land.interpolate({
-                inputRange: [0, 1],
-                outputRange: [index % 2 === 0 ? '-14deg' : '12deg', '0deg'],
-              }),
-            },
-          ],
-        },
-      ]}
+    <Animated.View
+      style={{
+        opacity: land.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 1, 1] }),
+        transform: [
+          { scale: land.interpolate({ inputRange: [0, 1], outputRange: [3, 1] }) },
+          {
+            rotate: land.interpolate({
+              inputRange: [0, 1],
+              outputRange: [index % 2 === 0 ? '-14deg' : '12deg', '0deg'],
+            }),
+          },
+        ],
+      }}
     >
-      {text}
-    </Animated.Text>
+      <View style={styles.stamp}>
+        <Txt
+          testID={`hype-word-${index}-shadow`}
+          variant="display"
+          color="emberDeep"
+          maxFontSizeMultiplier={numeralMaxFontScale}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={[styles.word, styles.shadowLayer]}
+        >
+          {text}
+        </Txt>
+        <Txt
+          testID={`hype-word-${index}`}
+          variant="display"
+          color={accent ? 'sun' : 'text'}
+          maxFontSizeMultiplier={numeralMaxFontScale}
+          style={styles.word}
+        >
+          {text}
+        </Txt>
+      </View>
+    </Animated.View>
   );
 }
 
@@ -94,13 +121,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     columnGap: space.sm + 2,
   },
-  word: {
-    ...type.display,
-    color: colors.text,
-    textAlign: 'center',
+  // A static lean, deliberately outside the Animated transforms (see the header).
+  stamp: { transform: [{ skewX: '-8deg' }] },
+  word: { textAlign: 'center' },
+  // The hard stamp: zero blur, straight down-right. It carries the ember glow too, so the light
+  // radiates from the whole stamped shape while the letters on top stay crisp.
+  shadowLayer: {
+    position: 'absolute',
+    // left + right (not just left): the copy must be exactly as wide as the word or it re-wraps.
+    left: STAMP_OFFSET_X,
+    right: -STAMP_OFFSET_X,
+    top: STAMP_OFFSET_Y,
     textShadowColor: withAlpha(colors.ember, 0.9),
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 16,
   },
-  accent: { color: colors.sun },
 });
