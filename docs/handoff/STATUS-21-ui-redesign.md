@@ -27,7 +27,7 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
   `EmptyState` / `IconBadge` / `SectionTitle` components, TabBar can hide itself — efeef13
 - [x] C2 Journey tab (`screens/JourneyScreen.tsx`, `TAB_META` row, `<Tab.Screen>`, Journey tests) — dbd06ff
 - [x] C3 HomeScreen -> Today (hero, tiles, week strip, next unlock, disclaimer gate), legacy light scene
-  removed from Home, Home tests moved/rewritten, `open-exercises` retired — see `git log` (C3 sha below)
+  removed from Home, Home tests moved/rewritten, `open-exercises` retired — 08acf37
 
 ### In progress
 - Phase D (Generate + Plan/Approval, DESIGN.md §5.5, §5.6). Not started. Phase C is complete and
