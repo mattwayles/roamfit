@@ -3,6 +3,7 @@
  * guilt. Pure and deterministic: `pick(pool, seed)` hashes the seed, so the same seed always
  * lands on the same line (stable tests, and no flicker when a component re-renders).
  */
+import { hashSeed } from './seed';
 
 export const setComplete = [
   'Strong set.',
@@ -32,16 +33,6 @@ export const rest = [
   "Next one's yours.",
   'Good work. Reset.',
 ] as const;
-
-/** FNV-1a 32-bit — tiny, stable across platforms, good enough to spread short seeds. */
-export function hashSeed(seed: string): number {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < seed.length; i++) {
-    h ^= seed.charCodeAt(i);
-    h = Math.imul(h, 0x01000193) >>> 0;
-  }
-  return h >>> 0;
-}
 
 /** Deterministic pick: the same `(pool, seed)` always returns the same line. */
 export function pick<T>(pool: readonly T[], seed: string | number): T {

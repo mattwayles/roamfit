@@ -41,7 +41,7 @@
  * every workout is the guard: whatever the video player last set, the workout loop reclaims the
  * session shape before it needs it again.
  */
-import * as Haptics from 'expo-haptics';
+import { haptics } from './haptics';
 import type { AudioPlayer, AudioSource } from 'expo-audio';
 
 type ExpoAudioModule = typeof import('expo-audio');
@@ -149,29 +149,29 @@ function playSound(key: SoundKey): void {
 // --------------------------------------------------------------------------------------------
 // Haptics — fire unconditionally (never gated by the silent switch or the audio override), so a
 // muted user still gets every cue's information physically. `expo-haptics` no-ops safely when
-// there is no native module (confirmed above), so no try/catch is needed at call sites.
+// there is no native module (confirmed above); `lib/haptics.ts` also swallows any rejection.
 // --------------------------------------------------------------------------------------------
 
 export function hapticTick(): void {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  haptics.light();
 }
 
 export function hapticHalfway(): void {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  haptics.medium();
 }
 
 export function hapticStart(): void {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  haptics.medium();
 }
 
 export function hapticCompletion(): void {
-  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  haptics.success();
 }
 
 /** Reserved for the one moment that should read as bigger than an ordinary completion —
  *  see `cueSessionComplete` below. */
 export function hapticHeavy(): void {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  haptics.heavy();
 }
 
 // --------------------------------------------------------------------------------------------

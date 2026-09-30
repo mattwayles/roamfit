@@ -1,12 +1,5 @@
-import {
-  exerciseComplete,
-  greetingFor,
-  hashSeed,
-  lastSet,
-  pick,
-  rest,
-  setComplete,
-} from './hypeCopy';
+import { hashSeed } from './seed';
+import { exerciseComplete, greetingFor, lastSet, pick, rest, setComplete } from './hypeCopy';
 
 describe('hypeCopy pools', () => {
   it('match the DESIGN.md §6 pools', () => {
