@@ -53,10 +53,14 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
 - [x] G1 sweep: Workout loading spinners ember, intentional literals commented — bc25bbe
 - [x] G2 week strip always the 7 real days: `addDaysToLocalDate` / `monthWindow` / `weekWindow` + a `window` param on
   `buildCalendarDays`, `DashboardData.weekDays`, `weekContaining` deleted, month-boundary tests, BACKLOG item removed
+- [x] G3 `HypeHeadline` stamped punch restored: hard 3/4pt `emberDeep` copy layer (carries the ember glow) under each word, forward
+  `skewX` lean, `HypeHeadline.test.tsx` — 6324061
+- [x] G4 one keyboard Done bar: `WorkoutScreen`'s `RepsAccessoryBar` and `PinnedNote`'s bar deleted, both use `KeyboardDoneBar`
+  (`rep-count-done`, `pinned-note-done`, `retrospective-done` unchanged); BACKLOG item removed
 
 ### In progress
-- Phase G, increment G3: `HypeHeadline` stamped shadow (`app/src/components/HypeHeadline.tsx`, keep slam/timeline untouched, keep
-  SummaryScreen tests green). Then G4 `KeyboardDoneBar` fold-in, G5 consistency pass, G6 docs (BACKLOG + this file).
+- Phase G, increment G5: consistency pass across Home/Journey/Exercises/ExerciseDetail/Generate/Approval/Workout/Summary/Settings (headers,
+  gutters, section titles, eyebrow colors, card padding, button sizes, Enter animations); then G6 docs (BACKLOG consolidation + this file).
 
 ### Next (sequential — each phase is one agent run, several small commits)
 - **G. Sweep** (§5.11, §7 "zero off-system surfaces") — grep for raw hex/fontSize/fontWeight/
@@ -343,8 +347,8 @@ felt"); tapping opens the `feedback-edit-sheet` `Sheet` ("{Exercise} — Set N",
 0.10 / 0.09 / 0.07 ring opacity + a faint lagoon orb) + shaking `ScrollView`. The native header is hidden
 (`headerShown: false`, set by an effect declared *before* the back-override effect so that one stays the last
 `setOptions` call, which the tests read) and `useInsets()` supplies the safe-area padding. Hero (`minHeight` 132) =
-gold/sun `Sunburst` + `HypeHeadline` (`type.display`, `text` words, last word `sun`, ember glow text-shadow, no italic —
-Barlow Condensed has no italic face loaded). `workout-count` is an `h2`; subtitle uses the focus label. Stat chips are
+gold/sun `Sunburst` + `HypeHeadline` (`type.display`, `text` words, last word `sun`, ember glow + hard `emberDeep` stamp shadow
+(restored in Phase G), skewed lean — Barlow Condensed has no italic face loaded, so the lean is a `skewX`). `workout-count` is an `h2`; subtitle uses the focus label. Stat chips are
 `AnimatedStatCounter` (its own `surface` @85% / `line` / `hero` numeral / gold eyebrow styling now lives in the component).
 Highlights: `HighlightCard` = `Card variant="accent" gradient={golden}`; the card stamps down, then a `Stamp`
 (`highlight-${i}-stamp`: "LEVEL UP" ember / "BEST SET" gold) slams 220ms later; `sunrise` `Gradient` level bar;
@@ -368,8 +372,9 @@ whole rendered tree, confetti included, for every violet the old page and the pa
   glyph icons). It does not mention the dot.
 - Header difficulty was dropped from the title ("{FOCUS} · {N} MIN", as spec'd; the old heading also said the difficulty).
 - Completion subtitle and the Debrief title use the friendly focus label ("Full body") via `focusLabels`, not the raw key.
-- `HypeHeadline` lost its italic (see above) and its hard offset shadow (an ember glow replaces it: one `textShadow` per
-  Text). Headline is `display` (40pt), not `hero` (64pt) — a 64pt slam wraps a 3-word headline to ~3 lines and pushes the
+- `HypeHeadline`: Phase E dropped the italic and the hard offset shadow; **Phase G restored both** (a 3/4pt `emberDeep` copy under
+  each word that also carries the ember glow, since one `textShadow` per Text; a static `skewX(-8deg)` lean instead of an italic face).
+  Headline is `display` (40pt), not `hero` (64pt) — a 64pt slam wraps a 3-word headline to ~3 lines and pushes the
   stats below the fold.
 - "AND THAT'S NOT ALL…" keeps its copy, restyled as a gold eyebrow; the level-up rocket/trophy emoji and "Share it 📣"
   are gone (Stamp + share `IconButton`).

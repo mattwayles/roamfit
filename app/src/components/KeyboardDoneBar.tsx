@@ -1,7 +1,8 @@
 /**
  * A `surface2` bar with an ember "Done" that rides above the number pad (DESIGN.md §5.11). The
  * pad has no return key of its own, so without this the keyboard can only be dismissed by tapping
- * outside. Give the bar a `nativeID` and pass the same id as `inputAccessoryViewID` on each
+ * outside. This is the app's only such bar (Approval, Summary's Trail notes, Workout's rep counter
+ * and the pinned note all use it, each with its own `nativeID` and `testID`). Give the bar a `nativeID` and pass the same id as `inputAccessoryViewID` on each
  * `TextInput`. iOS-only, which is the only platform this app ships on.
  *
  * Memoized on its own: an inline `InputAccessoryView` is rebuilt on every keystroke of its parent,

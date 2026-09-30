@@ -33,9 +33,6 @@ the record of what was completed and why.
   with the new cards (the dragged card should glow and paint over the next section), the band dropdown
   overlapping the next card, the add-exercise `Sheet` list height, and the number-pad "Done" bar.
   Deviations from DESIGN.md §5.5/§5.6 are in `docs/handoff/STATUS-21-ui-redesign.md`.
-- **Unify the number-pad "Done" accessory.** `components/KeyboardDoneBar.tsx` (Approval and Summary's
-  Trail notes) duplicates the bars `WorkoutScreen` (`RepsAccessoryBar`) and `PinnedNote` each still
-  carry. Fold them into the shared component in the phase-G sweep.
 - **Golden Hour Debrief + Completion are Jest-verified only** (same `npm run ios` dev-client rebuild
   owed as the items above). Check on a device: Debrief rows with 30pt squares across 5-6 sets and long
   exercise names (the squares wrap at 62% of the row), the 8pt feedback dots' tap targets, the dashed

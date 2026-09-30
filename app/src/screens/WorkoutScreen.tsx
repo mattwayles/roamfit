@@ -33,16 +33,7 @@
  * screen and fully editable while paused; only the clocks stop.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Animated,
-  InputAccessoryView,
-  Keyboard,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { exerciseStateRepo, remoteConfigRepo, sessionsRepo, usersRepo } from '@roamfit/store';
@@ -100,6 +91,7 @@ import { useCountdown } from '../lib/useCountdown';
 import type { CountdownController } from '../lib/wallClockTimer';
 import AnchorBadge from '../components/AnchorBadge';
 import PinnedNote from '../components/PinnedNote';
+import KeyboardDoneBar from '../components/KeyboardDoneBar';
 import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
 import BandPicker from '../components/BandPicker';
@@ -1494,30 +1486,6 @@ function SetNavRow({
 /** Accessory bar id for the rep counter's number pad, which has no return key of its own. */
 const REPS_ACCESSORY_ID = 'rep-count-accessory';
 
-/** A `surface2` bar with an ember "Done" over the number pad (DESIGN.md §5.11). Memoized on its
- *  own for the same reason `PinnedNote`'s is: an inline `InputAccessoryView` is rebuilt on every
- *  keystroke of its parent, which shows as the keyboard chrome jittering. */
-const RepsAccessoryBar = React.memo(function RepsAccessoryBar(): React.JSX.Element {
-  return (
-    <InputAccessoryView nativeID={REPS_ACCESSORY_ID}>
-      <View style={styles.accessoryBar}>
-        <PressableScale
-          testID="rep-count-done"
-          haptic={false}
-          accessibilityRole="button"
-          accessibilityLabel="Done"
-          onPress={() => Keyboard.dismiss()}
-          hitSlop={8}
-        >
-          <Txt variant="bodyStrong" color="ember">
-            Done
-          </Txt>
-        </PressableScale>
-      </View>
-    </InputAccessoryView>
-  );
-});
-
 function RepsExercise({
   entry,
   repsDefault,
@@ -1660,7 +1628,7 @@ function RepsExercise({
           forwardIsSkip={forwardIsSkip}
         />
       </HeroCard>
-      <RepsAccessoryBar />
+      <KeyboardDoneBar nativeID={REPS_ACCESSORY_ID} testID="rep-count-done" />
     </>
   );
 }
@@ -2635,15 +2603,6 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm },
   actionRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: space.xs },
   completeButton: { height: 72 },
-  accessoryBar: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    backgroundColor: colors.surface2,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
-  },
 
   // -- reps: the counter is the centerpiece
   counter: { alignItems: 'center', gap: space.xs, paddingVertical: space.sm },

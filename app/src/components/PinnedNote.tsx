@@ -4,38 +4,12 @@
  * persisting instantly. It must be obvious that it is editable."
  */
 import React, { useEffect, useState } from 'react';
-import { InputAccessoryView, Keyboard, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { colors, radius, space, tints, type, withAlpha } from '../theme';
-import { Icon, PressableScale, Txt } from '../ui';
+import { Icon, Txt } from '../ui';
+import KeyboardDoneBar from './KeyboardDoneBar';
 
 const ACCESSORY_ID = 'pinned-note-accessory';
-
-/**
- * Rendered as its own memoized component, not inline in PinnedNote's JSX. InputAccessoryView
- * portals to a native layer above the keyboard; if it's inline it gets torn down and rebuilt on
- * every re-render of its parent (here, every keystroke via setDraft), which reads as the keyboard
- * background jittering while typing. A `surface2` bar with an ember "Done" (DESIGN.md §5.11).
- */
-const NoteAccessoryBar = React.memo(function NoteAccessoryBar(): React.JSX.Element {
-  return (
-    <InputAccessoryView nativeID={ACCESSORY_ID}>
-      <View style={styles.accessoryBar}>
-        <PressableScale
-          testID="pinned-note-done"
-          haptic={false}
-          accessibilityRole="button"
-          accessibilityLabel="Done"
-          onPress={() => Keyboard.dismiss()}
-          hitSlop={8}
-        >
-          <Txt variant="bodyStrong" color="ember">
-            Done
-          </Txt>
-        </PressableScale>
-      </View>
-    </InputAccessoryView>
-  );
-});
 
 export default function PinnedNote({
   note,
@@ -80,7 +54,7 @@ export default function PinnedNote({
         />
         <Icon name="edit" size={16} color="text3" />
       </View>
-      <NoteAccessoryBar />
+      <KeyboardDoneBar nativeID={ACCESSORY_ID} testID="pinned-note-done" />
     </View>
   );
 }
@@ -113,14 +87,5 @@ const styles = StyleSheet.create({
     color: colors.text,
     paddingTop: 10,
     paddingBottom: 10,
-  },
-  accessoryBar: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    backgroundColor: colors.surface2,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
   },
 });
