@@ -89,6 +89,11 @@ describe('TopoPattern', () => {
     const { paths } = topoLoops('lisbon');
     await render(<TopoPattern seed="lisbon" testID="tp" />);
     await ready('tp');
+    // Nothing is drawn until the fill has a real size (see `useLayoutSize`).
+    expect(screen.queryByTestId('tp-loop-0')).toBeNull();
+    await fireEvent(screen.getByTestId('tp'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 320, height: 200 } },
+    });
     paths.forEach((d, i) => expect(screen.getByTestId(`tp-loop-${i}`).props.d).toBe(d));
     expect(screen.queryByTestId(`tp-loop-${paths.length}`)).toBeNull();
   });

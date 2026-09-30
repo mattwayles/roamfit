@@ -89,6 +89,11 @@ describe('Gradient', () => {
   it('renders one Stop per color', async () => {
     await render(<Gradient colors={['#111111', '#222222', '#333333']} testID="g" />);
     await ready('g');
+    // Nothing is drawn until the fill has a real size (see `useLayoutSize`).
+    expect(JSON.stringify(screen.toJSON())).not.toMatch(/RNSVGLinearGradient/);
+    await fireEvent(screen.getByTestId('g'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 320, height: 64 } },
+    });
     expect(JSON.stringify(screen.toJSON()).match(/RNSVGLinearGradient/g)).toHaveLength(1);
   });
 });

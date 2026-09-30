@@ -267,6 +267,11 @@ describe('the exercise detail page', () => {
     // The travel-map texture is deterministic from the id: the same exercise always gets the same
     // contour lines. (The tab screens stay mounted underneath, so look through every pattern.)
     const seeded = topoLoops(exercise.id).paths[0];
+    for (const pattern of screen.getAllByTestId('topo-pattern')) {
+      await fireEvent(pattern, 'layout', {
+        nativeEvent: { layout: { x: 0, y: 0, width: 390, height: 200 } },
+      });
+    }
     expect(screen.getAllByTestId('topo-pattern-loop-0').map((n) => n.props.d)).toContain(seeded);
     expect(screen.getByText(/^Chest · Horizontal push$/)).toBeTruthy();
 

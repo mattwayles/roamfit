@@ -8,6 +8,7 @@ import React, { useId } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { gradients } from '../theme';
+import { useLayoutSize } from './useLayoutSize';
 
 export interface GradientProps {
   colors?: readonly string[];
@@ -32,23 +33,28 @@ export function Gradient({
   testID = 'gradient',
 }: GradientProps): React.JSX.Element {
   const id = `g${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  const { ready, onLayout } = useLayoutSize();
   const { x1, y1, x2, y2 } = gradientPoints(angle);
   const last = Math.max(colors.length - 1, 1);
   return (
     <View
+      testID={testID}
       pointerEvents="none"
+      onLayout={onLayout}
       style={[StyleSheet.absoluteFill, { borderRadius: radius, overflow: 'hidden' }]}
     >
-      <Svg width="100%" height="100%" testID={testID}>
-        <Defs>
-          <LinearGradient id={id} x1={x1} y1={y1} x2={x2} y2={y2}>
-            {colors.map((c, i) => (
-              <Stop key={i} offset={i / last} stopColor={c} />
-            ))}
-          </LinearGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
-      </Svg>
+      {ready && (
+        <Svg width="100%" height="100%">
+          <Defs>
+            <LinearGradient id={id} x1={x1} y1={y1} x2={x2} y2={y2}>
+              {colors.map((c, i) => (
+                <Stop key={i} offset={i / last} stopColor={c} />
+              ))}
+            </LinearGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
+        </Svg>
+      )}
     </View>
   );
 }
