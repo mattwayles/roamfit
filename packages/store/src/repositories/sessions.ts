@@ -137,6 +137,11 @@ export interface SessionRecord {
    *  how much is actually logged. Null means no override. See `setSessionCursor`. */
   cursorEntryId: string | null;
   cursorSetIndex: number | null;
+  /** The rest page currently on screen (migration 0021) — the set just finished, and when that
+   *  rest began. Null means not currently resting. See `setRestingCursor`/`restElapsedSec`. */
+  restingEntryId: string | null;
+  restingSetIndex: number | null;
+  restingStartedAt: string | null;
   completedAt: string | null;
   discardedAt: string | null;
   entries: SessionEntryRecord[];
@@ -257,6 +262,9 @@ function rowToSession(
     pausedTotalSec: row.pausedTotalSec,
     cursorEntryId: row.cursorEntryId,
     cursorSetIndex: row.cursorSetIndex,
+    restingEntryId: row.restingEntryId,
+    restingSetIndex: row.restingSetIndex,
+    restingStartedAt: row.restingStartedAt,
     completedAt: row.completedAt,
     discardedAt: row.discardedAt,
     entries,
@@ -514,6 +522,39 @@ export function setSessionCursor(
     })
     .where(eq(schema.sessions.id, sessionId))
     .run();
+}
+
+/**
+ * Migration 0021 — which rest page, if any, is currently on screen. `WorkoutScreen`'s `phase`
+ * flips to `'resting'` the moment a set is logged, and back the moment the user presses Next; this
+ * mirrors that transition into the row so it survives the screen unmounting (the "Progress"
+ * button `replace`s Workout with Summary) rather than being lost, which used to silently drop the
+ * user onto the *next* exercise's page instead of the rest they were still on. Pass `null` to
+ * clear it — every way of leaving the rest page (Next, Skip-then-Next, abandoning, completing)
+ * should do this alongside whatever else it does.
+ */
+export function setRestingCursor(
+  db: Db,
+  sessionId: string,
+  position: { entryId: string; setIndex: number } | null,
+  now: string,
+): void {
+  db.update(schema.sessions)
+    .set({
+      restingEntryId: position?.entryId ?? null,
+      restingSetIndex: position?.setIndex ?? null,
+      restingStartedAt: position ? now : null,
+      updatedAt: now,
+    })
+    .where(eq(schema.sessions.id, sessionId))
+    .run();
+}
+
+/** How long a resumed rest has already been running — the countdown should pick up with the
+ *  remaining time, not restart at the full prescribed rest, the same "derive from an absolute
+ *  instant" principle `activeElapsedSec` uses for the session timer. */
+export function restElapsedSec(restingStartedAt: string, now: string): number {
+  return Math.max(0, Math.round((Date.parse(now) - Date.parse(restingStartedAt)) / 1000));
 }
 
 /**

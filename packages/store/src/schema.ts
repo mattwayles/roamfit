@@ -245,6 +245,15 @@ export const sessions = sqliteTable(
      *  display and resume both fall back to the derived front edge, as before this existed. */
     cursorEntryId: text('cursor_entry_id'),
     cursorSetIndex: integer('cursor_set_index'),
+    /** The rest page currently on screen (migration 0021): which set the user just finished and
+     *  is now resting after, and when that rest began. Persisted, not component state, for the
+     *  same reason `pausedAt` is — leaving the screen (the "Progress" button `replace`s Workout
+     *  with Summary, which unmounts it) used to lose this, so coming back always re-derived the
+     *  front edge and landed on the *next* exercise instead of resuming the rest page. NULL means
+     *  not currently resting — display and resume both fall back to the derived front edge. */
+    restingEntryId: text('resting_entry_id'),
+    restingSetIndex: integer('resting_set_index'),
+    restingStartedAt: text('resting_started_at'),
     completedAt: text('completed_at'),
     discardedAt: text('discarded_at'),
     createdAt: text('created_at').notNull(),

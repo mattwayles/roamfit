@@ -29,6 +29,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Modal,
   Pressable,
   ScrollView,
@@ -69,7 +70,6 @@ import DemoMedia from '../components/DemoMedia';
 import type { DemoMediaProps } from '../components/DemoMedia';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import SpotifyControls from '../components/SpotifyControls';
-import { useSpotifyPlayer } from '../lib/spotifyRemote';
 import {
   configureWorkoutAudioSession,
   setCueSoundsEnabled,
@@ -147,6 +147,28 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   // interruption of the session timer."
   /** One-line result of the last swap. Informational, never blocking. */
   const [swapNotice, setSwapNotice] = useState<string | null>(null);
+  /** The notice is a momentary confirmation, not session state: it shows for 3s, fades, then
+   *  clears itself. Keyed on the message text so a fresh swap restarts the clock. */
+  const swapNoticeOpacity = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (swapNotice == null) return;
+    swapNoticeOpacity.setValue(1);
+    let fade: Animated.CompositeAnimation | null = null;
+    const timer = setTimeout(() => {
+      fade = Animated.timing(swapNoticeOpacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      });
+      fade.start(({ finished }) => {
+        if (finished) setSwapNotice(null);
+      });
+    }, 3000);
+    return () => {
+      clearTimeout(timer);
+      fade?.stop();
+    };
+  }, [swapNotice, swapNoticeOpacity]);
   /** §1140 — band colours are user data, not a palette this screen invents. */
   const user = usersRepo.ensureUser(db, nowUtcInstant());
   const bandTensions = user.bandTensions;
@@ -155,12 +177,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     setCueSoundsEnabled(soundsAvailable);
     return () => setCueSoundsEnabled(soundsAvailable);
   }, [soundsAvailable]);
-  // Demo video audio is silenced automatically whenever Spotify is connected, rather than via a
-  // manual mute — the video and Spotify audio fight for the same iOS audio session (see
-  // `spotifyRemote.ts`'s header), so "playing music" and "video has sound" are mutually exclusive
-  // by construction, not by a control the user has to remember to reach for.
-  const { connectionState: spotifyConnectionState } = useSpotifyPlayer();
-  const demoMediaMuted = spotifyConnectionState === 'connected';
   /** §10.4 — the pending set completion held back by the "your timer is still paused" nudge, or
    *  null when nothing is waiting. Holding the arguments (not just a flag) is what lets the nudge
    *  be a genuine question: whichever way it is answered, the reps the user already entered are
@@ -236,6 +252,14 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     isFinalRest && session && restingEntryId != null
       ? (activeEntries(session).find((e) => e.id === restingEntryId) ?? null)
       : null;
+  // The set just performed, same id `restingEntryId` already resolves for §8.1 feedback and the
+  // final-rest fallback above — but needed unconditionally here (not only when `isFinalRest`),
+  // since the pinned note on the rest screen is about the exercise just finished, not `entry`'s
+  // post-reload "next up" one, on every rest page, not only the last.
+  const restingEntry =
+    session && restingEntryId != null
+      ? (activeEntries(session).find((e) => e.id === restingEntryId) ?? null)
+      : null;
   const current =
     rewoundEntry && rewoundTo && rewoundTo.setIndex < rewoundEntry.sets
       ? { entry: rewoundEntry, setIndex: rewoundTo.setIndex }
@@ -284,6 +308,26 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     if (last) setRewoundTo(last);
   }, [reviewFromSummary, jumpTo, jumpToValid, session, db, sessionId]);
 
+  // Restores the rest page across a remount — most commonly the "Progress" button, which
+  // `replace`s this screen with Summary and back again, but equally an app relaunch mid-rest.
+  // `phase`/`restingEntryId`/`restingSetIndex` are ordinary component state, reset to their
+  // defaults on every fresh mount; `session.restingEntryId` (migration 0021) is what survives, so
+  // the very first time a session loads with it set, local state is brought back in line with it.
+  // Runs once per arrival, same shape as the bookmark-restoring effect above and for the same
+  // reason: after this, the phase is live and driven by the ordinary set-completion/Next flow, not
+  // by re-reading the row on every reload (which would fight a user who has since left the rest
+  // page in this same visit).
+  const restingRestoredRef = useRef(false);
+  useEffect(() => {
+    if (!session || restingRestoredRef.current) return;
+    restingRestoredRef.current = true;
+    if (session.restingEntryId != null && session.restingSetIndex != null) {
+      setRestingEntryId(session.restingEntryId);
+      setRestingSetIndex(session.restingSetIndex);
+      setPhase('resting');
+    }
+  }, [session]);
+
   useEffect(() => {
     // Keyed on the front edge, not on what is being viewed: the workout is over when every set is
     // logged, and a user who has stepped back to look at an earlier set has not undone that.
@@ -298,7 +342,18 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     // trip pointless. An *invalid* bookmark must NOT suppress this — there is nothing for it to
     // land on, so falling through to Summary is the only way the screen doesn't get stuck showing
     // nothing.
-    if (session && !frontier && phase !== 'resting' && !reviewFromSummary && !jumpToValid) {
+    //
+    // Reads `session?.restingEntryId`, not just local `phase`, so a just-restored-but-not-yet-
+    // rendered rest (the effect above and this one can fire in the same pass, before local state
+    // catches up) can't lose the race and bounce straight to Summary anyway — see migration 0021.
+    if (
+      session &&
+      !frontier &&
+      phase !== 'resting' &&
+      session.restingEntryId == null &&
+      !reviewFromSummary &&
+      !jumpToValid
+    ) {
       navigation.replace('Summary', { sessionId });
     }
   }, [session, frontier, phase, navigation, sessionId, reviewFromSummary, jumpToValid]);
@@ -461,6 +516,27 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       : (entry.durationSec ?? 0);
   const exState = exerciseStateRepo.getExerciseState(db, entry.exerciseId);
   const isFirstEverPerformance = !exState || exState.sessionsPerformed === 0;
+  // The pinned note above the hero/rest content is about the exercise just finished while resting
+  // (same as the rest screen's other feedback controls, and unlike `exState` above, which is
+  // deliberately about `entry` — the upcoming set — for the hero's own display).
+  const noteExerciseId =
+    phase === 'resting' ? (restingEntry?.exerciseId ?? entry.exerciseId) : entry.exerciseId;
+  const noteExState =
+    noteExerciseId === entry.exerciseId
+      ? exState
+      : exerciseStateRepo.getExerciseState(db, noteExerciseId);
+  /** The rest countdown resumes with whatever time was actually left, not a fresh full rest, when
+   *  the rest page was just restored after a remount (session.restingStartedAt survives it; the
+   *  local `phase` state does not) — same "derive from an absolute instant" principle the session
+   *  elapsed timer uses. Equal to `entry.restSec` for the overwhelmingly common case where the
+   *  rest page never left the screen (elapsed since starting rest is ~0). */
+  const restSecRemaining =
+    phase === 'resting' && session?.restingStartedAt
+      ? Math.max(
+          0,
+          entry.restSec - sessionsRepo.restElapsedSec(session.restingStartedAt, nowUtcInstant()),
+        )
+      : entry.restSec;
 
   /**
    * §10.4/§10.8 — "Pause" (workout-level, distinct from the per-set `pause-resume-timer` §10.5
@@ -689,6 +765,10 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     setDifficulty(null);
     setPhase('resting');
     setPausedCompletion(null);
+    // Persisted alongside the local state above — see `setRestingCursor`'s doc comment for why:
+    // without this, leaving the rest page via the "Progress" button (which `replace`s this screen
+    // with Summary, unmounting it) silently lost the rest and landed back on the next exercise.
+    sessionsRepo.setRestingCursor(db, sessionId, { entryId: entry.id, setIndex }, nowUtcInstant());
     // The workout turns pages from wherever it was, not back to the derived front edge: a set
     // completed at the front edge advances one page, exactly as before, but a set completed after
     // jumping ahead from Summary (an untouched set that isn't the front edge) must also advance
@@ -758,6 +838,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const handleNextAfterRest = () => {
     setStartedAtRef.current = nowUtcInstant();
     setPhase('exercise');
+    sessionsRepo.setRestingCursor(db, sessionId, null, nowUtcInstant());
     reload();
   };
 
@@ -765,7 +846,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     const localToday = localDateFromDate(new Date());
     exerciseStateRepo.setPinnedNote(
       db,
-      entry.exerciseId,
+      noteExerciseId,
       note.length > 0 ? note : null,
       nowUtcInstant(),
       localToday,
@@ -905,9 +986,12 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       <SpotifyControls />
 
       {swapNotice != null && (
-        <Text testID="swap-notice" style={styles.swapNotice}>
+        <Animated.Text
+          testID="swap-notice"
+          style={[styles.swapNotice, { opacity: swapNoticeOpacity }]}
+        >
           {swapNotice}
-        </Text>
+        </Animated.Text>
       )}
 
       {/* §10.4 — the gentle nudge, in the two-step-confirm shape this app uses everywhere else
@@ -950,8 +1034,10 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       </Modal>
 
       {/* The user's own note about this exercise, above the exercise itself: it is the thing
-          they wrote down *because* they wanted to see it before doing the movement again. */}
-      <PinnedNote note={exState?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
+          they wrote down *because* they wanted to see it before doing the movement again. While
+          resting, this is the exercise just finished (`noteExerciseId`), not the upcoming one the
+          rest of the rest screen previews — same split as the feedback controls below. */}
+      <PinnedNote note={noteExState?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
 
       {phase === 'exercise' ? (
         entry.durationSec != null ? (
@@ -998,7 +1084,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       ) : (
         <RestPhase
           key={`rest-${entry.id}-${setIndex}`}
-          restSec={entry.restSec}
+          restSec={restSecRemaining}
           // `isFinalRest` means this is the last set of the whole plan — `entry`/`exercise` here
           // are only the just-finished one (see the `current` fallback above), not a real
           // upcoming exercise, so there is nothing to preview.
@@ -1033,7 +1119,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
                   onReportIssue: handleReportVideoIssue,
                   onPlayerError: handleDemoPlayerError,
                   onInputFocus: handleDemoInputFocus,
-                  muted: demoMediaMuted,
                 }
               : null
           }
@@ -1067,7 +1152,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               }}
             >
               <DemoMedia
-                muted={demoMediaMuted}
                 videoSearchQuery={exercise.video_search}
                 // §11.4 — a synchronous local read of whatever `sync/firestoreSyncWorker.ts` last
                 // pulled into `remote_video_config` (track 6d). Null (never bundled, invariant 8)
@@ -1938,8 +2022,15 @@ function RestPhase({
     notificationIdRef.current = null;
   };
 
-  const handleNext = async () => {
-    await cancelRestNotification(notificationIdRef.current);
+  const handleNext = () => {
+    // Fire-and-forget, deliberately not awaited: this is best-effort background-notification
+    // bookkeeping (see workoutNotifications.ts's own header), and awaiting it here used to mean a
+    // native call that never resolves — expo-notifications has a documented history in this repo
+    // of hanging/leaking under load (STATUS-4b, issue #14) — silently ate the tap on NEXT forever
+    // on the last rest of a real workout, with the screen never moving on to Summary. The screen
+    // must advance the instant the user asks, whether or not the stale-notification cleanup ever
+    // finishes.
+    void cancelRestNotification(notificationIdRef.current);
     notificationIdRef.current = null;
     onNext();
   };
