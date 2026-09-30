@@ -35,16 +35,17 @@ Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
   `lib/focusLabels.ts`, `Screen scrollEnabled`, `ApprovalScreen.presentation.test.tsx`), legacy light override
   removed for Approval — 4eecc76
 
+- [x] E1 flake fix: Summary haptics test (root cause: one-word hype headline has no word ticks) — 1eea9cc
+- [x] E2 Completion re-skin (§5.9) + `CelebrationBackdrop` / `HypeHeadline` / `ConfettiBurst` / `HighlightCard` /
+  `AnimatedStatCounter` to tokens, `Chip wrap` — b6f34e3
+- [x] E3 Debrief (§5.8): `SummaryScreen.tsx` header/tiles/legend/rows/squares/dots/Trail notes/footer + edit
+  `Sheet`, `Screen adjustForKeyboard`, legacy light override removed for Summary,
+  `SummaryScreen.presentation.test.tsx` — b53f55a
+
 ### In progress
-- Phase E (Debrief + Completion, DESIGN.md §5.8, §5.9), started 2026-09-29. Landed: flake fix
-  (1eea9cc) and the Completion re-skin + celebration components (b6f34e3). NOW: E3 the Debrief half
-  of `SummaryScreen.tsx` (stat tiles, 30pt set squares + feedback dots, edit `Sheet`, TRAIL NOTES card,
-  sticky footer via `Screen footer`, Summary's legacy light override removed from `RootNavigator.tsx`,
-  header title -> ''), then the final status write-up.
+- Phase E is complete and `npm run check` is green. Next agent: Phase F (below).
 
 ### Next (sequential — each phase is one agent run, several small commits)
-- **E. Debrief + Completion** (§5.8, §5.9) + HighlightCard, AnimatedStatCounter, HypeHeadline,
-  CelebrationBackdrop, ConfettiBurst.
 - **F. Field Guide + Exercise detail + Settings** (§5.3, §5.4, §5.10).
 - **G. Sweep** (§5.11, §7 "zero off-system surfaces") — grep for raw hex/fontSize/fontWeight/
   glyph icons outside theme/ui, empty + loading states, keyboard accessories, remove dead styles
@@ -305,3 +306,76 @@ estimate) passed unchanged.
 
 **Not verified on a device/simulator** (Jest only): see the BACKLOG item "Golden Hour Generate + Plan are
 Jest-verified only" for the checklist.
+
+### Phase E reference (Debrief + Completion) — for phases F-G
+
+**Debrief (`SummaryScreen.tsx`, before FINISH)**: `Screen scroll adjustForKeyboard` + sticky footer; the native
+header stays (title `''`, custom `summary-back` `headerLeft`, gesture off — unchanged logic). Order: `Enter` title block
+(eyebrow "DEBRIEF" ember + `h1` "{Focus label} · {N} min"), three `StatTile size="h1"` (`debrief-stat-sets` ember /
+`-exercises` gold / `-reps` lagoon; each has `-value`), `debrief-legend` (three 12pt swatches drawn from the same
+`SQUARE_STYLE` as the squares), one `Card padding="none"` of `EntryRow`s (`summary-${exerciseId}`: 3pt section-colour rail,
+`h3` name, wrapping 30pt squares), `Trail notes` card (`retrospective-input`, shared `KeyboardDoneBar`
+`testID="retrospective-done"`), footer. Squares (`summary-set-${logId}` / `summary-set-${entryId}-${i}`):
+completed = `setState.completed` ember fill, count (repsActual, else secondsActual, else a check) in `ink`; skipped =
+transparent + `text3` border; not reached = transparent + dashed `lineStrong` border. A `PressableScale`, no haptic.
+Feedback is an 8pt dot in a reserved 16pt slot under the square: `summary-feedback-difficulty-${logId}` (lagoon / ember /
+summit, a11y label "Set 1 felt: Too hard") or the hollow `summary-feedback-placeholder-${logId}` ("Set 1: add how it
+felt"); tapping opens the `feedback-edit-sheet` `Sheet` ("{Exercise} — Set N", "How did that set feel?",
+`FeedbackControls` labeled segments, `feedback-edit-done`). `editingFeedback` is kept after the sheet closes (only
+`editorOpen` flips) so the content survives the exit animation. The legacy whole-stage answer is a small `Chip`
+`summary-feedback-difficulty-${entryId}` under the name. Footer: `finish-button` ("FINISH", `haptic={false}` — see gotchas)
++ `back-to-workout` quiet; mid-workout (frontier) there is no FINISH and "Back to workout" is the `lg` primary.
+
+**Completion (after FINISH)**: `session-complete` = `bg` `View` + `CelebrationBackdrop` (ember / gold / sun orbs at
+0.10 / 0.09 / 0.07 ring opacity + a faint lagoon orb) + shaking `ScrollView`. The native header is hidden
+(`headerShown: false`, set by an effect declared *before* the back-override effect so that one stays the last
+`setOptions` call, which the tests read) and `useInsets()` supplies the safe-area padding. Hero (`minHeight` 132) =
+gold/sun `Sunburst` + `HypeHeadline` (`type.display`, `text` words, last word `sun`, ember glow text-shadow, no italic —
+Barlow Condensed has no italic face loaded). `workout-count` is an `h2`; subtitle uses the focus label. Stat chips are
+`AnimatedStatCounter` (its own `surface` @85% / `line` / `hero` numeral / gold eyebrow styling now lives in the component).
+Highlights: `HighlightCard` = `Card variant="accent" gradient={golden}`; the card stamps down, then a `Stamp`
+(`highlight-${i}-stamp`: "LEVEL UP" ember / "BEST SET" gold) slams 220ms later; `sunrise` `Gradient` level bar;
+`highlight-${i}-share` is an `IconButton`. Quiet milestones are gold `Chip wrap`s (`star` icon). "Heck yes! 💪" is
+`Button lg primary` (`return-home`, `haptic={false}`, `hapticHeavy()` on press as before) inside the pulsing
+`Animated.View`, with an ember halo behind it whose opacity/scale ride the same `buttonPulse` value, so the glow breathes
+with the pulse. Nothing in `lib/completionTimeline.ts`, the effect's beats, `celebration.ts`, or `completeSession` usage
+changed. No violet: `summit` is not imported by any completion component (`SummaryScreen.presentation.test.tsx` walks the
+whole rendered tree, confetti included, for every violet the old page and the palette contain).
+
+**Deviations from DESIGN.md §5.8/§5.9 (all deliberate)**:
+- The Debrief's third tile is "Reps" (total reps) — or "Hold time" (seconds) only for a session with no reps at all.
+  Reps and timed holds are different units and three tiles are ~87pt of content each, so a session with both shows reps
+  only there (the Completion page still shows both, as before).
+- Dashed "not reached" outline is `lineStrong`, not `line`: `line` on the `bg` night surface is ~1.5:1 and the square is
+  a tap target for jumping ahead.
+- Squares are 30pt visually (spec) with `hitSlop` 5-6, so the tap area is ~40 x 36, under the 44pt guideline; the dot's
+  tap area is ~24 x 26. Long-press-to-edit was not added: the dot is the entry to the edit sheet and the square's press
+  must stay "jump to set".
+- The legend is three swatches (done / skipped / not reached) drawn as small squares, not the "● ○ ◌" glyphs (§7 bans
+  glyph icons). It does not mention the dot.
+- Header difficulty was dropped from the title ("{FOCUS} · {N} MIN", as spec'd; the old heading also said the difficulty).
+- Completion subtitle and the Debrief title use the friendly focus label ("Full body") via `focusLabels`, not the raw key.
+- `HypeHeadline` lost its italic (see above) and its hard offset shadow (an ember glow replaces it: one `textShadow` per
+  Text). Headline is `display` (40pt), not `hero` (64pt) — a 64pt slam wraps a 3-word headline to ~3 lines and pushes the
+  stats below the fold.
+- "AND THAT'S NOT ALL…" keeps its copy, restyled as a gold eyebrow; the level-up rocket/trophy emoji and "Share it 📣"
+  are gone (Stamp + share `IconButton`).
+- Completion hides the native header (full-bleed backdrop); Debrief keeps it (back button).
+- `Chip` gained `wrap`, `Screen` gained `adjustForKeyboard` (both tiny ui extensions).
+
+**Gotchas**:
+- **The Summary haptics flake was not load or leaked timers.** The fanfare test asserted a Light tick the moment the Heavy
+  slam arrived. Light ticks are the headline's word ticks (one per word except the last, all *before* the slam) — but a
+  ONE-word headline ("UNSTOPPABLE!", 1 of 8 in the pool, picked from the session's random id) has none, so its first
+  Light is a stat-tile tick ~450ms *after* Heavy. Reproduced deterministically by pinning that headline; the test now runs
+  for a one-word and a multi-word headline (`pickHypeHeadline` is a `jest.fn` wrapper around the real picker), awaits
+  Heavy, Light and the button's Success independently, and asserts exactly one Success on arrival.
+- Do **not** give FINISH (or Heck yes) a default `Button` haptic: the primary variant fires `light` on press, which would
+  make a "Light tick" assertion pass on the press itself and mask the very ordering the test exists for. Both are
+  `haptic={false}`; the completion cues come from the choreography.
+- Summary tests that used to read chip text / `✅ ⬜` glyphs now read the dots' accessibility labels
+  (`getByLabelText('Set 1 felt: Too hard')`); the labeled chips exist only inside the open edit sheet.
+- `AnimatedStatCounter` now imports `../ui` (`Txt`); its old `valueStyle`/`labelStyle` props remain as overrides.
+- **Not verified on a device/simulator** (Jest only): see the BACKLOG item "Golden Hour Debrief + Completion are
+  Jest-verified only".
+
