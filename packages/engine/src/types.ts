@@ -161,6 +161,9 @@ export interface GenerationRequest {
   equipmentPreference?: EquipmentPreference;
   /** §9.5 — same pipeline, minimal template (1 warmup + 3 main + 1 cooldown), ~7min, `normal`. */
   quickSession?: boolean;
+  /** Track 19 — weave a few cardio (`conditioning`) exercises, evenly spaced, through a strength
+   *  session. Ignored for the Cardio focus (already all cardio) and for Quick Session. */
+  cardioAddOn?: boolean;
 }
 
 export type SessionFormat = 'straight_sets';

@@ -24,6 +24,7 @@ import {
   expandOptionalSlots,
 } from './template/focusTemplate';
 import type { TemplateSlot } from './template/focusTemplate';
+import { cardioAddOnCount, cardioAddOnSlots, interleaveEvenly } from './template/cardioAddOn';
 import { selectMain } from './selection/mainSelection';
 import type { SelectedMain } from './selection/mainSelection';
 import { selectWarmupCooldown, selectWarmupCooldownGroup } from './selection/warmupCooldown';
@@ -376,6 +377,39 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     }
   }
 
+  // Track 19 — Cardio add-on. Cardio exercises come from the same `selectMain` the Cardio focus
+  // uses (every §5.2 variety rule applies), scoped to the conditioning pool, and are prescribed
+  // from `CARDIO_INTERVAL_TABLE` like any cardio move. They sit outside the strength time fit:
+  // their time is reserved up front (see `fitMainEntries`' call below) so strength fills what is
+  // left, and they are interleaved into the finished list afterwards. Never for the Cardio focus
+  // (already all cardio) or Quick Session (fixed three-exercise shape). If the pool has no
+  // eligible cardio move (gear filter, injuries) the add-on quietly adds nothing.
+  let cardioAddOnEntries: SessionEntry[] = [];
+  if (request.cardioAddOn && focus !== 'cardio' && !isQuick) {
+    const cardioSelection = selectMain({
+      slots: cardioAddOnSlots(cardioAddOnCount(targetMinutes)),
+      pool: pool.filter(isCardioExercise),
+      poolIgnoringEquipment: poolIgnoringEquipment.filter(isCardioExercise),
+      volumePool: pool,
+      userState,
+      today: clock.today,
+      rng,
+      focus: 'cardio',
+      equipmentPreference,
+      requestedDifficulty: difficulty,
+    });
+    cardioAddOnEntries = cardioSelection.picks.map((pick) =>
+      prescribeAccessory({
+        exercise: pick.exercise,
+        requestedDifficulty: difficulty,
+        recoveryTreatment: pick.recoveryTreatment,
+        bandRelaxedForPatternGap: pick.bandRelaxedForPatternGap,
+        setsMultiplier,
+      }),
+    );
+  }
+  const cardioAddOnSec = cardioAddOnEntries.reduce((a, e) => a + e.estimatedSec, 0);
+
   // Warmup + cooldown. §9.5 Quick Session is explicitly "one warmup ... one cooldown" — keep it
   // to exactly one each. Every other session's §5.6 budget allocates several *minutes* to each
   // (`clamp(round(0.12xT),3,8)` / `clamp(round(0.10xT),3,7)`), which one ~45-90s movement can't
@@ -394,7 +428,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   // since the mobility drills eligible for both sections are exactly the ones most likely to
   // collide.
   const mainExerciseIds = new Set<string>(
-    [...entriesBySlotId.values()].map((entry) => entry.exerciseId),
+    [...entriesBySlotId.values(), ...cardioAddOnEntries].map((entry) => entry.exerciseId),
   );
 
   let warmupEntries: SessionEntry[];
@@ -475,7 +509,18 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
             estimatedMinutes >= targetMinutes * 0.9 && estimatedMinutes <= targetMinutes * 1.1,
         };
       })()
-    : fitMainEntries(slotEntries, targetMinutes, warmupSec, cooldownSec, rng, mainExerciseCount);
+    : fitMainEntries(
+        slotEntries,
+        targetMinutes,
+        // The add-on's time is spoken for, so it comes off the strength budget the same way the
+        // warmup's does; `estimatedMinutes` adds it back, so the total still reads true.
+        warmupSec + cardioAddOnSec,
+        cooldownSec,
+        rng,
+        mainExerciseCount,
+      );
+  const mainWithCardio =
+    cardioAddOnEntries.length > 0 ? interleaveEvenly(fit.main, cardioAddOnEntries) : fit.main;
 
   // `withinTenPercent` is §5.6's actual requirement, not a decoration — read it. If the session
   // still falls outside ±10% after the corrective sets-trim above and every optional slot the
@@ -585,7 +630,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     targetMinutes,
     estimatedMinutes: fit.estimatedMinutes,
     warmup: warmupEntries,
-    main: fit.main,
+    main: mainWithCardio,
     cooldown: cooldownEntries,
     explanation,
     patternGaps,
