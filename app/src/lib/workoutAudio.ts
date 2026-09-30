@@ -55,8 +55,9 @@ function loadAudioModule(): ExpoAudioModule | null {
     // `expo-audio` has no native module registered (e.g. under Jest).
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     audioModuleCache = require('expo-audio') as ExpoAudioModule;
-  } catch {
+  } catch (e) {
     audioModuleCache = null;
+    if (__DEV__) console.warn('[workoutAudio] expo-audio failed to load; cue tones disabled', e);
   }
   return audioModuleCache;
 }
@@ -105,8 +106,9 @@ export async function configureWorkoutAudioSession(): Promise<void> {
       interruptionMode: 'mixWithOthers',
       shouldRouteThroughEarpiece: false,
     });
-  } catch {
+  } catch (e) {
     // Best-effort — a session config failure should never block the workout itself.
+    if (__DEV__) console.warn('[workoutAudio] setAudioModeAsync failed', e);
   }
 }
 
@@ -130,13 +132,18 @@ function playSound(key: SoundKey): void {
   if (!cueSoundsEnabled) return;
   const player = getPlayer(key);
   if (!player) return;
-  try {
-    player.seekTo(0);
-    player.play();
-  } catch {
-    // Best-effort — see file header: audio is a nice-to-have layered on top of haptics, which
-    // always carry the same information (§10.8 "haptics carry the same information when muted").
-  }
+  // Seek settles before play so a rewind still in flight can't land after `play()` starts. Not
+  // awaited by callers: cues are fire-and-forget and must never delay the haptic beside them.
+  void (async () => {
+    try {
+      await player.seekTo(0);
+      player.play();
+    } catch (e) {
+      // Best-effort — see file header: audio is a nice-to-have layered on top of haptics, which
+      // always carry the same information (§10.8 "haptics carry the same information when muted").
+      if (__DEV__) console.warn(`[workoutAudio] playing ${key} failed`, e);
+    }
+  })();
 }
 
 // --------------------------------------------------------------------------------------------

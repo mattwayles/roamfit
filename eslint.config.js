@@ -43,6 +43,16 @@ module.exports = [
     },
   },
   {
+    // `__DEV__` is a Metro/Expo global injected into the RN bundle, not a Node global — scoped to
+    // `app/` (the only workspace it's meaningful in) rather than added to every TS file's globals.
+    files: ['app/**/*.ts', 'app/**/*.tsx'],
+    languageOptions: {
+      globals: {
+        __DEV__: 'readonly',
+      },
+    },
+  },
+  {
     files: ['**/*.test.ts', '**/*.test.tsx'],
     languageOptions: {
       globals: {
