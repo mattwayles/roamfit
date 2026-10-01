@@ -22,9 +22,12 @@ Travel motifs are used as *texture and metaphor*, lightly: topographic contour l
 cards, passport stamps for places and milestones, a boarding-pass header on the plan, trails and
 summits for progression ladders. Never kitsch — one motif per surface.
 
-**Dark only.** Deliberate: a training app is used at arm's length, sweaty, often at dawn/dusk;
-bright accents on a near-black surface give the highest-contrast, most energetic read. All text
-meets WCAG AA on its surface.
+**Two lights, one system.** *Golden Hour* (dark) is the original: bright accents on a near-black
+night sky, the most energetic read at dawn, dusk and indoors. *Daylight* (light, §8) exists because
+Golden Hour washes out in direct sun: it is the same app printed as a trail map — ink on warm paper,
+accents deepened until they read in glare, white legends on saturated panels like a highway sign.
+The user picks System / Daylight / Golden Hour; System follows iOS, whose Automatic appearance
+flips to Golden Hour at sunset. All text meets WCAG AA on its surface in both.
 
 ## 2. Tokens (`app/src/theme/`)
 
@@ -480,3 +483,137 @@ are stable):
   `react-native-svg` (**native — requires a dev-client rebuild**, `npm run ios`),
   `@expo/vector-icons`, `@expo-google-fonts/barlow`, `@expo-google-fonts/barlow-condensed`,
   `@react-navigation/bottom-tabs` (JS-only).
+
+## 8. Daylight — the light mode
+
+Golden Hour is unreadable in direct sun: dim surfaces and mid-luminance text drown in glare.
+Daylight keeps everything that makes the app *RoamFit* — Barlow highway-sign type, the travel
+motifs, the sunrise CTA, the three moods, the copy — and changes only the light it is seen in.
+
+**The metaphor:** a paper trail map in your hand at noon. Warm paper ground, near-black ink, contour
+lines printed in sepia, and accent panels with white legends — the way a highway sign (white on
+green), a trailhead marker or a park sign is built to be read in full sun from arm's length.
+
+### 8.1 Palette
+
+Same token names as Golden Hour; only values change. Contrast ratios are measured and asserted in
+`theme.test.ts`.
+
+```ts
+// Surfaces — warm map paper. Cards are lighter than the ground, and lift with a soft shadow.
+bg:         '#F6F0E4'
+surface:    '#FFFDF8'
+surface2:   '#EFE7D8'   // wells, inputs, chips, nested cards
+surface3:   '#E3D8C4'   // pressed / highlighted
+line:       '#D6C9B2'
+lineStrong: '#B3A288'
+
+// Text — printer's ink, warm not blue
+text:  '#1A130C'   // 16.2:1 on bg
+text2: '#4A4036'   //  8.9:1
+text3: '#6B6052'   //  5.4:1 — still AA, because "muted" outdoors is "invisible"
+
+// Accents — deepened so each is ≥ 4.5:1 as text on bg AND carries a white legend as a fill
+ember:     '#BF3708'   // 4.9:1 on bg; white on it 5.6:1
+emberDeep: '#9E2E06'
+gold:      '#8F5A00'   // brass — reads as gold on paper, unlike a yellow
+sun:       '#A86F00'   // large text / icons only (3.8:1)
+lagoon:    '#00706A'
+sky:       '#1A5FC2'
+summit:    '#5A3BD1'
+rose:      '#BF1D63'   // still cardio-only, still never an error
+```
+
+**`ink` changes meaning slightly.** It was always "the text on an accent fill". In Golden Hour the
+fills are bright, so it is near-black; in Daylight the fills are deep, so it is **white
+(`#FFFFFF`)**. Every `color="ink"` call site is therefore correct in both modes without change —
+the "never white on ember" rule is a Golden Hour rule (bright ember); Daylight's deep ember wants
+white. Two **mode-invariant** tokens cover content on colors that do *not* change with the theme:
+`fixedInk` (`#170B03`) and `fixedPaper` (`#F7F3EA`) — band swatches (real-world colors, user data),
+anything over video/imagery.
+
+**`vivid`** — the Golden Hour accent hexes, exported unchanged in *both* modes, for purely
+decorative color with no text on it: confetti, celebration orbs, the sunburst, the headline's stamp
+shadow. Deep confetti looks like dirt; vivid confetti on paper looks like a sunny day.
+
+**`backdrop`** (Sheet scrim): Golden Hour `rgba(5,7,10,0.72)`, Daylight `rgba(26,19,12,0.40)`.
+
+### 8.2 Gradients
+
+Deepened in the same proportion as the accents so white legends hold ≥ 4.2:1 at every stop (all
+gradient text is large/bold):
+
+```ts
+sunrise: ['#CC3B12', '#C95A04']
+golden:  ['#8F5A00', '#A46D00']
+lagoon:  ['#00706A', '#0A74A8']
+summit:  ['#5A3BD1', '#8B3FD0']
+night:   ['#FFFDF8', '#F6F0E4']   // card sheen: surface -> bg
+```
+
+Golden Hour's one exception (`ExerciseDetail` put paper-white `text` on the violet hero because
+`ink` was 3.9:1 there) becomes a theme rule instead of a screen rule: `onGradient(tone)` returns the
+right legend color for a hero in the current mode (Golden Hour: `ink`, except summit → `fixedPaper`;
+Daylight: always `ink`, i.e. white).
+
+### 8.3 Depth, glow, texture
+
+- **Elevation exists in Daylight.** Shadows work on paper, and in glare a hairline alone vanishes
+  (surface vs bg is only 1.12:1). `elevation.card` = `shadowColor '#5A4126'`, opacity 0.10,
+  radius 12, offset y 4 — applied to `Card` (plain/accent), `Sheet`, `StatTile`, the tab bar.
+  Golden Hour's `elevation.card` is `{}` (no drop shadows on dark, unchanged).
+- **Glow is tamed.** A colored 18pt bloom on paper reads as a smudge. Daylight `glow(color)` =
+  opacity 0.28, radius 10, offset y 4 — a colored lift, not a halo. Same call sites.
+- **Topo contours are printed sepia.** `topo.color` `#3B2410` at `topo.strength` 1.3× the seeded
+  opacity (Golden Hour: `text`, 1×). Sepia reads on both paper and the deep hero gradients.
+- **Completion's stamped headline** (the screen the user loves) keeps its construction, swaps its
+  inks: Golden Hour fill `sun` / hard shadow `emberDeep` / ember glow; Daylight fill `ember` (deep) /
+  hard shadow `vivid.gold` / no glow — a two-color screenprinted poster. Exposed as `stamp.fill`,
+  `stamp.shadow`, `stamp.glow` (`null` = none).
+
+### 8.4 Mechanism
+
+- `theme/palettes.ts`: `goldenHour` and `daylight`, each a complete `Palette` (identical key sets,
+  asserted). `theme/buildTheme.ts`: `buildTheme(scheme)` → a frozen `Theme`:
+  `{ scheme, colors, vivid, tints, gradients, accentGradient, section, focus, setState, dayMarker,
+  trainedColor, onGradient, glow, elevation, topo, stamp, statusBar, navTheme, headerOptions }`.
+  Two instances, built once at module load.
+- `ThemeProvider` resolves a **preference** (`'system' | 'light' | 'dark'`) with RN's
+  `useColorScheme()` and provides the `Theme`. `useTheme()` reads it; the context default is the
+  Golden Hour theme, so a component rendered without a provider (most existing tests) behaves
+  exactly as today.
+- `makeStyles(factory)` → a hook. `const useStyles = makeStyles((t) => ({ ... }))` at module scope,
+  `const styles = useStyles()` in the component. Cached per `Theme` instance, so each factory runs
+  at most twice per app lifetime. This is the one pattern for themed styles — replace a module-level
+  `StyleSheet.create` that reads colors with it; a `StyleSheet.create` with no color stays as is.
+- `<Txt color>` / `<Icon color>` take token names and resolve them through `useTheme()`, so the
+  hundreds of `color="ember"` props are themed for free.
+- Switching is **live** — no reload. Every themed style is a hook, so a preference change re-renders
+  the tree with the other palette, mid-workout included.
+- **Persistence:** `users.theme_preference TEXT NOT NULL DEFAULT 'system'` (migration 0022), through
+  `usersRepo` like every other setting (`themePreference` on `UserRecord` / `UserPatch`). Read
+  synchronously at provider mount (op-sqlite is sync), so the first frame is already right.
+- **Native chrome follows:** `StatusBar` style from `theme.statusBar`, `NavigationContainer` gets
+  `theme.navTheme` (Daylight built on React Navigation's `DefaultTheme`), stack `headerOptions`
+  from the theme, `TextInput`s get `keyboardAppearance` from the scheme, `app.json`
+  `userInterfaceStyle: "automatic"` (native — takes effect after a dev-client rebuild). The splash
+  stays Golden Hour `bg` (one static image; noted in BACKLOG with the icon art).
+
+### 8.5 Where you switch
+
+- **Settings → Appearance** (first group, above Training): a three-way `SegmentedBar` — *System* /
+  *Daylight* (sun icon) / *Golden Hour* (moon icon) — with the caption "Daylight is built for
+  training outdoors in full sun. System follows your iPhone, which can switch at sunset."
+- **Active Workout top bar:** a sun/moon `IconButton` (`theme-toggle`). This is the point of the
+  feature: you walk out into the courtyard mid-session and the screen is unreadable — one tap, no
+  leaving the workout. It sets an explicit `light`/`dark` preference (persisted). Accessibility label
+  "Switch to Daylight" / "Switch to Golden Hour".
+
+### 8.6 Rules
+
+- Never read a color at module scope. `colors`, `tints`, `gradients` and the semantic maps are no
+  longer exported as statics once the migration lands — the compiler finds every straggler.
+- Pure `lib/` code returns token *names* (`AccentName`, `ColorName`), not hex, and lets the
+  component resolve them; where it must return a color it takes the `Theme` as an argument.
+- Every new color decision is made for both palettes at once. A screen is not done until it has been
+  looked at in both.
