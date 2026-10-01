@@ -53,7 +53,7 @@ import {
   type AccentName,
   withAlpha,
 } from '../theme';
-import { useThemePreference } from '../state/ThemeProvider';
+import { useOptionalThemePreference } from '../state/ThemeProvider';
 import {
   Button,
   Card,
@@ -128,17 +128,6 @@ interface PendingCompletion {
 
 /** §10.8 crash-safety resume — see `sessionProgress.ts` for the shared implementation (also used
  *  by HomeScreen's abandon action to record §8.3's "abandoned, and at exactly which exercise"). */
-/** The theme toggle needs the app's `ThemeProvider`; a screen rendered without one (most unit
- *  tests of this screen) simply has no toggle rather than throwing. Hook order is unchanged either
- *  way — `useThemePreference` always runs its `useContext` before it can throw. */
-function useOptionalThemePreference(): ReturnType<typeof useThemePreference> | null {
-  try {
-    return useThemePreference();
-  } catch {
-    return null;
-  }
-}
-
 function findCurrent(
   session: SessionRecord,
 ): { entry: sessionsRepo.SessionEntryRecord; setIndex: number } | null {

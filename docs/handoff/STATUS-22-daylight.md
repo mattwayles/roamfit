@@ -18,7 +18,7 @@ Presentation + one preference column. Engine/data behavior is frozen; the only s
 - [x] P1 step 5: `lib/dayMarkers.ts` `markerColor` -> `markerTone` (returns an `AccentName`, `DayCell` resolves it); `focusLabels.ts` already returned token names (comment only).
 
 ### In progress
-- Phase 2A (Workout + theme toggle), 2B (Summary/Completion), 2C (Today/Journey/Generate/Plan), 2D (Field Guide/Detail/Settings + Appearance) launched in parallel in the same tree, each committing only its own paths. If interrupted: `git log` shows which landed; re-run the missing ones per the Phase 2 list below.
+- Phase 3 close-out, step 1: root cause of navigation.test failure is SettingsScreen's `useThemePreference()` (Settings is opened in that test, which has no ThemeProvider), not Workout. Fix: export `useOptionalThemePreference` from state/ThemeProvider.tsx, use in Workout (drop local copy), wrap navigation.test boot in ThemeProvider. Then steps 2-7 per the Phase 3 list.
 
 ### Next
 

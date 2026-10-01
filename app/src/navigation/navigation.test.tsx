@@ -11,6 +11,7 @@ import RootNavigator from './RootNavigator';
 import { homeReset } from './routes';
 import { TAB_META } from './TabBar';
 import { StoreProvider } from '../state/StoreContext';
+import { ThemeProvider } from '../state/ThemeProvider';
 import { getDb } from '../db';
 import { nowUtcInstant } from '../lib/localClock';
 import { StyleSheet } from 'react-native';
@@ -25,9 +26,11 @@ beforeAll(() => {
 async function boot() {
   await render(
     <StoreProvider>
-      <NavigationContainer theme={navTheme}>
-        <RootNavigator />
-      </NavigationContainer>
+      <ThemeProvider initialPreference="dark">
+        <NavigationContainer theme={navTheme}>
+          <RootNavigator />
+        </NavigationContainer>
+      </ThemeProvider>
     </StoreProvider>,
   );
   await waitFor(() => expect(screen.getByTestId('tab-Home')).toBeTruthy(), WAIT);

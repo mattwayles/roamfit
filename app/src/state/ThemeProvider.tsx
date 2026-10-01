@@ -74,3 +74,9 @@ export function useThemePreference(): ThemePreferenceValue {
   if (!ctx) throw new Error('useThemePreference() called outside <ThemeProvider>');
   return ctx;
 }
+
+/** Non-throwing variant: null without a provider. For optional chrome (the Workout theme toggle)
+ *  on screens that unit tests render bare. */
+export function useOptionalThemePreference(): ThemePreferenceValue | null {
+  return useContext(ThemePreferenceContext);
+}
