@@ -42,7 +42,16 @@ import type {
   VideoFilter,
 } from '../lib/exerciseCatalog';
 import { FOCUS_LABELS, FOCUS_TONE } from '../lib/focusLabels';
-import { colors, fontFamily, gutter, radius, space, tints, type, type AccentName } from '../theme';
+import {
+  fontFamily,
+  gutter,
+  makeStyles,
+  radius,
+  space,
+  type,
+  useTheme,
+  type AccentName,
+} from '../theme';
 import {
   Button,
   Chip,
@@ -110,6 +119,8 @@ function avatarTone(exercise: Exercise): AccentName {
 
 export default function ExercisesScreen({ navigation }: Props): React.JSX.Element {
   const { db, library } = useStore();
+  const theme = useTheme();
+  const styles = useStyles();
   const [catalog, setCatalog] = useState<Record<string, CatalogState>>({});
   const [filters, setFilters] = useState<ExerciseFilterState>(EMPTY_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -181,9 +192,9 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
           value={filters.query}
           onChangeText={(query) => setFilters((prev) => ({ ...prev, query }))}
           placeholder="Search moves"
-          placeholderTextColor={colors.text3}
-          selectionColor={colors.ember}
-          keyboardAppearance="dark"
+          placeholderTextColor={theme.colors.text3}
+          selectionColor={theme.colors.ember}
+          keyboardAppearance={theme.scheme}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
@@ -415,6 +426,7 @@ function FilterRow<T extends string>({
   value: T;
   onChange: (value: T) => void;
 }): React.JSX.Element {
+  const styles = useStyles();
   return (
     <View style={styles.filterGroup}>
       <Txt variant="eyebrow" color="text3">
@@ -450,6 +462,8 @@ const ExerciseRow = React.memo(function ExerciseRow({
   state: CatalogState;
   onPress: () => void;
 }): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
   const tone = avatarTone(exercise);
   const done = state.timesCompleted > 0;
   return (
@@ -463,7 +477,7 @@ const ExerciseRow = React.memo(function ExerciseRow({
       style={[styles.row, state.disabled && styles.rowDisabled]}
       onPress={onPress}
     >
-      <View style={[styles.avatar, { backgroundColor: tints[tone] }]}>
+      <View style={[styles.avatar, { backgroundColor: theme.tints[tone] }]}>
         <Icon name={PATTERN_ICON[exercise.pattern]} size={24} color={tone} />
       </View>
       <View style={styles.rowMain}>
@@ -505,103 +519,106 @@ const ExerciseRow = React.memo(function ExerciseRow({
   );
 });
 
-const styles = StyleSheet.create({
-  container: { paddingBottom: space.huge + space.xxl, gap: space.sm },
-  header: {
-    paddingHorizontal: gutter,
-    paddingTop: space.lg,
-    paddingBottom: space.sm,
-    gap: space.lg,
-  },
-  titleRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  title: { flexShrink: 1 },
-  count: { marginLeft: space.md },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 48,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.line,
-    paddingHorizontal: space.lg,
-  },
-  searchIcon: { marginRight: space.sm },
-  search: {
-    flex: 1,
-    minHeight: 46,
-    ...type.body,
-    fontFamily: fontFamily.bodyMedium,
-    color: colors.text,
-  },
-  clearSearch: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.text3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipScroll: { marginHorizontal: -gutter, flexGrow: 0 },
-  chipRow: { paddingHorizontal: gutter, gap: space.sm, alignItems: 'center' },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 30,
-    paddingHorizontal: space.md,
-    paddingVertical: 7,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-  },
-  filterButtonActive: { backgroundColor: tints.ember, borderColor: colors.ember },
-  filterLabel: { marginLeft: 6 },
-  badge: {
-    marginLeft: 6,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 5,
-    backgroundColor: colors.ember,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  // Tracking/leading override on a Txt variant: eyebrow spacing would not fit the 16pt count badge.
-  badgeText: { letterSpacing: 0, lineHeight: 16 },
-  clearInline: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' },
-  clearInlineText: { marginLeft: 4 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: gutter,
-    padding: space.md,
-    minHeight: 76,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  rowDisabled: { opacity: 0.5 },
-  avatar: {
-    width: AVATAR,
-    height: AVATAR,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: space.md,
-  },
-  rowMain: { flex: 1, gap: 2 },
-  rowMeta: { alignItems: 'flex-end', gap: space.xs, marginLeft: space.sm },
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: space.lg,
-  },
-  sheetScroll: { flexGrow: 0 },
-  sheetBody: { gap: space.xl, paddingBottom: space.md },
-  filterGroup: { gap: space.sm },
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  sheetDone: { marginTop: space.lg },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    container: { paddingBottom: space.huge + space.xxl, gap: space.sm },
+    header: {
+      paddingHorizontal: gutter,
+      paddingTop: space.lg,
+      paddingBottom: space.sm,
+      gap: space.lg,
+    },
+    titleRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+    title: { flexShrink: 1 },
+    count: { marginLeft: space.md },
+    searchWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 48,
+      borderRadius: radius.pill,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      paddingHorizontal: space.lg,
+    },
+    searchIcon: { marginRight: space.sm },
+    search: {
+      flex: 1,
+      minHeight: 46,
+      ...type.body,
+      fontFamily: fontFamily.bodyMedium,
+      color: t.colors.text,
+    },
+    clearSearch: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: t.colors.text3,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chipScroll: { marginHorizontal: -gutter, flexGrow: 0 },
+    chipRow: { paddingHorizontal: gutter, gap: space.sm, alignItems: 'center' },
+    filterButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 30,
+      paddingHorizontal: space.md,
+      paddingVertical: 7,
+      borderRadius: radius.pill,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.lineStrong,
+    },
+    filterButtonActive: { backgroundColor: t.tints.ember, borderColor: t.colors.ember },
+    filterLabel: { marginLeft: 6 },
+    badge: {
+      marginLeft: 6,
+      minWidth: 18,
+      height: 18,
+      borderRadius: 9,
+      paddingHorizontal: 5,
+      backgroundColor: t.colors.ember,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    // Tracking/leading override on a Txt variant: eyebrow spacing would not fit the 16pt count badge.
+    badgeText: { letterSpacing: 0, lineHeight: 16 },
+    clearInline: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' },
+    clearInlineText: { marginLeft: 4 },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: gutter,
+      padding: space.md,
+      minHeight: 76,
+      borderRadius: radius.lg,
+      backgroundColor: t.colors.surface,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      ...t.elevation.card,
+    },
+    rowDisabled: { opacity: 0.5 },
+    avatar: {
+      width: AVATAR,
+      height: AVATAR,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: space.md,
+    },
+    rowMain: { flex: 1, gap: 2 },
+    rowMeta: { alignItems: 'flex-end', gap: space.xs, marginLeft: space.sm },
+    sheetHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: space.lg,
+    },
+    sheetScroll: { flexGrow: 0 },
+    sheetBody: { gap: space.xl, paddingBottom: space.md },
+    filterGroup: { gap: space.sm },
+    chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+    sheetDone: { marginTop: space.lg },
+  }),
+);

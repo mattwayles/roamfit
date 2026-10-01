@@ -17,6 +17,8 @@ import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider } from '../state/StoreContext';
 import { getDb } from '../db';
 import { nowUtcInstant } from '../lib/localClock';
+import { daylightTheme } from '../theme';
+import { flat, inDaylight } from '../ui/test-utils';
 
 const PUSH_UP = { id: 'banded-push-up', name: 'Banded Push-Up' };
 
@@ -41,14 +43,15 @@ beforeAll(() => {
   exerciseStateRepo.assignUserVideo(db, PUSH_UP.id, 'dQw4w9WgXcQ', nowUtcInstant(), '2026-08-05');
 });
 
-async function openExercises() {
-  render(
+async function openExercises(daylight = false) {
+  const app = (
     <StoreProvider>
       <NavigationContainer>
         <RootNavigator />
       </NavigationContainer>
-    </StoreProvider>,
+    </StoreProvider>
   );
+  render(daylight ? inDaylight(app) : app);
   await waitFor(() => expect(screen.getByTestId('tab-Exercises')).toBeTruthy());
   await fireEvent.press(screen.getByTestId('tab-Exercises'));
   await waitFor(() => expect(screen.getByTestId('exercise-list')).toBeTruthy());
@@ -63,6 +66,20 @@ async function search(text: string) {
   await fireEvent.changeText(screen.getByTestId('exercise-search'), text);
   await waitFor(() => expect(screen.getByTestId('exercise-count')).toBeTruthy());
 }
+
+describe('the exercise library in Daylight', () => {
+  it('paints the search well, rows and keyboard from the Daylight theme', async () => {
+    await openExercises(true);
+    await search(PUSH_UP.name);
+    await waitFor(() => expect(screen.getByTestId(`exercise-card-${PUSH_UP.id}`)).toBeTruthy());
+    expect(flat(`exercise-card-${PUSH_UP.id}`).backgroundColor).toBe(daylightTheme.colors.surface);
+    expect(flat('exercise-search').color).toBe(daylightTheme.colors.text);
+    expect(screen.getByTestId('exercise-search').props.keyboardAppearance).toBe('light');
+    expect(screen.getByTestId('exercise-search').props.placeholderTextColor).toBe(
+      daylightTheme.colors.text3,
+    );
+  });
+});
 
 describe('the exercise library', () => {
   it('opens from the Field Guide tab and lists the whole library', async () => {
