@@ -36,7 +36,7 @@ import {
 import { DAY_MARKER_OPTIONS } from '../lib/dayMarkers';
 import { useDashboardData } from '../lib/useDashboardData';
 import { requestLocationPermission } from '../lib/geocode';
-import { colors, gradients, radius, space, tints } from '../theme';
+import { makeStyles, radius, space, useTheme } from '../theme';
 import {
   Button,
   Card,
@@ -71,6 +71,8 @@ function plural(n: number, one: string, many: string): string {
 }
 
 export default function JourneyScreen(_props: Props): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
   const { db, library, families } = useStore();
   const { data, reload } = useDashboardData();
   /** ADR 0012 — one-line result of the last board level-up or level-down. Informational only:
@@ -202,7 +204,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
   if (data === undefined) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={colors.ember} />
+        <ActivityIndicator color={theme.colors.ember} />
       </View>
     );
   }
@@ -361,7 +363,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
                           progress={progress}
                           size={56}
                           stroke={6}
-                          gradient={gradients.summit}
+                          gradient={theme.gradients.summit}
                           accessibilityLabel={`${remaining} ${plural(remaining, 'session', 'sessions')} to next level`}
                         >
                           <Txt variant="h2" testID={`board-sessions-left-${entry.familyId}`}>
@@ -678,7 +680,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
                         { width: `${Math.min(100, (row.hardSets / maxSets) * 100)}%` },
                       ]}
                     >
-                      <Gradient colors={gradients.sunrise} angle={90} radius={radius.pill} />
+                      <Gradient colors={theme.gradients.sunrise} angle={90} radius={radius.pill} />
                     </View>
                   </View>
                   <Txt variant="small" color="text2" align="right" style={styles.muscleSets}>
@@ -743,69 +745,76 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  content: { paddingTop: space.lg, paddingBottom: space.huge + space.xxl, gap: space.xxxl },
-  flex: { flex: 1 },
-  section: { gap: space.lg },
-  tiles: { gap: space.md },
-  tileRow: { flexDirection: 'row', gap: space.md },
-  tile: { flex: 1, minWidth: 0, paddingHorizontal: space.md },
-  note: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: tints.summit,
-    borderRadius: radius.md,
-    padding: space.md,
-  },
-  noteIcon: { marginRight: space.sm, marginTop: 1 },
-  noteText: { flex: 1 },
-  board: { gap: space.md },
-  trail: { gap: space.md },
-  trailTop: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
-  trailIdentity: { flex: 1, gap: 2 },
-  ringBlock: { alignItems: 'center', width: 84 },
-  ringCaption: { marginTop: space.xs },
-  levelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  adjust: { alignSelf: 'flex-start', marginLeft: -space.sm },
-  adjustPanel: { gap: space.sm },
-  confirmBox: {
-    backgroundColor: colors.surface2,
-    borderRadius: radius.md,
-    padding: space.md,
-    gap: space.md,
-  },
-  confirmButtons: { flexDirection: 'row', gap: space.sm },
-  calendar: { gap: 6 },
-  weekdayRow: { flexDirection: 'row', gap: 6 },
-  calendarRow: { flexDirection: 'row', gap: 6 },
-  stamps: { flexDirection: 'row', flexWrap: 'wrap', gap: space.lg, paddingVertical: space.sm },
-  optIn: { alignItems: 'center', gap: space.md },
-  sampleStamps: { flexDirection: 'row', gap: space.md, alignItems: 'center' },
-  ghost: { opacity: 0.3 },
-  muscles: { gap: space.md },
-  muscleRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  muscleLabel: { width: 96, textTransform: 'capitalize' },
-  muscleTrack: {
-    flex: 1,
-    height: 12,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface2,
-    overflow: 'hidden',
-  },
-  muscleFill: { height: '100%' },
-  muscleSets: { minWidth: 56, maxWidth: 110 },
-  markerOptions: { gap: space.sm },
-  markerOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 48,
-    borderRadius: radius.md,
-    paddingHorizontal: space.md,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  markerOptionCurrent: { borderColor: colors.ember },
-  markerGlyph: { width: 32, alignItems: 'center', marginRight: space.sm },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    loading: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: t.colors.bg,
+    },
+    content: { paddingTop: space.lg, paddingBottom: space.huge + space.xxl, gap: space.xxxl },
+    flex: { flex: 1 },
+    section: { gap: space.lg },
+    tiles: { gap: space.md },
+    tileRow: { flexDirection: 'row', gap: space.md },
+    tile: { flex: 1, minWidth: 0, paddingHorizontal: space.md },
+    note: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: t.tints.summit,
+      borderRadius: radius.md,
+      padding: space.md,
+    },
+    noteIcon: { marginRight: space.sm, marginTop: 1 },
+    noteText: { flex: 1 },
+    board: { gap: space.md },
+    trail: { gap: space.md },
+    trailTop: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
+    trailIdentity: { flex: 1, gap: 2 },
+    ringBlock: { alignItems: 'center', width: 84 },
+    ringCaption: { marginTop: space.xs },
+    levelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    adjust: { alignSelf: 'flex-start', marginLeft: -space.sm },
+    adjustPanel: { gap: space.sm },
+    confirmBox: {
+      backgroundColor: t.colors.surface2,
+      borderRadius: radius.md,
+      padding: space.md,
+      gap: space.md,
+    },
+    confirmButtons: { flexDirection: 'row', gap: space.sm },
+    calendar: { gap: 6 },
+    weekdayRow: { flexDirection: 'row', gap: 6 },
+    calendarRow: { flexDirection: 'row', gap: 6 },
+    stamps: { flexDirection: 'row', flexWrap: 'wrap', gap: space.lg, paddingVertical: space.sm },
+    optIn: { alignItems: 'center', gap: space.md },
+    sampleStamps: { flexDirection: 'row', gap: space.md, alignItems: 'center' },
+    ghost: { opacity: 0.3 },
+    muscles: { gap: space.md },
+    muscleRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+    muscleLabel: { width: 96, textTransform: 'capitalize' },
+    muscleTrack: {
+      flex: 1,
+      height: 12,
+      borderRadius: radius.pill,
+      backgroundColor: t.colors.surface2,
+      overflow: 'hidden',
+    },
+    muscleFill: { height: '100%' },
+    muscleSets: { minWidth: 56, maxWidth: 110 },
+    markerOptions: { gap: space.sm },
+    markerOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 48,
+      borderRadius: radius.md,
+      paddingHorizontal: space.md,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+    },
+    markerOptionCurrent: { borderColor: t.colors.ember },
+    markerGlyph: { width: 32, alignItems: 'center', marginRight: space.sm },
+  }),
+);
