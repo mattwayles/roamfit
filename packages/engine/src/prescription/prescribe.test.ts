@@ -1,4 +1,5 @@
 import { exerciseLibrary } from '@roamfit/data';
+import { isCorePattern } from './difficultyTable';
 import {
   prescribeAccessory,
   prescribeLaddered,
@@ -73,6 +74,24 @@ describe('§5.4 prescription', () => {
       recoveryTreatment: false,
     });
     expect(hard).toMatchObject({ sets: 4, repTarget: 12, restSec: 60, tempoSec: 4 });
+  });
+
+  it('a core exercise rests 45s at every difficulty; other patterns keep the table rest', () => {
+    const core = library.find((e) => isCorePattern(e.pattern) && e.equipment === 'bodyweight')!;
+    for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+      const entry = prescribeAccessory({
+        exercise: core,
+        requestedDifficulty: difficulty,
+        recoveryTreatment: false,
+      });
+      expect(entry.restSec).toBe(45);
+    }
+    const medium = prescribeAccessory({
+      exercise: bwPush,
+      requestedDifficulty: 'medium',
+      recoveryTreatment: false,
+    });
+    expect(medium.restSec).toBe(75);
   });
 
   // Track 14 — CARDIO_INTERVAL_TABLE, not DIFFICULTY_TABLE, prescribes a conditioning exercise.

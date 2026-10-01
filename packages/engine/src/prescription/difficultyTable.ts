@@ -25,6 +25,7 @@
  * `mainExerciseCountRange`, retuned alongside this). `easy` gets the shortest rest (lighter,
  * higher-rep, endurance-leaning work), `hard` the longest (heaviest per-set effort).
  */
+import type { Pattern } from '@roamfit/data';
 import type { Difficulty } from '../types';
 
 export interface DifficultyRow {
@@ -39,6 +40,22 @@ export const DIFFICULTY_TABLE: Record<Difficulty, DifficultyRow> = {
   medium: { sets: 3, reps: 12, restSec: 75, tempoSec: 3 },
   hard: { sets: 4, reps: 12, restSec: 60, tempoSec: 4 },
 };
+
+/** Trunk work recovers faster than the loaded patterns the table's rest column is tuned for, so a
+ *  non-laddered core exercise rests this long at every difficulty instead of the table's
+ *  `restSec`. (Laddered core work already starts at `DEFAULT_REST_SEC`, also 45.) */
+export const CORE_REST_SEC = 45;
+
+const CORE_PATTERNS: ReadonlySet<Pattern> = new Set([
+  'anti_rotation',
+  'flexion',
+  'anti_extension',
+  'lateral_flexion',
+]);
+
+export function isCorePattern(pattern: Pattern): boolean {
+  return CORE_PATTERNS.has(pattern);
+}
 
 /** §5.6 time budget's timed-exercise defaults, keyed off the exercise's own `default_seconds`
  *  rather than the reps table — the difficulty still governs sets/rest/tempo. */

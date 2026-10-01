@@ -16,7 +16,12 @@ import { BAND_ORDER } from '../types';
 import type { BandId, Difficulty, SessionEntry } from '../types';
 import { difficultyCapForExercise } from '../filters/hardFilters';
 import { projectMicroToExercise } from '../progression/tiers';
-import { CARDIO_INTERVAL_TABLE, DIFFICULTY_TABLE } from './difficultyTable';
+import {
+  CARDIO_INTERVAL_TABLE,
+  CORE_REST_SEC,
+  DIFFICULTY_TABLE,
+  isCorePattern,
+} from './difficultyTable';
 import { repExerciseSec, timedExerciseSec } from '../timefit/formulas';
 
 function dropOneBand(band: BandId | null): BandId | null {
@@ -153,7 +158,11 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
     : isTimed
       ? (exercise.default_seconds ?? 30)
       : undefined;
-  const restSec = isCardio ? cardioRow!.restSec : row!.restSec;
+  const restSec = isCardio
+    ? cardioRow!.restSec
+    : isCorePattern(exercise.pattern)
+      ? CORE_REST_SEC
+      : row!.restSec;
   const tempoSec = isCardio ? 0 : row!.tempoSec;
   const repTarget = isTimed ? undefined : row!.reps;
 
