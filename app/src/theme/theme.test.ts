@@ -1,13 +1,9 @@
 import {
   accentNames,
-  colors,
   fontAssets,
   fontFamily,
-  glow,
-  navTheme,
-  section,
-  tints,
-  trainedColor,
+  goldenHour,
+  goldenHourTheme,
   type,
   upperVariants,
   withAlpha,
@@ -20,7 +16,7 @@ describe('theme tokens', () => {
 
   it('every accent tint is its color at 15% alpha', () => {
     for (const name of accentNames) {
-      expect(tints[name]).toBe(withAlpha(colors[name], 0.15));
+      expect(goldenHourTheme.tints[name]).toBe(withAlpha(goldenHour[name], 0.15));
     }
   });
 
@@ -38,14 +34,14 @@ describe('theme tokens', () => {
   });
 
   it('semantic maps and helpers resolve', () => {
-    expect(section.main).toBe(colors.ember);
-    expect(trainedColor('legs')).toBe(colors.summit);
-    expect(trainedColor(undefined)).toBe(colors.ember);
-    expect(glow(colors.gold).shadowColor).toBe(colors.gold);
+    expect(goldenHourTheme.section.main).toBe(goldenHour.ember);
+    expect(goldenHourTheme.trainedColor('legs')).toBe(goldenHour.summit);
+    expect(goldenHourTheme.trainedColor(undefined)).toBe(goldenHour.ember);
+    expect(goldenHourTheme.glow(goldenHour.gold).shadowColor).toBe(goldenHour.gold);
   });
 
   it('nav theme is dark on bg', () => {
-    expect(navTheme.dark).toBe(true);
-    expect(navTheme.colors.background).toBe(colors.bg);
+    expect(goldenHourTheme.navTheme.dark).toBe(true);
+    expect(goldenHourTheme.navTheme.colors.background).toBe(goldenHour.bg);
   });
 });

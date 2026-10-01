@@ -14,7 +14,7 @@ import { generate, sessionsRepo } from '@roamfit/store';
 import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
-import { colors } from '../theme';
+import { goldenHour } from '../theme';
 import { exerciseComplete, lastSet, pick, rest, setComplete } from '../lib/hypeCopy';
 import { fastForwardTo, setUpTimedEntry } from './timedTestHelpers';
 
@@ -126,7 +126,7 @@ describe('Workout presentation (§5.7)', () => {
       () =>
         expect(
           StyleSheet.flatten(screen.getByTestId('rest-pips-0-dot').props.style).backgroundColor,
-        ).toBe(colors.ember),
+        ).toBe(goldenHour.ember),
       WAIT_OPTS,
     );
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { colors, daylight, daylightTheme } from '../theme';
+import { daylight, daylightTheme, goldenHour } from '../theme';
 import { Enter, Screen, Sheet, Toast, Txt } from './index';
 import { flat, inDaylight, ready, WAIT } from './test-utils';
 
@@ -88,7 +88,7 @@ describe('Screen', () => {
       </Screen>,
     );
     await ready('scr');
-    expect(flat('scr').backgroundColor).toBe(colors.bg);
+    expect(flat('scr').backgroundColor).toBe(goldenHour.bg);
     expect(screen.getByText('Body')).toBeTruthy();
     expect(screen.getByText('Footer')).toBeTruthy();
     expect(screen.getByTestId('scr-footer')).toBeTruthy();

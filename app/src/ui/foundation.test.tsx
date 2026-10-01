@@ -2,7 +2,7 @@ import React from 'react';
 import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
-import { colors, daylight, daylightTheme, type } from '../theme';
+import { daylight, daylightTheme, type, goldenHour } from '../theme';
 import {
   Button,
   Gradient,
@@ -27,7 +27,7 @@ describe('Txt', () => {
     expect(s.fontFamily).toBe(type.h1.fontFamily);
     expect(s.fontSize).toBe(30);
     expect(s.textTransform).toBe('uppercase');
-    expect(s.color).toBe(colors.ember);
+    expect(s.color).toBe(goldenHour.ember);
   });
 
   it('defaults to body/text, and `upper` overrides the variant', async () => {
@@ -40,7 +40,7 @@ describe('Txt', () => {
       </>,
     );
     await ready('a');
-    expect(StyleSheet.flatten(screen.getByTestId('a').props.style).color).toBe(colors.text);
+    expect(StyleSheet.flatten(screen.getByTestId('a').props.style).color).toBe(goldenHour.text);
     expect(StyleSheet.flatten(screen.getByTestId('b').props.style).textTransform).toBe('none');
   });
 

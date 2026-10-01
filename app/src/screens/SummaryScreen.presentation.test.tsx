@@ -16,7 +16,7 @@ import SummaryScreen from './SummaryScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { buildSessionCompletionStats } from '../lib/sessionStats';
-import { colors, daylight, vivid } from '../theme';
+import { daylight, vivid, goldenHour } from '../theme';
 import { inDaylight } from '../ui/test-utils';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
@@ -159,14 +159,14 @@ describe('§5.8 Debrief presentation', () => {
     expect(flat(`summary-set-${done.id}`)).toMatchObject({
       width: 30,
       height: 30,
-      backgroundColor: colors.ember,
+      backgroundColor: goldenHour.ember,
     });
     const count = within(screen.getByTestId(`summary-set-${done.id}`)).getByText('12');
-    expect(StyleSheet.flatten(count.props.style).color).toBe(colors.ink);
+    expect(StyleSheet.flatten(count.props.style).color).toBe(goldenHour.ink);
 
     expect(flat(`summary-set-${skipped.id}`)).toMatchObject({
       backgroundColor: 'transparent',
-      borderColor: colors.text3,
+      borderColor: goldenHour.text3,
     });
   });
 
@@ -180,12 +180,12 @@ describe('§5.8 Debrief presentation', () => {
     expect(flat(`summary-feedback-difficulty-${answered.id}`)).toMatchObject({
       width: 8,
       height: 8,
-      backgroundColor: colors.summit,
+      backgroundColor: goldenHour.summit,
     });
     expect(screen.queryByText('Too hard')).toBeNull();
     // A logged set with no answer offers a hollow dot instead.
     expect(flat(`summary-feedback-placeholder-${unanswered.id}`)).toMatchObject({
-      borderColor: colors.text3,
+      borderColor: goldenHour.text3,
     });
 
     await fireEvent.press(screen.getByTestId(`summary-feedback-difficulty-${answered.id}`));
@@ -213,7 +213,7 @@ describe('§5.8 Debrief presentation', () => {
 
 /** Every violet the old completion page (and the design system's `summit`) could have painted. */
 const VIOLETS = [
-  colors.summit,
+  goldenHour.summit,
   '#7B5CFF',
   '#C084FC',
   '#5b21b6',
@@ -231,14 +231,14 @@ describe('§5.9 Completion presentation', () => {
     await fireEvent.press(screen.getByTestId('finish-button'));
     await waitFor(() => expect(screen.getByTestId('session-complete')).toBeTruthy(), WAIT_OPTS);
 
-    expect(flat('session-complete').backgroundColor).toBe(colors.bg);
+    expect(flat('session-complete').backgroundColor).toBe(goldenHour.bg);
     expect(screen.getByText('Heck yes! 💪')).toBeTruthy();
     expect(screen.getByTestId('return-home')).toBeTruthy();
 
     // Stat chips: gold eyebrow labels.
     await waitFor(() => expect(screen.getByTestId('completion-stat-sets-value')).toBeTruthy());
     const label = within(screen.getByTestId('completion-stat-sets')).getByText('Sets');
-    expect(StyleSheet.flatten(label.props.style).color).toBe(colors.gold);
+    expect(StyleSheet.flatten(label.props.style).color).toBe(goldenHour.gold);
 
     // The cannons have fired by now (the slam beat) — the whole tree, confetti included, has no
     // violet in it anywhere.
@@ -247,7 +247,7 @@ describe('§5.9 Completion presentation', () => {
       { timeout: 8000, interval: 100 },
     );
     const tree = JSON.stringify(screen.toJSON()).toLowerCase();
-    expect(tree).toContain(colors.gold.toLowerCase());
+    expect(tree).toContain(goldenHour.gold.toLowerCase());
     for (const violet of VIOLETS) expect(tree).not.toContain(violet.toLowerCase());
   });
 });

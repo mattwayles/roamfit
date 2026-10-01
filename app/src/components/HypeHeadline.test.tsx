@@ -7,7 +7,7 @@ import React from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import { render, screen, waitFor } from '@testing-library/react-native';
 import HypeHeadline from './HypeHeadline';
-import { colors, daylight, vivid } from '../theme';
+import { daylight, vivid, goldenHour } from '../theme';
 import { inDaylight } from '../ui/test-utils';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
@@ -25,7 +25,7 @@ describe('HypeHeadline stamped shadow', () => {
     await renderHeadline('BEAST MODE ACTIVATED');
     for (let i = 0; i < 3; i += 1) {
       const shadow = style(`hype-word-${i}-shadow`);
-      expect(shadow.color).toBe(colors.emberDeep);
+      expect(shadow.color).toBe(goldenHour.emberDeep);
       expect(shadow.position).toBe('absolute');
       expect(shadow.left).toBe(3);
       expect(shadow.top).toBe(4);
@@ -40,9 +40,9 @@ describe('HypeHeadline stamped shadow', () => {
     expect(glow.textShadowColor).toContain('255,107,53');
     expect(glow.textShadowRadius).toBeGreaterThan(0);
     const word = style('hype-word-0');
-    expect(word.color).toBe(colors.text);
+    expect(word.color).toBe(goldenHour.text);
     expect(word.textShadowRadius).toBeUndefined();
-    expect(style('hype-word-2').color).toBe(colors.sun);
+    expect(style('hype-word-2').color).toBe(goldenHour.sun);
   });
 
   it('reads once: the shadow copies are hidden from accessibility', async () => {

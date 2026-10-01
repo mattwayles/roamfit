@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
-import { colors, daylight, daylightTheme, tints } from '../theme';
+import { daylight, daylightTheme, goldenHour, goldenHourTheme } from '../theme';
 import { Chip, IconButton, Pips, SectionHeader, SegmentedBar, Switch } from './index';
 import { flat, inDaylight, ready } from './test-utils';
 
@@ -14,11 +14,11 @@ describe('Chip', () => {
       </>,
     );
     await ready('t');
-    expect(flat('t').backgroundColor).toBe(tints.gold);
-    expect(flat('s').backgroundColor).toBe(colors.ember);
+    expect(flat('t').backgroundColor).toBe(goldenHourTheme.tints.gold);
+    expect(flat('s').backgroundColor).toBe(goldenHour.ember);
     expect(screen.getByText('Main')).toBeTruthy();
     const label = screen.getByText('Main').props.style;
-    expect(JSON.stringify(label)).toContain(colors.ink);
+    expect(JSON.stringify(label)).toContain(goldenHour.ink);
   });
 
   it('presses (with selection haptic) only when given onPress and reports selected state', async () => {
@@ -50,7 +50,7 @@ describe('IconButton', () => {
       width: 44,
       height: 44,
       borderRadius: 22,
-      backgroundColor: colors.surface2,
+      backgroundColor: goldenHour.surface2,
     });
     await fireEvent.press(screen.getByLabelText('Settings'));
     expect(onPress).toHaveBeenCalledTimes(1);
@@ -146,10 +146,10 @@ describe('SegmentedBar', () => {
 
   it('only the active segment glows', async () => {
     await render(
-      <SegmentedBar testID="sb" values={[0, 0]} activeIndex={0} color={colors.lagoon} />,
+      <SegmentedBar testID="sb" values={[0, 0]} activeIndex={0} color={goldenHour.lagoon} />,
     );
     await ready('sb');
-    expect(flat('sb-segment-0').shadowColor).toBe(colors.lagoon);
+    expect(flat('sb-segment-0').shadowColor).toBe(goldenHour.lagoon);
     expect(flat('sb-segment-1').shadowColor).toBeUndefined();
   });
 });
@@ -158,9 +158,9 @@ describe('Pips', () => {
   it('fills `filled` dots and rings the current one', async () => {
     await render(<Pips testID="p" count={4} filled={2} current={2} />);
     await ready('p');
-    expect(flat('p-0-dot').backgroundColor).toBe(colors.ember);
-    expect(flat('p-1-dot').backgroundColor).toBe(colors.ember);
-    expect(flat('p-2-dot').backgroundColor).toBe(colors.surface3);
+    expect(flat('p-0-dot').backgroundColor).toBe(goldenHour.ember);
+    expect(flat('p-1-dot').backgroundColor).toBe(goldenHour.ember);
+    expect(flat('p-2-dot').backgroundColor).toBe(goldenHour.surface3);
     expect(screen.getByTestId('p-2-ring')).toBeTruthy();
     expect(screen.queryByTestId('p-1-ring')).toBeNull();
     expect(screen.getByLabelText('2 of 4 sets done')).toBeTruthy();
@@ -169,9 +169,9 @@ describe('Pips', () => {
   it('takes a per-dot flag list for non-contiguous done sets (a skipped set stays empty)', async () => {
     await render(<Pips testID="p" count={3} filled={[false, true, true]} current={0} />);
     await ready('p');
-    expect(flat('p-0-dot').backgroundColor).toBe(colors.surface3);
-    expect(flat('p-1-dot').backgroundColor).toBe(colors.ember);
-    expect(flat('p-2-dot').backgroundColor).toBe(colors.ember);
+    expect(flat('p-0-dot').backgroundColor).toBe(goldenHour.surface3);
+    expect(flat('p-1-dot').backgroundColor).toBe(goldenHour.ember);
+    expect(flat('p-2-dot').backgroundColor).toBe(goldenHour.ember);
     expect(screen.getByLabelText('2 of 3 sets done')).toBeTruthy();
   });
 
@@ -179,7 +179,7 @@ describe('Pips', () => {
     const { rerender } = await render(<Pips testID="p" count={3} filled={1} current={1} />);
     await ready('p');
     await rerender(<Pips testID="p" count={3} filled={2} current={2} />);
-    expect(flat('p-1-dot').backgroundColor).toBe(colors.ember);
+    expect(flat('p-1-dot').backgroundColor).toBe(goldenHour.ember);
     expect(screen.getByTestId('p-2-ring')).toBeTruthy();
   });
 });

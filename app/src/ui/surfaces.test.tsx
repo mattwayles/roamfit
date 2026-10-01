@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { colors, daylight, daylightTheme, gradients } from '../theme';
+import { daylight, daylightTheme, goldenHour, goldenHourTheme } from '../theme';
 import {
   Card,
   ProgressRing,
@@ -23,8 +23,8 @@ describe('Card', () => {
     );
     await ready('c');
     const s = flat('c');
-    expect(s.backgroundColor).toBe(colors.surface);
-    expect(s.borderColor).toBe(colors.line);
+    expect(s.backgroundColor).toBe(goldenHour.surface);
+    expect(s.borderColor).toBe(goldenHour.line);
     expect(s.borderWidth).toBe(1);
   });
 
@@ -132,7 +132,7 @@ describe('Stamp', () => {
     const b = flat('s2');
     expect(a.transform).toEqual(b.transform);
     expect(a.borderColor).toBe(b.borderColor);
-    expect(a.borderColor).toBe(colors[stampSpec('Lisbon').tone]);
+    expect(a.borderColor).toBe(goldenHour[stampSpec('Lisbon').tone]);
     expect(screen.getAllByText('Lisbon')).toHaveLength(2);
     expect(screen.getAllByLabelText('Lisbon, PT')).toHaveLength(2);
   });
@@ -173,7 +173,7 @@ describe('ProgressRing', () => {
 
   it('renders children in the center and honors a custom gradient', async () => {
     await render(
-      <ProgressRing progress={0.5} gradient={gradients.golden} animate={false}>
+      <ProgressRing progress={0.5} gradient={goldenHourTheme.gradients.golden} animate={false}>
         <Txt>3</Txt>
       </ProgressRing>,
     );
@@ -189,7 +189,7 @@ describe('StatTile', () => {
     expect(screen.getByText('42')).toBeTruthy();
     expect(screen.getByText('Sessions')).toBeTruthy();
     expect(screen.getByLabelText('Sessions: 42')).toBeTruthy();
-    expect(StyleSheet.flatten(screen.getByText('42').props.style).color).toBe(colors.gold);
+    expect(StyleSheet.flatten(screen.getByText('42').props.style).color).toBe(goldenHour.gold);
   });
 });
 

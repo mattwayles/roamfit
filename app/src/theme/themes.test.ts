@@ -1,17 +1,13 @@
 import {
   accentNames,
   buildTheme,
-  colors,
   daylight,
   daylightGradients,
   daylightTheme,
-  glow,
   goldenHour,
   goldenHourGradients,
   goldenHourTheme,
-  gradients,
   themeFor,
-  tints,
   vivid,
   withAlpha,
   type Palette,
@@ -35,8 +31,8 @@ describe('palettes', () => {
     expect(Object.keys(daylight).sort()).toEqual(Object.keys(goldenHour).sort());
   });
 
-  it('Golden Hour values are unchanged (the static exports are this palette)', () => {
-    expect(colors).toBe(goldenHour);
+  it('Golden Hour values are unchanged ', () => {
+    expect(goldenHourTheme.colors).toEqual(goldenHour);
     expect(goldenHour).toMatchObject({
       bg: '#0B0E13',
       surface: '#141922',
@@ -57,14 +53,14 @@ describe('palettes', () => {
       summit: '#8E7BFF',
       rose: '#FF5C93',
     });
-    expect(gradients).toEqual({
+    expect(goldenHourTheme.gradients).toEqual({
       sunrise: ['#FF5E3A', '#FF9F1C'],
       golden: ['#FFB938', '#FFD166'],
       lagoon: ['#14B8A6', '#38BDF8'],
       summit: ['#7B5CFF', '#C084FC'],
       night: ['#1C2330', '#0B0E13'],
     });
-    expect(tints.ember).toBe('rgba(255,107,53,0.15)');
+    expect(goldenHourTheme.tints.ember).toBe('rgba(255,107,53,0.15)');
   });
 
   it('Daylight values match DESIGN.md §8', () => {
@@ -170,7 +166,12 @@ describe('buildTheme', () => {
   });
 
   it('glow is the original in Golden Hour and tamed in Daylight', () => {
-    expect(goldenHourTheme.glow()).toEqual(glow());
+    expect(goldenHourTheme.glow()).toEqual({
+      shadowColor: goldenHour.ember,
+      shadowOpacity: 0.45,
+      shadowRadius: 18,
+      shadowOffset: { width: 0, height: 6 },
+    });
     expect(goldenHourTheme.glow(goldenHour.gold)).toMatchObject({
       shadowColor: goldenHour.gold,
       shadowOpacity: 0.45,

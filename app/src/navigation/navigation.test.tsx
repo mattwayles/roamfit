@@ -15,7 +15,7 @@ import { ThemeProvider } from '../state/ThemeProvider';
 import { getDb } from '../db';
 import { nowUtcInstant } from '../lib/localClock';
 import { StyleSheet } from 'react-native';
-import { ThemeContext, daylight, daylightTheme, navTheme } from '../theme';
+import { ThemeContext, daylight, daylightTheme, goldenHourTheme } from '../theme';
 
 const WAIT = { timeout: 5000, interval: 50 };
 
@@ -27,7 +27,7 @@ async function boot() {
   await render(
     <StoreProvider>
       <ThemeProvider initialPreference="dark">
-        <NavigationContainer theme={navTheme}>
+        <NavigationContainer theme={goldenHourTheme.navTheme}>
           <RootNavigator />
         </NavigationContainer>
       </ThemeProvider>
