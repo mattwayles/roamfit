@@ -18,7 +18,7 @@ Presentation + one preference column. Engine/data behavior is frozen; the only s
 - [x] P1 step 5: `lib/dayMarkers.ts` `markerColor` -> `markerTone` (returns an `AccentName`, `DayCell` resolves it); `focusLabels.ts` already returned token names (comment only).
 
 ### In progress
-- Phase 3 close-out, step 1: root cause of navigation.test failure is SettingsScreen's `useThemePreference()` (Settings is opened in that test, which has no ThemeProvider), not Workout. Fix: export `useOptionalThemePreference` from state/ThemeProvider.tsx, use in Workout (drop local copy), wrap navigation.test boot in ThemeProvider. Then steps 2-7 per the Phase 3 list.
+- Phase 3 step 4: deleting the deprecated static exports from app/src/theme (colors.ts, navTheme.ts, index exports) and migrating every source + test straggler. Steps 1-3 committed (navigation.test fix, Settings chip icons, theme.heroCta).
 
 ### Next
 

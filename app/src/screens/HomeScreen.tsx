@@ -66,9 +66,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   const { db, library, families } = useStore();
   const theme = useTheme();
   const styles = useStyles();
-  // The hero pill is an `ink` fill: near-black on Golden Hour (sun reads on it), white on Daylight
-  // (sun is only 3.8:1 there; the deep ember legend is 5.6:1). Same pairing as the stamped headline.
-  const pillTone = theme.scheme === 'dark' ? 'sun' : 'ember';
+  const pillTone = theme.heroCta;
   const { data, reload } = useDashboardData();
   const [startingQuick, setStartingQuick] = useState(false);
   const [travelDismissed, setTravelDismissed] = useState(false);

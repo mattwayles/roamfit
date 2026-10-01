@@ -15,6 +15,7 @@ import {
   withAlpha,
   accentNames,
   type AccentName,
+  type ColorName,
   type GradientColors,
   type GradientName,
   type Palette,
@@ -43,6 +44,9 @@ export interface Theme {
   trainedColor(focusKey: string | null | undefined): string;
   /** Token name of the legend color for text on a hero gradient of this accent tone. */
   onGradient(tone: AccentName): 'ink' | 'fixedPaper';
+  /** Legend color for the Home hero pill (an `ink` fill): `sun` reads on Golden Hour's near-black;
+   *  Daylight's white pill takes deep ember (sun is only 3.8:1 there). */
+  heroCta: ColorName;
   /** Accent glow as iOS shadow props. Tamed in Daylight, where a big bloom reads as a smudge. */
   glow(color?: string): ViewStyle;
   /** `card` lifts Card/Sheet/StatTile/TabBar. Empty on dark (shadows vanish there). */
@@ -118,6 +122,7 @@ export function buildTheme(scheme: Scheme): Theme {
     // Golden Hour: summit's violet hero is the one place `ink` is only 3.9:1, so it takes paper.
     // Daylight's fills are all deep enough for white.
     onGradient: (tone) => (dark && tone === 'summit' ? 'fixedPaper' : 'ink'),
+    heroCta: dark ? 'sun' : 'ember',
     glow: (color = c.ember) => ({
       shadowColor: color,
       shadowOpacity: dark ? 0.45 : 0.28,

@@ -158,6 +158,11 @@ describe('buildTheme', () => {
     expect(goldenHourTheme.gradients).toEqual(goldenHourGradients);
   });
 
+  it('heroCta: sun on Golden Hour, deep ember on Daylight', () => {
+    expect(goldenHourTheme.heroCta).toBe('sun');
+    expect(daylightTheme.heroCta).toBe('ember');
+  });
+
   it('onGradient: Golden Hour summit takes paper, everything else ink; Daylight always ink', () => {
     expect(goldenHourTheme.onGradient('summit')).toBe('fixedPaper');
     expect(goldenHourTheme.onGradient('ember')).toBe('ink');

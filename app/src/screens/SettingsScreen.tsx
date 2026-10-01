@@ -146,10 +146,15 @@ function SwitchRow({
   );
 }
 
-const APPEARANCE_OPTIONS: { value: ThemePreference; label: string; testID: string }[] = [
+const APPEARANCE_OPTIONS: {
+  value: ThemePreference;
+  label: string;
+  testID: string;
+  icon?: IconName;
+}[] = [
   { value: 'system', label: 'System', testID: 'appearance-system' },
-  { value: 'light', label: 'Daylight', testID: 'appearance-light' },
-  { value: 'dark', label: 'Golden Hour', testID: 'appearance-dark' },
+  { value: 'light', label: 'Daylight', testID: 'appearance-light', icon: 'sun' },
+  { value: 'dark', label: 'Golden Hour', testID: 'appearance-dark', icon: 'moon' },
 ];
 
 const APPEARANCE_CAPTION =
@@ -169,6 +174,7 @@ function AppearanceControl(): React.JSX.Element {
             key={option.value}
             testID={option.testID}
             label={option.label}
+            icon={option.icon}
             tone="ember"
             selected={selected}
             style={styles.appearanceOption}
