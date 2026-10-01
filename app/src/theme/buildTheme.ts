@@ -29,7 +29,8 @@ export interface Theme {
   colors: Palette;
   /** Golden Hour accent hexes in both themes — decoration only, never under text. */
   vivid: Record<AccentName, string>;
-  /** 15%-alpha tint of every accent — chip / badge backgrounds. */
+  /** Tint of every accent — chip / badge backgrounds. 15% alpha on Golden Hour; 8% on Daylight,
+   *  where a stronger wash drags accent-text-on-tint under 4.5:1 (see theme tests). */
   tints: Record<AccentName, string>;
   gradients: Record<GradientName, GradientColors>;
   /** Gradient for an accent color (ember, gold, lagoon, summit have one). */
@@ -79,10 +80,9 @@ export function buildTheme(scheme: Scheme): Theme {
   const c: Palette = dark ? goldenHour : daylight;
   const gradients = dark ? goldenHourGradients : daylightGradients;
 
-  const tints = Object.fromEntries(accentNames.map((n) => [n, withAlpha(c[n], 0.15)])) as Record<
-    AccentName,
-    string
-  >;
+  const tints = Object.fromEntries(
+    accentNames.map((n) => [n, withAlpha(c[n], dark ? 0.15 : 0.08)]),
+  ) as Record<AccentName, string>;
 
   const focus = { upper: c.ember, legs: c.summit, abs: c.gold, full: c.lagoon, cardio: c.rose };
 

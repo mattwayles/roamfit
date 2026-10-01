@@ -77,7 +77,7 @@ export const daylight: Palette = {
   backdrop: 'rgba(26,19,12,0.40)',
 
   // Accents — deepened so each is >= 4.5:1 as text on bg AND carries a white legend as a fill
-  ember: '#BF3708',
+  ember: '#B83507',
   emberDeep: '#9E2E06',
   /** Brass — reads as gold on paper, unlike a yellow. */
   gold: '#8F5A00',

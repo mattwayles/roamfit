@@ -69,7 +69,7 @@ describe('palettes', () => {
       surface: '#FFFDF8',
       text: '#1A130C',
       ink: '#FFFFFF',
-      ember: '#BF3708',
+      ember: '#B83507',
       gold: '#8F5A00',
       backdrop: 'rgba(26,19,12,0.40)',
     });
@@ -138,9 +138,27 @@ describe('buildTheme', () => {
     expect(buildTheme('dark').colors).toEqual(goldenHourTheme.colors);
   });
 
-  it('tints are each accent at 15% alpha, per theme', () => {
-    for (const t of [goldenHourTheme, daylightTheme]) {
-      for (const n of accentNames) expect(t.tints[n]).toBe(withAlpha(t.colors[n], 0.15));
+  it('tints are each accent at 15% alpha on Golden Hour, 8% on Daylight', () => {
+    for (const n of accentNames) {
+      expect(goldenHourTheme.tints[n]).toBe(withAlpha(goldenHour[n], 0.15));
+      expect(daylightTheme.tints[n]).toBe(withAlpha(daylight[n], 0.08));
+    }
+  });
+
+  it('Daylight accent text on its own tint holds contrast over surface and bg', () => {
+    const composite = (hex: string, alpha: number, base: string): string => {
+      const ch = (s: string) => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16));
+      const [a, b] = [ch(hex), ch(base)];
+      const mixed = a.map((v, i) => Math.round(alpha * v + (1 - alpha) * b[i]!));
+      return '#' + mixed.map((v) => v.toString(16).padStart(2, '0')).join('');
+    };
+    for (const n of accentNames) {
+      for (const base of [daylight.surface, daylight.bg]) {
+        const floor = n === 'sun' ? 3 : 4.5;
+        expect(contrast(daylight[n], composite(daylight[n], 0.08, base))).toBeGreaterThanOrEqual(
+          floor,
+        );
+      }
     }
   });
 
