@@ -1,5 +1,5 @@
 ## Track: 22 — "Daylight" light mode
-Last updated: 2026-09-30 — Phase 1 done (steps 1-5). Phase 2 (four parallel screen agents) is next.
+Last updated: 2026-09-30 — Phase 1 done; Phase 2A-2D running in parallel.
 
 User request: Golden Hour is hard to see when exercising outdoors. Keep it as the dark mode and add
 a light mode built for sunlight. Design authority was handed over in full ("full control, no
@@ -18,7 +18,7 @@ Presentation + one preference column. Engine/data behavior is frozen; the only s
 - [x] P1 step 5: `lib/dayMarkers.ts` `markerColor` -> `markerTone` (returns an `AccentName`, `DayCell` resolves it); `focusLabels.ts` already returned token names (comment only).
 
 ### In progress
-- (nothing — next agents start Phase 2)
+- Phase 2A (Workout + theme toggle), 2B (Summary/Completion), 2C (Today/Journey/Generate/Plan), 2D (Field Guide/Detail/Settings + Appearance) launched in parallel in the same tree, each committing only its own paths. If interrupted: `git log` shows which landed; re-run the missing ones per the Phase 2 list below.
 
 ### Next
 
