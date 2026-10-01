@@ -46,14 +46,14 @@ import {
 import type { ChartPoint } from '../lib/exerciseProgress';
 import { FOCUS_TONE } from '../lib/focusLabels';
 import {
-  accentGradient,
-  colors,
   gutter,
+  makeStyles,
   radius,
   space,
+  useTheme,
   type AccentName,
-  type ColorName,
   type GradientColors,
+  type Theme,
 } from '../theme';
 import {
   Card,
@@ -80,15 +80,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseDetail'>;
 const CHART_WINDOW = 12;
 
 /** Hero gradient per focus tone. Cardio's rose has no themed gradient (it is an identity color,
- *  not a CTA one), so it borrows the rose -> ember pair from tokens. */
-function heroGradient(tone: AccentName): GradientColors {
-  return accentGradient[tone] ?? [colors.rose, colors.emberDeep];
-}
-
-/** Text color on the hero: `ink` on the bright gradients; the violet `summit` gradient is dark
- *  enough that `ink` would fall under AA, so it takes paper white. */
-function heroInk(tone: AccentName): ColorName {
-  return tone === 'summit' ? 'text' : 'ink';
+ *  not a CTA one), so it borrows the rose -> emberDeep pair from the theme's palette. */
+function heroGradient(theme: Theme, tone: AccentName): GradientColors {
+  return theme.accentGradient[tone] ?? [theme.colors.rose, theme.colors.emberDeep];
 }
 
 interface DetailData {
@@ -103,6 +97,8 @@ interface DetailData {
 
 export default function ExerciseDetailScreen({ route, navigation }: Props): React.JSX.Element {
   const { db, library, families } = useStore();
+  const theme = useTheme();
+  const styles = useStyles();
   const insets = useInsets();
   const { exerciseId } = route.params;
   const exercise = useMemo(
@@ -196,7 +192,7 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
   const progress = buildExerciseProgress(data?.history ?? [], exercise.metric);
   const chart = progress.chart.slice(-CHART_WINDOW);
   const tone = FOCUS_TONE[exercise.focus[0] ?? 'full'];
-  const ink = heroInk(tone);
+  const ink = theme.onGradient(tone);
   const timesCompleted = data?.catalog.timesCompleted ?? 0;
   const lastPerformedAt = data?.catalog.lastPerformedAt ?? null;
   const enabled = !(data?.disabled ?? false);
@@ -204,7 +200,7 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
   return (
     <Screen scroll padded={false} adjustForKeyboard testID="exercise-detail-screen">
       <View style={[styles.hero, { paddingTop: insets.top + space.md }]}>
-        <Gradient colors={heroGradient(tone)} angle={150} />
+        <Gradient colors={heroGradient(theme, tone)} angle={150} />
         <TopoPattern seed={exercise.id} strength={1.6} />
         <View style={styles.heroBar}>
           <IconButton
@@ -441,6 +437,7 @@ function Chart({
   points: ChartPoint[];
   unit: 'reps' | 'seconds';
 }): React.JSX.Element {
+  const styles = useStyles();
   const max = Math.max(...points.map((p) => p.value), 1);
   return (
     <View style={styles.chartBody}>
@@ -473,6 +470,7 @@ function CardHeader({
   tone: AccentName;
   title: string;
 }): React.JSX.Element {
+  const styles = useStyles();
   return (
     <View style={styles.cardHeader}>
       <Icon name={icon} size={16} color={tone} style={styles.cardHeaderIcon} />
@@ -494,6 +492,7 @@ function Spec({
   value: string;
   wide?: boolean;
 }): React.JSX.Element {
+  const styles = useStyles();
   return (
     <View style={[styles.spec, wide && styles.specWide]} testID={`detail-field-${label}`}>
       <Txt variant="eyebrow" color="text3">
@@ -504,58 +503,61 @@ function Spec({
   );
 }
 
-const styles = StyleSheet.create({
-  missing: { paddingTop: space.huge, justifyContent: 'center' },
-  hero: {
-    overflow: 'hidden',
-    paddingHorizontal: gutter,
-    paddingBottom: space.xxl,
-    borderBottomLeftRadius: radius.xl,
-    borderBottomRightRadius: radius.xl,
-  },
-  heroBar: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: space.xl },
-  heroText: { gap: space.xs },
-  aliases: { opacity: 0.8 },
-  body: { paddingHorizontal: gutter, paddingTop: space.xl, gap: space.lg },
-  statRow: { flexDirection: 'row', gap: space.md },
-  stat: { flex: 1, minWidth: 0 },
-  card: { gap: space.md },
-  cardHeader: { flexDirection: 'row', alignItems: 'center' },
-  cardHeaderIcon: { marginRight: space.sm - 2 },
-  chart: { gap: space.sm },
-  chartBody: { gap: space.sm },
-  chartRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  chartDate: { width: 52 },
-  chartTrack: {
-    flex: 1,
-    height: 12,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface2,
-    overflow: 'hidden',
-  },
-  chartFill: { height: 12 },
-  chartValue: { width: 64 },
-  gains: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  spec: {
-    flexGrow: 1,
-    flexBasis: '47%',
-    minWidth: 0,
-    gap: 2,
-    padding: space.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface2,
-  },
-  specWide: { flexBasis: '100%' },
-  toggleCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    padding: space.lg,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  toggleLabels: { flex: 1, gap: 2 },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    missing: { paddingTop: space.huge, justifyContent: 'center' },
+    hero: {
+      overflow: 'hidden',
+      paddingHorizontal: gutter,
+      paddingBottom: space.xxl,
+      borderBottomLeftRadius: radius.xl,
+      borderBottomRightRadius: radius.xl,
+    },
+    heroBar: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: space.xl },
+    heroText: { gap: space.xs },
+    aliases: { opacity: 0.8 },
+    body: { paddingHorizontal: gutter, paddingTop: space.xl, gap: space.lg },
+    statRow: { flexDirection: 'row', gap: space.md },
+    stat: { flex: 1, minWidth: 0 },
+    card: { gap: space.md },
+    cardHeader: { flexDirection: 'row', alignItems: 'center' },
+    cardHeaderIcon: { marginRight: space.sm - 2 },
+    chart: { gap: space.sm },
+    chartBody: { gap: space.sm },
+    chartRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+    chartDate: { width: 52 },
+    chartTrack: {
+      flex: 1,
+      height: 12,
+      borderRadius: radius.pill,
+      backgroundColor: t.colors.surface2,
+      overflow: 'hidden',
+    },
+    chartFill: { height: 12 },
+    chartValue: { width: 64 },
+    gains: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+    spec: {
+      flexGrow: 1,
+      flexBasis: '47%',
+      minWidth: 0,
+      gap: 2,
+      padding: space.md,
+      borderRadius: radius.md,
+      backgroundColor: t.colors.surface2,
+    },
+    specWide: { flexBasis: '100%' },
+    toggleCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.md,
+      padding: space.lg,
+      borderRadius: radius.lg,
+      backgroundColor: t.colors.surface,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      ...t.elevation.card,
+    },
+    toggleLabels: { flex: 1, gap: 2 },
+  }),
+);

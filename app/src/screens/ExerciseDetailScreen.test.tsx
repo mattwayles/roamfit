@@ -31,7 +31,8 @@ import { getDb } from '../db';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { getNetworkStatus } from '../lib/networkStatus';
 import { topoLoops } from '../ui';
-import { tints } from '../theme';
+import { daylightTheme, goldenHourTheme } from '../theme';
+import { flat, inDaylight } from '../ui/test-utils';
 
 jest.mock('../lib/networkStatus', () => ({ getNetworkStatus: jest.fn() }));
 const mockGetNetworkStatus = getNetworkStatus as jest.MockedFunction<typeof getNetworkStatus>;
@@ -117,14 +118,15 @@ beforeEach(() => {
   mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
 });
 
-async function openDetail(name: string) {
-  await render(
+async function openDetail(name: string, daylight = false) {
+  const app = (
     <StoreProvider>
       <NavigationContainer>
         <RootNavigator />
       </NavigationContainer>
-    </StoreProvider>,
+    </StoreProvider>
   );
+  await render(daylight ? inDaylight(app) : app);
   await waitFor(() => expect(screen.getByTestId('tab-Exercises')).toBeTruthy());
   await fireEvent.press(screen.getByTestId('tab-Exercises'));
   await waitFor(() => expect(screen.getByTestId('exercise-search')).toBeTruthy());
@@ -136,6 +138,16 @@ async function openDetail(name: string) {
   await waitFor(() => expect(screen.getByTestId('detail-name')).toBeTruthy());
   return exercise;
 }
+
+describe('the exercise detail page in Daylight', () => {
+  it('paints the hero legend and the spec tiles from the Daylight palette', async () => {
+    await openDetail(PUSH_UP.name, true);
+    // Daylight's hero gradients are deep, so the legend on them is `ink` = white.
+    expect(flat('detail-name').color).toBe(daylightTheme.colors.ink);
+    expect(flat('detail-field-Focus').backgroundColor).toBe(daylightTheme.colors.surface2);
+    expect(flat('toggle-exercise-disabled').backgroundColor).toBe(daylightTheme.colors.surface);
+  });
+});
 
 describe('the exercise detail page', () => {
   it('shows the how-to cue and every field on the record', async () => {
@@ -318,7 +330,7 @@ describe('the exercise detail page', () => {
     // An improved dimension is an ember chip with first -> best; the rest are neutral.
     const best = screen.getByTestId('detail-gain-Best set');
     expect(best).toHaveTextContent(/→/);
-    expect(StyleSheet.flatten(best.props.style).backgroundColor).toBe(tints.ember);
+    expect(StyleSheet.flatten(best.props.style).backgroundColor).toBe(goldenHourTheme.tints.ember);
   });
 
   it('greets an exercise with no history with an encouraging empty state, and "Not yet"', async () => {
