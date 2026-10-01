@@ -3234,41 +3234,6 @@
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Bird+Dog+proper+form+tutorial"
     },
     {
-      "id": "side-bend",
-      "name": "Banded Side Bend",
-      "aliases": [
-        "Side Bend"
-      ],
-      "focus": [
-        "abs"
-      ],
-      "pattern": "lateral_flexion",
-      "primary": [
-        "obliques"
-      ],
-      "secondary": [],
-      "equipment": "band",
-      "band": "B2",
-      "anchor": "stance",
-      "anchor_alt": null,
-      "anchor_class": "band_tension",
-      "unilateral": true,
-      "metric": "reps",
-      "default_seconds": null,
-      "tier": "fill",
-      "roles": [
-        "main"
-      ],
-      "difficulty": "easy",
-      "progression_family": null,
-      "progression_level_id": null,
-      "contraindications": [
-        "lower_back_flexion"
-      ],
-      "setup": "Stand on band with one foot, band in the same-side hand. Bend away from it, then return to upright.",
-      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Side+Bend+proper+form+tutorial"
-    },
-    {
       "id": "banded-v-up",
       "name": "Banded V-Up",
       "aliases": [
@@ -4538,7 +4503,9 @@
       "name": "Banded Standing Side Crunch",
       "aliases": [
         "standing side crunch",
-        "standing band side crunch"
+        "standing band side crunch",
+        "Side Bend",
+        "banded side bend"
       ],
       "focus": [
         "abs"
