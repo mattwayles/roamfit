@@ -11,7 +11,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import type { HighlightCelebration } from '../lib/celebration';
-import { colors, glow, gradients, radius, space, withAlpha } from '../theme';
+import { makeStyles, radius, space, useTheme, withAlpha } from '../theme';
 import { Card, Gradient, IconButton, Stamp, Txt } from '../ui';
 
 interface Props {
@@ -32,6 +32,8 @@ export default function HighlightCard({
   onShare,
   testID,
 }: Props): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
   const stamp = useRef(new Animated.Value(0)).current;
   const badge = useRef(new Animated.Value(0)).current;
   const glowPulse = useRef(new Animated.Value(0)).current;
@@ -132,7 +134,7 @@ export default function HighlightCard({
           ],
         }}
       >
-        <Card variant="accent" gradient={gradients.golden} padding="md" style={styles.card}>
+        <Card variant="accent" gradient={theme.gradients.golden} padding="md" style={styles.card}>
           <View pointerEvents="none" style={styles.shineClip}>
             <Animated.View
               style={[
@@ -235,46 +237,49 @@ export default function HighlightCard({
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { width: '100%' },
-  halo: {
-    position: 'absolute',
-    top: -6,
-    left: -6,
-    right: -6,
-    bottom: -6,
-    borderRadius: radius.lg + 6,
-    backgroundColor: colors.gold,
-    ...glow(colors.gold),
-  },
-  card: { overflow: 'hidden' },
-  shineClip: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-  },
-  shine: {
-    position: 'absolute',
-    top: -60,
-    bottom: -60,
-    width: 60,
-    backgroundColor: withAlpha(colors.sun, 0.18),
-  },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  body: { flex: 1, gap: 2 },
-  headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  family: { flex: 1, marginRight: space.sm },
-  from: { textDecorationLine: 'line-through' },
-  barTrack: {
-    marginTop: space.sm,
-    height: 10,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface2,
-    overflow: 'hidden',
-  },
-  barFill: { height: '100%', borderRadius: radius.pill, overflow: 'hidden' },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    wrap: { width: '100%' },
+    halo: {
+      position: 'absolute',
+      top: -6,
+      left: -6,
+      right: -6,
+      bottom: -6,
+      borderRadius: radius.lg + 6,
+      // Decoration, no text on it: the vivid gold in both modes (DESIGN.md §8.1).
+      backgroundColor: t.vivid.gold,
+      ...t.glow(t.vivid.gold),
+    },
+    card: { overflow: 'hidden' },
+    shineClip: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: radius.lg,
+      overflow: 'hidden',
+    },
+    shine: {
+      position: 'absolute',
+      top: -60,
+      bottom: -60,
+      width: 60,
+      backgroundColor: withAlpha(t.vivid.sun, 0.18),
+    },
+    row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+    body: { flex: 1, gap: 2 },
+    headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    family: { flex: 1, marginRight: space.sm },
+    from: { textDecorationLine: 'line-through' },
+    barTrack: {
+      marginTop: space.sm,
+      height: 10,
+      borderRadius: radius.pill,
+      backgroundColor: t.colors.surface2,
+      overflow: 'hidden',
+    },
+    barFill: { height: '100%', borderRadius: radius.pill, overflow: 'hidden' },
+  }),
+);

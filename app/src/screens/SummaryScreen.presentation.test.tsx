@@ -16,7 +16,8 @@ import SummaryScreen from './SummaryScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { buildSessionCompletionStats } from '../lib/sessionStats';
-import { colors } from '../theme';
+import { colors, daylight, vivid } from '../theme';
+import { inDaylight } from '../ui/test-utils';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
@@ -89,7 +90,7 @@ async function seedSession(db: Db, opts: { logged: boolean }) {
   return { sessionId, featuredId: featured.id };
 }
 
-async function mount(opts: { logged: boolean }) {
+async function mount(opts: { logged: boolean; daylight?: boolean }) {
   let db!: Db;
   render(
     <StoreProvider>
@@ -99,7 +100,7 @@ async function mount(opts: { logged: boolean }) {
   await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
   const seeded = await seedSession(db, opts);
   const navigation = mockNavigation();
-  render(
+  const tree = (
     <StoreProvider>
       <NavigationContainer>
         <SummaryScreen
@@ -107,8 +108,9 @@ async function mount(opts: { logged: boolean }) {
           route={{ key: 'k', name: 'Summary', params: { sessionId: seeded.sessionId } } as never}
         />
       </NavigationContainer>
-    </StoreProvider>,
+    </StoreProvider>
   );
+  render(opts.daylight ? inDaylight(tree) : tree);
   await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
   return { db, navigation, ...seeded };
 }
@@ -247,5 +249,38 @@ describe('§5.9 Completion presentation', () => {
     const tree = JSON.stringify(screen.toJSON()).toLowerCase();
     expect(tree).toContain(colors.gold.toLowerCase());
     for (const violet of VIOLETS) expect(tree).not.toContain(violet.toLowerCase());
+  });
+});
+
+describe('Daylight', () => {
+  it('debrief: paper ground in the notes input, ember squares with white counts, light keyboard', async () => {
+    const { db, sessionId, featuredId } = await mount({ logged: true, daylight: true });
+    const entry = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === featuredId)!;
+    const done = entry.setLogs.find((l) => l.setIndex === 0)!;
+    expect(flat(`summary-set-${done.id}`).backgroundColor).toBe(daylight.ember);
+    const count = within(screen.getByTestId(`summary-set-${done.id}`)).getByText('12');
+    expect(StyleSheet.flatten(count.props.style).color).toBe(daylight.ink);
+    const input = screen.getByTestId('retrospective-input');
+    expect(input.props.keyboardAppearance).toBe('light');
+    expect(flat('retrospective-input')).toMatchObject({
+      color: daylight.text,
+      backgroundColor: daylight.surface2,
+    });
+  });
+
+  it('completion: paper background, brass labels, deep-ember stamped headline over vivid gold', async () => {
+    await mount({ logged: true, daylight: true });
+    await fireEvent.press(screen.getByTestId('finish-button'));
+    await waitFor(() => expect(screen.getByTestId('session-complete')).toBeTruthy(), WAIT_OPTS);
+    expect(flat('session-complete').backgroundColor).toBe(daylight.bg);
+
+    await waitFor(() => expect(screen.getByTestId('completion-stat-sets-value')).toBeTruthy());
+    const label = within(screen.getByTestId('completion-stat-sets')).getByText('Sets');
+    expect(StyleSheet.flatten(label.props.style).color).toBe(daylight.gold);
+
+    const lastShadow = screen.getAllByTestId(/^hype-word-\d+-shadow$/, { hidden: true }).at(-1)!;
+    expect(StyleSheet.flatten(lastShadow.props.style).color).toBe(vivid.gold);
+    const words = screen.getAllByTestId(/^hype-word-\d+$/);
+    expect(StyleSheet.flatten(words.at(-1)!.props.style).color).toBe(daylight.ember);
   });
 });

@@ -14,19 +14,16 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, useWindowDimensions } from 'react-native';
-import { colors } from '../theme';
+import { useTheme, type Theme } from '../theme';
 
-/** Ember, emberDeep, gold, sun, lagoon, sky, rose and paper white — no violet (DESIGN.md §5.9). */
-const COLORS: string[] = [
-  colors.ember,
-  colors.emberDeep,
-  colors.gold,
-  colors.sun,
-  colors.lagoon,
-  colors.sky,
-  colors.rose,
-  colors.text,
-];
+/**
+ * Ember, emberDeep, gold, sun, lagoon, sky, rose (the `vivid` hexes in both modes: deep confetti on
+ * paper looks like dirt) and one flake of the theme `text` — no violet (DESIGN.md §5.9, §8.1).
+ */
+function confettiPalette(theme: Theme): string[] {
+  const v = theme.vivid;
+  return [v.ember, v.emberDeep, v.gold, v.sun, v.lagoon, v.sky, v.rose, theme.colors.text];
+}
 const SAMPLES = 12;
 
 export type ConfettiVariant = 'cannons' | 'pop' | 'rain';
@@ -54,10 +51,12 @@ function rand(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
-function basePiece(): Pick<Piece, 'color' | 'shape' | 'size' | 'spin' | 'flutters'> {
+function basePiece(
+  palette: string[],
+): Pick<Piece, 'color' | 'shape' | 'size' | 'spin' | 'flutters'> {
   const r = Math.random();
   return {
-    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    color: palette[Math.floor(Math.random() * palette.length)],
     shape: r < 0.5 ? 'rect' : r < 0.78 ? 'circle' : 'streamer',
     size: rand(6, 13),
     spin: rand(360, 1080) * (Math.random() < 0.5 ? -1 : 1),
@@ -71,6 +70,7 @@ function makePieces(
   height: number,
   count: number,
   origin: { x: number; y: number } | undefined,
+  palette: string[],
 ): Piece[] {
   return Array.from({ length: count }, (_, i) => {
     if (variant === 'cannons') {
@@ -78,7 +78,7 @@ function makePieces(
       const angle = (rand(58, 82) * Math.PI) / 180; // up and inward
       const speed = rand(height * 0.9, height * 1.55);
       return {
-        ...basePiece(),
+        ...basePiece(palette),
         x0: fromLeft ? rand(-10, 20) : width - rand(-10, 20),
         y0: height + 10,
         vx: Math.cos(angle) * speed * (fromLeft ? 1 : -1),
@@ -92,7 +92,7 @@ function makePieces(
       const angle = rand(0, Math.PI * 2);
       const speed = rand(180, 520);
       return {
-        ...basePiece(),
+        ...basePiece(palette),
         size: rand(5, 10),
         x0: origin?.x ?? width / 2,
         y0: origin?.y ?? height / 3,
@@ -104,7 +104,7 @@ function makePieces(
       };
     }
     return {
-      ...basePiece(),
+      ...basePiece(palette),
       x0: rand(0, width),
       y0: -30,
       vx: rand(-40, 40),
@@ -205,10 +205,13 @@ export default function ConfettiBurst({
   testID,
 }: Props): React.JSX.Element {
   const { width, height } = useWindowDimensions();
+  const theme = useTheme();
   const pieceCount = count ?? (variant === 'cannons' ? 90 : variant === 'pop' ? 36 : 40);
   // Generated once per mount — a re-render (rotation, a parent state change) must never re-roll
   // pieces that are mid-flight.
-  const [pieces] = useState(() => makePieces(variant, width, height, pieceCount, origin));
+  const [pieces] = useState(() =>
+    makePieces(variant, width, height, pieceCount, origin, confettiPalette(theme)),
+  );
 
   return (
     <Animated.View pointerEvents="none" style={StyleSheet.absoluteFill} testID={testID}>

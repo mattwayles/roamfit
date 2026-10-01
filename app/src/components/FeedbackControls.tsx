@@ -9,7 +9,7 @@
  */
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, radius, space, type AccentName } from '../theme';
+import { makeStyles, radius, space, useTheme, type AccentName } from '../theme';
 import { PressableScale, Txt } from '../ui';
 
 export type Difficulty = 'too_easy' | 'just_right' | 'too_hard';
@@ -27,6 +27,8 @@ export default function FeedbackControls({
   difficulty: Difficulty | null;
   onDifficultyChange: (d: Difficulty | undefined) => void;
 }): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.container}>
       <View style={styles.segment} testID="difficulty-segment">
@@ -39,7 +41,7 @@ export default function FeedbackControls({
               accessibilityRole="button"
               accessibilityLabel={opt.label}
               accessibilityState={{ selected }}
-              style={[styles.item, selected && { backgroundColor: colors[opt.tone] }]}
+              style={[styles.item, selected && { backgroundColor: theme.colors[opt.tone] }]}
               onPress={() => onDifficultyChange(selected ? undefined : opt.value)}
             >
               <Txt variant="bodyStrong" color={selected ? 'ink' : 'text2'} numberOfLines={1}>
@@ -53,27 +55,29 @@ export default function FeedbackControls({
   );
 }
 
-const styles = StyleSheet.create({
-  // `width: '100%'` is load-bearing: every caller renders this inside an `alignItems: 'center'`
-  // hero (a shrink-wrap context), so without an explicit width `segment`'s `flex: 1` children
-  // have nothing to divide and collapse toward zero — invisible to RNTL (it never runs real
-  // Yoga layout), only caught by actually running the app.
-  container: { width: '100%' },
-  segment: {
-    flexDirection: 'row',
-    gap: space.xs,
-    backgroundColor: colors.surface2,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: space.xs,
-  },
-  item: {
-    flex: 1,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    paddingHorizontal: space.xs,
-  },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    // `width: '100%'` is load-bearing: every caller renders this inside an `alignItems: 'center'`
+    // hero (a shrink-wrap context), so without an explicit width `segment`'s `flex: 1` children
+    // have nothing to divide and collapse toward zero — invisible to RNTL (it never runs real
+    // Yoga layout), only caught by actually running the app.
+    container: { width: '100%' },
+    segment: {
+      flexDirection: 'row',
+      gap: space.xs,
+      backgroundColor: t.colors.surface2,
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      padding: space.xs,
+    },
+    item: {
+      flex: 1,
+      minHeight: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: radius.pill,
+      paddingHorizontal: space.xs,
+    },
+  }),
+);

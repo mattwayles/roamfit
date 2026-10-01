@@ -7,7 +7,8 @@ import React from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import { render, screen, waitFor } from '@testing-library/react-native';
 import HypeHeadline from './HypeHeadline';
-import { colors } from '../theme';
+import { colors, daylight, vivid } from '../theme';
+import { inDaylight } from '../ui/test-utils';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
@@ -49,5 +50,21 @@ describe('HypeHeadline stamped shadow', () => {
     expect(screen.getAllByText('NAILED')).toHaveLength(1);
     expect(screen.getAllByText('IT')).toHaveLength(1);
     expect(screen.getByTestId('hype-word-0-shadow', { hidden: true })).toBeTruthy();
+  });
+});
+
+describe('HypeHeadline in Daylight', () => {
+  it('prints a deep-ember word over a hard vivid-gold copy, with no glow', async () => {
+    render(inDaylight(<HypeHeadline text="NAILED IT" bounce={new Animated.Value(0)} />));
+    await waitFor(
+      () => expect(screen.getByRole('header', { name: 'NAILED IT' })).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    const shadow = style('hype-word-1-shadow');
+    expect(shadow.color).toBe(vivid.gold);
+    expect(shadow.textShadowRadius).toBe(0);
+    expect(shadow.left).toBe(3);
+    expect(style('hype-word-1').color).toBe(daylight.ember);
+    expect(style('hype-word-0').color).toBe(daylight.text);
   });
 });

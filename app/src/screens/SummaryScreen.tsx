@@ -73,17 +73,7 @@ import FeedbackControls, { type Difficulty } from '../components/FeedbackControl
 import AnimatedStatCounter from '../components/AnimatedStatCounter';
 import BandChip from '../components/BandChip';
 import KeyboardDoneBar from '../components/KeyboardDoneBar';
-import {
-  colors,
-  glow,
-  gutter,
-  radius,
-  section,
-  setState,
-  space,
-  type,
-  type AccentName,
-} from '../theme';
+import { gutter, makeStyles, radius, space, type, useTheme, type AccentName } from '../theme';
 import {
   Button,
   Card,
@@ -131,28 +121,13 @@ const DIFFICULTY_CHIP_TONE: Record<Difficulty, AccentName> = {
   too_hard: 'summit',
 };
 
-/** One tone per answer, the same three the rest screen's `FeedbackControls` fill with (Too easy =
- *  lagoon, Just right = ember, Too hard = summit). On the debrief it is a small dot under the set's
- *  square; the labeled chip lives in the edit sheet, and the accessibility label names the answer.
- *  No red anywhere — "too hard" is information, not an error (invariant 4). */
-const DIFFICULTY_TONE: Record<Difficulty, string> = {
-  too_easy: colors.lagoon,
-  just_right: colors.ember,
-  too_hard: colors.summit,
-};
+type SquareStyles = { sqCompleted: ViewStyle; sqSkipped: ViewStyle; sqNotReached: ViewStyle };
+const squareStyle = (st: SquareStyles, status: SquareStatus): ViewStyle =>
+  status === 'completed' ? st.sqCompleted : status === 'skipped' ? st.sqSkipped : st.sqNotReached;
 
 /** How each square is drawn (DESIGN.md §5.8): completed = ember fill, skipped = a quiet `text3`
- *  outline, not reached = a dashed outline. (The dashed one uses `lineStrong`, one step brighter
+ *  outline, not reached = a dashed outline (themed styles `sqCompleted` / `sqSkipped` / `sqNotReached`). (The dashed one uses `lineStrong`, one step brighter
  *  than the spec's `line`, so an unreached set stays findable on the `bg` night surface.) */
-const SQUARE_STYLE: Record<SquareStatus, ViewStyle> = {
-  completed: { backgroundColor: setState.completed, borderColor: setState.completed },
-  skipped: { backgroundColor: 'transparent', borderColor: setState.skipped },
-  not_reached: {
-    backgroundColor: 'transparent',
-    borderColor: colors.lineStrong,
-    borderStyle: 'dashed',
-  },
-};
 
 /**
  * §8.1 feedback: per SET, for every section (migration 0017 gave `main` this first; warm-up and
@@ -209,6 +184,8 @@ function ordinal(n: number): string {
 }
 
 export default function SummaryScreen({ navigation, route }: Props): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
   const { sessionId } = route.params;
   const { db, library, families } = useStore();
   const [session, setSession] = useState<sessionsRepo.SessionRecord | null>(null);
@@ -509,7 +486,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   if (!session)
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={colors.ember} />
+        <ActivityIndicator color={theme.colors.ember} />
       </View>
     );
 
@@ -904,9 +881,9 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                 value={retrospective}
                 onChangeText={setRetrospective}
                 placeholder="What felt great? Anything to tweak next time?"
-                placeholderTextColor={colors.text3}
-                selectionColor={colors.ember}
-                keyboardAppearance="dark"
+                placeholderTextColor={theme.colors.text3}
+                selectionColor={theme.colors.ember}
+                keyboardAppearance={theme.scheme}
                 multiline
                 inputAccessoryViewID={retrospectiveAccessoryId}
               />
@@ -959,9 +936,10 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
 // -- Debrief pieces ---------------------------------------------------------------------------
 
 function LegendItem({ status, label }: { status: SquareStatus; label: string }): React.JSX.Element {
+  const styles = useStyles();
   return (
     <View style={styles.legendItem}>
-      <View style={[styles.legendSwatch, SQUARE_STYLE[status]]} />
+      <View style={[styles.legendSwatch, squareStyle(styles, status)]} />
       <Txt variant="caption" color="text2">
         {label}
       </Txt>
@@ -994,7 +972,9 @@ function EntryRow({
   onJump: (setIndex: number) => void;
   onEditFeedback: (setIndex: number | null) => void;
 }): React.JSX.Element {
-  const railColor = (section as Record<string, string>)[entry.section] ?? colors.ember;
+  const theme = useTheme();
+  const styles = useStyles();
+  const railColor = (theme.section as Record<string, string>)[entry.section] ?? theme.colors.ember;
   return (
     <View
       testID={`summary-${entry.exerciseId}`}
@@ -1034,7 +1014,7 @@ function EntryRow({
                 accessibilityLabel={`Set ${setIndex + 1} — ${status.replace('_', ' ')}`}
                 hitSlop={{ top: 6, left: 5, right: 5 }}
                 onPress={() => onJump(setIndex)}
-                style={[styles.square, SQUARE_STYLE[status]]}
+                style={[styles.square, squareStyle(styles, status)]}
               >
                 {status === 'completed' ? (
                   count !== null ? (
@@ -1072,7 +1052,10 @@ function EntryRow({
                     onPress={() => onEditFeedback(setIndex)}
                     style={
                       feedback
-                        ? [styles.dot, { backgroundColor: DIFFICULTY_TONE[feedback] }]
+                        ? [
+                            styles.dot,
+                            { backgroundColor: theme.colors[DIFFICULTY_CHIP_TONE[feedback]] },
+                          ]
                         : [styles.dot, styles.dotEmpty]
                     }
                   />
@@ -1088,115 +1071,139 @@ function EntryRow({
 
 const SQUARE = 30;
 
-const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    loading: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: t.colors.bg,
+    },
 
-  // -- debrief
-  headerBack: { flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingRight: space.sm },
-  debrief: { paddingTop: space.sm, gap: space.lg },
-  titleBlock: { gap: space.xs },
-  tileRow: { flexDirection: 'row', gap: space.sm },
-  tile: { flex: 1, minWidth: 0, padding: space.md },
-  legend: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: space.xs + 2 },
-  legendSwatch: { width: 12, height: 12, borderRadius: 4, borderWidth: 1.5 },
-  entryRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: space.md,
-    paddingVertical: space.md,
-    paddingLeft: space.lg,
-    paddingRight: space.md,
-  },
-  entryRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
-  // A 3pt strip in the section's colour (gold warm-up / ember main / lagoon cool-down), so the
-  // rows read as the route they walked without a section header eating a line.
-  rail: {
-    position: 'absolute',
-    left: 0,
-    top: space.md,
-    bottom: space.md,
-    width: 3,
-    borderTopRightRadius: 2,
-    borderBottomRightRadius: 2,
-  },
-  entryName: { flex: 1, minWidth: 96, gap: space.xs, paddingTop: 4 },
-  squares: { flexShrink: 0, maxWidth: '62%', flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  setColumn: { alignItems: 'center', width: SQUARE },
-  square: {
-    width: SQUARE,
-    height: SQUARE,
-    borderRadius: 9,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  // Tracking override on a Txt variant: the eyebrow's 1.6 spacing would crowd a 30pt square.
-  squareCount: { letterSpacing: 0 },
-  // Reserved even for a set with no dot, so every square in a wrapped row lines up.
-  dotSlot: { height: 16, alignItems: 'center', justifyContent: 'center' },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  dotEmpty: { borderWidth: 1.5, borderColor: colors.text3 },
-  notes: { gap: space.md },
-  notesInput: {
-    ...type.body,
-    minHeight: 76,
-    color: colors.text,
-    backgroundColor: colors.surface2,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.line,
-    paddingHorizontal: space.md,
-    paddingTop: space.md,
-    paddingBottom: space.md,
-    textAlignVertical: 'top',
-  },
-  footer: { gap: space.xs },
-  sheetBody: { gap: space.lg },
+    sqCompleted: { backgroundColor: t.setState.completed, borderColor: t.setState.completed },
+    sqSkipped: { backgroundColor: 'transparent', borderColor: t.setState.skipped },
+    sqNotReached: {
+      backgroundColor: 'transparent',
+      borderColor: t.colors.lineStrong,
+      borderStyle: 'dashed',
+    },
 
-  // The completion celebration (invariant 4/§1.1 in reverse — the one screen meant to be loud),
-  // re-skinned into Golden Hour (DESIGN.md §5.9): `bg` night base under the glow orbs, gold
-  // accents, no violet. Spacing is tight so headline + stats + the first highlight sit above the
-  // fold on a 6.1" phone.
-  flex: { flex: 1 },
-  flexRow: { width: '100%' },
-  doneScreen: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' },
-  doneContainer: { flexGrow: 1, alignItems: 'center', gap: space.md },
-  hero: {
-    width: '100%',
-    minHeight: 132,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  doneContent: { alignItems: 'center', gap: space.xs, width: '100%' },
-  statGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: space.sm + 2,
-    width: '100%',
-  },
-  statTile: { flexBasis: '46%', flexGrow: 1 },
-  bandRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  highlights: { width: '100%', gap: space.md },
-  // Wider tracking than the eyebrow token for this one heading.
-  highlightsHeading: { letterSpacing: 2 },
-  quietMilestones: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: space.sm,
-    width: '100%',
-  },
-  doneButtonWrap: { alignSelf: 'stretch', marginTop: space.xs },
-  buttonHalo: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: radius.pill,
-    backgroundColor: colors.ember,
-    ...glow(colors.ember),
-  },
-});
+    // -- debrief
+    headerBack: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.xs,
+      paddingRight: space.sm,
+    },
+    debrief: { paddingTop: space.sm, gap: space.lg },
+    titleBlock: { gap: space.xs },
+    tileRow: { flexDirection: 'row', gap: space.sm },
+    tile: { flex: 1, minWidth: 0, padding: space.md },
+    legend: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: space.xs + 2 },
+    legendSwatch: { width: 12, height: 12, borderRadius: 4, borderWidth: 1.5 },
+    entryRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: space.md,
+      paddingVertical: space.md,
+      paddingLeft: space.lg,
+      paddingRight: space.md,
+    },
+    entryRowDivider: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: t.colors.line,
+    },
+    // A 3pt strip in the section's colour (gold warm-up / ember main / lagoon cool-down), so the
+    // rows read as the route they walked without a section header eating a line.
+    rail: {
+      position: 'absolute',
+      left: 0,
+      top: space.md,
+      bottom: space.md,
+      width: 3,
+      borderTopRightRadius: 2,
+      borderBottomRightRadius: 2,
+    },
+    entryName: { flex: 1, minWidth: 96, gap: space.xs, paddingTop: 4 },
+    squares: { flexShrink: 0, maxWidth: '62%', flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    setColumn: { alignItems: 'center', width: SQUARE },
+    square: {
+      width: SQUARE,
+      height: SQUARE,
+      borderRadius: 9,
+      borderWidth: 1.5,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    // Tracking override on a Txt variant: the eyebrow's 1.6 spacing would crowd a 30pt square.
+    squareCount: { letterSpacing: 0 },
+    // Reserved even for a set with no dot, so every square in a wrapped row lines up.
+    dotSlot: { height: 16, alignItems: 'center', justifyContent: 'center' },
+    dot: { width: 8, height: 8, borderRadius: 4 },
+    dotEmpty: { borderWidth: 1.5, borderColor: t.colors.text3 },
+    notes: { gap: space.md },
+    notesInput: {
+      ...type.body,
+      minHeight: 76,
+      color: t.colors.text,
+      backgroundColor: t.colors.surface2,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      paddingHorizontal: space.md,
+      paddingTop: space.md,
+      paddingBottom: space.md,
+      textAlignVertical: 'top',
+    },
+    footer: { gap: space.xs },
+    sheetBody: { gap: space.lg },
+
+    // The completion celebration (invariant 4/§1.1 in reverse — the one screen meant to be loud),
+    // re-skinned into Golden Hour (DESIGN.md §5.9): `bg` night base under the glow orbs, gold
+    // accents, no violet. Spacing is tight so headline + stats + the first highlight sit above the
+    // fold on a 6.1" phone.
+    flex: { flex: 1 },
+    flexRow: { width: '100%' },
+    doneScreen: { flex: 1, backgroundColor: t.colors.bg, overflow: 'hidden' },
+    doneContainer: { flexGrow: 1, alignItems: 'center', gap: space.md },
+    hero: {
+      width: '100%',
+      minHeight: 132,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    doneContent: { alignItems: 'center', gap: space.xs, width: '100%' },
+    statGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: space.sm + 2,
+      width: '100%',
+    },
+    statTile: { flexBasis: '46%', flexGrow: 1 },
+    bandRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+    highlights: { width: '100%', gap: space.md },
+    // Wider tracking than the eyebrow token for this one heading.
+    highlightsHeading: { letterSpacing: 2 },
+    quietMilestones: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: space.sm,
+      width: '100%',
+    },
+    doneButtonWrap: { alignSelf: 'stretch', marginTop: space.xs },
+    buttonHalo: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: radius.pill,
+      // Decoration behind the CTA, no text on it: vivid ember in both modes (DESIGN.md §8.1).
+      backgroundColor: t.vivid.ember,
+      ...t.glow(t.vivid.ember),
+    },
+  }),
+);

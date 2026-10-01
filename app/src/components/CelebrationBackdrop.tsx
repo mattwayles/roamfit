@@ -7,9 +7,9 @@
  *
  * `still` (the iOS Reduce Motion setting, read by the screen) parks the orbs where they are.
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { colors, withAlpha } from '../theme';
+import { makeStyles, useTheme, withAlpha, type Theme } from '../theme';
 
 interface OrbSpec {
   color: string;
@@ -24,9 +24,10 @@ interface OrbSpec {
   period: number;
 }
 
-const ORBS: OrbSpec[] = [
+/** Orbs are decoration with no text on them, so they use `vivid` in both modes (DESIGN.md §8.1). */
+const orbsFor = ({ vivid }: Theme): OrbSpec[] => [
   {
-    color: colors.ember,
+    color: vivid.ember,
     ring: 0.1,
     size: 1.1,
     x: -0.35,
@@ -36,7 +37,7 @@ const ORBS: OrbSpec[] = [
     period: 7000,
   },
   {
-    color: colors.gold,
+    color: vivid.gold,
     ring: 0.09,
     size: 0.95,
     x: 0.45,
@@ -46,7 +47,7 @@ const ORBS: OrbSpec[] = [
     period: 9000,
   },
   {
-    color: colors.sun,
+    color: vivid.sun,
     ring: 0.07,
     size: 0.8,
     x: 0.1,
@@ -56,7 +57,7 @@ const ORBS: OrbSpec[] = [
     period: 8000,
   },
   {
-    color: colors.lagoon,
+    color: vivid.lagoon,
     ring: 0.045,
     size: 0.85,
     x: -0.2,
@@ -68,10 +69,6 @@ const ORBS: OrbSpec[] = [
 ];
 
 const RINGS = 6;
-
-/** Sunburst rays alternate gold and sun, low opacity. */
-const RAY_GOLD = withAlpha(colors.gold, 0.16);
-const RAY_SUN = withAlpha(colors.sun, 0.1);
 
 function Orb({ spec, still }: { spec: OrbSpec; still: boolean }): React.JSX.Element {
   const { width, height } = useWindowDimensions();
@@ -148,9 +145,12 @@ function Orb({ spec, still }: { spec: OrbSpec; still: boolean }): React.JSX.Elem
 }
 
 export default function CelebrationBackdrop({ still }: { still: boolean }): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
+  const orbs = useMemo(() => orbsFor(theme), [theme]);
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.clip]}>
-      {ORBS.map((spec, i) => (
+      {orbs.map((spec, i) => (
         <Orb key={i} spec={spec} still={still} />
       ))}
     </View>
@@ -172,7 +172,11 @@ export function Sunburst({
   still: boolean;
 }): React.JSX.Element {
   const spin = useRef(new Animated.Value(0)).current;
+  const { vivid } = useTheme();
   const RAYS = 14;
+  // Rays alternate gold and sun, low opacity.
+  const rayGold = withAlpha(vivid.gold, 0.16);
+  const raySun = withAlpha(vivid.sun, 0.1);
 
   useEffect(() => {
     if (still) return;
@@ -226,7 +230,7 @@ export function Sunburst({
               borderTopWidth: half,
               borderLeftColor: 'transparent',
               borderRightColor: 'transparent',
-              borderTopColor: i % 2 === 0 ? RAY_GOLD : RAY_SUN,
+              borderTopColor: i % 2 === 0 ? rayGold : raySun,
             }}
           />
         </View>
@@ -235,6 +239,8 @@ export function Sunburst({
   );
 }
 
-const styles = StyleSheet.create({
-  clip: { overflow: 'hidden', backgroundColor: colors.bg },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    clip: { overflow: 'hidden', backgroundColor: t.colors.bg },
+  }),
+);

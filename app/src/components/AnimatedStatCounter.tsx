@@ -11,7 +11,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
-import { colors, radius, space, withAlpha } from '../theme';
+import { makeStyles, radius, space, withAlpha } from '../theme';
 import { Txt } from '../ui';
 
 interface Props {
@@ -40,6 +40,7 @@ export default function AnimatedStatCounter({
   labelStyle,
   testID,
 }: Props): React.JSX.Element {
+  const styles = useStyles();
   const progress = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(0)).current;
   const [displayValue, setDisplayValue] = useState(0);
@@ -112,16 +113,18 @@ export default function AnimatedStatCounter({
   );
 }
 
-const styles = StyleSheet.create({
-  cell: {
-    alignItems: 'center',
-    minWidth: 96,
-    gap: space.xs,
-    paddingVertical: space.md,
-    paddingHorizontal: space.md,
-    backgroundColor: withAlpha(colors.surface, 0.85),
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radius.lg,
-  },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    cell: {
+      alignItems: 'center',
+      minWidth: 96,
+      gap: space.xs,
+      paddingVertical: space.md,
+      paddingHorizontal: space.md,
+      backgroundColor: withAlpha(t.colors.surface, 0.85),
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      borderRadius: radius.lg,
+    },
+  }),
+);
