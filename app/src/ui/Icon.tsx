@@ -56,6 +56,7 @@ export const iconMap = {
   pin: 'pin',
   volume: 'volume-high',
   moon: 'moon',
+  sun: 'sunny',
   sparkles: 'sparkles',
   heart: 'heart',
   shield: 'shield-checkmark',
