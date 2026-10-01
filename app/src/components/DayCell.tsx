@@ -6,10 +6,10 @@
  */
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, radius, withAlpha } from '../theme';
+import { colors, radius, useTheme, withAlpha } from '../theme';
 import { PressableScale, Txt } from '../ui';
 import type { CalendarDay } from '../lib/dashboard';
-import { markerColor, markerEmoji, markerLabel } from '../lib/dayMarkers';
+import { markerEmoji, markerLabel, markerTone } from '../lib/dayMarkers';
 
 export interface DayCellProps {
   day: CalendarDay | null;
@@ -29,10 +29,12 @@ export function DayCell({
   testID,
   accessibilityLabel,
 }: DayCellProps): React.JSX.Element {
+  const theme = useTheme();
   const box = size ? { width: size, height: size } : styles.fill;
   if (day === null) return <View style={box} />;
 
-  const tint = markerColor(day.marker);
+  const tone = markerTone(day.marker);
+  const tint = tone ? theme.colors[tone] : null;
   const emoji = markerEmoji(day.marker);
   return (
     <PressableScale

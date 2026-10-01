@@ -1,13 +1,15 @@
 /**
  * How a calendar day marker looks, shared by the Today tab's "This week" strip and the Journey
  * Logbook so the two can never disagree (DESIGN.md §5.1/§5.2). Emoji stay as the marker glyphs
- * (a deliberate carry-over, not a stray icon); the tint comes from the theme's semantic maps:
- * trained = the session's focus color, travel = sky, quick = gold, untrained = no tint at all
- * (neutral, never empty-looking-bad — invariant 4).
+ * (a deliberate carry-over, not a stray icon); the tint is a color *token name* the component
+ * resolves through the theme (so it follows Daylight / Golden Hour): trained = the session's focus
+ * color, travel = sky, quick = gold, untrained = no tint at all (neutral, never
+ * empty-looking-bad — invariant 4).
  */
 import type { Focus } from '@roamfit/data';
-import { dayMarker as dayMarkerColor, trainedColor } from '../theme';
+import type { AccentName } from '../theme';
 import type { DayMarker } from './dashboard';
+import { FOCUS_TONE } from './focusLabels';
 
 /** §14.1.6 — the marker shown on a trained day: one per focus, or a stopwatch for a Quick Session
  *  (§9.5), which is otherwise indistinguishable from a regular full-body session since it always
@@ -43,12 +45,13 @@ export function markerEmoji(marker: DayMarker): string {
   return FOCUS_EMOJI[marker];
 }
 
-/** The accent hex a marker tints its cell with, or null for an untrained day. */
-export function markerColor(marker: DayMarker): string | null {
+/** The accent a marker tints its cell with (resolve via `useTheme().colors[tone]`), or null for an
+ *  untrained day. Mirrors the theme's `focus` / `dayMarker` semantic maps by name. */
+export function markerTone(marker: DayMarker): AccentName | null {
   if (marker === 'none') return null;
-  if (marker === 'travel') return dayMarkerColor.travel;
-  if (marker === 'quick') return dayMarkerColor.quick;
-  return trainedColor(marker);
+  if (marker === 'travel') return 'sky';
+  if (marker === 'quick') return 'gold';
+  return FOCUS_TONE[marker];
 }
 
 /** Spoken label for a day cell. */

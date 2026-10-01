@@ -19,7 +19,8 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 };
 
 /** The semantic `focus` color map (theme) by accent name, for `Icon` / `IconBadge` / `Chip` which
- *  take names rather than hex. Generate's tiles and the Field Guide's avatars share it. */
+ *  take names rather than hex (and so follow the active theme). Generate's tiles, the Field
+ *  Guide's avatars and the day markers share it. */
 export const FOCUS_TONE: Record<Focus, AccentName> = {
   upper: 'ember',
   abs: 'gold',
