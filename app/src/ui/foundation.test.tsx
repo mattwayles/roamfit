@@ -2,7 +2,14 @@ import React from 'react';
 import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
-import { daylight, daylightTheme, type, goldenHour } from '../theme';
+import {
+  daylight,
+  daylightTheme,
+  lineWidth,
+  numeralMaxFontScale,
+  type,
+  goldenHour,
+} from '../theme';
 import {
   Button,
   Gradient,
@@ -42,6 +49,90 @@ describe('Txt', () => {
     await ready('a');
     expect(StyleSheet.flatten(screen.getByTestId('a').props.style).color).toBe(goldenHour.text);
     expect(StyleSheet.flatten(screen.getByTestId('b').props.style).textTransform).toBe('none');
+  });
+
+  describe('adjustsFontSizeToFit (fitted in JS, not natively)', () => {
+    const layout = (testID: string, width: number) =>
+      fireEvent(screen.getByTestId(testID), 'layout', {
+        nativeEvent: { layout: { x: 0, y: 0, width, height: 64 } },
+      });
+    const fitted = (value: string, testID = 'n') => (
+      <Txt variant="hero" numberOfLines={1} adjustsFontSizeToFit testID={testID}>
+        {value}
+      </Txt>
+    );
+
+    it('never hands the shrink to the native Text (it ignores minimumFontScale on iOS)', async () => {
+      await render(fitted('1240'));
+      await ready('n');
+      expect(screen.getByTestId('n').props.adjustsFontSizeToFit).toBeFalsy();
+      expect(screen.getByTestId('n').props.minimumFontScale).toBeUndefined();
+    });
+
+    it('shrinks clipped text to fit, floored at minimumFontScale, line height in step', async () => {
+      await render(fitted('1240'));
+      await ready('n');
+      expect(StyleSheet.flatten(screen.getByTestId('n').props.style).fontSize).toBe(64);
+      await layout('n', 88);
+      const s = StyleSheet.flatten(screen.getByTestId('n').props.style);
+      expect(s.fontSize).toBeLessThan(64);
+      expect(s.fontSize).toBeGreaterThanOrEqual(32);
+      expect(s.lineHeight).toBeCloseTo(s.fontSize as number, 5);
+    });
+
+    it('floors at 50% by default, never the native 4pt', async () => {
+      await render(fitted('123456789'));
+      await ready('n');
+      await layout('n', 20);
+      expect(StyleSheet.flatten(screen.getByTestId('n').props.style).fontSize).toBe(32);
+    });
+
+    it('a stretched text refits when its value grows, with no new layout event', async () => {
+      const r = await render(fitted('3'));
+      await ready('n');
+      await layout('n', 88); // wider than "3": stretched, so 88 is the room
+      expect(StyleSheet.flatten(screen.getByTestId('n').props.style).fontSize).toBe(64);
+      await r.rerender(fitted('12345'));
+      expect(StyleSheet.flatten(screen.getByTestId('n').props.style).fontSize).toBeLessThan(64);
+      await r.rerender(fitted('7'));
+      expect(StyleSheet.flatten(screen.getByTestId('n').props.style).fontSize).toBe(64);
+    });
+
+    it('text that fits its own width stays full size', async () => {
+      await render(fitted('12'));
+      await ready('n');
+      // Exactly the content width: neither clipped nor stretched. (Jest's window fontScale is 2,
+      // which the numeral cap holds to 1.3, the same scale the component measures with.)
+      const content = lineWidth(
+        {
+          text: '12',
+          fontFamily: type.hero.fontFamily,
+          fontSize: 64,
+          tabular: true,
+          fontScale: numeralMaxFontScale,
+        },
+        64,
+      )!;
+      await layout('n', content);
+      expect(StyleSheet.flatten(screen.getByTestId('n').props.style).fontSize).toBe(64);
+    });
+
+    it('nested elements keep the native behavior', async () => {
+      await render(
+        <Txt
+          variant="hero"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+          testID="n"
+        >
+          1<Txt>2</Txt>
+        </Txt>,
+      );
+      await ready('n');
+      expect(screen.getByTestId('n').props.adjustsFontSizeToFit).toBe(true);
+      expect(screen.getByTestId('n').props.minimumFontScale).toBe(0.6);
+    });
   });
 
   it('caps Dynamic Type on the big numerals only', async () => {
