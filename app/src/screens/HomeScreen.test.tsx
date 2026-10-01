@@ -13,6 +13,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider, useStore } from '../state/StoreContext';
+import { ThemeProvider } from '../state/ThemeProvider';
 import { sessionsRepo, usersRepo } from '@roamfit/store';
 
 /** Clears any pending session left over from a previous run against the same on-device db file
@@ -32,11 +33,13 @@ describe('Home -> Quick Session -> Workout', () => {
   it('shows the Today card with no pending session, and Quick Session lands on a real active workout', async () => {
     render(
       <StoreProvider>
-        <Cleanup>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        </Cleanup>
+        <ThemeProvider>
+          <Cleanup>
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+          </Cleanup>
+        </ThemeProvider>
       </StoreProvider>,
     );
 

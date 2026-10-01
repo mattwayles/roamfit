@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, radius, useTheme, withAlpha } from '../theme';
+import { makeStyles, radius, useTheme, withAlpha } from '../theme';
 import { PressableScale, Txt } from '../ui';
 import type { CalendarDay } from '../lib/dashboard';
 import { markerEmoji, markerLabel, markerTone } from '../lib/dayMarkers';
@@ -30,6 +30,7 @@ export function DayCell({
   accessibilityLabel,
 }: DayCellProps): React.JSX.Element {
   const theme = useTheme();
+  const styles = useStyles();
   const box = size ? { width: size, height: size } : styles.fill;
   if (day === null) return <View style={box} />;
 
@@ -48,8 +49,8 @@ export function DayCell({
         styles.cell,
         box,
         {
-          backgroundColor: tint ? withAlpha(tint, 0.2) : colors.surface,
-          borderColor: tint ? withAlpha(tint, 0.55) : colors.line,
+          backgroundColor: tint ? withAlpha(tint, 0.2) : theme.colors.surface,
+          borderColor: tint ? withAlpha(tint, 0.55) : theme.colors.line,
         },
         isToday && styles.today,
       ]}
@@ -66,16 +67,18 @@ export function DayCell({
   );
 }
 
-const styles = StyleSheet.create({
-  fill: { flex: 1, aspectRatio: 1 },
-  cell: {
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  today: { borderWidth: 2, borderColor: colors.ember },
-  date: { position: 'absolute', top: 2, left: 5 },
-  // Emoji are content (the day marker), not an icon or a type size; leading keeps them centered.
-  emoji: { lineHeight: 24, marginTop: 6 },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    fill: { flex: 1, aspectRatio: 1 },
+    cell: {
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    today: { borderWidth: 2, borderColor: t.colors.ember },
+    date: { position: 'absolute', top: 2, left: 5 },
+    // Emoji are content (the day marker), not an icon or a type size; leading keeps them centered.
+    emoji: { lineHeight: 24, marginTop: 6 },
+  }),
+);

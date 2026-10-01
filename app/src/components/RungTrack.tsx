@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, glow } from '../theme';
+import { makeStyles, useTheme } from '../theme';
 import { Icon } from '../ui';
 
 export interface RungTrackProps {
@@ -27,6 +27,9 @@ export function RungTrack({
   mastery = false,
   testID = 'rung-track',
 }: RungTrackProps): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
+  const { colors } = theme;
   const total = Math.max(1, count);
   const at = Math.min(Math.max(current, 1), total);
   const accent = mastery ? colors.gold : colors.summit;
@@ -54,7 +57,7 @@ export function RungTrack({
         <View
           key={`n-${i}`}
           testID={`${testID}-node-${i}`}
-          style={[styles.big, { backgroundColor: accent }, glow(accent)]}
+          style={[styles.big, { backgroundColor: accent }, theme.glow(accent)]}
         >
           {isTop ? <Icon name="flag" size={14} color="ink" /> : null}
         </View>,
@@ -86,26 +89,28 @@ export function RungTrack({
   );
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', minHeight: BIG + 4 },
-  segment: { flex: 1, height: 2, borderRadius: 1, minWidth: 4 },
-  small: { width: SMALL, height: SMALL, borderRadius: SMALL / 2, borderWidth: 2 },
-  hollow: { backgroundColor: colors.surface2, borderColor: colors.lineStrong },
-  big: {
-    width: BIG,
-    height: BIG,
-    borderRadius: BIG / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  flag: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    row: { flexDirection: 'row', alignItems: 'center', minHeight: BIG + 4 },
+    segment: { flex: 1, height: 2, borderRadius: 1, minWidth: 4 },
+    small: { width: SMALL, height: SMALL, borderRadius: SMALL / 2, borderWidth: 2 },
+    hollow: { backgroundColor: t.colors.surface2, borderColor: t.colors.lineStrong },
+    big: {
+      width: BIG,
+      height: BIG,
+      borderRadius: BIG / 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    flag: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.lineStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  }),
+);

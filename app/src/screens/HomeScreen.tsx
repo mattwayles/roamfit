@@ -41,7 +41,7 @@ import {
   scheduleMotivationNotifications,
 } from '../lib/motivationNotifications';
 import { runOpportunisticSync } from '../lib/opportunisticSync';
-import { colors, radius, space, withAlpha, type AccentName } from '../theme';
+import { makeStyles, radius, space, useTheme, withAlpha, type AccentName } from '../theme';
 import {
   Button,
   Card,
@@ -64,6 +64,11 @@ type Props = TabScreenProps<'Home'>;
 
 export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   const { db, library, families } = useStore();
+  const theme = useTheme();
+  const styles = useStyles();
+  // The hero pill is an `ink` fill: near-black on Golden Hour (sun reads on it), white on Daylight
+  // (sun is only 3.8:1 there; the deep ember legend is 5.6:1). Same pairing as the stamped headline.
+  const pillTone = theme.scheme === 'dark' ? 'sun' : 'ember';
   const { data, reload } = useDashboardData();
   const [startingQuick, setStartingQuick] = useState(false);
   const [travelDismissed, setTravelDismissed] = useState(false);
@@ -187,7 +192,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   if (data === undefined) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={colors.ember} />
+        <ActivityIndicator color={theme.colors.ember} />
       </View>
     );
   }
@@ -383,10 +388,10 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
               </Txt>
             </View>
             <View style={styles.heroPill}>
-              <Txt variant="button" color="sun">
+              <Txt variant="button" color={pillTone}>
                 Build a session
               </Txt>
-              <Icon name="arrowRight" size={20} color="sun" />
+              <Icon name="arrowRight" size={20} color={pillTone} />
             </View>
           </Card>
         )}
@@ -529,6 +534,7 @@ function BannerCard({
   onPress?: () => void;
   children?: React.ReactNode;
 }): React.JSX.Element {
+  const styles = useStyles();
   return (
     <Card testID={testID} padding="md" onPress={onPress} style={styles.banner}>
       <IconBadge icon={icon} tone={tone} />
@@ -547,6 +553,7 @@ function BannerCard({
 
 /** Thin ink progress bar on the sunrise hero: sets done over sets planned (only ever grows). */
 function ResumeProgress({ fraction }: { fraction: number }): React.JSX.Element {
+  const styles = useStyles();
   return (
     <View
       testID="resume-progress"
@@ -581,6 +588,8 @@ function ActionTile({
   disabled?: boolean;
   loading?: boolean;
 }): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <PressableScale
       testID={testID}
@@ -591,7 +600,7 @@ function ActionTile({
     >
       {loading ? (
         <View style={styles.tileSpinner}>
-          <ActivityIndicator color={colors[tone]} />
+          <ActivityIndicator color={theme.colors[tone]} />
         </View>
       ) : (
         <IconBadge icon={icon} tone={tone} />
@@ -606,65 +615,72 @@ function ActionTile({
   );
 }
 
-const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  content: { paddingTop: space.lg, paddingBottom: space.huge + space.xxl, gap: space.xl },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerText: { flex: 1 },
-  gate: { flex: 1, backgroundColor: colors.bg },
-  gateScreen: { backgroundColor: 'transparent' },
-  gateContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    gap: space.xxl,
-    paddingVertical: space.xxl,
-  },
-  wordmark: { textAlign: 'left' },
-  banner: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
-  bannerText: { flex: 1, gap: 2, paddingTop: 2 },
-  bannerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: space.sm,
-    marginTop: space.sm,
-  },
-  hero: { minHeight: 220, justifyContent: 'space-between', gap: space.lg },
-  heroTop: { gap: space.xs, alignItems: 'flex-start' },
-  heroBottom: { gap: space.sm },
-  heroPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: colors.ink,
-    borderRadius: radius.pill,
-    paddingHorizontal: space.xl,
-    height: 48,
-    gap: space.sm,
-  },
-  progressTrack: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: withAlpha(colors.ink, 0.22),
-    overflow: 'hidden',
-  },
-  progressFill: { height: 6, borderRadius: 3, backgroundColor: colors.ink },
-  tiles: { flexDirection: 'row', gap: space.md },
-  tile: {
-    flex: 1,
-    minHeight: 132,
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: space.lg,
-  },
-  tileDisabled: { opacity: 0.5 },
-  tileSpinner: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  weekBlock: { gap: space.md },
-  weekRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  weekDay: { alignItems: 'center', gap: space.xs },
-  unlock: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
-  unlockText: { flex: 1, gap: 2 },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    loading: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: t.colors.bg,
+    },
+    content: { paddingTop: space.lg, paddingBottom: space.huge + space.xxl, gap: space.xl },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    headerText: { flex: 1 },
+    gate: { flex: 1, backgroundColor: t.colors.bg },
+    gateScreen: { backgroundColor: 'transparent' },
+    gateContent: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      gap: space.xxl,
+      paddingVertical: space.xxl,
+    },
+    wordmark: { textAlign: 'left' },
+    banner: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
+    bannerText: { flex: 1, gap: 2, paddingTop: 2 },
+    bannerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: space.sm,
+      marginTop: space.sm,
+    },
+    hero: { minHeight: 220, justifyContent: 'space-between', gap: space.lg },
+    heroTop: { gap: space.xs, alignItems: 'flex-start' },
+    heroBottom: { gap: space.sm },
+    heroPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      backgroundColor: t.colors.ink,
+      borderRadius: radius.pill,
+      paddingHorizontal: space.xl,
+      height: 48,
+      gap: space.sm,
+    },
+    progressTrack: {
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: withAlpha(t.colors.ink, 0.22),
+      overflow: 'hidden',
+    },
+    progressFill: { height: 6, borderRadius: 3, backgroundColor: t.colors.ink },
+    tiles: { flexDirection: 'row', gap: space.md },
+    tile: {
+      flex: 1,
+      minHeight: 132,
+      justifyContent: 'space-between',
+      backgroundColor: t.colors.surface,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      padding: space.lg,
+    },
+    tileDisabled: { opacity: 0.5 },
+    tileSpinner: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    weekBlock: { gap: space.md },
+    weekRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    weekDay: { alignItems: 'center', gap: space.xs },
+    unlock: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
+    unlockText: { flex: 1, gap: 2 },
+  }),
+);
