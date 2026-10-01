@@ -29,17 +29,7 @@ import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { getNetworkStatus } from '../lib/networkStatus';
 import { DIFFICULTY_LABELS, FOCUS_LABELS, FOCUS_TONE } from '../lib/focusLabels';
 import { IconBadge } from '../components/IconBadge';
-import {
-  colors,
-  focus as focusColor,
-  glow,
-  gutter,
-  radius,
-  space,
-  tints,
-  withAlpha,
-  type AccentName,
-} from '../theme';
+import { gutter, makeStyles, radius, space, useTheme, withAlpha, type AccentName } from '../theme';
 import {
   Button,
   Card,
@@ -126,6 +116,8 @@ const VISIBLE_ANCHOR_VALUES: readonly Anchor[] = ANCHOR_GROUPS.flatMap((g) =>
 );
 
 export default function GenerateScreen({ navigation, route }: Props): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
   const { db, library, families } = useStore();
   const [minutes, setMinutes] = useState(30);
   const [focus, setFocus] = useState<Focus>('full');
@@ -284,7 +276,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
           {FOCUS_OPTIONS.map((f) => {
             const selected = focus === f;
             const tone = FOCUS_TONE[f];
-            const accent = focusColor[f];
+            const accent = theme.focus[f];
             return (
               <PressableScale
                 key={f}
@@ -297,7 +289,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
                   styles.tile,
                   f === 'cardio' && styles.tileWide,
                   selected && { borderColor: accent, backgroundColor: withAlpha(accent, 0.15) },
-                  selected && glow(accent),
+                  selected && theme.glow(accent),
                 ]}
               >
                 <IconBadge icon={FOCUS_FLAVOR[f].icon} tone={tone} size={36} />
@@ -346,7 +338,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
                 style={[
                   styles.timeChip,
                   selected && styles.timeChipOn,
-                  selected && glow(colors.ember),
+                  selected && theme.glow(theme.colors.ember),
                 ]}
               >
                 <Txt variant="h1" color={selected ? 'ink' : 'text'}>
@@ -514,6 +506,8 @@ function ToggleRow({
   disabled?: boolean;
   onChange: (next: boolean) => void;
 }): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <PressableScale
       testID={testID}
@@ -524,7 +518,7 @@ function ToggleRow({
       onPress={() => onChange(!value)}
       style={[
         styles.toggleRow,
-        value && { backgroundColor: tints[tone] },
+        value && { backgroundColor: theme.tints[tone] },
         disabled && styles.disabled,
       ]}
     >
@@ -546,117 +540,119 @@ function ToggleRow({
   );
 }
 
-const styles = StyleSheet.create({
-  content: { paddingTop: space.sm, gap: space.xxl },
-  titleBlock: { gap: space.xs },
-  section: { gap: space.md },
-  footer: { gap: space.sm },
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    content: { paddingTop: space.sm, gap: space.xxl },
+    titleBlock: { gap: space.xs },
+    section: { gap: space.md },
+    footer: { gap: space.sm },
 
-  // -- focus tiles
-  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
-  tile: {
-    flexBasis: '45%',
-    flexGrow: 1,
-    minHeight: 104,
-    justifyContent: 'space-between',
-    gap: space.sm,
-    padding: space.md,
-    borderRadius: radius.lg,
-    borderWidth: 2,
-    borderColor: colors.line,
-    backgroundColor: colors.surface,
-  },
-  tileWide: { flexBasis: '100%' },
-  tileCheck: {
-    position: 'absolute',
-    top: space.sm,
-    right: space.sm,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    // -- focus tiles
+    tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+    tile: {
+      flexBasis: '45%',
+      flexGrow: 1,
+      minHeight: 104,
+      justifyContent: 'space-between',
+      gap: space.sm,
+      padding: space.md,
+      borderRadius: radius.lg,
+      borderWidth: 2,
+      borderColor: t.colors.line,
+      backgroundColor: t.colors.surface,
+    },
+    tileWide: { flexBasis: '100%' },
+    tileCheck: {
+      position: 'absolute',
+      top: space.sm,
+      right: space.sm,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  // -- time chips (bleed off the gutter so the scroll reads as a scroll)
-  bleed: { marginHorizontal: -gutter },
-  timeRow: { paddingHorizontal: gutter, gap: space.sm },
-  timeChip: {
-    width: 76,
-    height: 88,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.surface,
-  },
-  timeChipOn: { backgroundColor: colors.ember, borderColor: colors.ember },
+    // -- time chips (bleed off the gutter so the scroll reads as a scroll)
+    bleed: { marginHorizontal: -gutter },
+    timeRow: { paddingHorizontal: gutter, gap: space.sm },
+    timeChip: {
+      width: 76,
+      height: 88,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      backgroundColor: t.colors.surface,
+    },
+    timeChipOn: { backgroundColor: t.colors.ember, borderColor: t.colors.ember },
 
-  // -- intensity segments
-  segments: {
-    flexDirection: 'row',
-    padding: space.xs,
-    gap: space.xs,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  segment: {
-    flex: 1,
-    minHeight: 68,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space.xs,
-    borderRadius: radius.md - space.xs,
-  },
-  segmentOn: { backgroundColor: colors.ember },
-  flames: { flexDirection: 'row', height: 22, alignItems: 'center' },
+    // -- intensity segments
+    segments: {
+      flexDirection: 'row',
+      padding: space.xs,
+      gap: space.xs,
+      borderRadius: radius.md,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+    },
+    segment: {
+      flex: 1,
+      minHeight: 68,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: space.xs,
+      borderRadius: radius.md - space.xs,
+    },
+    segmentOn: { backgroundColor: t.colors.ember },
+    flames: { flexDirection: 'row', height: 22, alignItems: 'center' },
 
-  // -- equipment
-  equipment: { gap: space.md },
-  disclosure: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 44 },
-  disclosureLabels: { flex: 1 },
-  anchorGroup: { gap: space.sm, marginTop: space.sm },
-  anchorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    minHeight: 52,
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  anchorRowOn: { borderColor: colors.ember, backgroundColor: tints.ember },
-  anchorCheck: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.lineStrong,
-  },
-  anchorCheckOn: { backgroundColor: colors.ember, borderColor: colors.ember },
-  anchorLabels: { flex: 1 },
+    // -- equipment
+    equipment: { gap: space.md },
+    disclosure: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 44 },
+    disclosureLabels: { flex: 1 },
+    anchorGroup: { gap: space.sm, marginTop: space.sm },
+    anchorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.md,
+      minHeight: 52,
+      paddingHorizontal: space.md,
+      paddingVertical: space.sm,
+      borderRadius: radius.md,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+    },
+    anchorRowOn: { borderColor: t.colors.ember, backgroundColor: t.tints.ember },
+    anchorCheck: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: t.colors.lineStrong,
+    },
+    anchorCheckOn: { backgroundColor: t.colors.ember, borderColor: t.colors.ember },
+    anchorLabels: { flex: 1 },
 
-  // -- extras
-  extras: { gap: space.md },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    minHeight: 72,
-    padding: space.md,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  toggleLabels: { flex: 1, gap: 2 },
-  disabled: { opacity: 0.5 },
-});
+    // -- extras
+    extras: { gap: space.md },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.md,
+      minHeight: 72,
+      padding: space.md,
+      borderRadius: radius.lg,
+      backgroundColor: t.colors.surface,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+    },
+    toggleLabels: { flex: 1, gap: 2 },
+    disabled: { opacity: 0.5 },
+  }),
+);
