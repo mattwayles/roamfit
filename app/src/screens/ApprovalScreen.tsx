@@ -47,7 +47,7 @@ import { DIFFICULTY_LABELS, FOCUS_LABELS } from '../lib/focusLabels';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import BandPicker from '../components/BandPicker';
 import KeyboardDoneBar from '../components/KeyboardDoneBar';
-import { colors, glow, radius, space, tints, type, withAlpha, type AccentName } from '../theme';
+import { makeStyles, radius, space, type, useTheme, withAlpha, type AccentName } from '../theme';
 import {
   Button,
   Card,
@@ -123,6 +123,8 @@ export function scopeMainCandidatesToFocus(
 }
 
 export default function ApprovalScreen({ navigation, route }: Props): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
   const { sessionId } = route.params;
   const { db, library, families } = useStore();
   const [session, setSession] = useState<SessionRecord | null>(null);
@@ -168,7 +170,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     return (
       <Screen>
         <View style={styles.centered}>
-          <ActivityIndicator color={colors.ember} />
+          <ActivityIndicator color={theme.colors.ember} />
         </View>
       </Screen>
     );
@@ -515,7 +517,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
 
       {(['warmup', 'main', 'cooldown'] as const).map((section) => {
         const tone = SECTION_TONE[section];
-        const railColor = colors[tone];
+        const railColor = theme.colors[tone];
         const entries = bySection(section);
         return (
           <View
@@ -664,6 +666,7 @@ function BoardingPass({
   moves: number;
   explanation: string;
 }): React.JSX.Element {
+  const styles = useStyles();
   return (
     <Card testID="boarding-pass" padding="none" style={styles.pass}>
       <View style={styles.passRibbon}>
@@ -794,6 +797,8 @@ function EntryCard({
   onSwap: () => void;
   onRemove: () => void;
 }): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
   const isTimed = entry.durationSec != null;
   const hasDetail = entry.band != null;
   // Controlled so the card can raise its own stacking order while the dropdown is open — it
@@ -806,7 +811,7 @@ function EntryCard({
       onLayout={(e) => onMeasure(e.nativeEvent.layout.height)}
       style={[
         styles.card,
-        dragging && [styles.cardDragging, glow(railColor), { borderColor: railColor }],
+        dragging && [styles.cardDragging, theme.glow(railColor), { borderColor: railColor }],
         bandPickerOpen && styles.cardElevated,
         displacement !== 0 && { transform: [{ translateY: displacement }] },
       ]}
@@ -946,6 +951,8 @@ function NumericField({
   accessibilityLabel: string;
   onCommit: (value: number) => void;
 }): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
   const [text, setText] = useState(String(value));
   // Keeps the field in sync when the value changes from outside this input (another field's edit
   // recomputing `estimatedSec`, or a store mutation from swap/regenerate).
@@ -977,8 +984,8 @@ function NumericField({
           keyboardType="number-pad"
           returnKeyType="done"
           inputAccessoryViewID={NUMBER_ACCESSORY_ID}
-          selectionColor={colors.ember}
-          keyboardAppearance="dark"
+          selectionColor={theme.colors.ember}
+          keyboardAppearance={theme.scheme}
           selectTextOnFocus
           hitSlop={4}
         />
@@ -992,173 +999,175 @@ function NumericField({
   );
 }
 
-const styles = StyleSheet.create({
-  content: { paddingTop: space.sm, gap: space.xxl },
-  gap: { gap: space.md },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  footer: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  startButton: { flex: 1 },
-  abandon: { alignItems: 'center' },
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    content: { paddingTop: space.sm, gap: space.xxl },
+    gap: { gap: space.md },
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    footer: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+    startButton: { flex: 1 },
+    abandon: { alignItems: 'center' },
 
-  // -- boarding pass
-  pass: { overflow: 'hidden' },
-  passRibbon: { height: 6 },
-  passTop: { gap: space.xs, padding: space.lg },
-  passStats: { flexDirection: 'row', gap: space.md, marginTop: space.sm },
-  passStat: { flex: 1 },
-  // Notches are bg-colored discs centred on the card's own edge; the pass clips them to the
-  // half that lies inside, which reads as a semicircle punched out of the ticket.
-  perforation: { height: NOTCH, justifyContent: 'center' },
-  perforationLine: {
-    marginHorizontal: space.lg + NOTCH / 2,
-    borderTopWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: colors.lineStrong,
-  },
-  notch: {
-    position: 'absolute',
-    top: 0,
-    width: NOTCH,
-    height: NOTCH,
-    borderRadius: NOTCH / 2,
-    backgroundColor: colors.bg,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  notchLeft: { left: -NOTCH / 2 },
-  notchRight: { right: -NOTCH / 2 },
-  passBottom: { padding: space.lg, paddingTop: space.sm },
+    // -- boarding pass
+    pass: { overflow: 'hidden' },
+    passRibbon: { height: 6 },
+    passTop: { gap: space.xs, padding: space.lg },
+    passStats: { flexDirection: 'row', gap: space.md, marginTop: space.sm },
+    passStat: { flex: 1 },
+    // Notches are bg-colored discs centred on the card's own edge; the pass clips them to the
+    // half that lies inside, which reads as a semicircle punched out of the ticket.
+    perforation: { height: NOTCH, justifyContent: 'center' },
+    perforationLine: {
+      marginHorizontal: space.lg + NOTCH / 2,
+      borderTopWidth: 1.5,
+      borderStyle: 'dashed',
+      borderColor: t.colors.lineStrong,
+    },
+    notch: {
+      position: 'absolute',
+      top: 0,
+      width: NOTCH,
+      height: NOTCH,
+      borderRadius: NOTCH / 2,
+      backgroundColor: t.colors.bg,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+    },
+    notchLeft: { left: -NOTCH / 2 },
+    notchRight: { right: -NOTCH / 2 },
+    passBottom: { padding: space.lg, paddingTop: space.sm },
 
-  swapNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: space.sm,
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    borderRadius: radius.pill,
-    backgroundColor: tints.lagoon,
-  },
-  swapNoticeText: { flexShrink: 1 },
+    swapNotice: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: space.sm,
+      paddingHorizontal: space.md,
+      paddingVertical: space.sm,
+      borderRadius: radius.pill,
+      backgroundColor: t.tints.lagoon,
+    },
+    swapNoticeText: { flexShrink: 1 },
 
-  // -- route timeline
-  sectionBlock: { gap: space.md },
-  sectionLifted: { zIndex: 10 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  timeline: { position: 'relative', paddingLeft: RAIL_WIDTH },
-  rail: {
-    position: 'absolute',
-    left: RAIL_WIDTH / 2 - 1,
-    width: 2,
-    top: 0,
-    // Ends at the middle of the 48pt add row, where the route stops.
-    bottom: 24,
-    borderRadius: 1,
-  },
-  cards: { gap: CARD_GAP },
-  // The node hangs off the rail: a `bg`-filled ring in the section color, centred on the rail.
-  node: {
-    position: 'absolute',
-    left: -(RAIL_WIDTH / 2 + NODE / 2),
-    top: 24,
-    width: NODE,
-    height: NODE,
-    borderRadius: NODE / 2,
-    borderWidth: 3,
-    backgroundColor: colors.bg,
-  },
-  addNode: { top: 15.5, left: -(RAIL_WIDTH / 2 + NODE / 2) - 1.5 },
-  addRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space.sm,
-    minHeight: 48,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-  },
-  addRowText: { marginLeft: 0 },
+    // -- route timeline
+    sectionBlock: { gap: space.md },
+    sectionLifted: { zIndex: 10 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+    timeline: { position: 'relative', paddingLeft: RAIL_WIDTH },
+    rail: {
+      position: 'absolute',
+      left: RAIL_WIDTH / 2 - 1,
+      width: 2,
+      top: 0,
+      // Ends at the middle of the 48pt add row, where the route stops.
+      bottom: 24,
+      borderRadius: 1,
+    },
+    cards: { gap: CARD_GAP },
+    // The node hangs off the rail: a `bg`-filled ring in the section color, centred on the rail.
+    node: {
+      position: 'absolute',
+      left: -(RAIL_WIDTH / 2 + NODE / 2),
+      top: 24,
+      width: NODE,
+      height: NODE,
+      borderRadius: NODE / 2,
+      borderWidth: 3,
+      backgroundColor: t.colors.bg,
+    },
+    addNode: { top: 15.5, left: -(RAIL_WIDTH / 2 + NODE / 2) - 1.5 },
+    addRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: space.sm,
+      minHeight: 48,
+      borderRadius: radius.md,
+      borderWidth: 1.5,
+      borderStyle: 'dashed',
+    },
+    addRowText: { marginLeft: 0 },
 
-  // -- entry card
-  card: {
-    // No fixed height: a long exercise name gets a taller card, which is correct. `minHeight`
-    // only stops a card with nothing in its detail line from looking collapsed.
-    minHeight: ESTIMATED_CARD_HEIGHT,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-    paddingHorizontal: space.md,
-    paddingVertical: space.md,
-    justifyContent: 'space-between',
-  },
-  cardDragging: { backgroundColor: colors.surface3, elevation: 6, zIndex: 10 },
-  // Just the stacking bits of `cardDragging`, without its visual restyle: the band picker's open
-  // dropdown is an absolute overlay that extends below this card's own bounds, and would
-  // otherwise paint underneath the next card in the list rather than over it.
-  cardElevated: { zIndex: 10, elevation: 6 },
-  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
-  dragHandle: {
-    width: 32,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: -6,
-  },
-  cardTitleBlock: { flex: 1, paddingTop: space.sm },
-  // `field` used to be `flex: 1`, stretching all four columns to fill the row — fine for a label,
-  // wasteful for a box that only ever holds 1-3 digits. Fixed-width instead, left-aligned with
-  // `gap`, so each box is only as wide as the value it holds actually needs — which is what freed
-  // up the row's right edge for the band picker (`justify-content: space-between` below).
-  fieldRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginTop: space.sm,
-  },
-  fieldsGroup: { flexDirection: 'row', gap: space.md },
-  field: { width: 64 },
-  fieldLabel: { marginBottom: 2 },
-  fieldWell: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space.xs,
-    height: 36,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.line,
-    paddingHorizontal: space.sm,
-  },
-  fieldInput: {
-    ...type.h3,
-    color: colors.text,
-    minWidth: 20,
-    padding: 0,
-    textAlign: 'center',
-  },
-  // In the header row, not on a line of their own: an icon pair is far narrower than the row it
-  // used to occupy, and giving it a whole line cost ~26pt of every card for no information.
-  // Pinned to the top so they stay level with the first line of a name that wraps.
-  cardActions: { flexDirection: 'row', gap: space.xs, alignSelf: 'flex-start' },
-  swapButton: { backgroundColor: tints.lagoon, borderColor: 'transparent' },
+    // -- entry card
+    card: {
+      // No fixed height: a long exercise name gets a taller card, which is correct. `minHeight`
+      // only stops a card with nothing in its detail line from looking collapsed.
+      minHeight: ESTIMATED_CARD_HEIGHT,
+      borderRadius: radius.md,
+      backgroundColor: t.colors.surface,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      paddingHorizontal: space.md,
+      paddingVertical: space.md,
+      justifyContent: 'space-between',
+    },
+    cardDragging: { backgroundColor: t.colors.surface3, elevation: 6, zIndex: 10 },
+    // Just the stacking bits of `cardDragging`, without its visual restyle: the band picker's open
+    // dropdown is an absolute overlay that extends below this card's own bounds, and would
+    // otherwise paint underneath the next card in the list rather than over it.
+    cardElevated: { zIndex: 10, elevation: 6 },
+    cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
+    dragHandle: {
+      width: 32,
+      minHeight: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: -6,
+    },
+    cardTitleBlock: { flex: 1, paddingTop: space.sm },
+    // `field` used to be `flex: 1`, stretching all four columns to fill the row — fine for a label,
+    // wasteful for a box that only ever holds 1-3 digits. Fixed-width instead, left-aligned with
+    // `gap`, so each box is only as wide as the value it holds actually needs — which is what freed
+    // up the row's right edge for the band picker (`justify-content: space-between` below).
+    fieldRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+      marginTop: space.sm,
+    },
+    fieldsGroup: { flexDirection: 'row', gap: space.md },
+    field: { width: 64 },
+    fieldLabel: { marginBottom: 2 },
+    fieldWell: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: space.xs,
+      height: 36,
+      borderRadius: radius.sm,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      paddingHorizontal: space.sm,
+    },
+    fieldInput: {
+      ...type.h3,
+      color: t.colors.text,
+      minWidth: 20,
+      padding: 0,
+      textAlign: 'center',
+    },
+    // In the header row, not on a line of their own: an icon pair is far narrower than the row it
+    // used to occupy, and giving it a whole line cost ~26pt of every card for no information.
+    // Pinned to the top so they stay level with the first line of a name that wraps.
+    cardActions: { flexDirection: 'row', gap: space.xs, alignSelf: 'flex-start' },
+    swapButton: { backgroundColor: t.tints.lagoon, borderColor: 'transparent' },
 
-  // -- add sheet
-  addList: { marginBottom: space.sm },
-  addOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: space.md,
-    minHeight: 52,
-    paddingHorizontal: space.md,
-    marginBottom: space.sm,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  addOptionText: { flex: 1 },
-});
+    // -- add sheet
+    addList: { marginBottom: space.sm },
+    addOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: space.md,
+      minHeight: 52,
+      paddingHorizontal: space.md,
+      marginBottom: space.sm,
+      borderRadius: radius.md,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+    },
+    addOptionText: { flex: 1 },
+  }),
+);

@@ -14,6 +14,7 @@ import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import { generate, sessionsRepo } from '@roamfit/store';
 import ApprovalScreen, { ESTIMATED_CARD_HEIGHT } from './ApprovalScreen';
 import WorkoutScreen from './WorkoutScreen';
+import { ThemeProvider } from '../state/ThemeProvider';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 
@@ -173,12 +174,14 @@ describe('§10.3 re-order at approval, driven through ApprovalScreen', () => {
     const workoutNav = mockNavigation();
     render(
       <StoreProvider>
-        <NavigationContainer>
-          <WorkoutScreen
-            navigation={workoutNav as never}
-            route={{ key: 'Workout', name: 'Workout', params: { sessionId } } as never}
-          />
-        </NavigationContainer>
+        <ThemeProvider>
+          <NavigationContainer>
+            <WorkoutScreen
+              navigation={workoutNav as never}
+              route={{ key: 'Workout', name: 'Workout', params: { sessionId } } as never}
+            />
+          </NavigationContainer>
+        </ThemeProvider>
       </StoreProvider>,
     );
 
