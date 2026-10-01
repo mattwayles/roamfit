@@ -3034,44 +3034,6 @@
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Flutter+Kick+proper+form+tutorial"
     },
     {
-      "id": "band-sit-up",
-      "name": "Banded Sit-Up",
-      "aliases": [
-        "Sit-Up",
-        "band sit up"
-      ],
-      "focus": [
-        "abs"
-      ],
-      "pattern": "flexion",
-      "primary": [
-        "abs"
-      ],
-      "secondary": [
-        "hip_flexors"
-      ],
-      "equipment": "band",
-      "band": "B1-B2",
-      "anchor": "anchor-low",
-      "anchor_alt": null,
-      "anchor_class": "band_tension",
-      "unilateral": false,
-      "metric": "reps",
-      "default_seconds": null,
-      "tier": "fill",
-      "roles": [
-        "main"
-      ],
-      "difficulty": "medium",
-      "progression_family": null,
-      "progression_level_id": null,
-      "contraindications": [
-        "lower_back_flexion"
-      ],
-      "setup": "Anchor low behind your head, hold band at chest. Sit all the way up against the resistance.",
-      "video_search": "https://www.youtube.com/results?search_query=resistance+band+Sit-Up+proper+form+tutorial"
-    },
-    {
       "id": "banded-plank",
       "name": "Banded Plank",
       "aliases": [
@@ -4536,7 +4498,9 @@
       "name": "Banded Crunch",
       "aliases": [
         "band crunch",
-        "low anchor crunch"
+        "low anchor crunch",
+        "Sit-Up",
+        "band sit up"
       ],
       "focus": [
         "abs"
