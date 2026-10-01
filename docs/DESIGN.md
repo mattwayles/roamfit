@@ -230,7 +230,6 @@ The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
    color and tilt). Opt-in state: a `Card` with three ghosted sample stamps and "Collect a stamp
    for every city you train in" + a primary `sm` button "TURN ON PASSPORT".
 5. **Muscle balance** — rows with a rounded gradient bar (sunrise), trailing 14 days, same data.
-6. Estimate-accuracy line, `caption`, text3, at the bottom.
 
 ### 5.3 Field Guide (Exercises list)
 

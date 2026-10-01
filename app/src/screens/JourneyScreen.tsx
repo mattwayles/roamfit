@@ -1,7 +1,7 @@
 /**
  * §14.1 Journey — the long-term story, split out of the old Home (DESIGN.md §5.2): lifetime
- * totals, Trails (the progression board), the Logbook calendar, Passport stamps, muscle balance
- * and the estimate-accuracy line. Today (HomeScreen) keeps the "what do I do now" half.
+ * totals, Trails (the progression board), the Logbook calendar, Passport stamps and muscle
+ * balance. Today (HomeScreen) keeps the "what do I do now" half.
  *
  * §14.2 zero-session requirement: the Trails render before the user has ever generated a session
  * (`useDashboardData` runs the idempotent progression initializer), with an explanation of the
@@ -700,14 +700,6 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
             />
           )}
         </Enter>
-      )}
-
-      {/* §14.1.9 estimate-accuracy trust-builder — small, quiet. */}
-      {stats.estimateAccuracyEma !== null && (
-        <Txt testID="estimate-accuracy" variant="caption" color="text3" align="center">
-          Your sessions finish within {Math.round(stats.estimateAccuracyEma * 100)}% of the
-          estimate.
-        </Txt>
       )}
 
       <Sheet
