@@ -72,7 +72,7 @@ dayMarker:{ trained: <focus color>, travel: sky, quick: gold }
 quiet outline, an untrained day is a neutral surface, "over-worked" is informational text in the
 same style as every other row. `rose` exists only as the cardio identity color.
 
-Each accent also exports a 15%-alpha `tint` (e.g. `emberTint: 'rgba(255,107,53,0.15)'`) for chip
+Each accent also exposes a `tint` (`theme.tints.ember`; Golden Hour `rgba(255,107,53,0.15)`, 8% alpha in Daylight, §8.3) for chip
 and badge backgrounds.
 
 ### Gradients (rendered with `react-native-svg`)
@@ -514,7 +514,7 @@ text2: '#4A4036'   //  8.9:1
 text3: '#6B6052'   //  5.4:1 — still AA, because "muted" outdoors is "invisible"
 
 // Accents — deepened so each is ≥ 4.5:1 as text on bg AND carries a white legend as a fill
-ember:     '#BF3708'   // 4.9:1 on bg; white on it 5.6:1
+ember:     '#B83507'   // 5.2:1 on bg; white on it 5.9:1
 emberDeep: '#9E2E06'
 gold:      '#8F5A00'   // brass — reads as gold on paper, unlike a yellow
 sun:       '#A86F00'   // large text / icons only (3.8:1)
@@ -562,6 +562,14 @@ Daylight: always `ink`, i.e. white).
   (surface vs bg is only 1.12:1). `elevation.card` = `shadowColor '#5A4126'`, opacity 0.10,
   radius 12, offset y 4 — applied to `Card` (plain/accent), `Sheet`, `StatTile`, the tab bar.
   Golden Hour's `elevation.card` is `{}` (no drop shadows on dark, unchanged).
+- **Where elevation does not apply.** Hero cards (`Card` `hero`) cast no shadow: they clip with
+  `overflow: hidden`, and their gradient carries the depth. `Toast` takes `elevation.card`. The
+  `Switch` thumb is `fixedPaper` plus `elevation.card` (Daylight `text` is ink, which would make a
+  black thumb).
+- **Tints are 8% alpha in Daylight** (15% on Golden Hour): at 15%, accent text on its own tint over
+  `bg` falls to 3.9–4.3:1 for ember/gold/lagoon/sky/rose; at 8% every accent holds ≥ 4.5:1 over
+  `surface` and `bg` (`sun` ≥ 3). Asserted in `themes.test.ts`. Ember was deepened to `#B83507` for
+  this (ember on tint over `bg` was 4.38:1 even at 8% with `#BF3708`).
 - **Glow is tamed.** A colored 18pt bloom on paper reads as a smudge. Daylight `glow(color)` =
   opacity 0.28, radius 10, offset y 4 — a colored lift, not a halo. Same call sites.
 - **Topo contours are printed sepia.** `topo.color` `#3B2410` at `topo.strength` 1.3× the seeded
@@ -576,7 +584,11 @@ Daylight: always `ink`, i.e. white).
 - `theme/palettes.ts`: `goldenHour` and `daylight`, each a complete `Palette` (identical key sets,
   asserted). `theme/buildTheme.ts`: `buildTheme(scheme)` → a frozen `Theme`:
   `{ scheme, colors, vivid, tints, gradients, accentGradient, section, focus, setState, dayMarker,
-  trainedColor, onGradient, glow, elevation, topo, stamp, statusBar, navTheme, headerOptions }`.
+  trainedColor, onGradient, heroCta, glow, elevation, topo, stamp, statusBar, navTheme,
+  headerOptions }`. `onGradient(tone)` returns a color token *name* (`'ink' | 'fixedPaper'`), not a
+  hex; `heroCta` is the token name of the Home hero pill's legend (Golden Hour `sun`, Daylight
+  `ember` — sun is 3.8:1 on Daylight's white pill). No scattered `scheme === ` color checks: add a
+  Theme field instead.
   Two instances, built once at module load.
 - `ThemeProvider` resolves a **preference** (`'system' | 'light' | 'dark'`) with RN's
   `useColorScheme()` and provides the `Theme`. `useTheme()` reads it; the context default is the
@@ -601,18 +613,19 @@ Daylight: always `ink`, i.e. white).
 
 ### 8.5 Where you switch
 
-- **Settings → Appearance** (first group, above Training): a three-way `SegmentedBar` — *System* /
+- **Settings → Appearance** (first group, above Training): a three-way picker made of three `Chip`s (`SegmentedBar` is a progress bar, not a selector; testIDs `appearance-system|light|dark`) — *System* /
   *Daylight* (sun icon) / *Golden Hour* (moon icon) — with the caption "Daylight is built for
   training outdoors in full sun. System follows your iPhone, which can switch at sunset."
 - **Active Workout top bar:** a sun/moon `IconButton` (`theme-toggle`). This is the point of the
   feature: you walk out into the courtyard mid-session and the screen is unreadable — one tap, no
-  leaving the workout. It sets an explicit `light`/`dark` preference (persisted). Accessibility label
+  leaving the workout. It sits on the left beside Home so the clock and the pause/stop group keep
+  their width. It sets an explicit `light`/`dark` preference (persisted). Accessibility label
   "Switch to Daylight" / "Switch to Golden Hour".
 
 ### 8.6 Rules
 
 - Never read a color at module scope. `colors`, `tints`, `gradients` and the semantic maps are no
-  longer exported as statics once the migration lands — the compiler finds every straggler.
+  longer exported as statics (deleted at the end of track 22) — read them from `useTheme()`.
 - Pure `lib/` code returns token *names* (`AccentName`, `ColorName`), not hex, and lets the
   component resolve them; where it must return a color it takes the `Theme` as an argument.
 - Every new color decision is made for both palettes at once. A screen is not done until it has been

@@ -6,7 +6,7 @@
     "scheme": "roamfit",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#0B0E13",
     "splash": {
       "image": "./assets/splash-icon.png",

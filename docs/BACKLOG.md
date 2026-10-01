@@ -47,8 +47,29 @@ the record of what was completed and why.
      `Sheet`.
   8. Everywhere: Reduce Motion, large Dynamic Type (`mega`/`hero` are capped at 1.3), VoiceOver labels on
      every icon-only control.
+- **Daylight light mode — device pass owed.** Track 22 shipped Jest-verified only (render tests per
+  screen under both themes; contrast asserted in `theme.test`/`themes.test`). Needs a dev-client
+  rebuild first: `app.json` `userInterfaceStyle` is now `"automatic"` and only applies natively after
+  one. Design: `docs/DESIGN.md` §8. Checklist:
+  1. Every screen in both modes (Today, Journey, Field Guide, Exercise detail, Generate, Plan, Active
+     Workout, Debrief, Completion, Settings, sheets, toasts).
+  2. An outdoor full-sun glance test of Daylight — can you read the set, the clock and the Done
+     button at arm's length mid-set? That is the whole point of the mode.
+  3. The Workout `theme-toggle` (sun/moon, left of Home) mid-session: switches live, no lost state, the
+     preference persists, Settings' Appearance reflects it.
+  4. System following iOS appearance live, including the automatic switch at sunset, with the app
+     foregrounded.
+  5. Status bar, keyboard (`keyboardAppearance`) and native stack headers follow the theme.
+  6. Completion: the stamped headline (fill `ember`, `vivid.gold` shadow, no glow) plus confetti and
+     orbs on paper.
+  7. Tinted chips and badges (Daylight tints are 8% alpha) — legible, and distinguishable from
+     `surface`/`bg`?
+  8. Cards' shadow on paper (`elevation.card`), the Switch thumb, Toast and tab bar lift.
+  9. Band-chip labels on mid-tone swatches: BandChip's pre-existing 0.45 luminance threshold may pick
+     the wrong legend on a few mid-tone bands; swatches are mode-invariant, so check each.
 - **App icon and splash art to match Golden Hour — needs an artist.** The splash background is `bg` and
-  the native chrome is dark, but `app/assets/icon.png` and `splash-icon.png` were not redrawn for the
+  stays Golden Hour in both appearances (one static image; Daylight does not get its own splash),
+  but `app/assets/icon.png` and `splash-icon.png` were not redrawn for the
   redesign (the redesign spec put the art out of scope). Design brief: night-sky `bg`, ember-to-gold sunrise, one travel motif (topographic
   contours or a stamp), Barlow Condensed wordmark.
 - **Show the app version in Settings' footer.** `expo-constants` is hoisted in by `expo` but not declared in

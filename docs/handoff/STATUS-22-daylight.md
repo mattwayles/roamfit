@@ -1,5 +1,5 @@
 ## Track: 22 — "Daylight" light mode
-Last updated: 2026-09-30 — Phase 1 done; Phase 2A-2D running in parallel.
+Last updated: 2026-09-30 — TRACK DONE (Phases 1, 2, 3). Only the device pass remains, owned by docs/BACKLOG.md ("Daylight light mode — device pass owed").
 
 User request: Golden Hour is hard to see when exercising outdoors. Keep it as the dark mode and add
 a light mode built for sunlight. Design authority was handed over in full ("full control, no
@@ -9,18 +9,18 @@ Presentation + one preference column. Engine/data behavior is frozen; the only s
 `theme_preference` column (migration 0022) and its `usersRepo` field.
 
 ### Done
-- [x] Design: `docs/DESIGN.md` §8 (palette with measured contrast, gradients, elevation/glow/topo/
-  stamp rules, mechanism, switch points), §1 "Dark only" rewritten as "Two lights, one system".
-- [x] P1 step 2 store: migration 0022, usersRepo `themePreference` (afcda30).
-- [x] P1 step 1 theme foundation: `theme/{palettes,buildTheme,ThemeContext}`, deprecated statics kept (see sha in git log).
-- [x] P1 step 3: `state/ThemeProvider.tsx` (`ThemeProvider`, `useThemePreference`, `resolveScheme`) + App.tsx wiring + tests.
-- [x] P1 step 4: `ui/` + `navigation/` fully on the theme hooks (no module-scope color reads), Daylight render tests in all four ui test files + navigation.test; `navigation/screenOptions.ts` deleted (use `theme.headerOptions`).
-- [x] P1 step 5: `lib/dayMarkers.ts` `markerColor` -> `markerTone` (returns an `AccentName`, `DayCell` resolves it); `focusLabels.ts` already returned token names (comment only).
+- [x] Design: `docs/DESIGN.md` §8 (palette, gradients, elevation/glow/topo/stamp, mechanism, switch points); §1 "Dark only" rewritten as "Two lights, one system".
+- [x] Phase 1: store migration 0022 + usersRepo `themePreference` (afcda30); theme foundation palettes/buildTheme/ThemeContext (eb2e433); ThemeProvider + App wiring (e16e12e); `lib/dayMarkers` `markerTone` (3105109); `ui/` + `navigation/` on theme hooks (c88a638, 438bf5b cleanup).
+- [x] Phase 2A Workout + `theme-toggle` (98262cb); 2B Summit: Summary/Completion/confetti (ac7d895); 2C Home (3e87a7c), Journey (b749874), Generate (763464a), Approval (883dd94, c98cc1f); 2D Field Guide (9a3ca9a), Exercise detail (fd92033), Settings Appearance (7a9825c), Icon `sun` (d5e74ea). In-flight marker (9916609).
+- [x] Phase 3 step 1: navigation.test fix + exported `useOptionalThemePreference` (3f63b72).
+- [x] Phase 3 steps 2-3: Appearance chips with sun/moon icons; `Theme.heroCta` (34d3be1).
+- [x] Phase 3 step 4: deleted every deprecated static export; tests moved to `goldenHour`/`goldenHourTheme` (471198c). Only `SPOTIFY_GREEN` remains as a raw hex outside `theme/`; no module-scope theme reads.
+- [x] Phase 3 steps 5-7: Daylight tint alpha 8% + ember `#B83507`, contrast test; `userInterfaceStyle: "automatic"`; BACKLOG device-pass item; DESIGN §8 reconciled (see the closing commit in `git log`).
 
 ### In progress
-- Phase 3 step 4: deleting the deprecated static exports from app/src/theme (colors.ts, navTheme.ts, index exports) and migrating every source + test straggler. Steps 1-3 committed (navigation.test fix, Settings chip icons, theme.heroCta).
+- Nothing. Track closed.
 
-### Next
+### Next (historical plan — all done; kept for the API reference below)
 
 **Phase 1 — foundation: DONE (see Done list).** Commit after each step; `npm run check` green at
 every commit. Keep the old static exports (`colors`, `tints`, `gradients`, semantic maps, `glow`,
@@ -139,6 +139,11 @@ Delete the old `import { colors, glow, tints, ... } from '../theme'` statics fro
   (the full check is ~8 minutes).
 
 ### Decisions / gotchas
+- **`useOptionalThemePreference()`** (state/ThemeProvider.tsx) returns null without a provider; the Workout theme toggle hides when null. `useThemePreference()` still throws outside the provider (Settings needs it): any test that renders Settings (navigation.test) must wrap in `ThemeProvider`.
+- **`inDaylight(node)`** in `ui/test-utils.ts` wraps a subtree in Daylight for render tests. Tests that need the RN color scheme must mock `react-native/Libraries/Utilities/useColorScheme`; spying on `Appearance` does not reach the hook.
+- **Daylight tints are 8% alpha** (Golden Hour 15%) and Daylight ember is `#B83507`: measured accent-on-own-tint contrast over surface and bg is >= 4.5 for all accents except `sun` (>= 3); asserted in `themes.test.ts`.
+- **Home hero CTA colour is `theme.heroCta`**; do not reintroduce `scheme ===` colour checks outside `theme/` and `state/` (the Workout toggle's icon/label and `keyboardAppearance` are fine).
+- The `Appearance` picker is three `Chip`s because `SegmentedBar` is a progress bar. `app.json` splash stays Golden Hour in both modes.
 - **Default preference is `system`.** iOS Automatic appearance is light by day and dark after
   sunset — Golden Hour literally arrives at golden hour. An install on a light-mode phone will open
   in Daylight after this lands; that is intended.
