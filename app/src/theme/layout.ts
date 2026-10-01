@@ -22,7 +22,8 @@ export const gutter = 20;
 
 export const radius = { sm: 10, md: 16, lg: 24, xl: 32, pill: 999 } as const;
 
-/** iOS shadow props rendered as a colored glow. `color` is an accent hex from `colors`. */
+/** iOS shadow props rendered as a colored glow. `color` is an accent hex from `colors`.
+ * @deprecated use useTheme().glow (tamed in Daylight) */
 export function glow(color: string = colors.ember): ViewStyle {
   return {
     shadowColor: color,

@@ -1,5 +1,5 @@
 ## Track: 22 — "Daylight" light mode
-Last updated: 2026-09-30 — design written, Phase 1 not started.
+Last updated: 2026-09-30 — Phase 1 in progress (steps 1-2 landed).
 
 User request: Golden Hour is hard to see when exercising outdoors. Keep it as the dark mode and add
 a light mode built for sunlight. Design authority was handed over in full ("full control, no
@@ -11,9 +11,11 @@ Presentation + one preference column. Engine/data behavior is frozen; the only s
 ### Done
 - [x] Design: `docs/DESIGN.md` §8 (palette with measured contrast, gradients, elevation/glow/topo/
   stamp rules, mechanism, switch points), §1 "Dark only" rewritten as "Two lights, one system".
+- [x] P1 step 2 store: migration 0022, usersRepo `themePreference` (afcda30).
+- [x] P1 step 1 theme foundation: `theme/{palettes,buildTheme,ThemeContext}`, deprecated statics kept (see sha in git log).
 
 ### In progress
-- (nothing — next agent starts Phase 1)
+- Phase 1 step 3: `state/ThemeProvider.tsx` + App.tsx wiring.
 
 ### Next
 
