@@ -225,7 +225,7 @@ The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
    ring, untrained days plain `surface` (neutral, never empty-looking-bad). Weekday header in
    `eyebrow`. Tap a day → the day-marker `Sheet` (same options).
 4. **Passport** — the passport finally has a purpose: **collecting stamps.** Header "PASSPORT"
-   with "4 cities · 2 countries · 9 sessions abroad" and a Share icon button. Body is a wrapping
+   with "4 cities · 2 countries" and a Share icon button. Body is a wrapping
    grid of `Stamp`s, one per city (seeded by city name, so each city always gets the same shape,
    color and tilt). Opt-in state: a `Card` with three ghosted sample stamps and "Collect a stamp
    for every city you train in" + a primary `sm` button "TURN ON PASSPORT".

@@ -186,9 +186,9 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
 
   const handleSharePassport = () => {
     if (!data) return;
-    const { cities, countries, sessionsAbroad } = data.passport;
+    const { cities, countries } = data.passport;
     void Share.share({
-      message: `RoamFit — trained in ${cities.length} ${cities.length === 1 ? 'city' : 'cities'} and ${countries.length} ${countries.length === 1 ? 'country' : 'countries'} (${sessionsAbroad} ${sessionsAbroad === 1 ? 'session' : 'sessions'} abroad).`,
+      message: `RoamFit — trained in ${cities.length} ${cities.length === 1 ? 'city' : 'cities'} and ${countries.length} ${countries.length === 1 ? 'country' : 'countries'}.`,
     });
   };
 
@@ -585,7 +585,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
           tone="sky"
           caption={
             user.passportEnabled && passport.cities.length > 0
-              ? `${passport.cities.length} ${plural(passport.cities.length, 'city', 'cities')} · ${passport.countries.length} ${plural(passport.countries.length, 'country', 'countries')} · ${passport.sessionsAbroad} ${plural(passport.sessionsAbroad, 'session', 'sessions')} abroad`
+              ? `${passport.cities.length} ${plural(passport.cities.length, 'city', 'cities')} · ${passport.countries.length} ${plural(passport.countries.length, 'country', 'countries')}`
               : undefined
           }
           right={

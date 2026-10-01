@@ -171,7 +171,7 @@ function summary(
 }
 
 describe('§9.6 Passport — strings only, deduplicated, accumulating', () => {
-  it('counts distinct cities/countries and sessions abroad, ignoring unresolved pins', () => {
+  it('counts distinct cities/countries, ignoring unresolved pins', () => {
     const passport = buildPassportSummary([
       summary('2026-05-01', { city: 'Lisbon', country: 'Portugal' }),
       summary('2026-05-08', { city: 'Lisbon', country: 'Portugal' }), // same city again
@@ -180,14 +180,12 @@ describe('§9.6 Passport — strings only, deduplicated, accumulating', () => {
     ]);
     expect(passport.cities.sort()).toEqual(['Lisbon', 'Porto']);
     expect(passport.countries).toEqual(['Portugal']);
-    expect(passport.sessionsAbroad).toBe(3);
   });
 
   it('an empty session list is an empty (not error) passport — v1 cold start', () => {
     const passport = buildPassportSummary([]);
     expect(passport.cities).toEqual([]);
     expect(passport.countries).toEqual([]);
-    expect(passport.sessionsAbroad).toBe(0);
   });
 });
 

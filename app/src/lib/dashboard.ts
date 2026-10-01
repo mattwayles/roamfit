@@ -151,25 +151,18 @@ export function buildMuscleBalanceRows(
 export interface PassportSummary {
   cities: string[];
   countries: string[];
-  sessionsAbroad: number;
 }
 
-/** §9.6 Passport — city/country **strings only**, deduplicated, counted. `sessionsAbroad` is
- *  simply "sessions with a city pinned" (v1 has no notion of a fixed "home" city to compare
- *  against — every pin is itself a positive, accumulating record, never a judgment about which
- *  ones "count"). */
+/** §9.6 Passport — city/country **strings only**, deduplicated, counted. Every pin is a positive,
+ *  accumulating record, never a judgment about which ones "count". */
 export function buildPassportSummary(sessions: DashboardSessionSummary[]): PassportSummary {
   const cities = new Set<string>();
   const countries = new Set<string>();
-  let sessionsAbroad = 0;
   for (const s of sessions) {
-    if (s.city) {
-      cities.add(s.city);
-      sessionsAbroad += 1;
-    }
+    if (s.city) cities.add(s.city);
     if (s.country) countries.add(s.country);
   }
-  return { cities: [...cities], countries: [...countries], sessionsAbroad };
+  return { cities: [...cities], countries: [...countries] };
 }
 
 export interface CalendarDay {
