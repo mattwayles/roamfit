@@ -108,3 +108,39 @@ describe('notificationPrefs — shallow merge, not replace', () => {
     }
   });
 });
+
+describe('themePreference (migration 0022)', () => {
+  it('defaults to system on a fresh user row', () => {
+    const { db, close } = createTestDb();
+    try {
+      expect(ensureUser(db, utcInstantFor('2026-08-01')).themePreference).toBe('system');
+    } finally {
+      close();
+    }
+  });
+
+  it('round-trips light / dark / system through updateUser', () => {
+    const { db, close } = createTestDb();
+    try {
+      ensureUser(db, utcInstantFor('2026-08-01'));
+      for (const pref of ['light', 'dark', 'system'] as const) {
+        updateUser(db, { themePreference: pref }, utcInstantFor('2026-08-02'));
+        expect(getUser(db)!.themePreference).toBe(pref);
+      }
+    } finally {
+      close();
+    }
+  });
+
+  it('an unrelated patch leaves the preference alone', () => {
+    const { db, close } = createTestDb();
+    try {
+      ensureUser(db, utcInstantFor('2026-08-01'));
+      updateUser(db, { themePreference: 'light' }, utcInstantFor('2026-08-02'));
+      updateUser(db, { cueSoundsEnabled: false }, utcInstantFor('2026-08-03'));
+      expect(getUser(db)!.themePreference).toBe('light');
+    } finally {
+      close();
+    }
+  });
+});

@@ -54,6 +54,8 @@ export const users = sqliteTable('users', {
   /** §10.8 — do the timer cue *tones* sound? Haptics are unconditional either way. Migration
    *  0014. */
   cueSoundsEnabled: integer('cue_sounds_enabled', { mode: 'boolean' }).notNull().default(true),
+  /** Daylight light mode (DESIGN.md §8): 'system' | 'light' | 'dark'. Migration 0022. */
+  themePreference: text('theme_preference').notNull().default('system'),
   /** JSON: { enabled, quiet_hours, observed_training_window }. */
   notificationPrefs: text('notification_prefs').notNull().default('{}'),
   /** §12 — the tz_id last observed for this device; compared against a new session's tz_id to

@@ -494,6 +494,13 @@ ALTER TABLE sessions ADD COLUMN resting_set_index INTEGER;
 ALTER TABLE sessions ADD COLUMN resting_started_at TEXT;
 `;
 
+const MIGRATION_0022_THEME_PREFERENCE = `-- 0022_theme_preference.sql — Daylight light mode (docs/DESIGN.md §8): which look the app wears.
+-- 'system' follows iOS appearance, 'light' is Daylight, 'dark' is Golden Hour. Default 'system'.
+-- Presentation only; nothing in the engine or the sync payload reads it.
+
+ALTER TABLE users ADD COLUMN theme_preference TEXT NOT NULL DEFAULT 'system';
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -522,4 +529,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0019_session_is_quick.sql', sql: MIGRATION_0019_SESSION_IS_QUICK },
   { id: '0020_remove_calibration.sql', sql: MIGRATION_0020_REMOVE_CALIBRATION },
   { id: '0021_session_resting.sql', sql: MIGRATION_0021_SESSION_RESTING },
+  { id: '0022_theme_preference.sql', sql: MIGRATION_0022_THEME_PREFERENCE },
 ];

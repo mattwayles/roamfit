@@ -4533,10 +4533,10 @@
     },
     {
       "id": "self-anchored-crunch",
-      "name": "Banded Self-Anchored Crunch",
+      "name": "Banded Crunch",
       "aliases": [
-        "self anchored crunch",
-        "self-anchored band crunch"
+        "band crunch",
+        "low anchor crunch"
       ],
       "focus": [
         "abs"
@@ -4550,7 +4550,7 @@
       ],
       "equipment": "band",
       "band": "B1-B2",
-      "anchor": "self-low",
+      "anchor": "anchor-low",
       "anchor_alt": null,
       "anchor_class": "band_tension",
       "unilateral": false,
@@ -4566,8 +4566,8 @@
       "contraindications": [
         "lower_back_flexion"
       ],
-      "setup": "Lie on your back, band around both feet, ends held at your chest. Crunch the ribs toward the hips against the band.",
-      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Self-Anchored+Band+Crunch+proper+form+tutorial"
+      "setup": "Anchor low behind your head, lie on your back facing away from the anchor, band ends held at your chest. Crunch the ribs toward the hips against the band.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Crunch+proper+form+tutorial"
     },
     {
       "id": "standing-side-crunch",

@@ -64,6 +64,9 @@ export const DEFAULT_NOTIFICATION_PREFS: Required<NotificationPrefs> = {
   motivationTimes: ['18:00'],
 };
 
+/** Which look the app wears: follow iOS, Daylight (light), or Golden Hour (dark). */
+export type ThemePreference = 'system' | 'light' | 'dark';
+
 export interface UserRecord {
   id: string;
   units: 'kg' | 'lb';
@@ -76,6 +79,7 @@ export interface UserRecord {
   passportEnabled: boolean;
   healthWriteEnabled: boolean;
   cueSoundsEnabled: boolean;
+  themePreference: ThemePreference;
   notificationPrefs: NotificationPrefs;
   lastKnownTzId: string | null;
   hasEverCompletedSession: boolean;
@@ -106,6 +110,7 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
     passportEnabled: row.passportEnabled,
     healthWriteEnabled: row.healthWriteEnabled,
     cueSoundsEnabled: row.cueSoundsEnabled,
+    themePreference: row.themePreference as ThemePreference,
     notificationPrefs: JSON.parse(row.notificationPrefs) as NotificationPrefs,
     lastKnownTzId: row.lastKnownTzId,
     hasEverCompletedSession: row.hasEverCompletedSession,
@@ -141,6 +146,7 @@ export interface UserPatch {
   passportEnabled?: boolean;
   healthWriteEnabled?: boolean;
   cueSoundsEnabled?: boolean;
+  themePreference?: ThemePreference;
   /** Shallow-merged onto the existing `notificationPrefs`, not replaced wholesale — a settings
    *  screen editing one field must not clobber others it doesn't know about. */
   notificationPrefs?: NotificationPrefs;
@@ -157,6 +163,7 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
   if (patch.passportEnabled !== undefined) values.passportEnabled = patch.passportEnabled;
   if (patch.healthWriteEnabled !== undefined) values.healthWriteEnabled = patch.healthWriteEnabled;
   if (patch.cueSoundsEnabled !== undefined) values.cueSoundsEnabled = patch.cueSoundsEnabled;
+  if (patch.themePreference !== undefined) values.themePreference = patch.themePreference;
   if (patch.notificationPrefs !== undefined) {
     values.notificationPrefs = JSON.stringify({
       ...current.notificationPrefs,
