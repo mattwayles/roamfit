@@ -42,7 +42,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, Linking, StyleSheet, TextInput, View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { colors, radius, space, type } from '../theme';
+import { makeStyles, radius, space, type, useTheme } from '../theme';
 import { Button, Card, Icon, PressableScale, Txt } from '../ui';
 import { buildSearchUrl, buildWatchUrl, isYouTubeUrl, resolveMediaTier } from '../lib/mediaLadder';
 import { getNetworkStatus } from '../lib/networkStatus';
@@ -129,6 +129,8 @@ export default function DemoMedia({
   onInputFocus,
   muted = true,
 }: DemoMediaProps): React.JSX.Element | null {
+  const styles = useStyles();
+  const theme = useTheme();
   const webviewRef = useRef<WebView>(null);
   const [open, setOpen] = useState(defaultOpen);
   // §11.4 "Player errors fall back silently" — once one fires for this mount, stay off the embed
@@ -364,9 +366,9 @@ export default function DemoMedia({
                   if (urlError) setUrlError(null);
                 }}
                 placeholder="Paste a YouTube link"
-                placeholderTextColor={colors.text3}
-                selectionColor={colors.ember}
-                keyboardAppearance="dark"
+                placeholderTextColor={theme.colors.text3}
+                selectionColor={theme.colors.ember}
+                keyboardAppearance={theme.scheme}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
@@ -406,43 +408,45 @@ export default function DemoMedia({
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 32,
-  },
-  headerTitle: { flexDirection: 'row', alignItems: 'center' },
-  headerIcon: { marginRight: space.sm },
-  body: { gap: space.md, marginTop: space.md },
-  mediaFrame: {
-    aspectRatio: 16 / 9,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    backgroundColor: colors.bg,
-    maxHeight: 220, // §10.4: "never takes more than about a third of the screen"
-  },
-  media: { flex: 1, backgroundColor: colors.bg },
-  loadPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  loadTitle: { marginTop: space.xs },
-  assignBlock: { gap: space.sm, marginTop: space.xs },
-  assignRow: { flexDirection: 'row', gap: space.sm, alignItems: 'center' },
-  assignInput: {
-    ...type.small,
-    flex: 1,
-    color: colors.text,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radius.pill,
-    paddingHorizontal: space.lg,
-    minHeight: 52,
-  },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      minHeight: 32,
+    },
+    headerTitle: { flexDirection: 'row', alignItems: 'center' },
+    headerIcon: { marginRight: space.sm },
+    body: { gap: space.md, marginTop: space.md },
+    mediaFrame: {
+      aspectRatio: 16 / 9,
+      borderRadius: radius.md,
+      overflow: 'hidden',
+      backgroundColor: t.colors.bg,
+      maxHeight: 220, // §10.4: "never takes more than about a third of the screen"
+    },
+    media: { flex: 1, backgroundColor: t.colors.bg },
+    loadPlaceholder: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+    },
+    loadTitle: { marginTop: space.xs },
+    assignBlock: { gap: space.sm, marginTop: space.xs },
+    assignRow: { flexDirection: 'row', gap: space.sm, alignItems: 'center' },
+    assignInput: {
+      ...type.small,
+      flex: 1,
+      color: t.colors.text,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      borderRadius: radius.pill,
+      paddingHorizontal: space.lg,
+      minHeight: 52,
+    },
+  }),
+);

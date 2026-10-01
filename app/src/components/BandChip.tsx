@@ -17,17 +17,26 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { BandId } from '@roamfit/engine';
 import type { BandTension } from '@roamfit/store';
-import { colors, radius, space, type ColorName } from '../theme';
+import {
+  goldenHour,
+  makeStyles,
+  radius,
+  space,
+  useTheme,
+  type ColorName,
+  type Theme,
+} from '../theme';
 import { Txt } from '../ui';
 
-/** Which token to put on this fill: `ink` (dark) or `text` (light). Computed from the colour rather
+/** Which token to put on this fill: `fixedInk` (dark) or `fixedPaper` (light). Band swatches are
+ *  real-world data and do not change with the theme, so neither does the legend on them. Computed from the colour rather
  *  than stored beside it — band colours are user data and user-editable, so a stored pairing would
  *  go wrong the moment someone changed a fill without changing its partner. Uses the WCAG
- *  relative-luminance coefficients; yellow lands `ink` and near-black lands `text`. Falls back to
- *  `ink` on anything it cannot parse, since an unreadable chip is worse than an unfashionable one. */
+ *  relative-luminance coefficients; yellow lands `fixedInk` and near-black lands `fixedPaper`. Falls back to
+ *  `fixedInk` on anything it cannot parse, since an unreadable chip is worse than an unfashionable one. */
 export function textToneOn(background: string): ColorName {
   const hex = /^#([0-9a-f]{6})$/i.exec(background.trim());
-  if (!hex) return 'ink';
+  if (!hex) return 'fixedInk';
   const int = parseInt(hex[1], 16);
   const channel = (v: number): number => {
     const c = v / 255;
@@ -37,16 +46,19 @@ export function textToneOn(background: string): ColorName {
     0.2126 * channel((int >> 16) & 0xff) +
     0.7152 * channel((int >> 8) & 0xff) +
     0.0722 * channel(int & 0xff);
-  return luminance > 0.45 ? 'ink' : 'text';
+  return luminance > 0.45 ? 'fixedInk' : 'fixedPaper';
 }
 
 /** `textToneOn` resolved to the actual color. */
 export function textColorOn(background: string): string {
-  return colors[textToneOn(background)];
+  // `fixedInk` / `fixedPaper` are identical in both palettes, so either one answers.
+  return goldenHour[textToneOn(background) as 'fixedInk' | 'fixedPaper'];
 }
 
 /** Fill used when a band has no tension record — a neutral, not a band color. */
-export const NEUTRAL_BAND_COLOR = colors.lineStrong;
+export function neutralBandColor(theme: Theme): string {
+  return theme.colors.lineStrong;
+}
 
 export default function BandChip({
   band,
@@ -56,8 +68,10 @@ export default function BandChip({
   /** The user's own band settings. */
   tensions: Record<BandId, BandTension>;
 }): React.JSX.Element {
+  const styles = useStyles();
+  const theme = useTheme();
   const tension = tensions[band];
-  const dot = tension?.color ?? NEUTRAL_BAND_COLOR;
+  const dot = tension?.color ?? neutralBandColor(theme);
   const label = tension?.label ?? band;
   return (
     <View
@@ -74,26 +88,28 @@ export default function BandChip({
   );
 }
 
-const styles = StyleSheet.create({
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    minHeight: 30,
-    borderRadius: radius.pill,
-    paddingHorizontal: space.md,
-    paddingVertical: 6,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  // The dot is the band. A hairline ring keeps a very dark user colour visible on the dark chip.
-  dot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-  },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      minHeight: 30,
+      borderRadius: radius.pill,
+      paddingHorizontal: space.md,
+      paddingVertical: 6,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+    },
+    // The dot is the band. A hairline ring keeps a very dark user colour visible on the dark chip.
+    dot: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      marginRight: 8,
+      borderWidth: 1,
+      borderColor: t.colors.lineStrong,
+    },
+  }),
+);

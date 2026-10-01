@@ -11,8 +11,9 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { render, screen, waitFor } from '@testing-library/react-native';
 import { DEFAULT_BAND_TENSIONS } from '@roamfit/store';
-import { colors } from '../theme';
-import BandChip, { textColorOn } from './BandChip';
+import { daylight, goldenHour } from '../theme';
+import { inDaylight } from '../ui/test-utils';
+import BandChip, { textColorOn, textToneOn } from './BandChip';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
@@ -26,7 +27,7 @@ describe('BandChip', () => {
     // The chip itself is chrome, not the band's colour.
     expect(
       StyleSheet.flatten(screen.getByTestId('band-chip-B2').props.style)?.backgroundColor,
-    ).toBe(colors.surface2);
+    ).toBe(goldenHour.surface2);
   });
 
   it('honours a customised colour and label, since bands are user-editable (§1140)', async () => {
@@ -52,12 +53,29 @@ describe('BandChip', () => {
   it('picks readable text from the fill rather than a stored pairing', () => {
     // Yellow needs dark text, near-black needs light. A stored pairing would go stale the moment
     // a user changed a fill without changing its partner.
-    expect(textColorOn('#facc15')).toBe(colors.ink);
-    expect(textColorOn('#1f2937')).toBe(colors.text);
-    expect(textColorOn('#ffffff')).toBe(colors.ink);
-    expect(textColorOn('#000000')).toBe(colors.text);
+    expect(textColorOn('#facc15')).toBe(goldenHour.fixedInk);
+    expect(textColorOn('#1f2937')).toBe(goldenHour.fixedPaper);
+    expect(textColorOn('#ffffff')).toBe(goldenHour.fixedInk);
+    expect(textColorOn('#000000')).toBe(goldenHour.fixedPaper);
     // Unparseable input must still render something legible, never crash.
-    expect(textColorOn('rebeccapurple')).toBe(colors.ink);
+    expect(textColorOn('rebeccapurple')).toBe(goldenHour.fixedInk);
+  });
+
+  it('legends on a band swatch are theme-invariant: fixedInk / fixedPaper, same in both palettes', () => {
+    expect(textToneOn('#facc15')).toBe('fixedInk');
+    expect(textToneOn('#1f2937')).toBe('fixedPaper');
+    expect(daylight.fixedInk).toBe(goldenHour.fixedInk);
+    expect(daylight.fixedPaper).toBe(goldenHour.fixedPaper);
+  });
+
+  it('in Daylight the chip pill is paper chrome while the band dot keeps the user’s colour', async () => {
+    render(inDaylight(<BandChip band="B1" tensions={DEFAULT_BAND_TENSIONS} />));
+    await waitFor(() => expect(screen.getByTestId('band-chip-B1')).toBeTruthy(), WAIT_OPTS);
+    const chip = StyleSheet.flatten(screen.getByTestId('band-chip-B1').props.style);
+    expect(chip.backgroundColor).toBe(daylight.surface2);
+    expect(chip.borderColor).toBe(daylight.line);
+    const dot = StyleSheet.flatten(screen.getByTestId('band-chip-B1-dot').props.style);
+    expect(dot.backgroundColor).toBe(DEFAULT_BAND_TENSIONS.B1.color);
   });
 
   it('every default band is distinguishable from its neighbours', () => {

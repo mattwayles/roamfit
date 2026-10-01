@@ -40,7 +40,7 @@ import {
   useSpotifyPlayer,
   type SpotifyContentItem,
 } from '../lib/spotifyRemote';
-import { colors, radius, space } from '../theme';
+import { makeStyles, radius, space, useTheme } from '../theme';
 import { Icon, IconButton, PressableScale, Sheet, Txt } from '../ui';
 
 /** One level of the browse stack: the items shown, and the label its header reads. The root level
@@ -52,6 +52,8 @@ interface BrowseLevel {
 }
 
 export default function SpotifyControls(): React.JSX.Element | null {
+  const styles = useStyles();
+  const theme = useTheme();
   const {
     available,
     connectionState,
@@ -238,7 +240,7 @@ export default function SpotifyControls(): React.JSX.Element | null {
 
         {browseLoading ? (
           <View testID="spotify-browse-loading" accessibilityLabel="Loading" style={styles.empty}>
-            <ActivityIndicator color={colors.ember} />
+            <ActivityIndicator color={theme.colors.ember} />
           </View>
         ) : currentLevel && currentLevel.items.length === 0 && !browseError ? (
           <Txt variant="small" color="text2" style={styles.empty}>
@@ -292,52 +294,55 @@ export default function SpotifyControls(): React.JSX.Element | null {
 const SPOTIFY_GREEN = '#1db954';
 
 function BrandDot(): React.JSX.Element {
+  const styles = useStyles();
   return (
     <View style={styles.brandDot}>
-      <Icon name="music" size={14} color="ink" />
+      <Icon name="music" size={14} color="fixedInk" />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  block: { gap: space.xs },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.line,
-    paddingVertical: space.xs,
-    paddingLeft: space.sm,
-    paddingRight: space.xs,
-  },
-  row: { gap: space.xs },
-  // flexShrink with a zero basis, not flex: 1 — the buttons are fixed-width and must win every
-  // contest for space; this box takes exactly what is left.
-  trackBox: { flexGrow: 1, flexShrink: 1, flexBasis: 0, marginLeft: space.xs },
-  connectPill: { minHeight: 44, paddingRight: space.lg },
-  connectBusy: { opacity: 0.6 },
-  connectText: { marginLeft: space.md },
-  brandDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: SPOTIFY_GREEN,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  error: { paddingHorizontal: space.sm },
-  browseHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: space.sm },
-  browseHeaderSpacer: { width: 44, height: 44 },
-  browseHeaderTitle: { flex: 1, textAlign: 'center' },
-  empty: { paddingVertical: space.lg },
-  browseRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 52,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.line,
-  },
-  browseRowMain: { flex: 1, paddingVertical: space.md },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    block: { gap: space.xs },
+    pill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.colors.surface,
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      paddingVertical: space.xs,
+      paddingLeft: space.sm,
+      paddingRight: space.xs,
+    },
+    row: { gap: space.xs },
+    // flexShrink with a zero basis, not flex: 1 — the buttons are fixed-width and must win every
+    // contest for space; this box takes exactly what is left.
+    trackBox: { flexGrow: 1, flexShrink: 1, flexBasis: 0, marginLeft: space.xs },
+    connectPill: { minHeight: 44, paddingRight: space.lg },
+    connectBusy: { opacity: 0.6 },
+    connectText: { marginLeft: space.md },
+    brandDot: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: SPOTIFY_GREEN,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    error: { paddingHorizontal: space.sm },
+    browseHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: space.sm },
+    browseHeaderSpacer: { width: 44, height: 44 },
+    browseHeaderTitle: { flex: 1, textAlign: 'center' },
+    empty: { paddingVertical: space.lg },
+    browseRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 52,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: t.colors.line,
+    },
+    browseRowMain: { flex: 1, paddingVertical: space.md },
+  }),
+);

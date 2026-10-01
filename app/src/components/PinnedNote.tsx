@@ -5,7 +5,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import { colors, radius, space, tints, type, withAlpha } from '../theme';
+import { makeStyles, radius, space, type, useTheme, withAlpha } from '../theme';
 import { Icon, Txt } from '../ui';
 import KeyboardDoneBar from './KeyboardDoneBar';
 
@@ -18,6 +18,8 @@ export default function PinnedNote({
   note: string | null;
   onChange: (next: string) => void;
 }): React.JSX.Element {
+  const styles = useStyles();
+  const theme = useTheme();
   const [draft, setDraft] = useState(note ?? '');
 
   useEffect(() => setDraft(note ?? ''), [note]);
@@ -42,9 +44,9 @@ export default function PinnedNote({
           style={styles.input}
           value={draft}
           placeholder="Add a note for this exercise"
-          placeholderTextColor={colors.text3}
-          selectionColor={colors.gold}
-          keyboardAppearance="dark"
+          placeholderTextColor={theme.colors.text3}
+          selectionColor={theme.colors.gold}
+          keyboardAppearance={theme.scheme}
           multiline
           inputAccessoryViewID={ACCESSORY_ID}
           onChangeText={setDraft}
@@ -59,33 +61,35 @@ export default function PinnedNote({
   );
 }
 
-const styles = StyleSheet.create({
-  sticky: {
-    backgroundColor: tints.gold,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: withAlpha(colors.gold, 0.45),
-    padding: space.sm,
-    gap: space.sm,
-  },
-  header: { flexDirection: 'row', alignItems: 'center' },
-  pin: { marginRight: 8 },
-  // The field is a well: a raised `surface2` field, so it is obvious the note can be typed into.
-  well: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface2,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.line,
-    paddingHorizontal: space.md,
-    minHeight: 44,
-  },
-  input: {
-    ...type.body,
-    flex: 1,
-    color: colors.text,
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    sticky: {
+      backgroundColor: t.tints.gold,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: withAlpha(t.colors.gold, 0.45),
+      padding: space.sm,
+      gap: space.sm,
+    },
+    header: { flexDirection: 'row', alignItems: 'center' },
+    pin: { marginRight: 8 },
+    // The field is a well: a raised `surface2` field, so it is obvious the note can be typed into.
+    well: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.colors.surface2,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      paddingHorizontal: space.md,
+      minHeight: 44,
+    },
+    input: {
+      ...type.body,
+      flex: 1,
+      color: t.colors.text,
+      paddingTop: 10,
+      paddingBottom: 10,
+    },
+  }),
+);

@@ -43,18 +43,17 @@ import type { BandId } from '@roamfit/engine';
 import type { SwapAlternative } from '@roamfit/engine';
 import type { Anchor, AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import {
-  colors,
-  gradients,
   gutter,
+  makeStyles,
   motion,
   radius,
-  section as sectionColor,
   space,
-  tints,
   type as textStyles,
+  useTheme,
   type AccentName,
   withAlpha,
 } from '../theme';
+import { useThemePreference } from '../state/ThemeProvider';
 import {
   Button,
   Card,
@@ -129,6 +128,17 @@ interface PendingCompletion {
 
 /** §10.8 crash-safety resume — see `sessionProgress.ts` for the shared implementation (also used
  *  by HomeScreen's abandon action to record §8.3's "abandoned, and at exactly which exercise"). */
+/** The theme toggle needs the app's `ThemeProvider`; a screen rendered without one (most unit
+ *  tests of this screen) simply has no toggle rather than throwing. Hook order is unchanged either
+ *  way — `useThemePreference` always runs its `useContext` before it can throw. */
+function useOptionalThemePreference(): ReturnType<typeof useThemePreference> | null {
+  try {
+    return useThemePreference();
+  } catch {
+    return null;
+  }
+}
+
 function findCurrent(
   session: SessionRecord,
 ): { entry: sessionsRepo.SessionEntryRecord; setIndex: number } | null {
@@ -148,6 +158,9 @@ function levelBadge(
 }
 
 export default function WorkoutScreen({ navigation, route }: Props): React.JSX.Element {
+  const styles = useStyles();
+  const theme = useTheme();
+  const themePreference = useOptionalThemePreference();
   // §10.8 — "Keep-awake for the whole active session; released on completion or abandonment."
   // `useKeepAwake` activates on mount and deactivates automatically on unmount, which covers
   // both cases: navigating to Summary on completion, or navigating away (Home/back) on
@@ -436,7 +449,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   if (!session) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.ember} />
+        <ActivityIndicator color={theme.colors.ember} />
       </View>
     );
   }
@@ -457,7 +470,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   if (!current || !entry) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.ember} />
+        <ActivityIndicator color={theme.colors.ember} />
       </View>
     );
   }
@@ -972,6 +985,21 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               navigation.navigate('Tabs', { screen: 'Home' });
             }}
           />
+          {/* §8.5 — one tap to the other light, mid-session: the courtyard case. Sits on the left
+              beside Home so the right group (pause/stop) and the centered clock keep their width.
+              Sets an explicit, persisted preference. The icon names the destination, not the state. */}
+          {themePreference && (
+            <IconButton
+              testID="theme-toggle"
+              icon={themePreference.scheme === 'dark' ? 'sun' : 'moon'}
+              accessibilityLabel={
+                themePreference.scheme === 'dark' ? 'Switch to Daylight' : 'Switch to Golden Hour'
+              }
+              onPress={() =>
+                themePreference.setPreference(themePreference.scheme === 'dark' ? 'light' : 'dark')
+              }
+            />
+          )}
         </View>
         <Txt
           variant="hero"
@@ -1000,7 +1028,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       <SegmentedBar
         values={segmentValues}
         activeIndex={activeSegment}
-        color={sectionColor[sessionSection] ?? colors.ember}
+        color={theme.section[sessionSection] ?? theme.colors.ember}
         style={styles.segments}
       />
 
@@ -1168,7 +1196,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
                       ),
                     ),
                     justDone: restingSetIndex,
-                    color: sectionColor[restingEntry.section as Section] ?? colors.ember,
+                    color: theme.section[restingEntry.section as Section] ?? theme.colors.ember,
                   }
                 : null
             }
@@ -1273,6 +1301,7 @@ const SECTION_LABEL: Record<Section, string> = {
 /** "PAUSED" beside the section chip, breathing gently so a frozen clock reads as deliberate
  *  rather than broken. The pulse is dropped under Reduce Motion, and stopped on unmount. */
 function PausedChip(): React.JSX.Element {
+  const styles = useStyles();
   const reduceMotion = useReduceMotion();
   const opacity = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -1339,6 +1368,7 @@ function HeroCard({
   paused?: boolean;
   children: React.ReactNode;
 }): React.JSX.Element {
+  const styles = useStyles();
   return (
     <View style={paused ? styles.heroPaused : undefined} testID="hero-card">
       <Card variant="accent" tone={tone} padding="md">
@@ -1386,6 +1416,7 @@ function ExerciseHeader({
   bandTensions: Record<BandId, usersRepo.BandTension>;
   onPickBand: (band: BandId) => void;
 }): React.JSX.Element {
+  const styles = useStyles();
   // A skipped set is a quiet empty dot, never a filled one (invariant 4): only completed sets fill.
   const done = Array.from({ length: entry.sets }, (_, i) =>
     entry.setLogs.some((l) => l.setIndex === i && l.status === 'completed'),
@@ -1452,6 +1483,7 @@ function SetNavRow({
    *  stepped back, where it just walks forward over sets that are already logged. */
   forwardIsSkip: boolean;
 }): React.JSX.Element {
+  const styles = useStyles();
   return (
     <View style={styles.actionRow}>
       <IconButton
@@ -1533,12 +1565,14 @@ function RepsExercise({
   onRewind: (() => void) | null;
   forwardIsSkip: boolean;
 }): React.JSX.Element {
+  const styles = useStyles();
+  const theme = useTheme();
   // Remounted per set (the caller keys on entry+setIndex), so both of these reset to the incoming
   // default each set without any explicit clearing — which is exactly why the default has to be
   // the set's own logged value when it has one, not the prescription.
   const [reps, setReps] = useState(repsDefault);
   const [bandUsed, setBandUsed] = useState(band);
-  const color = sectionColor[entry.section as Section] ?? colors.ember;
+  const color = theme.section[entry.section as Section] ?? theme.colors.ember;
   const tone = SECTION_TONE[entry.section as Section] ?? 'ember';
   const closesExercise = setIndex === entry.sets - 1;
   return (
@@ -1580,8 +1614,8 @@ function RepsExercise({
               testID="rep-count"
               style={styles.repCountInput}
               keyboardType="number-pad"
-              keyboardAppearance="dark"
-              selectionColor={colors.ember}
+              keyboardAppearance={theme.scheme}
+              selectionColor={theme.colors.ember}
               selectTextOnFocus
               maxFontSizeMultiplier={1.3}
               accessibilityLabel="Reps completed"
@@ -1699,6 +1733,8 @@ function TimedExercise({
   onRewind: (() => void) | null;
   forwardIsSkip: boolean;
 }): React.JSX.Element {
+  const styles = useStyles();
+  const theme = useTheme();
   // The hold this set starts from, fixed for the life of this mounted set: the prescription, or
   // what the user recorded if this set has already run (`durationDefault`). `durationSec` below is
   // the (possibly user-adjusted) hold length actually used; the two are only ever different
@@ -2073,7 +2109,7 @@ function TimedExercise({
             ? 'Resume the hold'
             : 'Pause the hold';
 
-  const color = sectionColor[entry.section as Section] ?? colors.ember;
+  const color = theme.section[entry.section as Section] ?? theme.colors.ember;
   const tone = SECTION_TONE[entry.section as Section] ?? 'ember';
   const stopped = selfPaused || paused;
 
@@ -2134,7 +2170,7 @@ function TimedExercise({
               progress={ringProgress}
               size={RING_SIZE}
               stroke={14}
-              gradient={gradients.sunrise}
+              gradient={theme.gradients.sunrise}
               trackColor={withAlpha(color, 0.18)}
               animate={false}
             >
@@ -2272,6 +2308,8 @@ function RestPhase({
   /** §10.7 — "+15s taps are recorded as a fatigue signal." Called only for +15 (never −15/Skip). */
   onExtend: () => void;
 }): React.JSX.Element {
+  const styles = useStyles();
+  const theme = useTheme();
   const countdown = useCountdown(restSec * 1000);
   // §10.7 background rest timer: a local notification scheduled for the moment this rest would
   // hit zero, so the alert still lands if the screen is locked or the app is backgrounded —
@@ -2393,8 +2431,8 @@ function RestPhase({
               progress={mostMsRef.current > 0 ? remainingMs / mostMsRef.current : 0}
               size={REST_RING_SIZE}
               stroke={14}
-              gradient={gradients.lagoon}
-              trackColor={withAlpha(colors.lagoon, 0.18)}
+              gradient={theme.gradients.lagoon}
+              trackColor={withAlpha(theme.colors.lagoon, 0.18)}
               animate={false}
             >
               <Txt
@@ -2509,6 +2547,7 @@ function PillButton({
   accessibilityLabel: string;
   onPress: () => void;
 }): React.JSX.Element {
+  const styles = useStyles();
   return (
     <PressableScale
       testID={testID}
@@ -2533,6 +2572,7 @@ function Disclosure({
   body: string;
   defaultOpen: boolean;
 }): React.JSX.Element {
+  const styles = useStyles();
   const [open, setOpen] = useState(defaultOpen);
   return (
     <Card padding="md">
@@ -2561,102 +2601,109 @@ function Disclosure({
   );
 }
 
-const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bg,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: gutter,
-    paddingTop: space.xs,
-    minHeight: 64,
-  },
-  // Both side groups are the same fixed width (two 44pt buttons and a gap) so the clock between
-  // them stays centered whichever side has fewer buttons.
-  barSide: { width: 96, flexDirection: 'row', alignItems: 'center' },
-  barSideRight: { justifyContent: 'flex-end', gap: space.sm },
-  clock: { flex: 1, textAlign: 'center' },
-  segments: { marginHorizontal: gutter, marginTop: space.sm },
-  scroll: { flex: 1 },
-  container: { paddingHorizontal: gutter, paddingTop: space.md, gap: space.lg },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  metaSpacer: { flex: 1 },
-  pausedChip: { alignSelf: 'flex-start' },
-  swapNotice: {
-    alignSelf: 'center',
-    backgroundColor: tints.lagoon,
-    borderRadius: radius.pill,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-  },
-  nudge: { gap: space.md },
-  nudgeButtons: { gap: space.sm, marginTop: space.sm },
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    centered: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: t.colors.bg,
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: gutter,
+      paddingTop: space.xs,
+      minHeight: 64,
+    },
+    // Both side groups are the same fixed width (two 44pt buttons and a gap) so the clock between
+    // them stays centered whichever side has fewer buttons.
+    barSide: { width: 96, flexDirection: 'row', alignItems: 'center' },
+    barSideRight: { justifyContent: 'flex-end', gap: space.sm },
+    clock: { flex: 1, textAlign: 'center' },
+    segments: { marginHorizontal: gutter, marginTop: space.sm },
+    scroll: { flex: 1 },
+    container: { paddingHorizontal: gutter, paddingTop: space.md, gap: space.lg },
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+    metaSpacer: { flex: 1 },
+    pausedChip: { alignSelf: 'flex-start' },
+    swapNotice: {
+      alignSelf: 'center',
+      backgroundColor: t.tints.lagoon,
+      borderRadius: radius.pill,
+      paddingHorizontal: space.lg,
+      paddingVertical: space.sm,
+    },
+    nudge: { gap: space.md },
+    nudgeButtons: { gap: space.sm, marginTop: space.sm },
 
-  // -- exercise hero (shared by the reps and timed views)
-  heroPaused: { opacity: 0.55 },
-  heroBody: { gap: space.md },
-  setRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm },
-  actionRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: space.xs },
-  completeButton: { height: 72 },
+    // -- exercise hero (shared by the reps and timed views)
+    heroPaused: { opacity: 0.55 },
+    heroBody: { gap: space.md },
+    setRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    chipRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm },
+    actionRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: space.xs },
+    completeButton: { height: 72 },
 
-  // -- reps: the counter is the centerpiece
-  counter: { alignItems: 'center', gap: space.xs, paddingVertical: space.sm },
-  counterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    alignSelf: 'stretch',
-  },
-  repCountInput: {
-    ...textStyles.mega,
-    flex: 1,
-    height: 124,
-    padding: 0,
-    color: colors.text,
-    textAlign: 'center',
-  },
+    // -- reps: the counter is the centerpiece
+    counter: { alignItems: 'center', gap: space.xs, paddingVertical: space.sm },
+    counterRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      alignSelf: 'stretch',
+    },
+    repCountInput: {
+      ...textStyles.mega,
+      flex: 1,
+      height: 124,
+      padding: 0,
+      color: t.colors.text,
+      textAlign: 'center',
+    },
 
-  // -- timed: the ring is the control
-  ringWrap: { alignSelf: 'center', width: RING_SIZE, height: RING_SIZE, marginVertical: space.sm },
-  ring: { width: RING_SIZE, height: RING_SIZE, borderRadius: RING_SIZE / 2 },
-  ringNumeral: { width: 170, textAlign: 'center' },
-  ringUnit: { marginTop: -space.sm },
-  // The ±5s buttons sit outside the ring's lower corners (the square around a circle is empty
-  // there), so the whole control still fits the card's width.
-  durationMinus: { position: 'absolute', left: -28, bottom: 0 },
-  durationPlus: { position: 'absolute', right: -28, bottom: 0 },
+    // -- timed: the ring is the control
+    ringWrap: {
+      alignSelf: 'center',
+      width: RING_SIZE,
+      height: RING_SIZE,
+      marginVertical: space.sm,
+    },
+    ring: { width: RING_SIZE, height: RING_SIZE, borderRadius: RING_SIZE / 2 },
+    ringNumeral: { width: 170, textAlign: 'center' },
+    ringUnit: { marginTop: -space.sm },
+    // The ±5s buttons sit outside the ring's lower corners (the square around a circle is empty
+    // there), so the whole control still fits the card's width.
+    durationMinus: { position: 'absolute', left: -28, bottom: 0 },
+    durationPlus: { position: 'absolute', right: -28, bottom: 0 },
 
-  // -- rest
-  restBody: { gap: space.md, alignItems: 'center' },
-  restPips: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  pillRow: { flexDirection: 'row', justifyContent: 'center', gap: space.sm },
-  pill: {
-    minHeight: 44,
-    minWidth: 84,
-    paddingHorizontal: space.lg,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  feelLabel: { marginTop: space.sm },
-  upNext: { gap: space.sm },
+    // -- rest
+    restBody: { gap: space.md, alignItems: 'center' },
+    restPips: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+    pillRow: { flexDirection: 'row', justifyContent: 'center', gap: space.sm },
+    pill: {
+      minHeight: 44,
+      minWidth: 84,
+      paddingHorizontal: space.lg,
+      borderRadius: radius.pill,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    feelLabel: { marginTop: space.sm },
+    upNext: { gap: space.sm },
 
-  // -- disclosure
-  disclosureHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 32,
-  },
-  disclosureTitle: { flexDirection: 'row', alignItems: 'center' },
-  disclosureIcon: { marginRight: space.sm },
-  disclosureBody: { marginTop: space.md },
-});
+    // -- disclosure
+    disclosureHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      minHeight: 32,
+    },
+    disclosureTitle: { flexDirection: 'row', alignItems: 'center' },
+    disclosureIcon: { marginRight: space.sm },
+    disclosureBody: { marginTop: space.md },
+  }),
+);

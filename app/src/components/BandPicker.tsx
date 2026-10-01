@@ -25,9 +25,9 @@ import { StyleSheet, View } from 'react-native';
 import { BAND_ORDER } from '@roamfit/engine';
 import type { BandId } from '@roamfit/engine';
 import type { BandTension } from '@roamfit/store';
-import { colors, radius, space } from '../theme';
+import { makeStyles, radius, space, useTheme } from '../theme';
 import { Icon, PressableScale, Txt } from '../ui';
-import BandChip, { NEUTRAL_BAND_COLOR, textToneOn } from './BandChip';
+import BandChip, { neutralBandColor, textToneOn } from './BandChip';
 
 export default function BandPicker({
   band,
@@ -54,12 +54,14 @@ export default function BandPicker({
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }): React.JSX.Element {
+  const styles = useStyles();
+  const theme = useTheme();
   const [internalOpen, setInternalOpen] = useState(false);
   const open = openProp ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
   const tension = tensions[band];
   // Band colours are user data (real-world tension colours), not a palette this file invents.
-  const background = tension?.color ?? NEUTRAL_BAND_COLOR;
+  const background = tension?.color ?? neutralBandColor(theme);
   const label = tension?.label ?? band;
   const tone = textToneOn(background);
   const isField = variant === 'field';
@@ -105,7 +107,7 @@ export default function BandPicker({
         <View style={[styles.options, isField && styles.optionsField]} testID={`${testID}-options`}>
           {BAND_ORDER.map((id) => {
             const optionTension = tensions[id];
-            const optionBackground = optionTension?.color ?? NEUTRAL_BAND_COLOR;
+            const optionBackground = optionTension?.color ?? neutralBandColor(theme);
             const selected = id === band;
             return (
               <PressableScale
@@ -137,69 +139,71 @@ export default function BandPicker({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { alignSelf: 'flex-start' },
-  // The chip is small on purpose; the tappable area around it is not. 44pt tall so it is a real
-  // target found mid-set, at arm's length.
-  trigger: { flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingRight: 2 },
-  // A visible caret: this chip doubles as a card's only cue that the band is editable, so the
-  // arrow has to read as "tap me" at a glance.
-  caret: { marginLeft: 4 },
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    root: { alignSelf: 'flex-start' },
+    // The chip is small on purpose; the tappable area around it is not. 44pt tall so it is a real
+    // target found mid-set, at arm's length.
+    trigger: { flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingRight: 2 },
+    // A visible caret: this chip doubles as a card's only cue that the band is editable, so the
+    // arrow has to read as "tap me" at a glance.
+    caret: { marginLeft: 4 },
 
-  // `field` variant — matches `ApprovalScreen`'s `field`/`fieldLabel`/`fieldInputRow` sizing so the
-  // band control reads as one more field in that row rather than a chip that wandered in. The
-  // trigger itself is filled with the band's colour, so the colour is still what a glance reaches
-  // for.
-  fieldRoot: {},
-  // The open dropdown is an absolute overlay (below), so it needs to paint above whatever comes
-  // after it in the card — the next card in the list, most often.
-  fieldRootOpen: { zIndex: 20 },
-  fieldLabel: { marginBottom: 2 },
-  fieldTrigger: {
-    height: 36,
-    borderRadius: radius.sm,
-    paddingHorizontal: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    // A very dark or very pale user-chosen colour would otherwise vanish into the card behind it.
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-  },
-  fieldTriggerText: { flexShrink: 1, marginRight: 3 },
+    // `field` variant — matches `ApprovalScreen`'s `field`/`fieldLabel`/`fieldInputRow` sizing so the
+    // band control reads as one more field in that row rather than a chip that wandered in. The
+    // trigger itself is filled with the band's colour, so the colour is still what a glance reaches
+    // for.
+    fieldRoot: {},
+    // The open dropdown is an absolute overlay (below), so it needs to paint above whatever comes
+    // after it in the card — the next card in the list, most often.
+    fieldRootOpen: { zIndex: 20 },
+    fieldLabel: { marginBottom: 2 },
+    fieldTrigger: {
+      height: 36,
+      borderRadius: radius.sm,
+      paddingHorizontal: 6,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      // A very dark or very pale user-chosen colour would otherwise vanish into the card behind it.
+      borderWidth: 1,
+      borderColor: t.colors.lineStrong,
+    },
+    fieldTriggerText: { flexShrink: 1, marginRight: 3 },
 
-  options: { flexDirection: 'row', flexWrap: 'wrap', paddingBottom: space.xs, gap: 6 },
-  // Positioned as an overlay rather than in-flow: the field variant sits at the card's right
-  // edge, and `BAND_ORDER`'s five 44pt-minimum swatches in one row are wider than the space to
-  // its left, let alone its right. Anchored to the trigger's right edge and given a bounded
-  // width so it wraps onto two or three rows and stays fully on screen, however narrow the phone.
-  // No drop shadow on dark: a raised surface step and a border separate it from the card.
-  optionsField: {
-    position: 'absolute',
-    top: '100%',
-    right: 0,
-    marginTop: 4,
-    width: 190,
-    paddingBottom: 0,
-    padding: space.sm,
-    backgroundColor: colors.surface3,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-    elevation: 6,
-  },
-  option: {
-    minWidth: 44,
-    minHeight: 44,
-    borderRadius: radius.sm,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-  },
-  // Colour is doing the identifying work here, so the current choice is marked by a ring rather
-  // than by another colour — which would be indistinguishable from a band the user happened to
-  // set to that shade.
-  optionSelected: { borderWidth: 3, borderColor: colors.text },
-});
+    options: { flexDirection: 'row', flexWrap: 'wrap', paddingBottom: space.xs, gap: 6 },
+    // Positioned as an overlay rather than in-flow: the field variant sits at the card's right
+    // edge, and `BAND_ORDER`'s five 44pt-minimum swatches in one row are wider than the space to
+    // its left, let alone its right. Anchored to the trigger's right edge and given a bounded
+    // width so it wraps onto two or three rows and stays fully on screen, however narrow the phone.
+    // No drop shadow on dark: a raised surface step and a border separate it from the card.
+    optionsField: {
+      position: 'absolute',
+      top: '100%',
+      right: 0,
+      marginTop: 4,
+      width: 190,
+      paddingBottom: 0,
+      padding: space.sm,
+      backgroundColor: t.colors.surface3,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: t.colors.lineStrong,
+      elevation: 6,
+    },
+    option: {
+      minWidth: 44,
+      minHeight: 44,
+      borderRadius: radius.sm,
+      paddingHorizontal: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: t.colors.lineStrong,
+    },
+    // Colour is doing the identifying work here, so the current choice is marked by a ring rather
+    // than by another colour — which would be indistinguishable from a band the user happened to
+    // set to that shade.
+    optionSelected: { borderWidth: 3, borderColor: t.colors.text },
+  }),
+);

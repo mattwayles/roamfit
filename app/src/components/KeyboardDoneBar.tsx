@@ -10,7 +10,7 @@
  */
 import React from 'react';
 import { InputAccessoryView, Keyboard, StyleSheet, View } from 'react-native';
-import { colors, space } from '../theme';
+import { makeStyles, space } from '../theme';
 import { PressableScale, Txt } from '../ui';
 
 const KeyboardDoneBar = React.memo(function KeyboardDoneBar({
@@ -20,6 +20,7 @@ const KeyboardDoneBar = React.memo(function KeyboardDoneBar({
   nativeID: string;
   testID?: string;
 }): React.JSX.Element {
+  const styles = useStyles();
   return (
     <InputAccessoryView nativeID={nativeID}>
       <View style={styles.bar}>
@@ -42,14 +43,16 @@ const KeyboardDoneBar = React.memo(function KeyboardDoneBar({
 
 export default KeyboardDoneBar;
 
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    backgroundColor: colors.surface2,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
-  },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    bar: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      backgroundColor: t.colors.surface2,
+      paddingHorizontal: space.lg,
+      paddingVertical: space.sm,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: t.colors.line,
+    },
+  }),
+);
