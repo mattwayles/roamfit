@@ -14,11 +14,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { progressionStateRepo, usersRepo } from '@roamfit/store';
 import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider } from '../state/StoreContext';
+import { ThemeProvider } from '../state/ThemeProvider';
 import { getDb } from '../db';
 import { nowUtcInstant } from '../lib/localClock';
-import { navTheme } from '../theme';
+import { daylight, goldenHourTheme } from '../theme';
 import { DISCLAIMER_TEXT } from './SettingsScreen';
-import { WAIT, ready } from '../ui/test-utils';
+import { WAIT, flat, ready } from '../ui/test-utils';
 
 beforeAll(() => {
   usersRepo.acknowledgeDisclaimer(getDb(), nowUtcInstant()); // §13.3 gate — not this test's subject
@@ -31,9 +32,11 @@ afterEach(() => {
 async function openSettings() {
   await render(
     <StoreProvider>
-      <NavigationContainer theme={navTheme}>
-        <RootNavigator />
-      </NavigationContainer>
+      <ThemeProvider>
+        <NavigationContainer theme={goldenHourTheme.navTheme}>
+          <RootNavigator />
+        </NavigationContainer>
+      </ThemeProvider>
     </StoreProvider>,
   );
   await ready('open-settings');
@@ -44,13 +47,49 @@ async function openSettings() {
 const checked = (testID: string) =>
   screen.getByTestId(testID).props.accessibilityState.checked as boolean;
 
+describe('appearance', () => {
+  const selected = (id: string) =>
+    screen.getByTestId(id).props.accessibilityState.selected as boolean;
+
+  beforeEach(() => {
+    usersRepo.updateUser(getDb(), { themePreference: 'system' }, nowUtcInstant());
+  });
+
+  it('shows the stored preference as the selected option, with the caption', async () => {
+    usersRepo.updateUser(getDb(), { themePreference: 'light' }, nowUtcInstant());
+    await openSettings();
+    expect(selected('appearance-light')).toBe(true);
+    expect(selected('appearance-system')).toBe(false);
+    expect(selected('appearance-dark')).toBe(false);
+    expect(screen.getByText(/^Daylight is built for training outdoors in full sun\./)).toBeTruthy();
+  });
+
+  it('pressing an option persists it and switches the live theme', async () => {
+    await openSettings();
+    expect(selected('appearance-system')).toBe(true);
+    await fireEvent.press(screen.getByTestId('appearance-light'));
+    await waitFor(() => expect(flat('settings-screen').backgroundColor).toBe(daylight.bg), WAIT);
+    expect(usersRepo.getUser(getDb())!.themePreference).toBe('light');
+    expect(selected('appearance-light')).toBe(true);
+    expect(selected('appearance-system')).toBe(false);
+
+    await fireEvent.press(screen.getByTestId('appearance-dark'));
+    await waitFor(
+      () => expect(flat('settings-screen').backgroundColor).toBe(goldenHourTheme.colors.bg),
+      WAIT,
+    );
+    expect(usersRepo.getUser(getDb())!.themePreference).toBe('dark');
+  });
+});
+
 describe('settings', () => {
-  it('lays the groups out in order: Training, Motivation, Travel & privacy, Apple Health, disclaimer, Advanced', async () => {
+  it('lays the groups out in order: Appearance, Training, Motivation, Travel & privacy, Apple Health, disclaimer, Advanced', async () => {
     await openSettings();
     const order = screen
       .getAllByTestId(/^settings-section-/)
       .map((node) => (node.props.testID as string).replace('settings-section-', ''));
     expect(order).toEqual([
+      'Appearance',
       'Training',
       'Motivation',
       'Travel & privacy',

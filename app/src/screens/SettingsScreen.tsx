@@ -1,6 +1,6 @@
 /**
  * §13.3/§13.5 Settings — a grouped, iOS-style list on `bg` (DESIGN.md §5.10), most-changed first:
- * Training, Motivation, Travel & privacy, Apple Health, the Medical disclaimer card, and the rare
+ * Appearance, Training, Motivation, Travel & privacy, Apple Health, the Medical disclaimer card, and the rare
  * stuff (diagnostics, reset) tucked behind an Advanced disclosure. It is the permanent home for:
  *
  *  - §13.3's medical disclaimer, permanently available (not just the first-launch prompt).
@@ -26,10 +26,13 @@ import { instrumentationRepo, progressionStateRepo, usersRepo } from '@roamfit/s
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
 import { MAX_DAILY_MOTIVATION_TIMES, shiftTime } from '../lib/motivationNotifications';
-import { colors, radius, space, tints, type AccentName } from '../theme';
+import { makeStyles, radius, space, useTheme, type AccentName } from '../theme';
+import { useThemePreference } from '../state/ThemeProvider';
+import type { ThemePreference } from '@roamfit/store';
 import {
   Button,
   Card,
+  Chip,
   Enter,
   Icon,
   IconButton,
@@ -67,6 +70,7 @@ function Group({
   caption?: string;
   children: React.ReactNode;
 }): React.JSX.Element {
+  const styles = useStyles();
   const rows = Children.toArray(children).filter(Boolean);
   return (
     <View style={styles.group} testID={`settings-section-${title}`}>
@@ -92,8 +96,10 @@ function Group({
 
 /** The 32pt rounded-square icon tile, tinted in its group's accent. */
 function IconTile({ icon, tone }: { icon: IconName; tone: AccentName }): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
-    <View style={[styles.tile, { backgroundColor: tints[tone] }]}>
+    <View style={[styles.tile, { backgroundColor: theme.tints[tone] }]}>
       <Icon name={icon} size={18} color={tone} />
     </View>
   );
@@ -116,6 +122,7 @@ function SwitchRow({
   value: boolean;
   onValueChange: (next: boolean) => void;
 }): React.JSX.Element {
+  const styles = useStyles();
   return (
     <Pressable
       testID={testID}
@@ -139,8 +146,45 @@ function SwitchRow({
   );
 }
 
+const APPEARANCE_OPTIONS: { value: ThemePreference; label: string; testID: string }[] = [
+  { value: 'system', label: 'System', testID: 'appearance-system' },
+  { value: 'light', label: 'Daylight', testID: 'appearance-light' },
+  { value: 'dark', label: 'Golden Hour', testID: 'appearance-dark' },
+];
+
+const APPEARANCE_CAPTION =
+  'Daylight is built for training outdoors in full sun. System follows your iPhone, which can switch at sunset.';
+
+/** The three-way theme picker: one selectable `Chip` per preference, equal width. The selected one
+ *  is the stored preference (not the resolved scheme — "System" stays selected while following). */
+function AppearanceControl(): React.JSX.Element {
+  const styles = useStyles();
+  const { preference, setPreference } = useThemePreference();
+  return (
+    <View style={styles.appearance} accessibilityRole="radiogroup">
+      {APPEARANCE_OPTIONS.map((option) => {
+        const selected = option.value === preference;
+        return (
+          <Chip
+            key={option.value}
+            testID={option.testID}
+            label={option.label}
+            tone="ember"
+            selected={selected}
+            style={styles.appearanceOption}
+            onPress={() => {
+              if (!selected) setPreference(option.value);
+            }}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
 export default function SettingsScreen(): React.JSX.Element {
   const { db, library, families } = useStore();
+  const styles = useStyles();
   const [user, setUser] = useState<usersRepo.UserRecord>(() =>
     usersRepo.ensureUser(db, nowUtcInstant()),
   );
@@ -277,6 +321,12 @@ export default function SettingsScreen(): React.JSX.Element {
       </Enter>
 
       <Enter index={1}>
+        <Group title="Appearance" caption={APPEARANCE_CAPTION}>
+          <AppearanceControl />
+        </Group>
+      </Enter>
+
+      <Enter index={2}>
         <Group
           title="Training"
           caption="The 3-2-1 count, the halfway chime and the end-of-rest tone. They mix with whatever else is playing rather than pausing it. Vibration cues are unaffected either way, so a silent workout still tells you when a hold or a rest is up. There is also a mute button on the workout itself, for one session at a time."
@@ -292,7 +342,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </Group>
       </Enter>
 
-      <Enter index={2}>
+      <Enter index={3}>
         <Group
           title="Motivation"
           caption={
@@ -371,7 +421,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </Group>
       </Enter>
 
-      <Enter index={3}>
+      <Enter index={4}>
         <View style={styles.privacyGroup}>
           <Group title="Travel & privacy">
             <SwitchRow
@@ -401,7 +451,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </View>
       </Enter>
 
-      <Enter index={4}>
+      <Enter index={5}>
         <Group title="Apple Health">
           <SwitchRow
             testID="toggle-healthkit-write"
@@ -414,7 +464,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </Group>
       </Enter>
 
-      <Enter index={5}>
+      <Enter index={6}>
         <Card padding="md" style={styles.disclaimer} testID="settings-section-Medical disclaimer">
           <IconBadge icon="shield" tone="gold" size={40} />
           <View style={styles.disclaimerBody}>
@@ -428,7 +478,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </Card>
       </Enter>
 
-      <Enter index={6}>
+      <Enter index={7}>
         <Group title="Advanced">
           <Pressable
             testID="settings-advanced-toggle"
@@ -530,82 +580,86 @@ export default function SettingsScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  content: { paddingTop: space.sm, gap: space.xxl },
-  group: { gap: space.sm },
-  groupTitle: { marginLeft: space.xs },
-  groupCard: { overflow: 'hidden' },
-  groupCaption: { marginHorizontal: space.xs },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: DIVIDER_INSET,
-    backgroundColor: colors.line,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 52,
-    paddingHorizontal: ROW_PAD,
-    paddingVertical: space.sm,
-  },
-  rowPressed: { backgroundColor: colors.surface2 },
-  rowLabel: { flex: 1, flexShrink: 1, marginHorizontal: space.md },
-  tile: {
-    width: TILE,
-    height: TILE,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  times: {
-    gap: space.sm,
-    paddingHorizontal: ROW_PAD,
-    paddingVertical: space.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
-  },
-  timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  timePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-    padding: space.xs,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface2,
-  },
-  timeValue: { minWidth: 72, textAlign: 'center' },
-  addTime: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 48,
-    borderRadius: radius.pill,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: colors.lineStrong,
-  },
-  addTimeLabel: { marginLeft: space.xs },
-  privacyGroup: { gap: space.sm },
-  privacyCopy: { gap: space.sm, marginHorizontal: space.xs },
-  disclaimer: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
-  disclaimerBody: { flex: 1, gap: space.xs },
-  advancedBlock: {
-    gap: space.sm,
-    alignItems: 'flex-start',
-    padding: ROW_PAD,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
-  },
-  well: {
-    alignSelf: 'stretch',
-    gap: space.xs,
-    padding: space.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface2,
-  },
-  // Intentional off-scale face: diagnostics output is monospace on purpose (DESIGN.md §5.10).
-  mono: { fontFamily: 'Menlo' },
-  footer: { alignItems: 'center', gap: 2, paddingTop: space.md },
-  sheetBody: { marginBottom: space.xl },
-  sheetButtons: { gap: space.md },
-});
+const useStyles = makeStyles((tk) =>
+  StyleSheet.create({
+    content: { paddingTop: space.sm, gap: space.xxl },
+    group: { gap: space.sm },
+    appearance: { flexDirection: 'row', gap: space.sm, padding: space.md },
+    appearanceOption: { flex: 1, alignSelf: 'stretch', justifyContent: 'center' },
+    groupTitle: { marginLeft: space.xs },
+    groupCard: { overflow: 'hidden' },
+    groupCaption: { marginHorizontal: space.xs },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      marginLeft: DIVIDER_INSET,
+      backgroundColor: tk.colors.line,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 52,
+      paddingHorizontal: ROW_PAD,
+      paddingVertical: space.sm,
+    },
+    rowPressed: { backgroundColor: tk.colors.surface2 },
+    rowLabel: { flex: 1, flexShrink: 1, marginHorizontal: space.md },
+    tile: {
+      width: TILE,
+      height: TILE,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    times: {
+      gap: space.sm,
+      paddingHorizontal: ROW_PAD,
+      paddingVertical: space.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: tk.colors.line,
+    },
+    timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    timePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.sm,
+      padding: space.xs,
+      borderRadius: radius.pill,
+      backgroundColor: tk.colors.surface2,
+    },
+    timeValue: { minWidth: 72, textAlign: 'center' },
+    addTime: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 48,
+      borderRadius: radius.pill,
+      borderWidth: 1.5,
+      borderStyle: 'dashed',
+      borderColor: tk.colors.lineStrong,
+    },
+    addTimeLabel: { marginLeft: space.xs },
+    privacyGroup: { gap: space.sm },
+    privacyCopy: { gap: space.sm, marginHorizontal: space.xs },
+    disclaimer: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
+    disclaimerBody: { flex: 1, gap: space.xs },
+    advancedBlock: {
+      gap: space.sm,
+      alignItems: 'flex-start',
+      padding: ROW_PAD,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: tk.colors.line,
+    },
+    well: {
+      alignSelf: 'stretch',
+      gap: space.xs,
+      padding: space.md,
+      borderRadius: radius.md,
+      backgroundColor: tk.colors.surface2,
+    },
+    // Intentional off-scale face: diagnostics output is monospace on purpose (DESIGN.md §5.10).
+    mono: { fontFamily: 'Menlo' },
+    footer: { alignItems: 'center', gap: 2, paddingTop: space.md },
+    sheetBody: { marginBottom: space.xl },
+    sheetButtons: { gap: space.md },
+  }),
+);
