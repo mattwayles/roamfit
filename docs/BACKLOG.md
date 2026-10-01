@@ -67,6 +67,8 @@ the record of what was completed and why.
   8. Cards' shadow on paper (`elevation.card`), the Switch thumb, Toast and tab bar lift.
   9. Band-chip labels on mid-tone swatches: BandChip's pre-existing 0.45 luminance threshold may pick
      the wrong legend on a few mid-tone bands; swatches are mode-invariant, so check each.
+  10. Logbook and Today week-strip day cells (`dayCell`: vivid at 40%, deep border): every marker
+     reads as its own color next to the others, not washed out; tune the alpha if not.
 - **App icon and splash art to match Golden Hour — needs an artist.** The splash background is `bg` and
   stays Golden Hour in both appearances (one static image; Daylight does not get its own splash),
   but `app/assets/icon.png` and `splash-icon.png` were not redrawn for the

@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { makeStyles, radius, useTheme, withAlpha } from '../theme';
+import { makeStyles, radius, useTheme } from '../theme';
 import { PressableScale, Txt } from '../ui';
 import type { CalendarDay } from '../lib/dashboard';
 import { markerEmoji, markerLabel, markerTone } from '../lib/dayMarkers';
@@ -35,7 +35,7 @@ export function DayCell({
   if (day === null) return <View style={box} />;
 
   const tone = markerTone(day.marker);
-  const tint = tone ? theme.colors[tone] : null;
+  const tint = tone ? theme.dayCell[tone] : null;
   const emoji = markerEmoji(day.marker);
   return (
     <PressableScale
@@ -49,8 +49,8 @@ export function DayCell({
         styles.cell,
         box,
         {
-          backgroundColor: tint ? withAlpha(tint, 0.2) : theme.colors.surface,
-          borderColor: tint ? withAlpha(tint, 0.55) : theme.colors.line,
+          backgroundColor: tint ? tint.fill : theme.colors.surface,
+          borderColor: tint ? tint.border : theme.colors.line,
         },
         isToday && styles.today,
       ]}

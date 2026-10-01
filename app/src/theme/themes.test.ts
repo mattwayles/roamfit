@@ -25,6 +25,18 @@ function contrast(a: string, b: string): number {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (hi! + 0.05) / (lo! + 0.05);
 }
+/** `hex` at `alpha` laid over the opaque `base`, as an opaque hex. */
+function composite(hex: string, alpha: number, base: string): string {
+  const ch = (s: string) => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16));
+  const [a, b] = [ch(hex), ch(base)];
+  const mixed = a.map((v, i) => Math.round(alpha * v + (1 - alpha) * b[i]!));
+  return '#' + mixed.map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+/** Max - min channel: a cheap colorfulness measure (0 = grey). */
+function chroma(hex: string): number {
+  const ch = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return Math.max(...ch) - Math.min(...ch);
+}
 
 describe('palettes', () => {
   it('have identical key sets', () => {
@@ -146,12 +158,6 @@ describe('buildTheme', () => {
   });
 
   it('Daylight accent text on its own tint holds contrast over surface and bg', () => {
-    const composite = (hex: string, alpha: number, base: string): string => {
-      const ch = (s: string) => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16));
-      const [a, b] = [ch(hex), ch(base)];
-      const mixed = a.map((v, i) => Math.round(alpha * v + (1 - alpha) * b[i]!));
-      return '#' + mixed.map((v) => v.toString(16).padStart(2, '0')).join('');
-    };
     for (const n of accentNames) {
       for (const base of [daylight.surface, daylight.bg]) {
         const floor = n === 'sun' ? 3 : 4.5;
@@ -159,6 +165,31 @@ describe('buildTheme', () => {
           floor,
         );
       }
+    }
+  });
+
+  it('dayCell: Golden Hour washes the accent itself; Daylight fills with the vivid hue', () => {
+    for (const n of accentNames) {
+      expect(goldenHourTheme.dayCell[n]).toEqual({
+        fill: withAlpha(goldenHour[n], 0.2),
+        border: withAlpha(goldenHour[n], 0.55),
+      });
+      expect(daylightTheme.dayCell[n]).toEqual({
+        fill: withAlpha(vivid[n], 0.4),
+        border: withAlpha(daylight[n], 0.7),
+      });
+    }
+  });
+
+  it('Daylight day cells read as color, not a muddy wash, and keep the date legible', () => {
+    // Every accent a day marker can resolve to (focus colors, travel = sky, quick = gold).
+    const markerAccents = ['ember', 'summit', 'gold', 'lagoon', 'rose', 'sky'] as const;
+    for (const n of markerAccents) {
+      const cell = composite(vivid[n], 0.4, daylight.surface);
+      // Clearly more colorful than the old deep-accent 20% wash it replaces.
+      expect(chroma(cell)).toBeGreaterThan(chroma(composite(daylight[n], 0.2, daylight.surface)));
+      expect(chroma(cell)).toBeGreaterThanOrEqual(45);
+      expect(contrast(daylight.text, cell)).toBeGreaterThanOrEqual(7);
     }
   });
 

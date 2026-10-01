@@ -570,6 +570,11 @@ Daylight: always `ink`, i.e. white).
   `bg` falls to 3.9–4.3:1 for ember/gold/lagoon/sky/rose; at 8% every accent holds ≥ 4.5:1 over
   `surface` and `bg` (`sun` ≥ 3). Asserted in `themes.test.ts`. Ember was deepened to `#B83507` for
   this (ember on tint over `bg` was 4.38:1 even at 8% with `#BF3708`).
+- **Calendar day cells fill with the vivid hue.** A deep accent washed over paper goes muddy (the
+  Logbook read as greyed-out at 20%), so Daylight `dayCell[tone]` = `vivid` at 40% alpha, bordered
+  by the deep accent at 70%. The date numeral (`text`) stays >= 7:1 on every marker fill. Golden
+  Hour is unchanged: the accent itself at 20%, border at 55%. Used by `DayCell` (Logbook and the
+  Today week strip). Asserted in `themes.test.ts`.
 - **Glow is tamed.** A colored 18pt bloom on paper reads as a smudge. Daylight `glow(color)` =
   opacity 0.28, radius 10, offset y 4 — a colored lift, not a halo. Same call sites.
 - **Topo contours are printed sepia.** `topo.color` `#3B2410` at `topo.strength` 1.3× the seeded
@@ -584,7 +589,7 @@ Daylight: always `ink`, i.e. white).
 - `theme/palettes.ts`: `goldenHour` and `daylight`, each a complete `Palette` (identical key sets,
   asserted). `theme/buildTheme.ts`: `buildTheme(scheme)` → a frozen `Theme`:
   `{ scheme, colors, vivid, tints, gradients, accentGradient, section, focus, setState, dayMarker,
-  trainedColor, onGradient, heroCta, glow, elevation, topo, stamp, statusBar, navTheme,
+  dayCell, trainedColor, onGradient, heroCta, glow, elevation, topo, stamp, statusBar, navTheme,
   headerOptions }`. `onGradient(tone)` returns a color token *name* (`'ink' | 'fixedPaper'`), not a
   hex; `heroCta` is the token name of the Home hero pill's legend (Golden Hour `sun`, Daylight
   `ember` — sun is 3.8:1 on Daylight's white pill). No scattered `scheme === ` color checks: add a

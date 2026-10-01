@@ -41,6 +41,10 @@ export interface Theme {
   setState: { completed: string; skipped: string; not_reached: string };
   /** `trained` is the session's focus color, resolved via `trainedColor`. */
   dayMarker: { travel: string; quick: string };
+  /** Calendar day-cell paint for a marker's accent (Logbook + Today's week strip). Golden Hour
+   *  washes the accent itself over the night surface. Daylight's deep accents go muddy as a
+   *  wash on paper, so its fill is the vivid hue instead, outlined in the deep accent. */
+  dayCell: Record<AccentName, { fill: string; border: string }>;
   /** Resolve a `trained` day marker from a focus key (unknown keys fall back to ember). */
   trainedColor(focusKey: string | null | undefined): string;
   /** Token name of the legend color for text on a hero gradient of this accent tone. */
@@ -84,6 +88,15 @@ export function buildTheme(scheme: Scheme): Theme {
     accentNames.map((n) => [n, withAlpha(c[n], dark ? 0.15 : 0.08)]),
   ) as Record<AccentName, string>;
 
+  const dayCell = Object.fromEntries(
+    accentNames.map((n) => [
+      n,
+      dark
+        ? { fill: withAlpha(c[n], 0.2), border: withAlpha(c[n], 0.55) }
+        : { fill: withAlpha(vivid[n], 0.4), border: withAlpha(c[n], 0.7) },
+    ]),
+  ) as Record<AccentName, { fill: string; border: string }>;
+
   const focus = { upper: c.ember, legs: c.summit, abs: c.gold, full: c.lagoon, cardio: c.rose };
 
   const base = dark ? DarkTheme : DefaultTheme;
@@ -118,6 +131,7 @@ export function buildTheme(scheme: Scheme): Theme {
     focus,
     setState: { completed: c.ember, skipped: c.text3, not_reached: c.line },
     dayMarker: { travel: c.sky, quick: c.gold },
+    dayCell,
     trainedColor: (focusKey) => (focus as Record<string, string>)[focusKey ?? ''] ?? c.ember,
     // Golden Hour: summit's violet hero is the one place `ink` is only 3.9:1, so it takes paper.
     // Daylight's fills are all deep enough for white.
