@@ -1,6 +1,7 @@
 /**
  * Custom bottom tab bar (DESIGN.md §4): `surface` with a top hairline; active tab = ember icon +
- * eyebrow label and a small ember tick on the top edge; inactive = `text3`. To add a tab, add its
+ * eyebrow label and a small ember tick on the top edge; inactive = `text3`; lifts with the
+ * theme's `elevation.card` in Daylight. To add a tab, add its
  * route to `TabParamList` and one row to `TAB_META` — nothing else here changes.
  */
 import React from 'react';
@@ -8,7 +9,7 @@ import { StyleSheet, View } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { PressableScale, Icon, Txt } from '../ui';
 import { useInsets } from '../ui/useInsets';
-import { colors, glow, space } from '../theme';
+import { makeStyles, space } from '../theme';
 import type { IconName } from '../ui';
 import type { TabParamList } from './types';
 
@@ -24,6 +25,7 @@ export function TabBar({
   navigation,
 }: BottomTabBarProps): React.JSX.Element | null {
   const insets = useInsets();
+  const styles = useStyles();
   // A focused screen can take the bar away with `tabBarStyle: { display: 'none' }` — Today does
   // this while the first-launch disclaimer gate is up, so nothing else is reachable behind it.
   const focusedStyle = StyleSheet.flatten(
@@ -31,7 +33,10 @@ export function TabBar({
   ) as { display?: string } | undefined;
   if (focusedStyle?.display === 'none') return null;
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }]}>
+    <View
+      testID="tab-bar"
+      style={[styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }]}
+    >
       {state.routes.map((route, index) => {
         const meta = TAB_META[route.name as keyof TabParamList];
         const focused = state.index === index;
@@ -71,26 +76,29 @@ export function TabBar({
   );
 }
 
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
-    paddingTop: space.sm,
-  },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 48, paddingTop: 2 },
-  tick: {
-    position: 'absolute',
-    top: -space.sm,
-    width: 28,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: colors.ember,
-    ...glow(colors.ember),
-    shadowOpacity: 0.7,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  label: { marginTop: 3 },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    bar: {
+      flexDirection: 'row',
+      backgroundColor: t.colors.surface,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: t.colors.line,
+      paddingTop: space.sm,
+      ...t.elevation.card,
+    },
+    tab: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 48, paddingTop: 2 },
+    tick: {
+      position: 'absolute',
+      top: -space.sm,
+      width: 28,
+      height: 3,
+      borderRadius: 2,
+      backgroundColor: t.colors.ember,
+      ...t.glow(t.colors.ember),
+      shadowOpacity: 0.7,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 0 },
+    },
+    label: { marginTop: 3 },
+  }),
+);

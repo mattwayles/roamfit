@@ -15,7 +15,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { colors, radius, space } from '../theme';
+import { makeStyles, radius, space, useTheme } from '../theme';
 import { Txt } from './Txt';
 import { useInsets } from './useInsets';
 import { useReduceMotion } from './useReduceMotion';
@@ -38,6 +38,8 @@ export function Sheet({
   testID = 'sheet',
   children,
 }: SheetProps): React.JSX.Element | null {
+  const theme = useTheme();
+  const styles = useStyles();
   const reduceMotion = useReduceMotion();
   const insets = useInsets();
   const { height } = useWindowDimensions();
@@ -82,7 +84,12 @@ export function Sheet({
   return (
     <Modal transparent visible animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.root}>
-        <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: progress }]}>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: theme.colors.backdrop, opacity: progress },
+          ]}
+        >
           <Pressable
             testID={`${testID}-backdrop`}
             accessibilityLabel="Close"
@@ -129,27 +136,29 @@ export function Sheet({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  backdrop: { backgroundColor: 'rgba(5,7,10,0.72)' },
-  avoider: { flex: 1, justifyContent: 'flex-end' },
-  panel: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: colors.line,
-    paddingHorizontal: space.xl,
-    paddingTop: space.md,
-  },
-  grabber: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.lineStrong,
-    marginBottom: space.lg,
-  },
-  title: { marginBottom: space.lg },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    root: { flex: 1 },
+    avoider: { flex: 1, justifyContent: 'flex-end' },
+    panel: {
+      backgroundColor: t.colors.surface,
+      borderTopLeftRadius: radius.xl,
+      borderTopRightRadius: radius.xl,
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: t.colors.line,
+      paddingHorizontal: space.xl,
+      paddingTop: space.md,
+      ...t.elevation.card,
+    },
+    grabber: {
+      alignSelf: 'center',
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: t.colors.lineStrong,
+      marginBottom: space.lg,
+    },
+    title: { marginBottom: space.lg },
+  }),
+);

@@ -6,7 +6,7 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { seededRng } from '../lib/seed';
-import { colors, radius, type AccentName } from '../theme';
+import { radius, useTheme, type AccentName } from '../theme';
 import { Txt } from './Txt';
 
 const INKS: readonly AccentName[] = ['ember', 'gold', 'sky', 'summit', 'lagoon'];
@@ -46,8 +46,9 @@ export function Stamp({
   style,
   testID = 'stamp',
 }: StampProps): React.JSX.Element {
+  const theme = useTheme();
   const spec = stampSpec(seed, tone);
-  const ink = colors[spec.tone];
+  const ink = theme.colors[spec.tone];
   const width = spec.shape === 'circle' ? size : Math.round(size * 1.25);
   const height = spec.shape === 'circle' ? size : Math.round(size * 0.86);
   const outerRadius = spec.shape === 'circle' ? size / 2 : radius.sm;

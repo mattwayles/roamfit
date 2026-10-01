@@ -8,7 +8,7 @@ import WorkoutScreen from '../screens/WorkoutScreen';
 import SummaryScreen from '../screens/SummaryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
-import { headerOptions } from './screenOptions';
+import { useTheme } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -17,8 +17,9 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  * Approval -> Workout -> Summary, no tab bar) plus Settings and ExerciseDetail.
  */
 export default function RootNavigator(): React.JSX.Element {
+  const theme = useTheme();
   return (
-    <Stack.Navigator initialRouteName="Tabs" screenOptions={headerOptions}>
+    <Stack.Navigator initialRouteName="Tabs" screenOptions={theme.headerOptions}>
       <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
       <Stack.Screen name="Generate" component={GenerateScreen} options={{ title: '' }} />
       <Stack.Screen name="Approval" component={ApprovalScreen} options={{ title: 'YOUR ROUTE' }} />

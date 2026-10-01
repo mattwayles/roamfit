@@ -1,9 +1,9 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
-import { colors, tints } from '../theme';
+import { colors, daylight, daylightTheme, tints } from '../theme';
 import { Chip, IconButton, Pips, SectionHeader, SegmentedBar, Switch } from './index';
-import { flat, ready } from './test-utils';
+import { flat, inDaylight, ready } from './test-utils';
 
 describe('Chip', () => {
   it('tone = tint background + accent text; selected = solid accent + ink text', async () => {
@@ -181,5 +181,54 @@ describe('Pips', () => {
     await rerender(<Pips testID="p" count={3} filled={2} current={2} />);
     expect(flat('p-1-dot').backgroundColor).toBe(colors.ember);
     expect(screen.getByTestId('p-2-ring')).toBeTruthy();
+  });
+});
+
+describe('Daylight (controls)', () => {
+  it('Chip tone uses the Daylight tint and deep accent text; selected fills solid with white ink', async () => {
+    await render(
+      inDaylight(
+        <>
+          <Chip label="Upper" tone="ember" testID="t" />
+          <Chip label="Picked" tone="ember" selected testID="s" />
+          <Chip label="Plain" testID="n" />
+        </>,
+      ),
+    );
+    await ready('t');
+    expect(flat('t').backgroundColor).toBe(daylightTheme.tints.ember);
+    expect(flat('s').backgroundColor).toBe(daylight.ember);
+    expect(flat('n')).toMatchObject({
+      backgroundColor: daylight.surface2,
+      borderColor: daylight.line,
+    });
+  });
+
+  it('Switch is a paper thumb on a Daylight ember track', async () => {
+    await render(inDaylight(<Switch testID="sw" value onValueChange={() => {}} />));
+    await ready('sw');
+    expect(flat('sw').backgroundColor).toBe(daylight.surface3);
+    expect(flat('sw').borderColor).toBe(daylight.lineStrong);
+  });
+
+  it('IconButton filled disc is a Daylight surface2', async () => {
+    await render(inDaylight(<IconButton icon="add" accessibilityLabel="More" testID="ib" />));
+    await ready('ib');
+    expect(flat('ib').backgroundColor).toBe(daylight.surface2);
+  });
+
+  it('SegmentedBar fill defaults to the Daylight ember and the active glow is the tamed one', async () => {
+    await render(inDaylight(<SegmentedBar values={[1, 0.5]} activeIndex={1} testID="sb" />));
+    await ready('sb');
+    expect(flat('sb-fill-0').backgroundColor).toBe(daylight.ember);
+    expect(flat('sb-segment-1').shadowColor).toBe(daylight.ember);
+    expect(flat('sb-segment-0').backgroundColor).toBe(daylight.surface2);
+  });
+
+  it('Pips fill with the Daylight ember over a surface3 track', async () => {
+    await render(inDaylight(<Pips count={2} filled={1} testID="p" />));
+    await ready('p');
+    expect(flat('p-0-dot').backgroundColor).toBe(daylight.ember);
+    expect(flat('p-1-dot').backgroundColor).toBe(daylight.surface3);
   });
 });

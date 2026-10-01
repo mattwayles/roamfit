@@ -1,5 +1,5 @@
 ## Track: 22 — "Daylight" light mode
-Last updated: 2026-09-30 — Phase 1 in progress (steps 1-3 landed).
+Last updated: 2026-09-30 — Phase 1 done (steps 1-5). Phase 2 (four parallel screen agents) is next.
 
 User request: Golden Hour is hard to see when exercising outdoors. Keep it as the dark mode and add
 a light mode built for sunlight. Design authority was handed over in full ("full control, no
@@ -14,13 +14,15 @@ Presentation + one preference column. Engine/data behavior is frozen; the only s
 - [x] P1 step 2 store: migration 0022, usersRepo `themePreference` (afcda30).
 - [x] P1 step 1 theme foundation: `theme/{palettes,buildTheme,ThemeContext}`, deprecated statics kept (see sha in git log).
 - [x] P1 step 3: `state/ThemeProvider.tsx` (`ThemeProvider`, `useThemePreference`, `resolveScheme`) + App.tsx wiring + tests.
+- [x] P1 step 4: `ui/` + `navigation/` fully on the theme hooks (no module-scope color reads), Daylight render tests in all four ui test files + navigation.test; `navigation/screenOptions.ts` deleted (use `theme.headerOptions`).
+- [x] P1 step 5: `lib/dayMarkers.ts` `markerColor` -> `markerTone` (returns an `AccentName`, `DayCell` resolves it); `focusLabels.ts` already returned token names (comment only).
 
 ### In progress
-- Phase 1 step 4: migrate `app/src/ui/` + `app/src/navigation/` to the theme hooks.
+- (nothing — next agents start Phase 2)
 
 ### Next
 
-**Phase 1 — foundation (one agent, sequential).** Commit after each step; `npm run check` green at
+**Phase 1 — foundation: DONE (see Done list).** Commit after each step; `npm run check` green at
 every commit. Keep the old static exports (`colors`, `tints`, `gradients`, semantic maps, `glow`,
 `navTheme`) alive and equal to the Golden Hour values throughout Phase 1 and 2, marked
 `/** @deprecated use useTheme() */`, so unmigrated files still compile.
@@ -83,6 +85,58 @@ test per screen.
    both modes, outdoor glance test, the mid-workout toggle, status bar/keyboard/header follow,
    system-follow at the iOS appearance switch, Completion headline in Daylight); splash stays dark
    (add to the icon/splash art item). Close this file.
+
+### Phase 1 API (what Phase 2 copies from)
+Imports are all from `'../theme'` (index) except the provider:
+- `useTheme(): Theme`, `makeStyles(factory): () => styles`, `ThemeContext` (default = Golden Hour).
+- `Theme` fields: `scheme` ('light'|'dark'), `colors` (Palette: bg surface surface2 surface3 line lineStrong
+  text text2 text3 ink fixedInk fixedPaper backdrop ember emberDeep gold sun lagoon sky summit rose),
+  `vivid` (Golden Hour accent hexes, both themes), `tints`, `gradients` {sunrise golden lagoon summit night},
+  `accentGradient`, `section`, `focus`, `setState`, `dayMarker`, `trainedColor(focusKey)`,
+  `onGradient(tone)` (returns the token NAME 'ink'|'fixedPaper'), `glow(color?)`, `elevation.card`,
+  `topo` {color,strength}, `stamp` {fill,shadow,glow|null}, `statusBar`, `navTheme`, `headerOptions`.
+- Instances/helpers: `goldenHourTheme`, `daylightTheme`, `themeFor(scheme)`, `buildTheme(scheme)`,
+  palettes `goldenHour` / `daylight` / `vivid`, `Palette`, `ColorName`, `AccentName`, `withAlpha`.
+- `import { ThemeProvider, useThemePreference, resolveScheme } from '../state/ThemeProvider'`;
+  `useThemePreference()` -> `{ preference: 'system'|'light'|'dark', scheme, setPreference(next) }`
+  (setPreference writes `usersRepo.updateUser({ themePreference })` then re-renders live).
+  `ThemeProvider` takes optional `initialPreference` (tests); it needs a `StoreProvider` above it.
+- Store: `usersRepo.UserRecord.themePreference`, `UserPatch.themePreference`, type `ThemePreference`
+  exported from `@roamfit/store`.
+- Test helpers: `inDaylight(node)` in `ui/test-utils.ts` wraps a subtree in `ThemeContext` = Daylight.
+  Tests that need the *provider* (OS scheme, persistence) see `state/ThemeProvider.test.tsx`
+  (RN's `useColorScheme` is mocked via `jest.mock('react-native/Libraries/Utilities/useColorScheme')`;
+  spying on `Appearance` does not reach it).
+
+**Migrating a component (the one pattern):**
+```tsx
+import { makeStyles, useTheme } from '../theme';
+const useStyles = makeStyles((t) => StyleSheet.create({
+  card: { backgroundColor: t.colors.surface, borderColor: t.colors.line, ...t.elevation.card },
+}));
+export function Thing() {
+  const theme = useTheme();            // only for render-time values (icon color, gradient, glow)
+  const styles = useStyles();          // themed StyleSheet, cached per Theme instance
+  return <View style={[styles.card, theme.glow(theme.colors.ember)]}><Txt color="ember">x</Txt></View>;
+}
+```
+Delete the old `import { colors, glow, tints, ... } from '../theme'` statics from the file as you go. A
+`StyleSheet.create` with no color in it stays module-level.
+
+### Phase 1 gotchas for Phase 2
+- Old statics (`colors`, `tints`, `gradients`, `section`, `focus`, `setState`, `dayMarker`,
+  `trainedColor`, `accentGradient`, `glow`, `navTheme`) still exist, `@deprecated`, Golden Hour values.
+  A screen that still imports them renders Golden Hour colors even in Daylight — that is the
+  straggler signal. `withAlpha`, `accentNames`, `radius`, `space`, `motion`, `type` are NOT deprecated.
+- Primitives now resolve defaults through the theme: `Pips`/`SegmentedBar` `color` default to the theme
+  ember, `ProgressRing` gradient/track default to the theme, `Gradient` default is the theme sunrise.
+  Pass `theme.colors.x` / `theme.gradients.x`, never a static, when overriding.
+- `Card` `hero` cannot cast a shadow (it clips with `overflow: hidden`); `plain`/`accent` lift in Daylight.
+- `Switch` thumb is `fixedPaper` + `elevation.card` (Daylight `text` is ink — a black thumb).
+- `TabBar` root has `testID="tab-bar"`.
+- `lib/dayMarkers.markerColor` is gone; use `markerTone(marker)` and resolve via `theme.colors[tone]`.
+- Phase 1 verified with targeted jest + tsc + eslint per step and one full `npm run check` at the end
+  (the full check is ~8 minutes).
 
 ### Decisions / gotchas
 - **Default preference is `system`.** iOS Automatic appearance is light by day and dark after

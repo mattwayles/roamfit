@@ -1,16 +1,16 @@
 /**
  * Surface container. `plain` = `surface` + 1px `line` border; `hero` = gradient fill + a seeded
  * TopoPattern (borderless); `accent` = 2px gradient border around a `surface` body. Give it
- * `onPress` and it becomes a `PressableScale` target.
+ * `onPress` and it becomes a `PressableScale` target. `plain` and `accent` lift with the theme's
+ * `elevation.card` (a soft shadow in Daylight, nothing on dark); `hero` clips, so it cannot cast one.
  */
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import {
-  accentGradient,
-  colors,
-  gradients,
+  makeStyles,
   radius,
   space,
+  useTheme,
   type AccentName,
   type GradientColors,
 } from '../theme';
@@ -52,7 +52,10 @@ export function Card({
   accessibilityLabel,
   children,
 }: CardProps): React.JSX.Element {
-  const colorsForGradient = gradient ?? (tone && accentGradient[tone]) ?? gradients.sunrise;
+  const theme = useTheme();
+  const styles = useStyles();
+  const colorsForGradient =
+    gradient ?? (tone && theme.accentGradient[tone]) ?? theme.gradients.sunrise;
   const pad = PADDING[padding];
 
   let body: React.ReactNode;
@@ -68,7 +71,7 @@ export function Card({
       </>
     );
   } else if (variant === 'accent') {
-    containerStyle = [styles.base, { padding: BORDER }];
+    containerStyle = [styles.base, styles.lifted, { padding: BORDER }];
     body = (
       <>
         <Gradient colors={colorsForGradient} radius={radius.lg} />
@@ -105,16 +108,20 @@ export function Card({
   );
 }
 
-const styles = StyleSheet.create({
-  base: { borderRadius: radius.lg },
-  plain: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  accentInner: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg - BORDER,
-  },
-  clipHero: { overflow: 'hidden' },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    base: { borderRadius: radius.lg },
+    lifted: t.elevation.card,
+    plain: {
+      backgroundColor: t.colors.surface,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      ...t.elevation.card,
+    },
+    accentInner: {
+      backgroundColor: t.colors.surface,
+      borderRadius: radius.lg - BORDER,
+    },
+    clipHero: { overflow: 'hidden' },
+  }),
+);

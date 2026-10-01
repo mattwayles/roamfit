@@ -15,7 +15,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { colors, gutter, space } from '../theme';
+import { gutter, makeStyles, space } from '../theme';
 import { useInsets } from './useInsets';
 
 export type Edge = 'top' | 'left' | 'right' | 'bottom';
@@ -55,6 +55,7 @@ export function Screen({
   children,
 }: ScreenProps): React.JSX.Element {
   const insets = useInsets();
+  const styles = useStyles();
   const has = (e: Edge) => edges.includes(e);
   const side = padded ? gutter : 0;
   const bottomInset = safeBottom ? insets.bottom : 0;
@@ -97,13 +98,15 @@ export function Screen({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
-  flex: { flex: 1 },
-  footer: {
-    paddingTop: space.md,
-    backgroundColor: colors.bg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
-  },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.colors.bg },
+    flex: { flex: 1 },
+    footer: {
+      paddingTop: space.md,
+      backgroundColor: t.colors.bg,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: t.colors.line,
+    },
+  }),
+);

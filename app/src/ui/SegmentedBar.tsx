@@ -4,13 +4,14 @@
  */
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, glow, radius } from '../theme';
+import { makeStyles, radius, useTheme } from '../theme';
 import { clamp01 } from './ProgressRing';
 
 export interface SegmentedBarProps {
   /** Fill 0..1 per segment. */
   values: readonly number[];
   activeIndex?: number;
+  /** Default: the theme's `ember`. */
   color?: string;
   height?: number;
   gap?: number;
@@ -21,12 +22,15 @@ export interface SegmentedBarProps {
 export function SegmentedBar({
   values,
   activeIndex,
-  color = colors.ember,
+  color: colorProp,
   height = 6,
   gap = 4,
   style,
   testID = 'segmented-bar',
 }: SegmentedBarProps): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
+  const color = colorProp ?? theme.colors.ember;
   return (
     <View
       testID={testID}
@@ -50,7 +54,7 @@ export function SegmentedBar({
               styles.track,
               { height, borderRadius: height / 2 },
               active && {
-                ...glow(color),
+                ...theme.glow(color),
                 shadowOpacity: 0.6,
                 shadowRadius: 8,
                 shadowOffset: { width: 0, height: 0 },
@@ -74,7 +78,9 @@ export function SegmentedBar({
   );
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center' },
-  track: { flex: 1, backgroundColor: colors.surface2, borderRadius: radius.pill },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    row: { flexDirection: 'row', alignItems: 'center' },
+    track: { flex: 1, backgroundColor: t.colors.surface2, borderRadius: radius.pill },
+  }),
+);

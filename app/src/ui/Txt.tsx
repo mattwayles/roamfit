@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { Text, type TextProps, type TextStyle } from 'react-native';
-import { colors, numeralMaxFontScale, type, type TypeVariant, type ColorName } from '../theme';
+import { numeralMaxFontScale, type, useTheme, type TypeVariant, type ColorName } from '../theme';
 
 export interface TxtProps extends TextProps {
   variant?: TypeVariant;
@@ -24,6 +24,7 @@ export function Txt({
   maxFontSizeMultiplier,
   ...rest
 }: TxtProps): React.JSX.Element {
+  const theme = useTheme();
   const isNumeral = variant === 'mega' || variant === 'hero';
   return (
     <Text
@@ -31,7 +32,7 @@ export function Txt({
       {...rest}
       style={[
         type[variant],
-        { color: colors[color] },
+        { color: theme.colors[color] },
         upper !== undefined && { textTransform: upper ? 'uppercase' : 'none' },
         align ? { textAlign: align } : null,
         style,

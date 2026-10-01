@@ -1,13 +1,14 @@
 /**
  * Topographic contour lines — the travel-map texture for hero cards. 5-7 nested organic loops
- * around a seeded center, drawn at 6-9% `text` opacity. Fully deterministic from `seed`, so a
+ * around a seeded center, drawn at 6-9% opacity in the theme's `topo.color` (`text` on Golden
+ * Hour, sepia on Daylight, scaled by `topo.strength`). Fully deterministic from `seed`, so a
  * given card (or city) always gets the same map.
  */
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { seededRng } from '../lib/seed';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 import { useLayoutSize } from './useLayoutSize';
 
 const round = (n: number) => Math.round(n * 100) / 100;
@@ -81,6 +82,7 @@ export function TopoPattern({
   strength = 1,
   testID = 'topo-pattern',
 }: TopoPatternProps): React.JSX.Element {
+  const theme = useTheme();
   const { paths, opacity } = topoLoops(seed);
   const { ready, onLayout } = useLayoutSize();
   return (
@@ -97,8 +99,8 @@ export function TopoPattern({
               testID={`${testID}-loop-${i}`}
               d={d}
               fill="none"
-              stroke={colors.text}
-              strokeOpacity={opacity * strength}
+              stroke={theme.topo.color}
+              strokeOpacity={opacity * strength * theme.topo.strength}
               strokeWidth={0.45}
             />
           ))}

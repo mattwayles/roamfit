@@ -1,12 +1,12 @@
 /**
  * The app's button. `primary` is the sunrise-gradient CTA with a glow (one per screen);
  * `secondary` a `surface2` pill with a hairline; `ghost` an outline; `quiet` bare text.
- * Never white on ember — text on the gradient is `ink`.
+ * Text on the gradient is `ink` (near-black on Golden Hour's bright ember, white on Daylight's deep one).
  */
 import React from 'react';
 import { ActivityIndicator, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { HapticKind } from '../lib/haptics';
-import { colors, glow, radius, space, type ColorName } from '../theme';
+import { makeStyles, radius, space, useTheme, type ColorName } from '../theme';
 import { Gradient } from './Gradient';
 import { Icon, type IconName } from './Icon';
 import { PressableScale } from './PressableScale';
@@ -53,6 +53,8 @@ export function Button({
   testID,
   accessibilityLabel,
 }: ButtonProps): React.JSX.Element {
+  const theme = useTheme();
+  const styles = useStyles();
   const inactive = disabled || loading;
   const textColor: ColorName =
     variant === 'primary' ? 'ink' : variant === 'quiet' ? 'text2' : 'text';
@@ -63,7 +65,7 @@ export function Button({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={colors[textColor]}
+          color={theme.colors[textColor]}
           style={iconRight ? styles.after : styles.before}
         />
       ) : icon && !iconRight ? (
@@ -96,7 +98,7 @@ export function Button({
         styles.base,
         { height: HEIGHT[size], paddingHorizontal: PAD[size] },
         stretch && styles.stretch,
-        variant === 'primary' && !inactive && glow(colors.ember),
+        variant === 'primary' && !inactive && theme.glow(theme.colors.ember),
         variant === 'secondary' && styles.secondary,
         variant === 'ghost' && styles.ghost,
         variant === 'quiet' && styles.quiet,
@@ -110,26 +112,28 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'flex-start',
-  },
-  stretch: { alignSelf: 'stretch' },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  before: { marginRight: space.sm },
-  after: { marginLeft: space.sm },
-  secondary: {
-    backgroundColor: colors.surface2,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: colors.line,
-  },
-  ghost: {
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: colors.lineStrong,
-  },
-  quiet: { backgroundColor: 'transparent' },
-  inactive: { opacity: 0.5 },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    base: {
+      borderRadius: radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      alignSelf: 'flex-start',
+    },
+    stretch: { alignSelf: 'stretch' },
+    row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+    before: { marginRight: space.sm },
+    after: { marginLeft: space.sm },
+    secondary: {
+      backgroundColor: t.colors.surface2,
+      borderWidth: StyleSheet.hairlineWidth * 2,
+      borderColor: t.colors.line,
+    },
+    ghost: {
+      borderWidth: StyleSheet.hairlineWidth * 2,
+      borderColor: t.colors.lineStrong,
+    },
+    quiet: { backgroundColor: 'transparent' },
+    inactive: { opacity: 0.5 },
+  }),
+);

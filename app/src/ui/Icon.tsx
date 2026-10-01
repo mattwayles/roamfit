@@ -5,7 +5,7 @@
 import React from 'react';
 import type { StyleProp, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, type ColorName } from '../theme';
+import { useTheme, type ColorName } from '../theme';
 
 type Glyph = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -102,11 +102,12 @@ export function Icon({
   testID,
   accessibilityLabel,
 }: IconProps): React.JSX.Element {
+  const theme = useTheme();
   return (
     <Ionicons
       name={iconMap[name]}
       size={size}
-      color={colors[color]}
+      color={theme.colors[color]}
       style={style}
       testID={testID}
       accessibilityLabel={accessibilityLabel}

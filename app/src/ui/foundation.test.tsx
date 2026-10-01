@@ -2,7 +2,7 @@ import React from 'react';
 import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
-import { colors, type } from '../theme';
+import { colors, daylight, daylightTheme, type } from '../theme';
 import {
   Button,
   Gradient,
@@ -13,7 +13,7 @@ import {
   iconMap,
   useReduceMotion,
 } from './index';
-import { ready, WAIT } from './test-utils';
+import { inDaylight, ready, WAIT } from './test-utils';
 
 describe('Txt', () => {
   it('applies the variant style and token color', async () => {
@@ -193,5 +193,55 @@ describe('Button', () => {
     await render(<Button label="Go" icon="bolt" testID="b" />);
     await ready('b');
     expect(JSON.stringify(screen.toJSON())).toContain(`"name":"${iconMap.bolt}"`);
+  });
+});
+
+describe('Daylight (foundation)', () => {
+  it('Txt defaults to Daylight ink and resolves tokens through the theme', async () => {
+    await render(
+      inDaylight(
+        <>
+          <Txt testID="a">a</Txt>
+          <Txt color="ember" testID="b">
+            b
+          </Txt>
+          <Txt color="ink" testID="c">
+            c
+          </Txt>
+        </>,
+      ),
+    );
+    await ready('a');
+    const color = (id: string) => StyleSheet.flatten(screen.getByTestId(id).props.style).color;
+    expect(color('a')).toBe(daylight.text);
+    expect(color('b')).toBe(daylight.ember);
+    expect(color('c')).toBe('#FFFFFF');
+  });
+
+  it('Icon takes its color from the Daylight palette', async () => {
+    await render(inDaylight(<Icon name="bolt" color="gold" testID="i" />));
+    expect(StyleSheet.flatten(screen.getByTestId('i', { hidden: true }).props.style).color).toBe(
+      daylight.gold,
+    );
+  });
+
+  it('primary Button gets the tamed Daylight glow and white-on-deep-ember legend', async () => {
+    await render(inDaylight(<Button label="Go" testID="p" />));
+    await ready('p');
+    expect(StyleSheet.flatten(screen.getByTestId('p').props.style)).toMatchObject(
+      daylightTheme.glow(daylight.ember),
+    );
+    expect(StyleSheet.flatten(screen.getByText('Go').props.style).color).toBe('#FFFFFF');
+  });
+
+  it('Gradient with no colors uses the Daylight sunrise', async () => {
+    await render(inDaylight(<Gradient testID="g" />));
+    await ready('g');
+    await fireEvent(screen.getByTestId('g'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 320, height: 64 } },
+    });
+    const json = JSON.stringify(screen.toJSON()).toLowerCase();
+    expect(json).toMatch(/linearGradient/i);
+    expect(json).not.toContain('ff5e3a');
   });
 });

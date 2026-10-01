@@ -1,9 +1,9 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { colors } from '../theme';
+import { colors, daylight, daylightTheme } from '../theme';
 import { Enter, Screen, Sheet, Toast, Txt } from './index';
-import { flat, ready, WAIT } from './test-utils';
+import { flat, inDaylight, ready, WAIT } from './test-utils';
 
 describe('Sheet', () => {
   it('shows children and title when visible, and backdrop press closes', async () => {
@@ -114,5 +114,48 @@ describe('Enter', () => {
     );
     await ready('e');
     expect(screen.getByText('hello')).toBeTruthy();
+  });
+});
+
+describe('Daylight (overlays)', () => {
+  it('Sheet uses the light scrim, a paper panel and the card shadow', async () => {
+    await render(
+      inDaylight(
+        <Sheet visible onClose={() => {}}>
+          <Text>Body</Text>
+        </Sheet>,
+      ),
+    );
+    await ready('sheet');
+    expect(flat('sheet')).toMatchObject({
+      backgroundColor: daylight.surface,
+      borderColor: daylight.line,
+      ...daylightTheme.elevation.card,
+    });
+    const scrim = screen.getByTestId('sheet-backdrop').parent;
+    expect(JSON.stringify(scrim?.props.style)).toContain(daylight.backdrop);
+  });
+
+  it('Toast is a Daylight surface3 pill', async () => {
+    await render(inDaylight(<Toast message="Strong set." testID="toast" />));
+    await ready('toast');
+    expect(flat('toast')).toMatchObject({
+      backgroundColor: daylight.surface3,
+      borderColor: daylight.lineStrong,
+    });
+  });
+
+  it('Screen paints Daylight paper', async () => {
+    await render(
+      inDaylight(
+        <Screen testID="scr" footer={<Txt>Footer</Txt>}>
+          <Txt>Body</Txt>
+        </Screen>,
+      ),
+    );
+    await ready('scr');
+    expect(flat('scr').backgroundColor).toBe(daylight.bg);
+    expect(flat('scr-footer').backgroundColor).toBe(daylight.bg);
+    expect(flat('scr-footer').borderTopColor).toBe(daylight.line);
   });
 });

@@ -7,10 +7,11 @@
 import React, { useId } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { gradients } from '../theme';
+import { useTheme } from '../theme';
 import { useLayoutSize } from './useLayoutSize';
 
 export interface GradientProps {
+  /** Default: the theme's `sunrise`. */
   colors?: readonly string[];
   angle?: number;
   radius?: number;
@@ -27,11 +28,13 @@ export function gradientPoints(angle: number) {
 }
 
 export function Gradient({
-  colors = gradients.sunrise,
+  colors: colorsProp,
   angle = 135,
   radius = 0,
   testID = 'gradient',
 }: GradientProps): React.JSX.Element {
+  const theme = useTheme();
+  const colors = colorsProp ?? theme.gradients.sunrise;
   const id = `g${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const { ready, onLayout } = useLayoutSize();
   const { x1, y1, x2, y2 } = gradientPoints(angle);

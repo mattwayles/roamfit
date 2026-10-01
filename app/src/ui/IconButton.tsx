@@ -5,7 +5,7 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { HapticKind } from '../lib/haptics';
-import { colors, type ColorName } from '../theme';
+import { makeStyles, type ColorName } from '../theme';
 import { Icon, type IconName } from './Icon';
 import { PressableScale } from './PressableScale';
 import { Txt } from './Txt';
@@ -43,6 +43,7 @@ export function IconButton({
   style,
   testID,
 }: IconButtonProps): React.JSX.Element {
+  const styles = useStyles();
   const d = DIAMETER[size];
   const button = (
     <PressableScale
@@ -75,14 +76,16 @@ export function IconButton({
   );
 }
 
-const styles = StyleSheet.create({
-  disc: { alignItems: 'center', justifyContent: 'center' },
-  filled: {
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  disabled: { opacity: 0.4 },
-  column: { alignItems: 'center' },
-  caption: { marginTop: 6 },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    disc: { alignItems: 'center', justifyContent: 'center' },
+    filled: {
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+    },
+    disabled: { opacity: 0.4 },
+    column: { alignItems: 'center' },
+    caption: { marginTop: 6 },
+  }),
+);

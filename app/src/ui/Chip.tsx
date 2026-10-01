@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, radius, space, tints, type AccentName } from '../theme';
+import { makeStyles, radius, space, useTheme, type AccentName } from '../theme';
 import { Icon, type IconName } from './Icon';
 import { PressableScale } from './PressableScale';
 import { Txt } from './Txt';
@@ -39,8 +39,10 @@ export function Chip({
   testID,
   accessibilityLabel,
 }: ChipProps): React.JSX.Element {
-  const accent = tone === 'neutral' ? colors.text : colors[tone];
-  const bg = selected ? accent : tone === 'neutral' ? colors.surface2 : tints[tone];
+  const theme = useTheme();
+  const styles = useStyles();
+  const accent = tone === 'neutral' ? theme.colors.text : theme.colors[tone];
+  const bg = selected ? accent : tone === 'neutral' ? theme.colors.surface2 : theme.tints[tone];
   const textColor = selected ? 'ink' : tone === 'neutral' ? 'text2' : tone;
 
   const containerStyle = [
@@ -92,17 +94,19 @@ export function Chip({
   );
 }
 
-const styles = StyleSheet.create({
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
-    borderRadius: radius.pill,
-  },
-  md: { paddingHorizontal: space.md, paddingVertical: 7, minHeight: 30 },
-  sm: { paddingHorizontal: space.sm + 2, paddingVertical: 4, minHeight: 24 },
-  neutralBorder: { borderWidth: 1, borderColor: colors.line },
-  gap: { marginRight: 6 },
-  wrapText: { flexShrink: 1 },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      maxWidth: '100%',
+      borderRadius: radius.pill,
+    },
+    md: { paddingHorizontal: space.md, paddingVertical: 7, minHeight: 30 },
+    sm: { paddingHorizontal: space.sm + 2, paddingVertical: 4, minHeight: 24 },
+    neutralBorder: { borderWidth: 1, borderColor: t.colors.line },
+    gap: { marginRight: 6 },
+    wrapText: { flexShrink: 1 },
+  }),
+);

@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { colors, gradients } from '../theme';
+import { colors, daylight, daylightTheme, gradients } from '../theme';
 import {
   Card,
   ProgressRing,
@@ -12,7 +12,7 @@ import {
   stampSpec,
   topoLoops,
 } from './index';
-import { flat, ready } from './test-utils';
+import { flat, inDaylight, ready } from './test-utils';
 
 describe('Card', () => {
   it('plain is a surface with a 1px line border', async () => {
@@ -190,5 +190,69 @@ describe('StatTile', () => {
     expect(screen.getByText('Sessions')).toBeTruthy();
     expect(screen.getByLabelText('Sessions: 42')).toBeTruthy();
     expect(StyleSheet.flatten(screen.getByText('42').props.style).color).toBe(colors.gold);
+  });
+});
+
+describe('Daylight (surfaces)', () => {
+  it('plain Card is paper with a line border and the card shadow', async () => {
+    await render(
+      inDaylight(
+        <Card testID="c">
+          <Txt>hi</Txt>
+        </Card>,
+      ),
+    );
+    await ready('c');
+    expect(flat('c')).toMatchObject({
+      backgroundColor: daylight.surface,
+      borderColor: daylight.line,
+      ...daylightTheme.elevation.card,
+    });
+  });
+
+  it('accent Card lifts too; hero does not (it clips)', async () => {
+    await render(
+      inDaylight(
+        <>
+          <Card variant="accent" testID="a">
+            <Txt>a</Txt>
+          </Card>
+          <Card variant="hero" testID="h">
+            <Txt>h</Txt>
+          </Card>
+        </>,
+      ),
+    );
+    await ready('a');
+    expect(flat('a')).toMatchObject(daylightTheme.elevation.card);
+    expect(flat('h').shadowOpacity).toBeUndefined();
+  });
+
+  it('TopoPattern prints sepia at 1.3x the seeded opacity', async () => {
+    await render(inDaylight(<TopoPattern seed="s" testID="t" />));
+    await ready('t');
+    await fireEvent(screen.getByTestId('t'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 200, height: 200 } },
+    });
+    const loop = screen.getByTestId('t-loop-0');
+    // react-native-svg hands the stroke over as a processed ARGB payload: 0xFF3B2410.
+    expect(loop.props.stroke.payload).toBe(0xff3b2410);
+    const { opacity } = topoLoops('s');
+    expect(loop.props.strokeOpacity).toBeCloseTo(opacity * 1.3, 5);
+  });
+
+  it('StatTile is paper with the card shadow', async () => {
+    await render(inDaylight(<StatTile testID="st" value={3} label="Sessions" />));
+    await ready('st');
+    expect(flat('st')).toMatchObject({
+      backgroundColor: daylight.surface,
+      ...daylightTheme.elevation.card,
+    });
+  });
+
+  it('Stamp inks come from the Daylight palette', async () => {
+    await render(inDaylight(<Stamp testID="sp" title="Lisbon" seed="lisbon" tone="gold" />));
+    await ready('sp');
+    expect(flat('sp').borderColor).toBe(daylight.gold);
   });
 });

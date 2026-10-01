@@ -9,21 +9,21 @@ import HomeScreen from '../screens/HomeScreen';
 import JourneyScreen from '../screens/JourneyScreen';
 import ExercisesScreen from '../screens/ExercisesScreen';
 import { TabBar } from './TabBar';
-import { headerOptions } from './screenOptions';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 import type { TabParamList } from './types';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
 export default function Tabs(): React.JSX.Element {
+  const theme = useTheme();
   return (
     <Tab.Navigator
       initialRouteName="Home"
       tabBar={(props) => <TabBar {...props} />}
       screenOptions={{
-        ...headerOptions,
+        ...theme.headerOptions,
         headerShown: false,
-        sceneStyle: { backgroundColor: colors.bg },
+        sceneStyle: { backgroundColor: theme.colors.bg },
       }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />

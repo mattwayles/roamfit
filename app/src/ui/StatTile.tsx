@@ -1,7 +1,7 @@
 /** A big condensed numeral over an eyebrow label, optional icon; `tone` colors icon + numeral. */
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, radius, space, type AccentName } from '../theme';
+import { makeStyles, radius, space, type AccentName } from '../theme';
 import { Icon, type IconName } from './Icon';
 import { Txt } from './Txt';
 
@@ -25,6 +25,7 @@ export function StatTile({
   style,
   testID,
 }: StatTileProps): React.JSX.Element {
+  const styles = useStyles();
   return (
     <View
       testID={testID}
@@ -50,15 +51,18 @@ export function StatTile({
   );
 }
 
-const styles = StyleSheet.create({
-  tile: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radius.lg,
-    padding: space.lg,
-    minWidth: 96,
-  },
-  icon: { marginBottom: space.xs },
-  label: { marginTop: space.xs },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    tile: {
+      backgroundColor: t.colors.surface,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      borderRadius: radius.lg,
+      padding: space.lg,
+      minWidth: 96,
+      ...t.elevation.card,
+    },
+    icon: { marginBottom: space.xs },
+    label: { marginTop: space.xs },
+  }),
+);

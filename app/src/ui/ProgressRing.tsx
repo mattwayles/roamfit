@@ -5,7 +5,7 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { colors, gradients } from '../theme';
+import { useTheme } from '../theme';
 import { useReduceMotion } from './useReduceMotion';
 
 const ACircle = Animated.createAnimatedComponent(Circle);
@@ -15,7 +15,9 @@ export interface ProgressRingProps {
   progress: number;
   size?: number;
   stroke?: number;
+  /** Default: the theme's `summit` gradient. */
   gradient?: readonly string[];
+  /** Default: the theme's `surface2`. */
   trackColor?: string;
   animate?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -31,14 +33,17 @@ export function ProgressRing({
   progress,
   size = 64,
   stroke = 8,
-  gradient = gradients.summit,
-  trackColor = colors.surface2,
+  gradient: gradientProp,
+  trackColor: trackColorProp,
   animate = true,
   style,
   testID = 'progress-ring',
   accessibilityLabel,
   children,
 }: ProgressRingProps): React.JSX.Element {
+  const theme = useTheme();
+  const gradient = gradientProp ?? theme.gradients.summit;
+  const trackColor = trackColorProp ?? theme.colors.surface2;
   const id = `r${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const reduceMotion = useReduceMotion();
   const p = clamp01(progress);

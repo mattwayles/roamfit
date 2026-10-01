@@ -6,7 +6,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, radius, space } from '../theme';
+import { makeStyles, radius, space } from '../theme';
 import { Txt } from './Txt';
 import { useReduceMotion } from './useReduceMotion';
 
@@ -27,6 +27,7 @@ export function Toast({
   style,
   testID = 'toast',
 }: ToastProps): React.JSX.Element | null {
+  const styles = useStyles();
   const reduceMotion = useReduceMotion();
   const [shown, setShown] = useState<string | null>(null);
   const opacity = useRef(new Animated.Value(0)).current;
@@ -85,15 +86,18 @@ export function Toast({
   );
 }
 
-const styles = StyleSheet.create({
-  toast: {
-    position: 'absolute',
-    alignSelf: 'center',
-    backgroundColor: colors.surface3,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-    borderRadius: radius.pill,
-    paddingHorizontal: space.xl,
-    paddingVertical: space.md,
-  },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    toast: {
+      position: 'absolute',
+      alignSelf: 'center',
+      backgroundColor: t.colors.surface3,
+      borderWidth: 1,
+      borderColor: t.colors.lineStrong,
+      borderRadius: radius.pill,
+      paddingHorizontal: space.xl,
+      paddingVertical: space.md,
+      ...t.elevation.card,
+    },
+  }),
+);

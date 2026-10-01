@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { haptics } from '../lib/haptics';
-import { colors } from '../theme';
+import { makeStyles } from '../theme';
 
 const WIDTH = 52;
 const HEIGHT = 32;
@@ -26,6 +26,7 @@ export function Switch({
   style,
   testID,
 }: SwitchProps): React.JSX.Element {
+  const styles = useStyles();
   const progress = useRef(new Animated.Value(value ? 1 : 0)).current;
 
   useEffect(() => {
@@ -71,27 +72,32 @@ export function Switch({
   );
 }
 
-const styles = StyleSheet.create({
-  track: {
-    width: WIDTH,
-    height: HEIGHT,
-    borderRadius: HEIGHT / 2,
-    backgroundColor: colors.surface3,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-    padding: PAD - 1,
-    justifyContent: 'center',
-  },
-  on: {
-    ...StyleSheet.absoluteFill,
-    borderRadius: HEIGHT / 2,
-    backgroundColor: colors.ember,
-  },
-  thumb: {
-    width: THUMB,
-    height: THUMB,
-    borderRadius: THUMB / 2,
-    backgroundColor: colors.text,
-  },
-  disabled: { opacity: 0.5 },
-});
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    track: {
+      width: WIDTH,
+      height: HEIGHT,
+      borderRadius: HEIGHT / 2,
+      backgroundColor: t.colors.surface3,
+      borderWidth: 1,
+      borderColor: t.colors.lineStrong,
+      padding: PAD - 1,
+      justifyContent: 'center',
+    },
+    on: {
+      ...StyleSheet.absoluteFill,
+      borderRadius: HEIGHT / 2,
+      backgroundColor: t.colors.ember,
+    },
+    // Paper-white on both tracks (Daylight's `text` is ink, which would be a black thumb); the
+    // card shadow keeps it distinct from the pale off-track on Daylight.
+    thumb: {
+      width: THUMB,
+      height: THUMB,
+      borderRadius: THUMB / 2,
+      backgroundColor: t.colors.fixedPaper,
+      ...t.elevation.card,
+    },
+    disabled: { opacity: 0.5 },
+  }),
+);

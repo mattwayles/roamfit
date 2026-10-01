@@ -13,7 +13,8 @@ import { TAB_META } from './TabBar';
 import { StoreProvider } from '../state/StoreContext';
 import { getDb } from '../db';
 import { nowUtcInstant } from '../lib/localClock';
-import { navTheme } from '../theme';
+import { StyleSheet } from 'react-native';
+import { ThemeContext, daylight, daylightTheme, navTheme } from '../theme';
 
 const WAIT = { timeout: 5000, interval: 50 };
 
@@ -90,6 +91,26 @@ describe('homeReset', () => {
     expect(homeReset()).toEqual({
       index: 0,
       routes: [{ name: 'Tabs', params: { screen: 'Home' } }],
+    });
+  });
+});
+
+describe('navigation shell in Daylight', () => {
+  it('tab bar is paper with the card shadow, and the active tab is the deep ember', async () => {
+    await render(
+      <StoreProvider>
+        <ThemeContext.Provider value={daylightTheme}>
+          <NavigationContainer theme={daylightTheme.navTheme}>
+            <RootNavigator />
+          </NavigationContainer>
+        </ThemeContext.Provider>
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('tab-bar')).toBeTruthy(), WAIT);
+    expect(StyleSheet.flatten(screen.getByTestId('tab-bar').props.style)).toMatchObject({
+      backgroundColor: daylight.surface,
+      borderTopColor: daylight.line,
+      ...daylightTheme.elevation.card,
     });
   });
 });

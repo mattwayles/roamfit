@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, motion } from '../theme';
+import { motion, useTheme } from '../theme';
 import { useReduceMotion } from './useReduceMotion';
 
 export interface PipsProps {
@@ -14,6 +14,7 @@ export interface PipsProps {
   filled: number | readonly boolean[];
   /** Zero-based index of the current set. */
   current?: number;
+  /** Default: the theme's `ember`. */
   color?: string;
   size?: number;
   style?: StyleProp<ViewStyle>;
@@ -33,6 +34,7 @@ function Pip({
   size: number;
   testID: string;
 }) {
+  const theme = useTheme();
   const reduceMotion = useReduceMotion();
   const scale = useRef(new Animated.Value(1)).current;
   const wasFilled = useRef(filled);
@@ -76,7 +78,7 @@ function Pip({
           height: size,
           borderRadius: size / 2,
           margin: 4,
-          backgroundColor: filled ? color : colors.surface3,
+          backgroundColor: filled ? color : theme.colors.surface3,
           transform: [{ scale }],
         }}
       />
@@ -88,11 +90,13 @@ export function Pips({
   count,
   filled,
   current,
-  color = colors.ember,
+  color: colorProp,
   size = 12,
   style,
   testID = 'pips',
 }: PipsProps): React.JSX.Element {
+  const theme = useTheme();
+  const color = colorProp ?? theme.colors.ember;
   const isFilled = (i: number) => (typeof filled === 'number' ? i < filled : filled[i] === true);
   const doneCount =
     typeof filled === 'number'
