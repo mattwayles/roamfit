@@ -13,7 +13,7 @@
  * lives, forgiving math" framing (it should credit a fast start to the week immediately, not wait
  * for the week to end). Documented here per CLAUDE.md rather than silently assumed.
  */
-import { eq, gte } from 'drizzle-orm';
+import { and, eq, gte, sql } from 'drizzle-orm';
 import type { Db } from '../db';
 import { schema } from '../db';
 import { newId } from '../ids';
@@ -246,6 +246,20 @@ export function recordTravelDay(db: Db, now: string, localDate: string): void {
     utcInstant: now,
     localDate,
   });
+}
+
+/** Lifetime reps: every completed rep-based set in a completed session. Derived from `set_logs`
+ *  rather than kept as a running total, so it needs no migration or backfill and covers history
+ *  already logged. Timed holds log seconds, not reps, so they add nothing here. */
+export function lifetimeReps(db: Db): number {
+  const row = db
+    .select({ total: sql<number | null>`sum(${schema.setLogs.repsActual})` })
+    .from(schema.setLogs)
+    .innerJoin(schema.sessionEntries, eq(schema.setLogs.entryId, schema.sessionEntries.id))
+    .innerJoin(schema.sessions, eq(schema.sessionEntries.sessionId, schema.sessions.id))
+    .where(and(eq(schema.setLogs.status, 'completed'), eq(schema.sessions.status, 'completed')))
+    .all()[0];
+  return row?.total ?? 0;
 }
 
 /** §14.3 — hard sets per muscle group, trailing 14 days, read straight from the ledger. */

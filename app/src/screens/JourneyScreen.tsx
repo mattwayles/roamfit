@@ -253,11 +253,11 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
                 tone="ember"
               />
               <StatTile
-                testID="lifetime-minutes"
+                testID="lifetime-reps"
                 style={styles.tile}
-                value={lifetime.totalMinutes}
-                label="Active minutes"
-                icon="time"
+                value={lifetime.totalReps}
+                label="Reps"
+                icon="barbell"
                 tone="gold"
               />
               <StatTile

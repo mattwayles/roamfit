@@ -5,6 +5,7 @@ import {
   createPendingSession,
   getCompletedSessionsForDashboard,
   getPendingSession,
+  getSession,
   logSet,
   startSession,
 } from './repositories/sessions';
@@ -14,7 +15,7 @@ import { getAllExerciseStates } from './repositories/exerciseState';
 import { getPendingDeferredWork } from './repositories/queues';
 import { completeSession } from './completion';
 import { ensureUser, updateUser } from './repositories/users';
-import { getStats, shouldSuggestRecoveryWeek } from './repositories/stats';
+import { getStats, lifetimeReps, shouldSuggestRecoveryWeek } from './repositories/stats';
 import {
   library,
   singleExerciseFamilies as families,
@@ -251,6 +252,28 @@ describe('completion — actualMinutes stops at the last completed set', () => {
         utcInstantFor(localDate, 14),
       );
       expect(result.actualMinutes).toBeCloseTo(20, 5);
+    } finally {
+      close();
+    }
+  });
+});
+
+describe('lifetimeReps', () => {
+  it('sums reps from completed sets of completed sessions only', () => {
+    const { db, close } = createTestDb();
+    try {
+      expect(lifetimeReps(db)).toBe(0);
+      const { sessionId } = runSession(db, '2026-05-01', 1, 0);
+      const expected = getSession(db, sessionId)!.entries.reduce(
+        (a, e) =>
+          a +
+          e.setLogs
+            .filter((s) => s.status === 'completed')
+            .reduce((b, s) => b + (s.repsActual ?? 0), 0),
+        0,
+      );
+      expect(expected).toBeGreaterThan(0);
+      expect(lifetimeReps(db)).toBe(expected);
     } finally {
       close();
     }

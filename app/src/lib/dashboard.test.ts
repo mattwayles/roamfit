@@ -371,10 +371,10 @@ describe('§14.1.8 lifetime counters — monotonic, permanent', () => {
     const passport = buildPassportSummary([
       summary('2026-05-01', { city: 'Lisbon', country: 'Portugal' }),
     ]);
-    const counters = buildLifetimeCounters(12, 359.6, passport, 4, 7);
+    const counters = buildLifetimeCounters(12, 4210, passport, 4, 7);
     expect(counters).toEqual({
       sessions: 12,
-      totalMinutes: 360,
+      totalReps: 4210,
       places: 1,
       countries: 1,
       levelsGained: 4,
