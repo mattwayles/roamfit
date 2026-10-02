@@ -468,6 +468,112 @@ describe('getFitnessContent', () => {
     });
   });
 
+  /** Small seeded PRNG (mulberry32) so randomised behaviour is reproducible. */
+  const seeded = (seed: number) => () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const queryOf = (url: string) => decodeURIComponent(url.split('&q=')[1]);
+  const offsetOf = (url: string) => Number(/offset=(\d+)/.exec(url)![1]);
+  /** Every query answers with 10 distinct playlists named after it. */
+  const answerPerQuery = () =>
+    fetchMock.mockImplementation(async (url: string) => {
+      const q = queryOf(url);
+      return {
+        ok: true,
+        json: async () => ({
+          playlists: {
+            items: Array.from({ length: 10 }, (_, i) => playlist(`${q}#${i}`, `${q} mix ${i}`)),
+          },
+        }),
+      };
+    });
+
+  it('builds up to six distinct queries from the chosen vibes, each with a shallow offset', async () => {
+    answerPerQuery();
+    const { SPOTIFY_VIBES } = jest.requireActual(
+      './spotifyVibes',
+    ) as typeof import('./spotifyVibes');
+    const pool = [
+      ...SPOTIFY_VIBES.find((v) => v.id === 'rock')!.terms,
+      ...SPOTIFY_VIBES.find((v) => v.id === 'metal')!.terms,
+    ];
+
+    await getFitnessContent(['rock', 'metal'], { random: seeded(7) });
+
+    const urls = fetchMock.mock.calls.map((c) => c[0] as string);
+    const queries = urls.map(queryOf);
+    expect(queries).toHaveLength(6);
+    expect(new Set(queries).size).toBe(6);
+    for (const q of queries) expect(pool).toContain(q);
+    for (const u of urls) {
+      expect([0, 10, 20, 30]).toContain(offsetOf(u));
+      expect(u).toContain('limit=10');
+    }
+  });
+
+  it('falls back to the generic terms when no vibe is chosen', async () => {
+    answerPerQuery();
+
+    await getFitnessContent([], { random: seeded(1) });
+
+    const queries = fetchMock.mock.calls.map((c) => queryOf(c[0] as string)).sort();
+    expect(queries).toEqual(['cardio', 'gym', 'hiit', 'running', 'strength training', 'workout']);
+  });
+
+  it('is deterministic for a given seed', async () => {
+    answerPerQuery();
+    const first = await getFitnessContent(['rock', 'pop'], { random: seeded(42) });
+    const firstUrls = fetchMock.mock.calls.map((c) => c[0]);
+    fetchMock.mockClear();
+    const second = await getFitnessContent(['rock', 'pop'], { random: seeded(42) });
+
+    expect(fetchMock.mock.calls.map((c) => c[0])).toEqual(firstUrls);
+    expect(second).toEqual(first);
+  });
+
+  it('skips excluded playlist ids', async () => {
+    answerPerQuery();
+    const all = await getFitnessContent(['rock'], { random: seeded(3) });
+    const excluded = new Set(all.items.slice(0, 5).map((i) => i.identifier));
+
+    const result = await getFitnessContent(['rock'], { random: seeded(3), excludeIds: excluded });
+
+    expect(result.items.length).toBe(all.items.length - 5);
+    for (const i of result.items) expect(excluded.has(i.identifier)).toBe(false);
+  });
+
+  it('shuffles the final list rather than returning round-robin order', async () => {
+    answerPerQuery();
+    // Round-robin order is what a no-op shuffle would return: a random() of ~1 keeps every element
+    // in place in Fisher–Yates (j === i), and also picks the same query/offset sampling each time.
+    const keepOrder = await getFitnessContent(['rock'], { random: () => 0.999999 });
+    let differs = false;
+    for (let seed = 1; seed <= 10 && !differs; seed++) {
+      const r = await getFitnessContent(['rock'], { random: seeded(seed) });
+      const a = r.items.map((i) => i.identifier);
+      const b = keepOrder.items.map((i) => i.identifier);
+      differs = a.join() !== b.join();
+    }
+    expect(differs).toBe(true);
+  });
+
+  it('keeps results from queries that succeeded when others fail', async () => {
+    let n = 0;
+    fetchMock.mockImplementation(async (url: string) => {
+      if (n++ % 2 === 0) return { ok: false, status: 500 };
+      const q = queryOf(url);
+      return { ok: true, json: async () => ({ playlists: { items: [playlist(q, `${q} mix`)] } }) };
+    });
+
+    const result = await getFitnessContent(['rock'], { random: seeded(5) });
+
+    expect(result.error).toBeNull();
+    expect(result.items).toHaveLength(3);
+  });
+
   it('asks to reconnect when there is no stored session', async () => {
     mockLoadStoredSpotifySession.mockResolvedValue(null);
 
@@ -477,7 +583,7 @@ describe('getFitnessContent', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('reports a failed search instead of throwing', async () => {
+  it('reports an error only when every query failed', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 429 });
 
     const result = await getFitnessContent();

@@ -18,6 +18,9 @@
  * around that being a real trade against the "no network of our own" rule above. Everything after a
  * search result is picked — previewing a playlist's tracks, playing it — goes back over App Remote
  * with no further network call of ours; see `getFitnessContent`'s header for the full reasoning.
+ * That search is steered by user-chosen genre/era "vibes" (`spotifyVibes.ts`) and deliberately
+ * randomised (sampled queries, shallow random offsets, shuffled output) so it isn't the same list
+ * on every open.
  *
  * **The import must stay lazy and try/caught.** `ExpoSpotifySDKModule.js` calls
  * `requireNativeModule("ExpoSpotifySDK")` at the top level, which *throws on import* whenever no
@@ -70,6 +73,7 @@ import {
   saveStoredSpotifySession,
   type StoredSpotifySession,
 } from './spotifySession';
+import { FITNESS_NAME, resolveVibeQueries } from './spotifyVibes';
 
 type SpotifyModule = typeof import('@wwdrew/expo-spotify-sdk');
 
@@ -448,15 +452,6 @@ function toContentItem(item: {
   };
 }
 
-/** Searches that together cover what people actually train to. Each is a separate query because a
- *  single "workout" search is dominated by whatever playlist names game it best. */
-const FITNESS_SEARCHES = ['workout', 'gym', 'hiit', 'running', 'strength training', 'cardio'];
-
-/** A search hit only counts as a fitness playlist if its name says so — search also matches on
- *  description and owner, which is how unrelated "vibe" playlists sneak in. */
-const FITNESS_NAME =
-  /workout|gym|hiit|cardio|running|\brun\b|training|fitness|lift|cycl|spin|sweat|pump|bootcamp|crossfit/i;
-
 interface SearchedPlaylist {
   id: string;
   uri: string;
@@ -465,11 +460,37 @@ interface SearchedPlaylist {
   tracks?: { total?: number } | null;
 }
 
+/** Fisher–Yates, in place, driven by `random` so tests can seed it. */
+function shuffleInPlace<T>(arr: T[], random: () => number): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/** Queries sampled per open — enough spread to feel different each time, few enough to stay cheap. */
+const QUERIES_PER_SEARCH = 6;
+/** Result pages a query may start from. Deliberately shallow: search relevance falls off fast, so
+ *  offsets past ~40 trade the "different every open" win for off-topic playlists. */
+const SEARCH_OFFSETS = [0, 10, 20, 30];
+
 /**
  * Fitness playlists by name, via the Spotify Web API's public playlist search. The App Remote
  * "recommended: fitness" feed this used to call is personalised — it returned playlists in the
  * user's own taste, mostly not workout material, plus non-playable section rows. Search needs no
  * scope beyond the access token the session already holds.
+ *
+ * **Vibes and randomization.** `vibeIds` (see `spotifyVibes.ts`; empty = anything) become a pool of
+ * workout-worded queries ("metal gym", "90s cardio"). Each call samples up to six distinct queries
+ * from that pool and gives each a random shallow `offset`, then shuffles the merged list — so the
+ * same vibe yields a different set on every open instead of the same top-ten forever. Playlists
+ * whose ids are in `excludeIds` (e.g. ones the caller already showed) are skipped. The name filter
+ * and dedupe still apply; the engine-decides rule is untouched — this only picks *what to show*
+ * for the user to choose from. `random` is injectable for deterministic tests.
+ *
+ * One failed query no longer sinks the search: results from the queries that succeeded are used,
+ * and the error is returned only if every query failed.
  *
  * This is the one deliberate exception to "everything here works over App Remote with no network
  * of our own" — there is no search in App Remote at all, and asking "am I able to choose songs or
@@ -481,7 +502,11 @@ interface SearchedPlaylist {
  * sheet offer that preview, since a playlist is, to App Remote, a container of tracks regardless of
  * whether search or App Remote's own feed is what found it.
  */
-export async function getFitnessContent(): Promise<SpotifyContentResult> {
+export async function getFitnessContent(
+  vibeIds: readonly string[] = [],
+  opts: { random?: () => number; excludeIds?: ReadonlySet<string> } = {},
+): Promise<SpotifyContentResult> {
+  const random = opts.random ?? Math.random;
   const mod = loadModule();
   if (!mod) return { items: [], error: 'Spotify isn’t set up in this build.' };
   try {
@@ -489,10 +514,15 @@ export async function getFitnessContent(): Promise<SpotifyContentResult> {
     const token = stored ? await freshAccessToken(mod, stored) : null;
     if (!token) return { items: [], error: 'Reconnect Spotify to browse workout playlists.' };
 
-    const responses = await Promise.all(
-      FITNESS_SEARCHES.map(async (q) => {
+    const queries = shuffleInPlace(resolveVibeQueries(vibeIds), random).slice(
+      0,
+      QUERIES_PER_SEARCH,
+    );
+    const settled = await Promise.allSettled(
+      queries.map(async (q) => {
+        const offset = SEARCH_OFFSETS[Math.floor(random() * SEARCH_OFFSETS.length)];
         const res = await fetch(
-          `https://api.spotify.com/v1/search?type=playlist&limit=10&q=${encodeURIComponent(q)}`,
+          `https://api.spotify.com/v1/search?type=playlist&limit=10&offset=${offset}&q=${encodeURIComponent(q)}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         if (!res.ok) throw new Error(`search ${res.status}`);
@@ -500,14 +530,24 @@ export async function getFitnessContent(): Promise<SpotifyContentResult> {
         return body.playlists?.items ?? [];
       }),
     );
+    const responses = settled.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+    if (responses.length === 0) throw new Error('every search failed');
 
     const seen = new Set<string>();
     const items: SpotifyContentItem[] = [];
-    // Round-robin across queries so one search's results don't crowd out the others.
+    // Round-robin across queries so one search's results don't crowd out the others (the final
+    // shuffle then randomises order; round-robin still decides which hits are kept first).
     for (let i = 0; i < 10; i++) {
       for (const list of responses) {
         const p = list[i];
-        if (!p || !p.uri || seen.has(p.id) || !FITNESS_NAME.test(p.name)) continue;
+        if (
+          !p ||
+          !p.uri ||
+          seen.has(p.id) ||
+          opts.excludeIds?.has(p.id) ||
+          !FITNESS_NAME.test(p.name)
+        )
+          continue;
         seen.add(p.id);
         items.push({
           title: p.name,
@@ -521,7 +561,7 @@ export async function getFitnessContent(): Promise<SpotifyContentResult> {
         });
       }
     }
-    return { items, error: null };
+    return { items: shuffleInPlace(items, random), error: null };
   } catch {
     return { items: [], error: 'Couldn’t reach Spotify to find playlists.' };
   }
