@@ -333,6 +333,6 @@ describe('Daylight (foundation)', () => {
     });
     const json = JSON.stringify(screen.toJSON()).toLowerCase();
     expect(json).toMatch(/linearGradient/i);
-    expect(json).not.toContain('ff5e3a');
+    expect(json).not.toContain('40bd6e');
   });
 });

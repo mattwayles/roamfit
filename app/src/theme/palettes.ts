@@ -27,8 +27,8 @@ export const goldenHour = {
   backdrop: 'rgba(5,7,10,0.72)',
 
   // Accents
-  pine: '#FF6B35',
-  pineDeep: '#E8491D',
+  pine: '#4FD176',
+  pineDeep: '#209E46',
   gold: '#FFB938',
   sun: '#FFD166',
   lagoon: '#2DD4BF',
@@ -77,8 +77,8 @@ export const daylight: Palette = {
   backdrop: 'rgba(26,19,12,0.40)',
 
   // Accents — deepened so each is >= 4.5:1 as text on bg AND carries a white legend as a fill
-  pine: '#B83507',
-  pineDeep: '#9E2E06',
+  pine: '#10702D',
+  pineDeep: '#0A6124',
   /** Brass — reads as gold on paper, unlike a yellow. */
   gold: '#8F5A00',
   /** Large text / icons only (3.8:1). */
@@ -107,7 +107,7 @@ export type GradientColors = readonly [string, string];
 
 export const goldenHourGradients: Record<GradientName, GradientColors> = {
   /** THE primary CTA + Ignition hero. 135deg. */
-  trail: ['#FF5E3A', '#FF9F1C'],
+  trail: ['#40BD6E', '#5EE06B'],
   /** Achievements, best sets. */
   golden: ['#FFB938', '#FFD166'],
   /** Rest ring, recovery. */
@@ -120,7 +120,7 @@ export const goldenHourGradients: Record<GradientName, GradientColors> = {
 
 /** Deepened in step with the accents so a white legend holds >= 4.2:1 at every stop. */
 export const daylightGradients: Record<GradientName, GradientColors> = {
-  trail: ['#CC3B12', '#C95A04'],
+  trail: ['#0F6E2C', '#2A7D23'],
   golden: ['#8F5A00', '#A46D00'],
   lagoon: ['#00706A', '#0A74A8'],
   summit: ['#5A3BD1', '#8B3FD0'],

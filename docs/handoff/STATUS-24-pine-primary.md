@@ -10,10 +10,10 @@ fern" (hue ~138). Spotify-green proximity was discussed and explicitly accepted.
       (values unchanged, so tests pass untouched apart from names).
 
 ### In progress
-- Step 2: new values in palettes.ts + test literals.
+- Step 3: doc/comment sweep (DESIGN.md, BACKLOG, stale prose), then park device-pass items.
 
 ### Next
-2. New values in `app/src/theme/palettes.ts` (see decisions) + update hex/rgba literals in
+- [x] 2. (done) New values in `app/src/theme/palettes.ts` (see decisions) + update hex/rgba literals in
    `theme.test.ts` / `themes.test.ts`; `npm run check`.
 3. Doc/comment sweep: leftover "ember"/"sunrise" prose, BACKLOG device-pass items that name `emberDeep`
    (Golden Hour redesign item 2), DESIGN.md mentions if any.

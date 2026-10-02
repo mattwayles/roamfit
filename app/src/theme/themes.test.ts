@@ -56,8 +56,8 @@ describe('palettes', () => {
       text2: '#B4BCC8',
       text3: '#7C8696',
       ink: '#170B03',
-      pine: '#FF6B35',
-      pineDeep: '#E8491D',
+      pine: '#4FD176',
+      pineDeep: '#209E46',
       gold: '#FFB938',
       sun: '#FFD166',
       lagoon: '#2DD4BF',
@@ -66,13 +66,13 @@ describe('palettes', () => {
       rose: '#FF5C93',
     });
     expect(goldenHourTheme.gradients).toEqual({
-      trail: ['#FF5E3A', '#FF9F1C'],
+      trail: ['#40BD6E', '#5EE06B'],
       golden: ['#FFB938', '#FFD166'],
       lagoon: ['#14B8A6', '#38BDF8'],
       summit: ['#7B5CFF', '#C084FC'],
       night: ['#1C2330', '#0B0E13'],
     });
-    expect(goldenHourTheme.tints.pine).toBe('rgba(255,107,53,0.15)');
+    expect(goldenHourTheme.tints.pine).toBe('rgba(79,209,118,0.15)');
   });
 
   it('Daylight values match DESIGN.md §8', () => {
@@ -81,11 +81,11 @@ describe('palettes', () => {
       surface: '#FFFDF8',
       text: '#1A130C',
       ink: '#FFFFFF',
-      pine: '#B83507',
+      pine: '#10702D',
       gold: '#8F5A00',
       backdrop: 'rgba(26,19,12,0.40)',
     });
-    expect(daylightGradients.trail).toEqual(['#CC3B12', '#C95A04']);
+    expect(daylightGradients.trail).toEqual(['#0F6E2C', '#2A7D23']);
   });
 
   it('fixedInk / fixedPaper / vivid are mode-invariant', () => {
