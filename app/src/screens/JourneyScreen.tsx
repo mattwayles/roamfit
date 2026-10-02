@@ -256,7 +256,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
                 testID="lifetime-minutes"
                 style={styles.tile}
                 value={lifetime.totalMinutes}
-                label="Minutes"
+                label="Active minutes"
                 icon="time"
                 tone="gold"
               />
