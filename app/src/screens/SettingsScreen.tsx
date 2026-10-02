@@ -434,15 +434,15 @@ export default function SettingsScreen(): React.JSX.Element {
               testID="toggle-passport"
               icon="airplane"
               tone="sky"
-              label="Passport (city/country on completion)"
+              label="Passport (place on completion)"
               value={user.passportEnabled}
               onValueChange={togglePassport}
             />
           </Group>
           <View style={styles.privacyCopy}>
             <Txt variant="caption" color="text3">
-              Location: opt-in, city-level only, resolved once when you complete a session. No
-              coordinates and no continuous or background tracking — only city/country names are
+              Location: opt-in, coarse (nearest town or area) only, resolved once when you complete a session. No
+              coordinates and no continuous or background tracking — only place names (like “Bend, OR, USA”) are
               ever stored.
             </Txt>
             <Txt variant="caption" color="text3">

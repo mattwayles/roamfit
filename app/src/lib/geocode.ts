@@ -65,9 +65,17 @@ export const geocodeCaller: GeocodeCaller = {
       latitude: position.coords.latitude,
       longitude: position.coords.longitude,
     });
-    if (!address || !address.city || !address.country) {
-      throw new Error('reverse geocode returned no city/country');
+    // Out in the backcountry there may be no city at all — name the spot by the nearest thing
+    // the geocoder does know rather than refusing to stamp it.
+    const place = address?.city ?? address?.district ?? address?.subregion ?? address?.name ?? null;
+    if (!address || !place || !address.country) {
+      throw new Error('reverse geocode returned no place/country');
     }
-    return { city: address.city, country: address.country };
+    return {
+      city: place,
+      country: address.country,
+      region: address.region,
+      countryCode: address.isoCountryCode,
+    };
   },
 };

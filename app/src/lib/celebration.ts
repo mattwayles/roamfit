@@ -16,6 +16,7 @@ import {
   levelOrdinal,
   seedFromString,
 } from '@roamfit/engine';
+import { formatPlace } from './place';
 import type { ProgressionEvent } from '@roamfit/engine';
 import type { ExerciseLibrary, FamilyLibrary } from '@roamfit/data';
 import type { milestonesRepo } from '@roamfit/store';
@@ -129,7 +130,10 @@ export function buildCelebrationViewModel(
     if (m.type === 'nth_session') {
       quiet.push({ type: m.type, text: `Session #${m.payload.n as number}` });
     } else if (m.type === 'new_city') {
-      quiet.push({ type: m.type, text: `New city: ${(m.payload.city as string) ?? ''}` });
+      quiet.push({
+        type: m.type,
+        text: `New place: ${formatPlace({ city: (m.payload.city as string) ?? null, region: m.payload.region as string | null, countryCode: m.payload.countryCode as string | null, country: m.payload.country as string | null }) ?? ''}`,
+      });
     } else if (m.type === 'recovery_week') {
       quiet.push({ type: m.type, text: 'Recovery week complete' });
     }

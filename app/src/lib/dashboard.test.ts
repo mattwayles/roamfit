@@ -166,25 +166,32 @@ function summary(
     isQuick: false,
     city: null,
     country: null,
+    region: null,
+    countryCode: null,
     ...opts,
   };
 }
 
 describe('§9.6 Passport — strings only, deduplicated, accumulating', () => {
-  it('counts distinct cities/countries, ignoring unresolved pins', () => {
+  it('counts distinct places/countries, ignoring unresolved pins', () => {
     const passport = buildPassportSummary([
-      summary('2026-05-01', { city: 'Lisbon', country: 'Portugal' }),
-      summary('2026-05-08', { city: 'Lisbon', country: 'Portugal' }), // same city again
-      summary('2026-05-15', { city: 'Porto', country: 'Portugal' }),
+      summary('2026-05-01', { city: 'Lisbon', country: 'Portugal', countryCode: 'PT' }),
+      summary('2026-05-08', { city: 'Lisbon', country: 'Portugal', countryCode: 'PT' }), // again
+      summary('2026-05-15', {
+        city: 'Bend',
+        region: 'OR',
+        country: 'United States',
+        countryCode: 'US',
+      }),
       summary('2026-05-22'), // no pin yet (offline completion still queued)
     ]);
-    expect(passport.cities.sort()).toEqual(['Lisbon', 'Porto']);
-    expect(passport.countries).toEqual(['Portugal']);
+    expect(passport.places.sort()).toEqual(['Bend, OR, USA', 'Lisbon, PRT']);
+    expect(passport.countries.sort()).toEqual(['Portugal', 'United States']);
   });
 
   it('an empty session list is an empty (not error) passport — v1 cold start', () => {
     const passport = buildPassportSummary([]);
-    expect(passport.cities).toEqual([]);
+    expect(passport.places).toEqual([]);
     expect(passport.countries).toEqual([]);
   });
 });
@@ -368,7 +375,7 @@ describe('§14.1.8 lifetime counters — monotonic, permanent', () => {
     expect(counters).toEqual({
       sessions: 12,
       totalMinutes: 360,
-      cities: 1,
+      places: 1,
       countries: 1,
       levelsGained: 4,
       bestSets: 7,

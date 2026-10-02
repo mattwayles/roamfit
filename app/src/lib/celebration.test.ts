@@ -60,7 +60,7 @@ describe('§9.7/§6.4 celebration view model', () => {
   it('nth_session, new_city, and recovery_week all surface as quiet, monotonic milestones', () => {
     const milestones = [
       milestone('nth_session', { n: 5 }),
-      milestone('new_city', { city: 'Lisbon' }),
+      milestone('new_city', { city: 'Lisbon', countryCode: 'PT' }),
       milestone('recovery_week'),
     ];
     const vm = buildCelebrationViewModel(exerciseLibrary, familyLibrary, [], milestones);

@@ -120,6 +120,8 @@ export interface SessionRecord {
   retrospective: string | null;
   city: string | null;
   country: string | null;
+  region: string | null;
+  countryCode: string | null;
   generatedBy: 'engine' | 'engine+llm';
   engineVersion: string;
   comebackTier: 'none' | 'week' | 'reset';
@@ -250,6 +252,8 @@ function rowToSession(
     retrospective: row.retrospective,
     city: row.city,
     country: row.country,
+    region: row.region,
+    countryCode: row.countryCode,
     generatedBy: row.generatedBy,
     engineVersion: row.engineVersion,
     comebackTier: row.comebackTier,
@@ -405,7 +409,7 @@ export function createPendingSession(db: Db, input: CreateSessionInput): string 
 export function applyGeocodeResult(
   db: Db,
   sessionId: string,
-  result: { city: string; country: string },
+  result: { city: string; country: string; region?: string | null; countryCode?: string | null },
   now: string,
 ): void {
   const session = getSession(db, sessionId);
@@ -425,7 +429,13 @@ export function applyGeocodeResult(
   const isNewCity = priorCityRows.length === 0;
 
   db.update(schema.sessions)
-    .set({ city: result.city, country: result.country, updatedAt: now })
+    .set({
+      city: result.city,
+      country: result.country,
+      region: result.region ?? null,
+      countryCode: result.countryCode ?? null,
+      updatedAt: now,
+    })
     .where(eq(schema.sessions.id, sessionId))
     .run();
 
@@ -434,7 +444,12 @@ export function applyGeocodeResult(
       db,
       {
         type: 'new_city',
-        payload: { city: result.city, country: result.country },
+        payload: {
+          city: result.city,
+          country: result.country,
+          region: result.region ?? null,
+          countryCode: result.countryCode ?? null,
+        },
         sessionId,
         // Pinned to the session's own local_date, not `now` — the whole point of the queue.
         localDate: session.localDate,
@@ -1340,6 +1355,8 @@ export interface DashboardSessionSummary {
    *  opted in). */
   city: string | null;
   country: string | null;
+  region: string | null;
+  countryCode: string | null;
 }
 
 /** §9.8 — raw material for "adaptive to the observed training window": each completed session's
@@ -1381,6 +1398,8 @@ export function getCompletedSessionsForDashboard(db: Db, limit = 365): Dashboard
       isQuick: schema.sessions.isQuick,
       city: schema.sessions.city,
       country: schema.sessions.country,
+      region: schema.sessions.region,
+      countryCode: schema.sessions.countryCode,
     })
     .from(schema.sessions)
     .where(and(eq(schema.sessions.userId, USER_ID), eq(schema.sessions.status, 'completed')))

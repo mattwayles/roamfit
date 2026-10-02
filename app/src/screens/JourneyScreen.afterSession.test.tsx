@@ -141,7 +141,7 @@ describe('Journey after a completed session', () => {
     );
   });
 
-  it('Passport: opt-in card first, then a stamp per city once turned on and a city is pinned', async () => {
+  it('Passport: opt-in card first, then a stamp per place once turned on and a place is pinned', async () => {
     await mountJourney();
     await waitFor(() => expect(screen.getByTestId('passport-opt-in')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('passport-opt-in'));
@@ -154,7 +154,7 @@ describe('Journey after a completed session', () => {
     sessionsRepo.applyGeocodeResult(
       testDb(),
       completedSessionId,
-      { city: 'Lisbon', country: 'Portugal' },
+      { city: 'Bend', country: 'United States', region: 'OR', countryCode: 'US' },
       nowUtcInstant(),
     );
     // ...and Journey reloads on focus, so coming back shows the stamp with no manual refresh.
@@ -162,7 +162,7 @@ describe('Journey after a completed session', () => {
     await waitFor(() => expect(screen.getByTestId('today-card')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('tab-Journey'));
     await waitFor(() => expect(screen.getByTestId('passport-section')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.getByTestId('passport-stamp-Lisbon')).toBeTruthy();
+    expect(screen.getByTestId('passport-stamp-Bend, OR, USA')).toBeTruthy();
     expect(screen.getByTestId('share-passport')).toBeTruthy();
     expect(screen.queryByTestId('passport-empty')).toBeNull();
   });

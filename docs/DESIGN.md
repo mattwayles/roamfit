@@ -207,7 +207,7 @@ Top to bottom:
 
 The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
 1. **Lifetime** — 3×2 grid of `StatTile`s: Sessions (flame, ember), Minutes (time, gold),
-   Levels gained (trending-up, summit), Best sets (trophy, sun), Cities (location, sky),
+   Levels gained (trending-up, summit), Best sets (trophy, sun), Places (location, sky),
    Countries (globe, lagoon). Numbers in `hero`-size condensed.
 2. **Trails** (the progression board, renamed in UI copy only). One card per family:
    - Left: family name (`h2`), current exercise (`small`, text2).
@@ -225,10 +225,11 @@ The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
    ring, untrained days plain `surface` (neutral, never empty-looking-bad). Weekday header in
    `eyebrow`. Tap a day → the day-marker `Sheet` (same options).
 4. **Passport** — the passport finally has a purpose: **collecting stamps.** Header "PASSPORT"
-   with "4 cities · 2 countries" and a Share icon button. Body is a wrapping
-   grid of `Stamp`s, one per city (seeded by city name, so each city always gets the same shape,
-   color and tilt). Opt-in state: a `Card` with three ghosted sample stamps and "Collect a stamp
-   for every city you train in" + a primary `sm` button "TURN ON PASSPORT".
+   with "4 places · 2 countries" and a Share icon button. Body is a wrapping
+   grid of `Stamp`s, one per place, titled "Bend, OR, USA" (city, state/province abbreviation when the geocoder
+   abbreviates it, country as a 3-letter code; parts missing on older pins are dropped). Seeded by
+   that label, so each place always gets the same shape, color and tilt. Opt-in state: a `Card` with three ghosted sample stamps and "Collect a stamp
+   for every place you train" + a primary `sm` button "TURN ON PASSPORT".
 5. **Muscle balance** — rows with a rounded gradient bar (sunrise), trailing 14 days, same data.
 
 ### 5.3 Field Guide (Exercises list)

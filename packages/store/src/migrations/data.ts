@@ -531,6 +531,15 @@ CREATE TABLE spotify_playlists (
 CREATE UNIQUE INDEX ux_spotify_playlists_user_playlist ON spotify_playlists(user_id, playlist_id);
 `;
 
+const MIGRATION_0024_SESSION_PLACE = `-- 0024_session_place.sql — Passport stamps read "Bend, OR, USA" instead of just "Bend": keep the
+-- region (state/province, abbreviated when the geocoder abbreviates it) and the ISO country code
+-- next to the existing city/country strings. Nullable — sessions pinned before this have neither,
+-- and their stamps simply render without them. Strings only, never coordinates.
+
+ALTER TABLE sessions ADD COLUMN region TEXT;
+ALTER TABLE sessions ADD COLUMN country_code TEXT;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -561,4 +570,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0021_session_resting.sql', sql: MIGRATION_0021_SESSION_RESTING },
   { id: '0022_theme_preference.sql', sql: MIGRATION_0022_THEME_PREFERENCE },
   { id: '0023_spotify_playlists.sql', sql: MIGRATION_0023_SPOTIFY_PLAYLISTS },
+  { id: '0024_session_place.sql', sql: MIGRATION_0024_SESSION_PLACE },
 ];

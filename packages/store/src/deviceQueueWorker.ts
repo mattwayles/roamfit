@@ -47,7 +47,12 @@ export interface HealthKitWriter {
  *  cannot complete right now (no connectivity, no permission determination possible, no GPS fix)
  *  — that's the one signal this worker treats as retryable, exactly like `LlmProxyCaller`. */
 export interface GeocodeCaller {
-  reverseGeocode(): Promise<{ city: string; country: string }>;
+  reverseGeocode(): Promise<{
+    city: string;
+    country: string;
+    region?: string | null;
+    countryCode?: string | null;
+  }>;
 }
 
 export interface ProcessDeviceQueueResult {

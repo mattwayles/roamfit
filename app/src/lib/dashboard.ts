@@ -15,6 +15,7 @@ import {
   OVER_WORKED_MULTIPLIER,
 } from '@roamfit/engine';
 import type { ProgressionState } from '@roamfit/engine';
+import { formatPlace } from './place';
 import type { ExerciseLibrary, FamilyLibrary, Focus, ProgressionFamilyId } from '@roamfit/data';
 import type { manualDayMarkersRepo, sessionsRepo } from '@roamfit/store';
 
@@ -149,20 +150,22 @@ export function buildMuscleBalanceRows(
 }
 
 export interface PassportSummary {
-  cities: string[];
+  /** One per distinct place, labelled "Bend, OR, USA". */
+  places: string[];
   countries: string[];
 }
 
-/** §9.6 Passport — city/country **strings only**, deduplicated, counted. Every pin is a positive,
+/** §9.6 Passport — place/country **strings only**, deduplicated, counted. Every pin is a positive,
  *  accumulating record, never a judgment about which ones "count". */
 export function buildPassportSummary(sessions: DashboardSessionSummary[]): PassportSummary {
-  const cities = new Set<string>();
+  const places = new Set<string>();
   const countries = new Set<string>();
   for (const s of sessions) {
-    if (s.city) cities.add(s.city);
+    const label = formatPlace(s);
+    if (label) places.add(label);
     if (s.country) countries.add(s.country);
   }
-  return { cities: [...cities], countries: [...countries] };
+  return { places: [...places], countries: [...countries] };
 }
 
 export interface CalendarDay {
@@ -347,7 +350,7 @@ export function monthLabelForLocalDate(localDate: string): string {
 export interface LifetimeCounters {
   sessions: number;
   totalMinutes: number;
-  cities: number;
+  places: number;
   countries: number;
   levelsGained: number;
   bestSets: number;
@@ -366,7 +369,7 @@ export function buildLifetimeCounters(
   return {
     sessions: lifetimeSessionCount,
     totalMinutes: Math.round(lifetimeTotalMinutes),
-    cities: passport.cities.length,
+    places: passport.places.length,
     countries: passport.countries.length,
     levelsGained: levelUpMilestoneCount,
     bestSets: bestSetMilestoneCount,

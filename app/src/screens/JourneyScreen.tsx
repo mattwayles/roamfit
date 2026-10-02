@@ -61,7 +61,7 @@ import { SectionTitle } from '../components/SectionTitle';
 type Props = TabScreenProps<'Journey'>;
 
 /** Sample stamps ghosted behind the Passport opt-in — decoration only, never the user's data. */
-const SAMPLE_STAMPS = ['Lisbon', 'Osaka', 'Cusco'] as const;
+const SAMPLE_STAMPS = ['Lisbon, PRT', 'Bend, OR, USA', 'Cusco, PER'] as const;
 
 /** The most a Journey list staggers by, so a long board never delays its own tail. */
 const MAX_STAGGER = 9;
@@ -186,9 +186,9 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
 
   const handleSharePassport = () => {
     if (!data) return;
-    const { cities, countries } = data.passport;
+    const { places, countries } = data.passport;
     void Share.share({
-      message: `RoamFit — trained in ${cities.length} ${cities.length === 1 ? 'city' : 'cities'} and ${countries.length} ${countries.length === 1 ? 'country' : 'countries'}.`,
+      message: `RoamFit — trained in ${places.length} ${places.length === 1 ? 'place' : 'places'} and ${countries.length} ${countries.length === 1 ? 'country' : 'countries'}.`,
     });
   };
 
@@ -279,10 +279,10 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
                 tone="sun"
               />
               <StatTile
-                testID="lifetime-cities"
+                testID="lifetime-places"
                 style={styles.tile}
-                value={lifetime.cities}
-                label="Cities"
+                value={lifetime.places}
+                label="Places"
                 icon="location"
                 tone="sky"
               />
@@ -576,7 +576,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
         )}
       </Enter>
 
-      {/* §9.6 Passport — opt-in, strings only, one stamp per city (seeded by name, so a city always
+      {/* §9.6 Passport — opt-in, strings only, one stamp per place (seeded by label, so a place always
           stamps the same way). Appears once there's something to pin (§14.2). */}
       <Enter index={next()} style={styles.section}>
         <SectionTitle
@@ -584,12 +584,12 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
           icon="airplane"
           tone="sky"
           caption={
-            user.passportEnabled && passport.cities.length > 0
-              ? `${passport.cities.length} ${plural(passport.cities.length, 'city', 'cities')} · ${passport.countries.length} ${plural(passport.countries.length, 'country', 'countries')}`
+            user.passportEnabled && passport.places.length > 0
+              ? `${passport.places.length} ${plural(passport.places.length, 'place', 'places')} · ${passport.countries.length} ${plural(passport.countries.length, 'country', 'countries')}`
               : undefined
           }
           right={
-            user.passportEnabled && passport.cities.length > 0 ? (
+            user.passportEnabled && passport.places.length > 0 ? (
               <IconButton
                 testID="share-passport"
                 icon="share"
@@ -599,14 +599,14 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
             ) : undefined
           }
         />
-        {user.passportEnabled && passport.cities.length > 0 ? (
+        {user.passportEnabled && passport.places.length > 0 ? (
           <View testID="passport-section" style={styles.stamps}>
-            {passport.cities.map((city) => (
+            {passport.places.map((place) => (
               <Stamp
-                key={city}
-                testID={`passport-stamp-${city}`}
-                title={city}
-                seed={city}
+                key={place}
+                testID={`passport-stamp-${place}`}
+                title={place}
+                seed={place}
                 size={96}
               />
             ))}
@@ -627,7 +627,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
                 ))}
               </View>
               <Txt variant="bodyStrong" align="center">
-                Collect a stamp for every city you train in
+                Collect a stamp for every place you train
               </Txt>
               <Button
                 testID="passport-opt-in"
@@ -642,7 +642,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
               icon="airplane"
               tone="sky"
               title="Stamps are waiting"
-              body="Train somewhere new and a stamp for that city lands here."
+              body="Train somewhere new and a stamp for that place lands here."
             />
           )
         ) : (
@@ -651,7 +651,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
             icon="airplane"
             tone="sky"
             title="Passport is on"
-            body="Train somewhere and your first city stamp lands here."
+            body="Train somewhere and your first stamp lands here."
           />
         )}
       </Enter>

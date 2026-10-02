@@ -94,6 +94,8 @@ function makeSession(entries: SessionEntryRecord[]): SessionRecord {
     timeBudgetDeviation: null,
     retrospective: null,
     city: null,
+    region: null,
+    countryCode: null,
     country: null,
     generatedBy: 'engine',
     engineVersion: '1',

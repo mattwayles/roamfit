@@ -243,6 +243,10 @@ export const sessions = sqliteTable(
     retrospective: text('retrospective'),
     city: text('city'),
     country: text('country'),
+    /** State/province as the geocoder returned it (abbreviated where it abbreviates). */
+    region: text('region'),
+    /** ISO 3166-1 alpha-2, e.g. 'US'. */
+    countryCode: text('country_code'),
     generatedBy: text('generated_by', { enum: ['engine', 'engine+llm'] })
       .notNull()
       .default('engine'),
