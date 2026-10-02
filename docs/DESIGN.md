@@ -207,7 +207,7 @@ Top to bottom:
 
 The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
 1. **Lifetime** — 3×2 grid of `StatTile`s: Sessions (flame, ember), Minutes (time, gold),
-   Levels gained (trending-up, summit), PRs (trophy, sun), Places (location, sky),
+   Levels gained (trending-up, summit), Personal bests (trophy, sun), Places (location, sky),
    Countries (globe, lagoon). Numbers in `hero`-size condensed.
 2. **Trails** (the progression board, renamed in UI copy only). One card per family:
    - Left: family name (`h2`), current exercise (`small`, text2).

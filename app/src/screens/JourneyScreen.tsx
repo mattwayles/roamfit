@@ -271,10 +271,10 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
             </View>
             <View style={styles.tileRow}>
               <StatTile
-                testID="lifetime-prs"
+                testID="lifetime-personal-bests"
                 style={styles.tile}
                 value={lifetime.bestSets}
-                label="PRs"
+                label="Personal bests"
                 icon="trophy"
                 tone="sun"
               />
