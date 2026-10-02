@@ -47,6 +47,15 @@ the record of what was completed and why.
      `Sheet`.
   8. Everywhere: Reduce Motion, large Dynamic Type (`mega`/`hero` are capped at 1.3), VoiceOver labels on
      every icon-only control.
+- **Spotify vibes / recents / favorites — device pass owed.** Track 23 is Jest-verified only. On a
+  device with Spotify connected: (1) real vibe searches — do women-targeted / gendered playlists still
+  dominate for Rock, Metal, Hip-Hop, etc.? If so, tune the terms in `app/src/lib/spotifyVibes.ts` (a
+  small name exclusion is the fallback, deliberately not built); (2) refresh variety — does the
+  Fresh picks refresh button give a visibly different list for the same vibe, without relevance
+  collapsing; (3) recents and favorites persist across an app relaunch, a favorited recent moves
+  to Favorites and back, and the vibe selection is remembered; (4) airplane mode: Favorites/Recents
+  still render and play, with only Fresh picks showing the error.
+
 - **Daylight light mode — device pass owed.** Track 22 shipped Jest-verified only (render tests per
   screen under both themes; contrast asserted in `theme.test`/`themes.test`). Needs a dev-client
   rebuild first: `app.json` `userInterfaceStyle` is now `"automatic"` and only applies natively after

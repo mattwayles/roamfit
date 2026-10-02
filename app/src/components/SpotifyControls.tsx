@@ -30,9 +30,36 @@
  * function's header). Every row it returns is a real playlist, which is also a container of tracks,
  * so tapping the chevron previews them (`getContentChildren`) and tapping the row plays it
  * (`playSpotifyContent`) — both over App Remote, no further network call of ours either way.
+ *
+ * **Vibes, randomization, recents and favorites.** The first version of that search returned the
+ * same generic (and heavily women-targeted) results on every open, so the sheet's root level now
+ * opens with a row of vibe chips (`spotifyVibes.ts` — Rock, Metal, 90s, …). The selection is
+ * multi-select, persisted to `users.spotify_vibes` the moment it changes, and re-runs the search;
+ * 'Anything' and the genre chips are mutually exclusive, and nothing selected means 'Anything' so
+ * a first open still shows results. `getFitnessContent` samples its queries at random, so the
+ * refresh button next to "Fresh picks" re-rolls the same vibe into a different list. Below the
+ * chips the root is a `SectionList`: **Favorites** (open by default — the deliberate keepers),
+ * **Recently played** (collapsed, showing its count — the long tail that would otherwise push the
+ * new picks off screen) and **Fresh picks**. Favorites and recents live in SQLite
+ * (`spotifyPlaylistsRepo`), so they render even when the search fails offline; the search error
+ * only replaces Fresh picks' body. They are also passed as `excludeIds`, so a saved playlist is
+ * never offered again as "fresh". Playing a root-level playlist records it as played, and playing
+ * a track from inside a playlist records that playlist (the item drilled into, kept on its
+ * `BrowseLevel`), so the next open leads with what was actually used. The heart toggles a favorite
+ * on any playlist row, in place.
  */
-import React, { useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View, useWindowDimensions } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  ScrollView,
+  SectionList,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { spotifyPlaylistsRepo, usersRepo, type SavedSpotifyPlaylist } from '@roamfit/store';
+import { nowUtcInstant } from '../lib/localClock';
 import {
   getContentChildren,
   getFitnessContent,
@@ -40,15 +67,63 @@ import {
   useSpotifyPlayer,
   type SpotifyContentItem,
 } from '../lib/spotifyRemote';
+import { DEFAULT_VIBE_ID, SPOTIFY_VIBES, isKnownVibeId } from '../lib/spotifyVibes';
+import { useStore } from '../state/StoreContext';
 import { makeStyles, radius, space, useTheme } from '../theme';
-import { Icon, IconButton, PressableScale, Sheet, Txt } from '../ui';
+import { Chip, Icon, IconButton, PressableScale, Sheet, Txt } from '../ui';
 
 /** One level of the browse stack: the items shown, and the label its header reads. The root level
  *  is always `'Workout picks'`; every level after that is named for whatever item was drilled into
  *  to reach it (a playlist folder's own title, say). */
 interface BrowseLevel {
   title: string;
+  /** Unused on the root level — its rows come from the sections below. */
   items: SpotifyContentItem[];
+  /** The item drilled into to reach this level. Playing a track here records it as played. */
+  parent?: SpotifyContentItem;
+}
+
+type SectionKey = 'favorites' | 'recents' | 'fresh';
+
+interface BrowseSection {
+  key: SectionKey;
+  title: string;
+  data: SpotifyContentItem[];
+  /** The full row count, which `data` drops to zero while the section is collapsed. */
+  count: number;
+}
+
+interface FreshState {
+  items: SpotifyContentItem[];
+  error: string | null;
+  loading: boolean;
+}
+
+/** A saved playlist as a browse row — playlists are always both playable and containers. */
+function savedToItem(p: SavedSpotifyPlaylist): SpotifyContentItem {
+  return {
+    title: p.name,
+    subtitle: p.owner,
+    identifier: p.playlistId,
+    uri: p.uri,
+    isPlayable: true,
+    isContainer: true,
+  };
+}
+
+function identityOf(item: SpotifyContentItem) {
+  return {
+    playlistId: item.identifier,
+    uri: item.uri,
+    name: item.title ?? 'Untitled',
+    owner: item.subtitle ?? null,
+  };
+}
+
+/** Saved vibe ids minus anything this build doesn't know; empty falls back to 'anything'. */
+function normalizeVibes(saved: string[]): string[] {
+  const known = saved.filter(isKnownVibeId);
+  return known.length > 0 ? known : [DEFAULT_VIBE_ID];
 }
 
 export default function SpotifyControls(): React.JSX.Element | null {
@@ -69,25 +144,71 @@ export default function SpotifyControls(): React.JSX.Element | null {
   } = useSpotifyPlayer();
 
   const { height } = useWindowDimensions();
+  const { db } = useStore();
   const [browseStack, setBrowseStack] = useState<BrowseLevel[]>([]);
   const [browseLoading, setBrowseLoading] = useState(false);
   const [browseError, setBrowseError] = useState<string | null>(null);
-  const browsing = browseStack.length > 0;
+  const [vibes, setVibes] = useState<string[]>([DEFAULT_VIBE_ID]);
+  const [favorites, setFavorites] = useState<SavedSpotifyPlaylist[]>([]);
+  const [recents, setRecents] = useState<SavedSpotifyPlaylist[]>([]);
+  const [fresh, setFresh] = useState<FreshState>({ items: [], error: null, loading: false });
+  const [expanded, setExpanded] = useState({ favorites: true, recents: false });
+  // Only the newest search may land: a chip tapped twice quickly must not let the slower first
+  // answer overwrite the second.
+  const searchSeq = useRef(0);
   const currentLevel = browseStack[browseStack.length - 1] ?? null;
+  const browsing = browseStack.length > 0;
+  const atRoot = browseStack.length === 1;
+
+  const runSearch = useCallback(
+    async (vibeIds: string[], favs: SavedSpotifyPlaylist[], recs: SavedSpotifyPlaylist[]) => {
+      const seq = ++searchSeq.current;
+      setFresh((f) => ({ ...f, loading: true, error: null }));
+      const excludeIds = new Set([...favs, ...recs].map((p) => p.playlistId));
+      const { items, error } = await getFitnessContent(vibeIds, { excludeIds });
+      if (seq !== searchSeq.current) return;
+      setFresh({ items: error ? [] : items, error, loading: false });
+    },
+    [],
+  );
+
+  const loadSaved = () => {
+    const favs = spotifyPlaylistsRepo.listFavoritePlaylists(db);
+    const recs = spotifyPlaylistsRepo.listRecentPlaylists(db);
+    setFavorites(favs);
+    setRecents(recs);
+    return { favs, recs };
+  };
 
   const openBrowse = async () => {
     setBrowseError(null);
-    setBrowseLoading(true);
-    const { items, error } = await getFitnessContent();
-    setBrowseLoading(false);
-    if (error) {
-      setBrowseError(error);
-      // Opens anyway, with the error line showing — an empty modal that silently does nothing
-      // would look like the tap was ignored.
-      setBrowseStack([{ title: 'Workout picks', items: [] }]);
-      return;
+    // Opens straight away: favorites and recents are local, so they are there before the search
+    // (or without it, offline) — only Fresh picks waits on the network.
+    setBrowseStack([{ title: 'Workout picks', items: [] }]);
+    const chosen = normalizeVibes(usersRepo.getUser(db)?.spotifyVibes ?? []);
+    setVibes(chosen);
+    const { favs, recs } = loadSaved();
+    await runSearch(chosen, favs, recs);
+  };
+
+  const toggleVibe = (id: string) => {
+    let next: string[];
+    if (id === DEFAULT_VIBE_ID) {
+      next = [DEFAULT_VIBE_ID];
+    } else if (vibes.includes(id)) {
+      const rest = vibes.filter((v) => v !== id);
+      next = rest.length > 0 ? rest : [DEFAULT_VIBE_ID];
+    } else {
+      next = [...vibes.filter((v) => v !== DEFAULT_VIBE_ID), id];
     }
-    setBrowseStack([{ title: 'Workout picks', items }]);
+    setVibes(next);
+    usersRepo.updateUser(db, { spotifyVibes: next }, nowUtcInstant());
+    void runSearch(next, favorites, recents);
+  };
+
+  const toggleFavorite = (item: SpotifyContentItem, favorite: boolean) => {
+    spotifyPlaylistsRepo.setPlaylistFavorite(db, identityOf(item), favorite, new Date());
+    loadSaved();
   };
 
   const drillIn = async (item: SpotifyContentItem) => {
@@ -99,7 +220,7 @@ export default function SpotifyControls(): React.JSX.Element | null {
       setBrowseError(error);
       return;
     }
-    setBrowseStack((stack) => [...stack, { title: item.title ?? 'Playlist', items }]);
+    setBrowseStack((stack) => [...stack, { title: item.title ?? 'Playlist', items, parent: item }]);
   };
 
   const play = async (item: SpotifyContentItem) => {
@@ -108,6 +229,12 @@ export default function SpotifyControls(): React.JSX.Element | null {
     if (error) {
       setBrowseError(error);
       return;
+    }
+    // A root-level row is itself the playlist; a track inside a drilled-in playlist counts as
+    // playing that playlist (the item drilled into, kept on the level).
+    const played = atRoot ? item : currentLevel?.parent;
+    if (played) {
+      spotifyPlaylistsRepo.recordPlaylistPlayed(db, identityOf(played), new Date());
     }
     // Picked something — the sheet has done its job. The track/artist line in the collapsed
     // controls below is what confirms it started.
@@ -120,8 +247,79 @@ export default function SpotifyControls(): React.JSX.Element | null {
     setBrowseError(null);
   };
 
+  const savedIds = new Set([...favorites, ...recents].map((p) => p.playlistId));
+  const favoriteIds = new Set(favorites.map((p) => p.playlistId));
+  // A pick that was just hearted or played now lives in a saved section; hide it here rather than
+  // show it twice. Un-hearting a never-played pick deletes its row, so it reappears here.
+  const freshItems = fresh.items.filter((i) => !savedIds.has(i.identifier));
+  const sections: BrowseSection[] = [];
+  if (favorites.length > 0) {
+    sections.push({
+      key: 'favorites',
+      title: 'Favorites',
+      count: favorites.length,
+      data: expanded.favorites ? favorites.map(savedToItem) : [],
+    });
+  }
+  if (recents.length > 0) {
+    sections.push({
+      key: 'recents',
+      title: 'Recently played',
+      count: recents.length,
+      data: expanded.recents ? recents.map(savedToItem) : [],
+    });
+  }
+  sections.push({ key: 'fresh', title: 'Fresh picks', count: freshItems.length, data: freshItems });
+
   // No native module: this feature does not exist in this build, so it does not exist on screen.
   if (!available) return null;
+
+  const renderRow = (item: SpotifyContentItem, showHeart: boolean) => {
+    const isFavorite = favoriteIds.has(item.identifier);
+    const name = item.title ?? 'Untitled';
+    return (
+      <View style={styles.browseRow}>
+        <PressableScale
+          testID={`spotify-browse-item-${item.identifier}`}
+          style={styles.browseRowMain}
+          onPress={() => (item.isPlayable ? play(item) : drillIn(item))}
+        >
+          <Txt variant="h3" numberOfLines={1}>
+            {name}
+          </Txt>
+          {item.subtitle && (
+            <Txt variant="caption" color="text2" numberOfLines={1}>
+              {item.subtitle}
+            </Txt>
+          )}
+        </PressableScale>
+        {showHeart && (
+          <IconButton
+            testID={`spotify-browse-favorite-${item.identifier}`}
+            icon="heart"
+            variant="plain"
+            tone={isFavorite ? 'ember' : 'text2'}
+            accessibilityLabel={isFavorite ? `Unfavorite ${name}` : `Favorite ${name}`}
+            accessibilityState={{ selected: isFavorite }}
+            onPress={() => toggleFavorite(item, !isFavorite)}
+          />
+        )}
+        {/* Every search result is both playable and a container (a playlist, always),
+            so both actions need their own tap target — play it now, or look inside
+            first — rather than the chevron replacing the row's own. */}
+        {item.isContainer && (
+          <IconButton
+            testID={`spotify-browse-drill-${item.identifier}`}
+            icon="chevronRight"
+            variant="plain"
+            tone="text2"
+            accessibilityLabel={`See inside ${name}`}
+            onPress={() => drillIn(item)}
+          />
+        )}
+      </View>
+    );
+  };
 
   const error = lastError ? (
     <Txt testID="spotify-error" variant="caption" color="text2" style={styles.error}>
@@ -238,50 +436,116 @@ export default function SpotifyControls(): React.JSX.Element | null {
           </Txt>
         )}
 
+        {atRoot && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.vibeScroll}
+            contentContainerStyle={styles.vibeRow}
+            testID="spotify-vibes"
+          >
+            {SPOTIFY_VIBES.map((v) => (
+              <Chip
+                key={v.id}
+                testID={`spotify-vibe-${v.id}`}
+                label={v.label}
+                tone="ember"
+                selected={vibes.includes(v.id)}
+                onPress={() => toggleVibe(v.id)}
+              />
+            ))}
+          </ScrollView>
+        )}
+
         {browseLoading ? (
           <View testID="spotify-browse-loading" accessibilityLabel="Loading" style={styles.empty}>
             <ActivityIndicator color={theme.colors.ember} />
           </View>
-        ) : currentLevel && currentLevel.items.length === 0 && !browseError ? (
-          <Txt variant="small" color="text2" style={styles.empty}>
-            No workout picks available right now.
-          </Txt>
+        ) : atRoot ? (
+          <SectionList
+            sections={sections}
+            style={{ maxHeight: height * 0.55 }}
+            keyExtractor={(item) => item.identifier}
+            stickySectionHeadersEnabled={false}
+            renderSectionHeader={({ section }) => {
+              if (section.key === 'fresh') {
+                return (
+                  <View style={styles.sectionHeader}>
+                    <Txt variant="eyebrow" color="text2" style={styles.sectionTitle}>
+                      {section.title}
+                    </Txt>
+                    <IconButton
+                      testID="spotify-browse-refresh"
+                      icon="refresh"
+                      variant="plain"
+                      tone="text2"
+                      accessibilityLabel="Refresh picks"
+                      disabled={fresh.loading}
+                      onPress={() => void runSearch(vibes, favorites, recents)}
+                    />
+                  </View>
+                );
+              }
+              const key = section.key as 'favorites' | 'recents';
+              const isOpen = expanded[key];
+              return (
+                <PressableScale
+                  testID={`spotify-browse-section-${key}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={section.title}
+                  accessibilityState={{ expanded: isOpen }}
+                  style={styles.sectionHeader}
+                  onPress={() => setExpanded((e) => ({ ...e, [key]: !e[key] }))}
+                >
+                  <Txt variant="eyebrow" color="text2" style={styles.sectionTitle}>
+                    {`${section.title} · ${section.count}`}
+                  </Txt>
+                  <Icon name={isOpen ? 'chevronDown' : 'chevronRight'} size={18} color="text2" />
+                </PressableScale>
+              );
+            }}
+            renderSectionFooter={({ section }) => {
+              if (section.key !== 'fresh') return null;
+              if (fresh.loading) {
+                return (
+                  <View
+                    testID="spotify-browse-loading"
+                    accessibilityLabel="Loading"
+                    style={styles.empty}
+                  >
+                    <ActivityIndicator color={theme.colors.ember} />
+                  </View>
+                );
+              }
+              if (fresh.error) {
+                return (
+                  <Txt
+                    testID="spotify-browse-search-error"
+                    variant="caption"
+                    color="text2"
+                    style={styles.empty}
+                  >
+                    {fresh.error}
+                  </Txt>
+                );
+              }
+              if (freshItems.length === 0) {
+                return (
+                  <Txt variant="small" color="text2" style={styles.empty}>
+                    No workout picks available right now.
+                  </Txt>
+                );
+              }
+              return null;
+            }}
+            renderItem={({ item }) => renderRow(item, true)}
+          />
         ) : (
           <FlatList
             data={currentLevel?.items ?? []}
             style={{ maxHeight: height * 0.55 }}
             keyExtractor={(item) => item.identifier}
-            renderItem={({ item }) => (
-              <View style={styles.browseRow}>
-                <PressableScale
-                  testID={`spotify-browse-item-${item.identifier}`}
-                  style={styles.browseRowMain}
-                  onPress={() => (item.isPlayable ? play(item) : drillIn(item))}
-                >
-                  <Txt variant="h3" numberOfLines={1}>
-                    {item.title ?? 'Untitled'}
-                  </Txt>
-                  {item.subtitle && (
-                    <Txt variant="caption" color="text2" numberOfLines={1}>
-                      {item.subtitle}
-                    </Txt>
-                  )}
-                </PressableScale>
-                {/* Every search result is both playable and a container (a playlist, always),
-                    so both actions need their own tap target — play it now, or look inside
-                    first — rather than the chevron replacing the row's own. */}
-                {item.isContainer && (
-                  <IconButton
-                    testID={`spotify-browse-drill-${item.identifier}`}
-                    icon="chevronRight"
-                    variant="plain"
-                    tone="text2"
-                    accessibilityLabel={`See inside ${item.title ?? 'this item'}`}
-                    onPress={() => drillIn(item)}
-                  />
-                )}
-              </View>
-            )}
+            renderItem={({ item }) => renderRow(item, false)}
           />
         )}
       </Sheet>
@@ -344,5 +608,15 @@ const useStyles = makeStyles((t) =>
       borderBottomColor: t.colors.line,
     },
     browseRowMain: { flex: 1, paddingVertical: space.md },
+    vibeScroll: { flexGrow: 0, marginBottom: space.sm },
+    vibeRow: { gap: space.xs, paddingRight: space.md },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      minHeight: 44,
+      paddingTop: space.xs,
+    },
+    sectionTitle: { flex: 1 },
   }),
 );

@@ -300,7 +300,12 @@ replacing the header's back item. Under it, a **`SegmentedBar`** — one segment
 filled by that exercise's completed sets, current segment glowing in the current section color.
 The section name sits as a `Chip` in that color between the bar and the hero.
 
-Spotify controls: a compact dark pill row directly under the bar.
+Spotify controls: a compact dark pill row directly under the bar. Its browse button opens a
+bottom `Sheet` whose root level is a horizontally scrolling row of vibe `Chip`s (multi-select;
+"Anything" and the genres are mutually exclusive) above a `SectionList`: **Favorites** (expanded),
+**Recently played** (collapsed, header shows the count) and **Fresh picks** (refresh `IconButton`
+in its header). Favorites/Recents headers are tappable rows with a chevron and are hidden when
+empty. Every playlist row: tap plays, heart toggles favorite, chevron previews tracks.
 
 **Exercise phase (reps)** — a hero `Card` with a 2px gradient border in the section's color:
 - Level badge as a summit `Chip` ("LVL 3 · HORIZONTAL PUSH") top-left.
@@ -435,7 +440,8 @@ Nothing ships on the old look. Beyond the screens above, the redesign covers:
   keep their real-world tension colors — they're information, shown as a color dot on a dark
   chip), `DemoMedia` (dark card, rounded video, restyled fallback/link states), `PinnedNote` (gold
   sticky-note card with a pin icon, edit mode as a `surface2` well), `SpotifyControls` (compact
-  dark pill, Spotify green is allowed *only* as the logo/brand dot), `FeedbackControls`,
+  dark pill, Spotify green is allowed *only* as the logo/brand dot; its browse sheet is vibe chips
+  over Favorites / Recently played / Fresh picks sections, with a heart on every playlist row), `FeedbackControls`,
   `HighlightCard`, `AnimatedStatCounter`, `HypeHeadline`, `CelebrationBackdrop`, `ConfettiBurst`
   (palette → ember/gold/sun/summit/lagoon/sky), `OptionPicker` (restyle or delete if unused).
 - **Keyboard accessories** (Summary "Done", Workout/Approval inputs): `surface2` bar with an

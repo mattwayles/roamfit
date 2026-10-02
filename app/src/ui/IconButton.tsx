@@ -3,7 +3,13 @@
  * workout's Undo / Swap / Skip row). `accessibilityLabel` is required — an icon alone says nothing.
  */
 import React from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  type AccessibilityState,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import type { HapticKind } from '../lib/haptics';
 import { makeStyles, type ColorName } from '../theme';
 import { Icon, type IconName } from './Icon';
@@ -22,6 +28,8 @@ export interface IconButtonProps {
   /** Small caption below the disc. */
   label?: string;
   disabled?: boolean;
+  /** Toggle state for VoiceOver (e.g. `{ selected }` on a favorite heart). */
+  accessibilityState?: AccessibilityState;
   haptic?: HapticKind | false;
   style?: StyleProp<ViewStyle>;
   testID?: string;
@@ -39,6 +47,7 @@ export function IconButton({
   tone = 'text',
   label,
   disabled,
+  accessibilityState,
   haptic,
   style,
   testID,
@@ -53,6 +62,9 @@ export function IconButton({
       haptic={haptic}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
+      accessibilityState={
+        accessibilityState ? { ...accessibilityState, disabled: disabled || undefined } : undefined
+      }
       hitSlop={8}
       style={[
         styles.disc,
