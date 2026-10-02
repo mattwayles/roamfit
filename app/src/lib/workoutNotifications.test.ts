@@ -22,6 +22,7 @@ import {
 } from './workoutNotifications';
 
 describe('workoutNotifications', () => {
+  const handlerArg = (Notifications.setNotificationHandler as jest.Mock).mock.calls[0][0];
   beforeEach(() => jest.clearAllMocks());
 
   it('schedules a TIME_INTERVAL trigger for the requested seconds, with the next-up label in the body', async () => {
@@ -33,6 +34,28 @@ describe('workoutNotifications', () => {
           type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
           seconds: 45,
         }),
+      }),
+    );
+  });
+
+  it('suppresses the banner for rest-complete notifications while foregrounded, but not others', async () => {
+    const handler = handlerArg;
+    const make = (data?: Record<string, unknown>) => ({ request: { content: { data } } });
+    await expect(handler.handleNotification(make({ kind: 'rest-complete' }))).resolves.toMatchObject({
+      shouldShowBanner: false,
+      shouldShowList: false,
+    });
+    await expect(handler.handleNotification(make())).resolves.toMatchObject({
+      shouldShowBanner: true,
+      shouldShowList: true,
+    });
+  });
+
+  it('tags the scheduled notification so the handler can recognise it', async () => {
+    await scheduleRestZeroNotification(10, 'x');
+    expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: expect.objectContaining({ data: { kind: 'rest-complete' } }),
       }),
     );
   });

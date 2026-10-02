@@ -13,19 +13,24 @@
  */
 import * as Notifications from 'expo-notifications';
 
-// Foreground presentation: the rest screen itself already shows the countdown and plays the
-// zero-mark cue (`workoutAudio.ts`'s `cueRestZero`), so a system banner while the app is in the
-// foreground would be redundant chrome — only worth showing once the app can't show anything
-// itself (backgrounded/locked), which is exactly when the OS decides to present it regardless of
-// this handler. Kept minimal: no sound/badge from the notification itself (the app's own audio
-// session already owns the cue).
+// Foreground presentation: the OS only consults this handler while the app is foregrounded. The
+// rest screen itself already shows the countdown and plays the zero-mark cue (`workoutAudio.ts`'s
+// `cueRestZero`), so the rest-complete banner is suppressed there; backgrounded/locked, the OS
+// presents it regardless of this handler. Other local notifications (daily motivation) keep the
+// default of showing. No sound/badge from the notification itself (the app's own audio session
+// owns the cue).
+const REST_COMPLETE_KIND = 'rest-complete';
+
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
+  handleNotification: async (notification) => {
+    const isRest = notification.request.content.data?.kind === REST_COMPLETE_KIND;
+    return {
+      shouldShowBanner: !isRest,
+      shouldShowList: !isRest,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    };
+  },
 });
 
 let permissionRequested = false;
@@ -60,6 +65,7 @@ export async function scheduleRestZeroNotification(
       content: {
         title: 'Rest complete',
         body: `Next up: ${nextUpLabel}`,
+        data: { kind: REST_COMPLETE_KIND },
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
