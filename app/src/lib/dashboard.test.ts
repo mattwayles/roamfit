@@ -374,7 +374,7 @@ describe('§14.1.8 lifetime counters — monotonic, permanent', () => {
     const counters = buildLifetimeCounters(12, 4210, passport, 4, 7);
     expect(counters).toEqual({
       sessions: 12,
-      totalReps: 4210,
+      totalSets: 4210,
       places: 1,
       countries: 1,
       levelsGained: 4,

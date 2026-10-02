@@ -118,7 +118,7 @@ export function loadDashboardData(
   const milestones = milestonesRepo.getAllMilestones(db);
   const lifetimeCounters = buildLifetimeCounters(
     stats.lifetimeSessionCount,
-    statsRepo.lifetimeReps(db),
+    statsRepo.lifetimeSets(db),
     passport,
     milestones.filter((m) => m.type === 'level_up').length,
     milestones.filter((m) => m.type === 'best_set_pr').length,

@@ -349,7 +349,7 @@ export function monthLabelForLocalDate(localDate: string): string {
 
 export interface LifetimeCounters {
   sessions: number;
-  totalReps: number;
+  totalSets: number;
   places: number;
   countries: number;
   levelsGained: number;
@@ -361,14 +361,14 @@ export interface LifetimeCounters {
  *  so this stays a pure composition step over data the caller already has in hand. */
 export function buildLifetimeCounters(
   lifetimeSessionCount: number,
-  lifetimeTotalReps: number,
+  lifetimeTotalSets: number,
   passport: PassportSummary,
   levelUpMilestoneCount: number,
   bestSetMilestoneCount: number,
 ): LifetimeCounters {
   return {
     sessions: lifetimeSessionCount,
-    totalReps: Math.round(lifetimeTotalReps),
+    totalSets: lifetimeTotalSets,
     places: passport.places.length,
     countries: passport.countries.length,
     levelsGained: levelUpMilestoneCount,

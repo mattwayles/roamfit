@@ -248,12 +248,12 @@ export function recordTravelDay(db: Db, now: string, localDate: string): void {
   });
 }
 
-/** Lifetime reps: every completed rep-based set in a completed session. Derived from `set_logs`
- *  rather than kept as a running total, so it needs no migration or backfill and covers history
- *  already logged. Timed holds log seconds, not reps, so they add nothing here. */
-export function lifetimeReps(db: Db): number {
+/** Lifetime sets: every completed set in a completed session, rep-based and timed alike. Derived
+ *  from `set_logs` rather than kept as a running total, so it needs no migration or backfill and
+ *  covers history already logged. */
+export function lifetimeSets(db: Db): number {
   const row = db
-    .select({ total: sql<number | null>`sum(${schema.setLogs.repsActual})` })
+    .select({ total: sql<number>`count(*)` })
     .from(schema.setLogs)
     .innerJoin(schema.sessionEntries, eq(schema.setLogs.entryId, schema.sessionEntries.id))
     .innerJoin(schema.sessions, eq(schema.sessionEntries.sessionId, schema.sessions.id))
