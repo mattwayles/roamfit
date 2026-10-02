@@ -65,10 +65,20 @@ per-user-table precedent).
   (exported from the store index), `UserRecord.spotifyVibes` — 9aba136.
 
 ### In progress
-- C (UI) delegated to a Sonnet subagent in an isolated worktree pinned to 9aba136.
+- C (UI) is **done but not on master**: commit 3710c81 on branch
+  `worktree-agent-a38a25d9734a9dfb2` (worktree `.claude/worktrees/agent-a38a25d9734a9dfb2`),
+  already rebased onto 054e116. Touches SpotifyControls.tsx/.test.tsx, ui/IconButton.tsx
+  (additive `accessibilityState` prop), docs/BACKLOG.md, docs/DESIGN.md (~L302, ~L437).
+  Check in the worktree: typecheck/lint/engine-purity green, store/engine/data/functions green,
+  SpotifyControls 36/36 + WorkoutScreen.spotify green; the app suites that failed under load
+  (load avg ~82) were 5s timeouts and all pass run alone.
+- **Held on the user's call**: the main tree has another session's uncommitted docs/DESIGN.md
+  edits (Journey section, disjoint hunks). User chose to wait for that session to commit, then
+  land C with a plain `git cherry-pick 3710c81`.
 
 ### Next
-- Merge C → `npm run check` → close this file.
+- Once main tree's docs/DESIGN.md is clean: `git cherry-pick 3710c81`, `npm run check`, remove the
+  worktree + branch, close this file.
 
 ### Decisions / gotchas
 - **Agent worktrees were created from a stale commit (e52637b), not master.** Any subagent
