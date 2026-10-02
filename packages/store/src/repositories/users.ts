@@ -80,6 +80,8 @@ export interface UserRecord {
   healthWriteEnabled: boolean;
   cueSoundsEnabled: boolean;
   themePreference: ThemePreference;
+  /** Stable Spotify vibe ids the user picked; `[]` = no preference. */
+  spotifyVibes: string[];
   notificationPrefs: NotificationPrefs;
   lastKnownTzId: string | null;
   hasEverCompletedSession: boolean;
@@ -98,6 +100,17 @@ function mergeBandTensions(
   return out;
 }
 
+/** A stored JSON string array, tolerant of damage: malformed JSON, a non-array, or non-string
+ *  entries yield `[]` / the surviving strings rather than throwing on every user read. */
+function parseStringArray(raw: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
   return {
     id: row.id,
@@ -111,6 +124,7 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
     healthWriteEnabled: row.healthWriteEnabled,
     cueSoundsEnabled: row.cueSoundsEnabled,
     themePreference: row.themePreference as ThemePreference,
+    spotifyVibes: parseStringArray(row.spotifyVibes),
     notificationPrefs: JSON.parse(row.notificationPrefs) as NotificationPrefs,
     lastKnownTzId: row.lastKnownTzId,
     hasEverCompletedSession: row.hasEverCompletedSession,
@@ -147,6 +161,8 @@ export interface UserPatch {
   healthWriteEnabled?: boolean;
   cueSoundsEnabled?: boolean;
   themePreference?: ThemePreference;
+  /** Replaces the stored list wholesale (it is a selection, not a bag to merge into). */
+  spotifyVibes?: string[];
   /** Shallow-merged onto the existing `notificationPrefs`, not replaced wholesale — a settings
    *  screen editing one field must not clobber others it doesn't know about. */
   notificationPrefs?: NotificationPrefs;
@@ -164,6 +180,7 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
   if (patch.healthWriteEnabled !== undefined) values.healthWriteEnabled = patch.healthWriteEnabled;
   if (patch.cueSoundsEnabled !== undefined) values.cueSoundsEnabled = patch.cueSoundsEnabled;
   if (patch.themePreference !== undefined) values.themePreference = patch.themePreference;
+  if (patch.spotifyVibes !== undefined) values.spotifyVibes = JSON.stringify(patch.spotifyVibes);
   if (patch.notificationPrefs !== undefined) {
     values.notificationPrefs = JSON.stringify({
       ...current.notificationPrefs,

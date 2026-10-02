@@ -144,3 +144,37 @@ describe('themePreference (migration 0022)', () => {
     }
   });
 });
+
+describe('spotifyVibes (migration 0023)', () => {
+  it('defaults to an empty list and round-trips through updateUser', () => {
+    const { db, close } = createTestDb();
+    try {
+      expect(ensureUser(db, utcInstantFor('2026-08-01')).spotifyVibes).toEqual([]);
+      updateUser(db, { spotifyVibes: ['rock', '80s'] }, utcInstantFor('2026-08-02'));
+      expect(getUser(db)!.spotifyVibes).toEqual(['rock', '80s']);
+      updateUser(db, { units: 'kg' }, utcInstantFor('2026-08-03'));
+      expect(getUser(db)!.spotifyVibes).toEqual(['rock', '80s']);
+      updateUser(db, { spotifyVibes: [] }, utcInstantFor('2026-08-04'));
+      expect(getUser(db)!.spotifyVibes).toEqual([]);
+    } finally {
+      close();
+    }
+  });
+
+  it('malformed JSON reads as [] and non-string entries are filtered', () => {
+    const { db, close } = createTestDb();
+    try {
+      ensureUser(db, utcInstantFor('2026-08-01'));
+      const set = (v: string) =>
+        db.update(schema.users).set({ spotifyVibes: v }).where(eq(schema.users.id, 'local')).run();
+      set('{not json');
+      expect(getUser(db)!.spotifyVibes).toEqual([]);
+      set('"rock"');
+      expect(getUser(db)!.spotifyVibes).toEqual([]);
+      set('["rock", 3, null, "metal"]');
+      expect(getUser(db)!.spotifyVibes).toEqual(['rock', 'metal']);
+    } finally {
+      close();
+    }
+  });
+});

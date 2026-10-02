@@ -10,6 +10,7 @@
  *   exercise_state     §4.4 — per user × exercise, NEVER on the shared library table (invariant 7)
  *   progression_state  §4.5 — per user × family, level_id is a stable id (invariant 5)
  *   manual_day_markers §14.1.6 — per user × local_date, hand-corrects the calendar heatmap
+ *   spotify_playlists  per user × playlist — favorites + recently played (migration 0023)
  *   sessions           §4.6
  *   session_entries    §4.7 Entry — plan is immutable via planned_exercise_id; exercise_id is the
  *                      mutable "what actually ran" field a mid-workout swap updates
@@ -56,6 +57,8 @@ export const users = sqliteTable('users', {
   cueSoundsEnabled: integer('cue_sounds_enabled', { mode: 'boolean' }).notNull().default(true),
   /** Daylight light mode (DESIGN.md §8): 'system' | 'light' | 'dark'. Migration 0022. */
   themePreference: text('theme_preference').notNull().default('system'),
+  /** JSON array of Spotify vibe ids (stable strings); '[]' = no preference. Migration 0023. */
+  spotifyVibes: text('spotify_vibes').notNull().default('[]'),
   /** JSON: { enabled, quiet_hours, observed_training_window }. */
   notificationPrefs: text('notification_prefs').notNull().default('{}'),
   /** §12 — the tz_id last observed for this device; compared against a new session's tz_id to
@@ -171,6 +174,30 @@ export const manualDayMarkers = sqliteTable(
     updatedAt: text('updated_at').notNull(),
   },
   (t) => [uniqueIndex('ux_manual_day_markers_user_date').on(t.userId, t.localDate)],
+);
+
+// ------------------------------------------------------------------------------------------
+// Spotify playlists the user has played or hearted. Per user × playlist (invariant 7). One row
+// is a favorite (`favorited_at`), a recent (`last_played_at`, not favorited), or both. Migration
+// 0023; local-only, not synced.
+// ------------------------------------------------------------------------------------------
+
+export const spotifyPlaylists = sqliteTable(
+  'spotify_playlists',
+  {
+    userId: text('user_id').notNull().default('local'),
+    playlistId: text('playlist_id').notNull(),
+    uri: text('uri').notNull(),
+    name: text('name').notNull(),
+    owner: text('owner'),
+    /** ISO instant of the most recent play; null for a favorite that was never played. */
+    lastPlayedAt: text('last_played_at'),
+    playCount: integer('play_count').notNull().default(0),
+    /** ISO instant the heart was set; null = not a favorite. */
+    favoritedAt: text('favorited_at'),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [uniqueIndex('ux_spotify_playlists_user_playlist').on(t.userId, t.playlistId)],
 );
 
 // ------------------------------------------------------------------------------------------
