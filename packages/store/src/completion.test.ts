@@ -209,6 +209,54 @@ describe('§14.1.8/§14.1.6 lifetimeTotalMinutes + getCompletedSessionsForDashbo
   });
 });
 
+describe('completion — actualMinutes stops at the last completed set', () => {
+  it('a session left running for hours records time up to the last set, not up to Stop', () => {
+    const { db, close } = createTestDb();
+    try {
+      const localDate = '2026-05-05';
+      const clock = clockFor(localDate);
+      const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+        library,
+        families,
+        request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
+        clock,
+        rng: rngFor(3),
+        utcInstant: utcInstantFor(localDate),
+      });
+      const sessionId = createPendingSession(db, {
+        plan,
+        utcInstant: utcInstantFor(localDate),
+        localDate,
+        tzId: clock.tzId,
+        comebackTier,
+        recoveryWeekManual,
+      });
+      startSession(db, sessionId, utcInstantFor(localDate, 9));
+      const entry = getPendingSession(db)!.entries[0];
+      logSet(
+        db,
+        {
+          entryId: entry.id,
+          setIndex: 0,
+          status: 'completed',
+          restPrescribedSec: entry.restSec,
+          completedAt: utcInstantFor(localDate, 9, 20),
+        },
+        utcInstantFor(localDate, 9, 20),
+      );
+      // Stop pressed five hours later.
+      const result = completeSession(
+        db,
+        { sessionId, library, families },
+        utcInstantFor(localDate, 14),
+      );
+      expect(result.actualMinutes).toBeCloseTo(20, 5);
+    } finally {
+      close();
+    }
+  });
+});
+
 describe('countCompletedSessions', () => {
   it('counts only completed sessions, growing one per completeSession call', () => {
     const { db, close } = createTestDb();

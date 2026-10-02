@@ -592,6 +592,28 @@ export function activeElapsedSec(
   return Math.max(0, gross - session.pausedTotalSec - openPause);
 }
 
+/**
+ * The instant a finished session's clock should stop at: the last completed set, not the moment
+ * the user remembered to press Stop. A workout left running (phone down, Stop forgotten) would
+ * otherwise record hours of "training" and skew the lifetime Minutes counter. Never later than
+ * `now`; falls back to `now` when no completed set carries a `completedAt` (nothing to trim to).
+ */
+export function sessionEndInstant(
+  entries: Pick<SessionEntryRecord, 'setLogs'>[],
+  now: string,
+): string {
+  let last = Number.NEGATIVE_INFINITY;
+  for (const e of entries) {
+    for (const s of e.setLogs) {
+      if (s.status !== 'completed' || !s.completedAt) continue;
+      const t = Date.parse(s.completedAt);
+      if (Number.isFinite(t) && t > last) last = t;
+    }
+  }
+  const nowMs = Date.parse(now);
+  return Number.isFinite(last) && last < nowMs ? new Date(last).toISOString() : now;
+}
+
 export function discardSession(
   db: Db,
   sessionId: string,

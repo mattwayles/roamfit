@@ -24,7 +24,7 @@ import type {
 import type { Db } from './db';
 import { schema } from './db';
 import { eq } from 'drizzle-orm';
-import { activeElapsedSec, getSession } from './repositories/sessions';
+import { activeElapsedSec, getSession, sessionEndInstant } from './repositories/sessions';
 import type { SessionEntryRecord, SessionRecord } from './repositories/sessions';
 import { getAllProgressionStates, upsertProgressionState } from './repositories/progressionState';
 import { getUser, ensureUser, markHasEverCompletedSession } from './repositories/users';
@@ -176,9 +176,10 @@ export function completeSession(
     }
 
     // §10.4 — time spent paused is not time spent training, so it is subtracted here exactly as it
-    // is in the elapsed timer the user watched (one shared definition, `activeElapsedSec`).
+    // is in the elapsed timer the user watched (one shared definition, `activeElapsedSec`). The
+    // clock stops at the last completed set, so a forgotten Stop can't inflate the total.
     const actualMinutes = session.startedAt
-      ? activeElapsedSec(session, now) / 60
+      ? activeElapsedSec(session, sessionEndInstant(session.entries, now)) / 60
       : session.estimatedMinutes;
 
     const progressionEvents: { familyId: string; event: ProgressionEvent }[] = [];
