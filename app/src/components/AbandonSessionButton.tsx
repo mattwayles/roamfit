@@ -16,12 +16,13 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { space } from '../theme';
-import { Button, IconButton, Sheet, Txt } from '../ui';
+import { Button, IconButton, Sheet, Txt, type IconButtonProps } from '../ui';
 
 export default function AbandonSessionButton({
   onConfirm,
   label = 'Abandon workout',
   variant = 'text',
+  iconSize,
 }: {
   /** Called only after the user has confirmed. Expected to call `discardSession` and navigate
    *  away — this component never touches the store directly (ADR 0003 / issue #13: no
@@ -33,6 +34,8 @@ export default function AbandonSessionButton({
    *  where controls are found at arm's length and out of breath, so they need to be targets
    *  rather than sentences. The confirm step is identical either way. */
   variant?: 'text' | 'icon';
+  /** `IconButton` size for the `'icon'` variant; defaults to `md`. */
+  iconSize?: IconButtonProps['size'];
 }): React.JSX.Element {
   const [confirming, setConfirming] = useState(false);
 
@@ -80,6 +83,7 @@ export default function AbandonSessionButton({
           testID="abandon-button"
           icon="stop"
           tone="text2"
+          size={iconSize}
           accessibilityLabel={label}
           onPress={() => setConfirming(true)}
         />

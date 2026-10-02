@@ -962,8 +962,10 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           mid-set, at arm's length, glances at most often, so it gets the top line and `hero`
           numerals rather than sharing space with a label. Home rides the left, pause/stop the
           right; the two side groups are the same fixed width so the clock stays visually centered
-          (which is also why there is no "Elapsed" prefix on the clock text itself). It replaces the
-          native header, which is hidden for this screen. */}
+          (which is also why there is no "Elapsed" prefix on the clock text itself). The bar's
+          buttons are the compact `sm` size (hitSlop keeps the target ~52pt) so two of them fit a
+          side without crowding the clock. It replaces the native header, which is hidden for this
+          screen. */}
       <View style={styles.topBar}>
         <View style={styles.barSide}>
           {/* Home lives top-left. Pausing first (idempotent with the workout-level Pause button)
@@ -972,6 +974,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               screen so this is the only way off it (besides Progress/Abandon). */}
           <IconButton
             testID="workout-home"
+            size="sm"
             icon="home"
             accessibilityLabel="Pause and go to Home"
             onPress={() => {
@@ -985,6 +988,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           {themePreference && (
             <IconButton
               testID="theme-toggle"
+              size="sm"
               icon={themePreference.scheme === 'dark' ? 'sun' : 'moon'}
               accessibilityLabel={
                 themePreference.scheme === 'dark' ? 'Switch to Daylight' : 'Switch to Golden Hour'
@@ -1008,12 +1012,13 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         <View style={[styles.barSide, styles.barSideRight]}>
           <IconButton
             testID="pause-workout"
+            size="sm"
             icon={paused ? 'play' : 'pause'}
             accessibilityLabel={paused ? 'Resume workout' : 'Pause workout'}
             tone={paused ? 'ember' : 'text'}
             onPress={paused ? handleResume : handlePause}
           />
-          <AbandonSessionButton onConfirm={handleAbandon} variant="icon" />
+          <AbandonSessionButton onConfirm={handleAbandon} variant="icon" iconSize="sm" />
         </View>
       </View>
 
@@ -2610,10 +2615,10 @@ const useStyles = makeStyles((t) =>
       paddingTop: space.xs,
       minHeight: 64,
     },
-    // Both side groups are the same fixed width (two 44pt buttons and a gap) so the clock between
-    // them stays centered whichever side has fewer buttons.
-    barSide: { width: 96, flexDirection: 'row', alignItems: 'center' },
-    barSideRight: { justifyContent: 'flex-end', gap: space.sm },
+    // Both side groups are the same fixed width (two 36pt `sm` buttons and a gap) so the clock
+    // between them stays centered whichever side has fewer buttons.
+    barSide: { width: 80, flexDirection: 'row', alignItems: 'center', gap: space.sm },
+    barSideRight: { justifyContent: 'flex-end' },
     clock: { flex: 1, textAlign: 'center' },
     segments: { marginHorizontal: gutter, marginTop: space.sm },
     scroll: { flex: 1 },

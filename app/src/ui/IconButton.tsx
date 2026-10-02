@@ -1,5 +1,5 @@
 /**
- * Circular icon button, 44pt (`md`), 56pt (`lg`) or 64pt (`xl`, the workout's rep -/+), with an optional caption underneath (the
+ * Circular icon button, 36pt (`sm`, the workout's top bar), 44pt (`md`), 56pt (`lg`) or 64pt (`xl`, the workout's rep -/+), with an optional caption underneath (the
  * workout's Undo / Swap / Skip row). `accessibilityLabel` is required — an icon alone says nothing.
  */
 import React from 'react';
@@ -20,7 +20,7 @@ export interface IconButtonProps {
   icon: IconName;
   onPress?: () => void;
   accessibilityLabel: string;
-  size?: 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   /** `filled` = `surface2` disc; `plain` = bare icon (headers). */
   variant?: 'filled' | 'plain';
   /** Icon color token. */
@@ -35,8 +35,8 @@ export interface IconButtonProps {
   testID?: string;
 }
 
-const DIAMETER = { md: 44, lg: 56, xl: 64 } as const;
-const GLYPH = { md: 22, lg: 28, xl: 32 } as const;
+const DIAMETER = { sm: 36, md: 44, lg: 56, xl: 64 } as const;
+const GLYPH = { sm: 18, md: 22, lg: 28, xl: 32 } as const;
 
 export function IconButton({
   icon,
