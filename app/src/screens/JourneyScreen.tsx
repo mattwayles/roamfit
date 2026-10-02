@@ -236,7 +236,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
         <Txt variant="eyebrow" color="gold">
           Your journey
         </Txt>
-        <Txt variant="display">Miles so far</Txt>
+        <Txt variant="display">Journey Markers</Txt>
       </Enter>
 
       {/* §14.1.8 lifetime counters — monotonic, permanent. */}
