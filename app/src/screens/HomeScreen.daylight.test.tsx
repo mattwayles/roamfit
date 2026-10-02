@@ -18,7 +18,7 @@ function Cleanup({ children }: { children: React.ReactNode }): React.JSX.Element
 }
 
 describe('Home in Daylight', () => {
-  it('uses paper tiles and an ember legend on the white hero pill', async () => {
+  it('uses paper tiles and an pine legend on the white hero pill', async () => {
     render(
       inDaylight(
         <StoreProvider>
@@ -38,7 +38,7 @@ describe('Home in Daylight', () => {
     expect(tile.backgroundColor).toBe(daylight.surface);
     expect(tile.borderColor).toBe(daylight.line);
     const cta = StyleSheet.flatten(screen.getByText('Build a session').props.style);
-    expect(cta.color).toBe(daylight.ember);
+    expect(cta.color).toBe(daylight.pine);
     expect(daylight.ink).toBe('#FFFFFF');
   });
 });

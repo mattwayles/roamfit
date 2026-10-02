@@ -6,11 +6,11 @@ orange as the primary color. Replace `ember` + `emberDeep` outright with a pine 
 fern" (hue ~138). Spotify-green proximity was discussed and explicitly accepted.
 
 ### Done
-- [ ] 1. Behavior-neutral token rename `ember`→`pine`, `emberDeep`→`pineDeep`, gradient `sunrise`→`trail`
+- [x] 1. (commit below) Behavior-neutral token rename `ember`→`pine`, `emberDeep`→`pineDeep`, gradient `sunrise`→`trail`
       (values unchanged, so tests pass untouched apart from names).
 
 ### In progress
-- Step 1 rename across `app/src` (ts/tsx incl. tests) with word-boundary perl; then `npm run check`.
+- Step 2: new values in palettes.ts + test literals.
 
 ### Next
 2. New values in `app/src/theme/palettes.ts` (see decisions) + update hex/rgba literals in

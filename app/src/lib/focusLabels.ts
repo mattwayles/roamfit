@@ -22,7 +22,7 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
  *  take names rather than hex (and so follow the active theme). Generate's tiles, the Field
  *  Guide's avatars and the day markers share it. */
 export const FOCUS_TONE: Record<Focus, AccentName> = {
-  upper: 'ember',
+  upper: 'pine',
   abs: 'gold',
   legs: 'summit',
   full: 'lagoon',

@@ -327,10 +327,10 @@ describe('the exercise detail page', () => {
       new RegExp(exercise.id),
     );
 
-    // An improved dimension is an ember chip with first -> best; the rest are neutral.
+    // An improved dimension is an pine chip with first -> best; the rest are neutral.
     const best = screen.getByTestId('detail-gain-Best set');
     expect(best).toHaveTextContent(/→/);
-    expect(StyleSheet.flatten(best.props.style).backgroundColor).toBe(goldenHourTheme.tints.ember);
+    expect(StyleSheet.flatten(best.props.style).backgroundColor).toBe(goldenHourTheme.tints.pine);
   });
 
   it('greets an exercise with no history with an encouraging empty state, and "Not yet"', async () => {

@@ -1,4 +1,4 @@
-/** Generate under the Daylight theme: selected tiles are deep-ember fills with a white legend. */
+/** Generate under the Daylight theme: selected tiles are deep-pine fills with a white legend. */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
@@ -11,7 +11,7 @@ const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 }
 const nav = { navigate: jest.fn(), replace: jest.fn(), reset: jest.fn(), goBack: jest.fn() };
 
 describe('Generate in Daylight', () => {
-  it('paints picks on paper, selected time chip and intensity in deep ember, legends in white', async () => {
+  it('paints picks on paper, selected time chip and intensity in deep pine, legends in white', async () => {
     render(
       inDaylight(
         <StoreProvider>
@@ -27,8 +27,8 @@ describe('Generate in Daylight', () => {
     const off = StyleSheet.flatten(screen.getByTestId('time-picker-option-45').props.style);
     expect(off.backgroundColor).toBe(daylight.surface);
     const on = StyleSheet.flatten(screen.getByTestId('time-picker-option-30').props.style);
-    expect(on.backgroundColor).toBe(daylight.ember);
-    expect(on.shadowOpacity).toBe(daylightTheme.glow(daylight.ember).shadowOpacity);
+    expect(on.backgroundColor).toBe(daylight.pine);
+    expect(on.shadowOpacity).toBe(daylightTheme.glow(daylight.pine).shadowOpacity);
     // The selected numeral sits on that fill in `ink`, which is white in Daylight.
     const numeral = StyleSheet.flatten(screen.getByText('30').props.style);
     expect(numeral.color).toBe('#FFFFFF');

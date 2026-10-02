@@ -170,7 +170,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     return (
       <Screen>
         <View style={styles.centered}>
-          <ActivityIndicator color={theme.colors.ember} />
+          <ActivityIndicator color={theme.colors.pine} />
         </View>
       </Screen>
     );
@@ -635,7 +635,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
 /** Section -> accent tone (matches the workout's section chips) and display label. */
 const SECTION_TONE: Record<Section, AccentName> = {
   warmup: 'gold',
-  main: 'ember',
+  main: 'pine',
   cooldown: 'lagoon',
 };
 const SECTION_LABEL: Record<Section, string> = {
@@ -684,7 +684,7 @@ function BoardingPass({
             <Txt variant="eyebrow" color="text3">
               Min
             </Txt>
-            <Txt variant="h1" color="ember" testID="plan-minutes">
+            <Txt variant="h1" color="pine" testID="plan-minutes">
               {minutes}
             </Txt>
           </View>
@@ -984,7 +984,7 @@ function NumericField({
           keyboardType="number-pad"
           returnKeyType="done"
           inputAccessoryViewID={NUMBER_ACCESSORY_ID}
-          selectionColor={theme.colors.ember}
+          selectionColor={theme.colors.pine}
           keyboardAppearance={theme.scheme}
           selectTextOnFocus
           hitSlop={4}

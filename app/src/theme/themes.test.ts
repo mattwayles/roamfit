@@ -56,8 +56,8 @@ describe('palettes', () => {
       text2: '#B4BCC8',
       text3: '#7C8696',
       ink: '#170B03',
-      ember: '#FF6B35',
-      emberDeep: '#E8491D',
+      pine: '#FF6B35',
+      pineDeep: '#E8491D',
       gold: '#FFB938',
       sun: '#FFD166',
       lagoon: '#2DD4BF',
@@ -66,13 +66,13 @@ describe('palettes', () => {
       rose: '#FF5C93',
     });
     expect(goldenHourTheme.gradients).toEqual({
-      sunrise: ['#FF5E3A', '#FF9F1C'],
+      trail: ['#FF5E3A', '#FF9F1C'],
       golden: ['#FFB938', '#FFD166'],
       lagoon: ['#14B8A6', '#38BDF8'],
       summit: ['#7B5CFF', '#C084FC'],
       night: ['#1C2330', '#0B0E13'],
     });
-    expect(goldenHourTheme.tints.ember).toBe('rgba(255,107,53,0.15)');
+    expect(goldenHourTheme.tints.pine).toBe('rgba(255,107,53,0.15)');
   });
 
   it('Daylight values match DESIGN.md §8', () => {
@@ -81,11 +81,11 @@ describe('palettes', () => {
       surface: '#FFFDF8',
       text: '#1A130C',
       ink: '#FFFFFF',
-      ember: '#B83507',
+      pine: '#B83507',
       gold: '#8F5A00',
       backdrop: 'rgba(26,19,12,0.40)',
     });
-    expect(daylightGradients.sunrise).toEqual(['#CC3B12', '#C95A04']);
+    expect(daylightGradients.trail).toEqual(['#CC3B12', '#C95A04']);
   });
 
   it('fixedInk / fixedPaper / vivid are mode-invariant', () => {
@@ -136,7 +136,7 @@ describe('Daylight contrast (WCAG)', () => {
 
 describe('Golden Hour contrast is not regressed', () => {
   it('ink is legible on the bright accents it sits on', () => {
-    for (const n of ['ember', 'gold', 'lagoon'] as const) {
+    for (const n of ['pine', 'gold', 'lagoon'] as const) {
       expect(contrast(goldenHour.ink, goldenHour[n])).toBeGreaterThanOrEqual(4.5);
     }
   });
@@ -183,7 +183,7 @@ describe('buildTheme', () => {
 
   it('Daylight day cells read as color, not a muddy wash, and keep the date legible', () => {
     // Every accent a day marker can resolve to (focus colors, travel = sky, quick = gold).
-    const markerAccents = ['ember', 'summit', 'gold', 'lagoon', 'rose', 'sky'] as const;
+    const markerAccents = ['pine', 'summit', 'gold', 'lagoon', 'rose', 'sky'] as const;
     for (const n of markerAccents) {
       const cell = composite(vivid[n], 0.4, daylight.surface);
       // Clearly more colorful than the old deep-accent 20% wash it replaces.
@@ -194,29 +194,29 @@ describe('buildTheme', () => {
   });
 
   it('semantic maps resolve per palette', () => {
-    expect(daylightTheme.section.main).toBe(daylight.ember);
+    expect(daylightTheme.section.main).toBe(daylight.pine);
     expect(daylightTheme.trainedColor('legs')).toBe(daylight.summit);
-    expect(daylightTheme.trainedColor(undefined)).toBe(daylight.ember);
+    expect(daylightTheme.trainedColor(undefined)).toBe(daylight.pine);
     expect(goldenHourTheme.setState.skipped).toBe(goldenHour.text3);
     expect(daylightTheme.dayMarker.travel).toBe(daylight.sky);
-    expect(daylightTheme.accentGradient.ember).toBe(daylightTheme.gradients.sunrise);
+    expect(daylightTheme.accentGradient.pine).toBe(daylightTheme.gradients.trail);
     expect(goldenHourTheme.gradients).toEqual(goldenHourGradients);
   });
 
-  it('heroCta: sun on Golden Hour, deep ember on Daylight', () => {
+  it('heroCta: sun on Golden Hour, deep pine on Daylight', () => {
     expect(goldenHourTheme.heroCta).toBe('sun');
-    expect(daylightTheme.heroCta).toBe('ember');
+    expect(daylightTheme.heroCta).toBe('pine');
   });
 
   it('onGradient: Golden Hour summit takes paper, everything else ink; Daylight always ink', () => {
     expect(goldenHourTheme.onGradient('summit')).toBe('fixedPaper');
-    expect(goldenHourTheme.onGradient('ember')).toBe('ink');
+    expect(goldenHourTheme.onGradient('pine')).toBe('ink');
     expect(daylightTheme.onGradient('summit')).toBe('ink');
   });
 
   it('glow is the original in Golden Hour and tamed in Daylight', () => {
     expect(goldenHourTheme.glow()).toEqual({
-      shadowColor: goldenHour.ember,
+      shadowColor: goldenHour.pine,
       shadowOpacity: 0.45,
       shadowRadius: 18,
       shadowOffset: { width: 0, height: 6 },
@@ -227,7 +227,7 @@ describe('buildTheme', () => {
       shadowRadius: 18,
     });
     expect(daylightTheme.glow()).toEqual({
-      shadowColor: daylight.ember,
+      shadowColor: daylight.pine,
       shadowOpacity: 0.28,
       shadowRadius: 10,
       shadowOffset: { width: 0, height: 4 },
@@ -246,10 +246,10 @@ describe('buildTheme', () => {
     expect(daylightTheme.topo).toEqual({ color: '#3B2410', strength: 1.3 });
     expect(goldenHourTheme.stamp).toEqual({
       fill: goldenHour.sun,
-      shadow: goldenHour.emberDeep,
-      glow: goldenHour.ember,
+      shadow: goldenHour.pineDeep,
+      glow: goldenHour.pine,
     });
-    expect(daylightTheme.stamp).toEqual({ fill: daylight.ember, shadow: vivid.gold, glow: null });
+    expect(daylightTheme.stamp).toEqual({ fill: daylight.pine, shadow: vivid.gold, glow: null });
   });
 
   it('native chrome follows the theme', () => {

@@ -10,12 +10,12 @@ describe('Chip', () => {
     await render(
       <>
         <Chip testID="t" label="Warm-up" tone="gold" />
-        <Chip testID="s" label="Main" tone="ember" selected />
+        <Chip testID="s" label="Main" tone="pine" selected />
       </>,
     );
     await ready('t');
     expect(flat('t').backgroundColor).toBe(goldenHourTheme.tints.gold);
-    expect(flat('s').backgroundColor).toBe(goldenHour.ember);
+    expect(flat('s').backgroundColor).toBe(goldenHour.pine);
     expect(screen.getByText('Main')).toBeTruthy();
     const label = screen.getByText('Main').props.style;
     expect(JSON.stringify(label)).toContain(goldenHour.ink);
@@ -158,8 +158,8 @@ describe('Pips', () => {
   it('fills `filled` dots and rings the current one', async () => {
     await render(<Pips testID="p" count={4} filled={2} current={2} />);
     await ready('p');
-    expect(flat('p-0-dot').backgroundColor).toBe(goldenHour.ember);
-    expect(flat('p-1-dot').backgroundColor).toBe(goldenHour.ember);
+    expect(flat('p-0-dot').backgroundColor).toBe(goldenHour.pine);
+    expect(flat('p-1-dot').backgroundColor).toBe(goldenHour.pine);
     expect(flat('p-2-dot').backgroundColor).toBe(goldenHour.surface3);
     expect(screen.getByTestId('p-2-ring')).toBeTruthy();
     expect(screen.queryByTestId('p-1-ring')).toBeNull();
@@ -170,8 +170,8 @@ describe('Pips', () => {
     await render(<Pips testID="p" count={3} filled={[false, true, true]} current={0} />);
     await ready('p');
     expect(flat('p-0-dot').backgroundColor).toBe(goldenHour.surface3);
-    expect(flat('p-1-dot').backgroundColor).toBe(goldenHour.ember);
-    expect(flat('p-2-dot').backgroundColor).toBe(goldenHour.ember);
+    expect(flat('p-1-dot').backgroundColor).toBe(goldenHour.pine);
+    expect(flat('p-2-dot').backgroundColor).toBe(goldenHour.pine);
     expect(screen.getByLabelText('2 of 3 sets done')).toBeTruthy();
   });
 
@@ -179,7 +179,7 @@ describe('Pips', () => {
     const { rerender } = await render(<Pips testID="p" count={3} filled={1} current={1} />);
     await ready('p');
     await rerender(<Pips testID="p" count={3} filled={2} current={2} />);
-    expect(flat('p-1-dot').backgroundColor).toBe(goldenHour.ember);
+    expect(flat('p-1-dot').backgroundColor).toBe(goldenHour.pine);
     expect(screen.getByTestId('p-2-ring')).toBeTruthy();
   });
 });
@@ -189,22 +189,22 @@ describe('Daylight (controls)', () => {
     await render(
       inDaylight(
         <>
-          <Chip label="Upper" tone="ember" testID="t" />
-          <Chip label="Picked" tone="ember" selected testID="s" />
+          <Chip label="Upper" tone="pine" testID="t" />
+          <Chip label="Picked" tone="pine" selected testID="s" />
           <Chip label="Plain" testID="n" />
         </>,
       ),
     );
     await ready('t');
-    expect(flat('t').backgroundColor).toBe(daylightTheme.tints.ember);
-    expect(flat('s').backgroundColor).toBe(daylight.ember);
+    expect(flat('t').backgroundColor).toBe(daylightTheme.tints.pine);
+    expect(flat('s').backgroundColor).toBe(daylight.pine);
     expect(flat('n')).toMatchObject({
       backgroundColor: daylight.surface2,
       borderColor: daylight.line,
     });
   });
 
-  it('Switch is a paper thumb on a Daylight ember track', async () => {
+  it('Switch is a paper thumb on a Daylight pine track', async () => {
     await render(inDaylight(<Switch testID="sw" value onValueChange={() => {}} />));
     await ready('sw');
     expect(flat('sw').backgroundColor).toBe(daylight.surface3);
@@ -217,18 +217,18 @@ describe('Daylight (controls)', () => {
     expect(flat('ib').backgroundColor).toBe(daylight.surface2);
   });
 
-  it('SegmentedBar fill defaults to the Daylight ember and the active glow is the tamed one', async () => {
+  it('SegmentedBar fill defaults to the Daylight pine and the active glow is the tamed one', async () => {
     await render(inDaylight(<SegmentedBar values={[1, 0.5]} activeIndex={1} testID="sb" />));
     await ready('sb');
-    expect(flat('sb-fill-0').backgroundColor).toBe(daylight.ember);
-    expect(flat('sb-segment-1').shadowColor).toBe(daylight.ember);
+    expect(flat('sb-fill-0').backgroundColor).toBe(daylight.pine);
+    expect(flat('sb-segment-1').shadowColor).toBe(daylight.pine);
     expect(flat('sb-segment-0').backgroundColor).toBe(daylight.surface2);
   });
 
-  it('Pips fill with the Daylight ember over a surface3 track', async () => {
+  it('Pips fill with the Daylight pine over a surface3 track', async () => {
     await render(inDaylight(<Pips count={2} filled={1} testID="p" />));
     await ready('p');
-    expect(flat('p-0-dot').backgroundColor).toBe(daylight.ember);
+    expect(flat('p-0-dot').backgroundColor).toBe(daylight.pine);
     expect(flat('p-1-dot').backgroundColor).toBe(daylight.surface3);
   });
 });

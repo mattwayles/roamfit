@@ -1,6 +1,6 @@
 /**
  * §10.1 Home, now the **Today** tab (DESIGN.md §5.1): wordmark + greeting + Settings, banners,
- * the sunrise hero card (resumable session or "ready to move?"), Quick Session and In transit
+ * the trail hero card (resumable session or "ready to move?"), Quick Session and In transit
  * tiles, a "This week" strip and the Next Unlock card. The long-term half of the old Home
  * (lifetime totals, progression board, calendar, passport, muscle balance) lives on the Journey
  * tab (`JourneyScreen`); both read through `useDashboardData`.
@@ -190,7 +190,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   if (data === undefined) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={theme.colors.ember} />
+        <ActivityIndicator color={theme.colors.pine} />
       </View>
     );
   }
@@ -213,7 +213,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           style={styles.gateScreen}
         >
           <Enter index={0}>
-            <Txt variant="hero" color="ember" style={styles.wordmark}>
+            <Txt variant="hero" color="pine" style={styles.wordmark}>
               ROAMFIT
             </Txt>
             <Txt variant="eyebrow" color="gold">
@@ -257,7 +257,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     >
       <Enter index={next()} style={styles.header}>
         <View style={styles.headerText}>
-          <Txt variant="h1" color="ember">
+          <Txt variant="h1" color="pine">
             RoamFit
           </Txt>
           <Txt variant="small" color="text2" testID="today-greeting">
@@ -549,7 +549,7 @@ function BannerCard({
   );
 }
 
-/** Thin ink progress bar on the sunrise hero: sets done over sets planned (only ever grows). */
+/** Thin ink progress bar on the trail hero: sets done over sets planned (only ever grows). */
 function ResumeProgress({ fraction }: { fraction: number }): React.JSX.Element {
   const styles = useStyles();
   return (

@@ -1,5 +1,5 @@
 /**
- * The completion screen's living background (DESIGN.md §5.9): soft ember, gold and sun glow orbs
+ * The completion screen's living background (DESIGN.md §5.9): soft pine, gold and sun glow orbs
  * (plus a faint lagoon one for depth) drifting across the `bg` night base, so the screen reads as
  * a moving sunset bloom rather than a flat fill. Each orb is a stack of concentric translucent
  * circles (a stepped radial falloff that reads as a soft glow once it's large and moving), and
@@ -27,7 +27,7 @@ interface OrbSpec {
 /** Orbs are decoration with no text on them, so they use `vivid` in both modes (DESIGN.md §8.1). */
 const orbsFor = ({ vivid }: Theme): OrbSpec[] => [
   {
-    color: vivid.ember,
+    color: vivid.pine,
     ring: 0.1,
     size: 1.1,
     x: -0.35,

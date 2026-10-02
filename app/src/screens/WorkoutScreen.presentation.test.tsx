@@ -126,7 +126,7 @@ describe('Workout presentation (§5.7)', () => {
       () =>
         expect(
           StyleSheet.flatten(screen.getByTestId('rest-pips-0-dot').props.style).backgroundColor,
-        ).toBe(goldenHour.ember),
+        ).toBe(goldenHour.pine),
       WAIT_OPTS,
     );
 

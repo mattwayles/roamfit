@@ -1,6 +1,6 @@
 /**
  * The stamped-on headline (DESIGN.md §5.9): every word is the real letters over a hard, zero-blur
- * `emberDeep` copy offset down-right, and the ember glow rides on that copy (one `textShadow` per
+ * `pineDeep` copy offset down-right, and the pine glow rides on that copy (one `textShadow` per
  * Text). The copy is invisible to accessibility, so the headline is still read once.
  */
 import React from 'react';
@@ -21,11 +21,11 @@ const style = (testID: string) =>
   StyleSheet.flatten(screen.getByTestId(testID, { hidden: true }).props.style) ?? {};
 
 describe('HypeHeadline stamped shadow', () => {
-  it('layers a hard emberDeep copy, offset down-right, beneath every word', async () => {
+  it('layers a hard pineDeep copy, offset down-right, beneath every word', async () => {
     await renderHeadline('BEAST MODE ACTIVATED');
     for (let i = 0; i < 3; i += 1) {
       const shadow = style(`hype-word-${i}-shadow`);
-      expect(shadow.color).toBe(goldenHour.emberDeep);
+      expect(shadow.color).toBe(goldenHour.pineDeep);
       expect(shadow.position).toBe('absolute');
       expect(shadow.left).toBe(3);
       expect(shadow.top).toBe(4);
@@ -34,7 +34,7 @@ describe('HypeHeadline stamped shadow', () => {
     }
   });
 
-  it('keeps the soft ember glow and leaves the real letters crisp, accent word in sun', async () => {
+  it('keeps the soft pine glow and leaves the real letters crisp, accent word in sun', async () => {
     await renderHeadline('BEAST MODE ACTIVATED');
     const glow = style('hype-word-0-shadow');
     expect(glow.textShadowColor).toContain('255,107,53');
@@ -54,7 +54,7 @@ describe('HypeHeadline stamped shadow', () => {
 });
 
 describe('HypeHeadline in Daylight', () => {
-  it('prints a deep-ember word over a hard vivid-gold copy, with no glow', async () => {
+  it('prints a deep-pine word over a hard vivid-gold copy, with no glow', async () => {
     render(inDaylight(<HypeHeadline text="NAILED IT" bounce={new Animated.Value(0)} />));
     await waitFor(
       () => expect(screen.getByRole('header', { name: 'NAILED IT' })).toBeTruthy(),
@@ -64,7 +64,7 @@ describe('HypeHeadline in Daylight', () => {
     expect(shadow.color).toBe(vivid.gold);
     expect(shadow.textShadowRadius).toBe(0);
     expect(shadow.left).toBe(3);
-    expect(style('hype-word-1').color).toBe(daylight.ember);
+    expect(style('hype-word-1').color).toBe(daylight.pine);
     expect(style('hype-word-0').color).toBe(daylight.text);
   });
 });

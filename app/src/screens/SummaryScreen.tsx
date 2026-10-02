@@ -117,7 +117,7 @@ const DIFFICULTY_LABEL: Record<Difficulty, string> = {
 /** The same three tones as accent names, for the legacy whole-stage `Chip`. */
 const DIFFICULTY_CHIP_TONE: Record<Difficulty, AccentName> = {
   too_easy: 'lagoon',
-  just_right: 'ember',
+  just_right: 'pine',
   too_hard: 'summit',
 };
 
@@ -125,7 +125,7 @@ type SquareStyles = { sqCompleted: ViewStyle; sqSkipped: ViewStyle; sqNotReached
 const squareStyle = (st: SquareStyles, status: SquareStatus): ViewStyle =>
   status === 'completed' ? st.sqCompleted : status === 'skipped' ? st.sqSkipped : st.sqNotReached;
 
-/** How each square is drawn (DESIGN.md §5.8): completed = ember fill, skipped = a quiet `text3`
+/** How each square is drawn (DESIGN.md §5.8): completed = pine fill, skipped = a quiet `text3`
  *  outline, not reached = a dashed outline (themed styles `sqCompleted` / `sqSkipped` / `sqNotReached`). (The dashed one uses `lineStrong`, one step brighter
  *  than the spec's `line`, so an unreached set stays findable on the `bg` night surface.) */
 
@@ -486,7 +486,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   if (!session)
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={theme.colors.ember} />
+        <ActivityIndicator color={theme.colors.pine} />
       </View>
     );
 
@@ -816,7 +816,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
             <StatTile
               testID="debrief-stat-sets"
               size="h1"
-              tone="ember"
+              tone="pine"
               value={completionStats.setsCompleted}
               label="Sets done"
               style={styles.tile}
@@ -882,7 +882,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                 onChangeText={setRetrospective}
                 placeholder="What felt great? Anything to tweak next time?"
                 placeholderTextColor={theme.colors.text3}
-                selectionColor={theme.colors.ember}
+                selectionColor={theme.colors.pine}
                 keyboardAppearance={theme.scheme}
                 multiline
                 inputAccessoryViewID={retrospectiveAccessoryId}
@@ -974,7 +974,7 @@ function EntryRow({
 }): React.JSX.Element {
   const theme = useTheme();
   const styles = useStyles();
-  const railColor = (theme.section as Record<string, string>)[entry.section] ?? theme.colors.ember;
+  const railColor = (theme.section as Record<string, string>)[entry.section] ?? theme.colors.pine;
   return (
     <View
       testID={`summary-${entry.exerciseId}`}
@@ -1114,7 +1114,7 @@ const useStyles = makeStyles((t) =>
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: t.colors.line,
     },
-    // A 3pt strip in the section's colour (gold warm-up / ember main / lagoon cool-down), so the
+    // A 3pt strip in the section's colour (gold warm-up / pine main / lagoon cool-down), so the
     // rows read as the route they walked without a section header eating a line.
     rail: {
       position: 'absolute',
@@ -1201,9 +1201,9 @@ const useStyles = makeStyles((t) =>
       right: 0,
       bottom: 0,
       borderRadius: radius.pill,
-      // Decoration behind the CTA, no text on it: vivid ember in both modes (DESIGN.md §8.1).
-      backgroundColor: t.vivid.ember,
-      ...t.glow(t.vivid.ember),
+      // Decoration behind the CTA, no text on it: vivid pine in both modes (DESIGN.md §8.1).
+      backgroundColor: t.vivid.pine,
+      ...t.glow(t.vivid.pine),
     },
   }),
 );

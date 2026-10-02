@@ -1,4 +1,4 @@
-/** Pill toggle: ember when on, with a sliding thumb and a selection haptic on change. */
+/** Pill toggle: pine when on, with a sliding thumb and a selection haptic on change. */
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { haptics } from '../lib/haptics';
@@ -87,7 +87,7 @@ const useStyles = makeStyles((t) =>
     on: {
       ...StyleSheet.absoluteFill,
       borderRadius: HEIGHT / 2,
-      backgroundColor: t.colors.ember,
+      backgroundColor: t.colors.pine,
     },
     // Paper-white on both tracks (Daylight's `text` is ink, which would be a black thumb); the
     // card shadow keeps it distinct from the pale off-track on Daylight.

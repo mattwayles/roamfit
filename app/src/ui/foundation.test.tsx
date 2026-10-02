@@ -25,7 +25,7 @@ import { inDaylight, ready, WAIT } from './test-utils';
 describe('Txt', () => {
   it('applies the variant style and token color', async () => {
     await render(
-      <Txt variant="h1" color="ember" testID="t">
+      <Txt variant="h1" color="pine" testID="t">
         Hello
       </Txt>,
     );
@@ -34,7 +34,7 @@ describe('Txt', () => {
     expect(s.fontFamily).toBe(type.h1.fontFamily);
     expect(s.fontSize).toBe(30);
     expect(s.textTransform).toBe('uppercase');
-    expect(s.color).toBe(goldenHour.ember);
+    expect(s.color).toBe(goldenHour.pine);
   });
 
   it('defaults to body/text, and `upper` overrides the variant', async () => {
@@ -293,7 +293,7 @@ describe('Daylight (foundation)', () => {
       inDaylight(
         <>
           <Txt testID="a">a</Txt>
-          <Txt color="ember" testID="b">
+          <Txt color="pine" testID="b">
             b
           </Txt>
           <Txt color="ink" testID="c">
@@ -305,7 +305,7 @@ describe('Daylight (foundation)', () => {
     await ready('a');
     const color = (id: string) => StyleSheet.flatten(screen.getByTestId(id).props.style).color;
     expect(color('a')).toBe(daylight.text);
-    expect(color('b')).toBe(daylight.ember);
+    expect(color('b')).toBe(daylight.pine);
     expect(color('c')).toBe('#FFFFFF');
   });
 
@@ -316,16 +316,16 @@ describe('Daylight (foundation)', () => {
     );
   });
 
-  it('primary Button gets the tamed Daylight glow and white-on-deep-ember legend', async () => {
+  it('primary Button gets the tamed Daylight glow and white-on-deep-pine legend', async () => {
     await render(inDaylight(<Button label="Go" testID="p" />));
     await ready('p');
     expect(StyleSheet.flatten(screen.getByTestId('p').props.style)).toMatchObject(
-      daylightTheme.glow(daylight.ember),
+      daylightTheme.glow(daylight.pine),
     );
     expect(StyleSheet.flatten(screen.getByText('Go').props.style).color).toBe('#FFFFFF');
   });
 
-  it('Gradient with no colors uses the Daylight sunrise', async () => {
+  it('Gradient with no colors uses the Daylight trail', async () => {
     await render(inDaylight(<Gradient testID="g" />));
     await ready('g');
     await fireEvent(screen.getByTestId('g'), 'layout', {

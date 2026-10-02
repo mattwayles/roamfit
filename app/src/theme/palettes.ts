@@ -18,7 +18,7 @@ export const goldenHour = {
   text: '#F7F3EA',
   text2: '#B4BCC8',
   text3: '#7C8696',
-  /** Text ON an accent fill. Near-black here (bright fills; never white on ember). */
+  /** Text ON an accent fill. Near-black here (bright fills; never white on pine). */
   ink: '#170B03',
   /** Content on colors that do not change with the theme (band swatches, imagery). */
   fixedInk: '#170B03',
@@ -27,8 +27,8 @@ export const goldenHour = {
   backdrop: 'rgba(5,7,10,0.72)',
 
   // Accents
-  ember: '#FF6B35',
-  emberDeep: '#E8491D',
+  pine: '#FF6B35',
+  pineDeep: '#E8491D',
   gold: '#FFB938',
   sun: '#FFD166',
   lagoon: '#2DD4BF',
@@ -43,11 +43,11 @@ export type Palette = Record<ColorName, string>;
 
 /** The accent colors — the ones that can carry a tint, a chip tone or a glow. */
 export type AccentName =
-  'ember' | 'emberDeep' | 'gold' | 'sun' | 'lagoon' | 'sky' | 'summit' | 'rose';
+  'pine' | 'pineDeep' | 'gold' | 'sun' | 'lagoon' | 'sky' | 'summit' | 'rose';
 
 export const accentNames: readonly AccentName[] = [
-  'ember',
-  'emberDeep',
+  'pine',
+  'pineDeep',
   'gold',
   'sun',
   'lagoon',
@@ -77,8 +77,8 @@ export const daylight: Palette = {
   backdrop: 'rgba(26,19,12,0.40)',
 
   // Accents — deepened so each is >= 4.5:1 as text on bg AND carries a white legend as a fill
-  ember: '#B83507',
-  emberDeep: '#9E2E06',
+  pine: '#B83507',
+  pineDeep: '#9E2E06',
   /** Brass — reads as gold on paper, unlike a yellow. */
   gold: '#8F5A00',
   /** Large text / icons only (3.8:1). */
@@ -92,8 +92,8 @@ export const daylight: Palette = {
 /** The Golden Hour accent hexes in both themes — decoration with no text on it (confetti, orbs,
  *  the sunburst, the stamp shadow). Deep confetti looks like dirt; vivid reads sunny on paper. */
 export const vivid: Record<AccentName, string> = {
-  ember: goldenHour.ember,
-  emberDeep: goldenHour.emberDeep,
+  pine: goldenHour.pine,
+  pineDeep: goldenHour.pineDeep,
   gold: goldenHour.gold,
   sun: goldenHour.sun,
   lagoon: goldenHour.lagoon,
@@ -102,12 +102,12 @@ export const vivid: Record<AccentName, string> = {
   rose: goldenHour.rose,
 };
 
-export type GradientName = 'sunrise' | 'golden' | 'lagoon' | 'summit' | 'night';
+export type GradientName = 'trail' | 'golden' | 'lagoon' | 'summit' | 'night';
 export type GradientColors = readonly [string, string];
 
 export const goldenHourGradients: Record<GradientName, GradientColors> = {
   /** THE primary CTA + Ignition hero. 135deg. */
-  sunrise: ['#FF5E3A', '#FF9F1C'],
+  trail: ['#FF5E3A', '#FF9F1C'],
   /** Achievements, best sets. */
   golden: ['#FFB938', '#FFD166'],
   /** Rest ring, recovery. */
@@ -120,7 +120,7 @@ export const goldenHourGradients: Record<GradientName, GradientColors> = {
 
 /** Deepened in step with the accents so a white legend holds >= 4.2:1 at every stop. */
 export const daylightGradients: Record<GradientName, GradientColors> = {
-  sunrise: ['#CC3B12', '#C95A04'],
+  trail: ['#CC3B12', '#C95A04'],
   golden: ['#8F5A00', '#A46D00'],
   lagoon: ['#00706A', '#0A74A8'],
   summit: ['#5A3BD1', '#8B3FD0'],

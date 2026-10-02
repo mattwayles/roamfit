@@ -175,7 +175,7 @@ function AppearanceControl(): React.JSX.Element {
             testID={option.testID}
             label={option.label}
             icon={option.icon}
-            tone="ember"
+            tone="pine"
             selected={selected}
             style={styles.appearanceOption}
             onPress={() => {
@@ -358,7 +358,7 @@ export default function SettingsScreen(): React.JSX.Element {
           <SwitchRow
             testID="toggle-motivation"
             icon="sparkles"
-            tone="ember"
+            tone="pine"
             label="Daily motivation"
             value={motivationEnabled}
             onValueChange={toggleMotivation}
@@ -366,7 +366,7 @@ export default function SettingsScreen(): React.JSX.Element {
           <SwitchRow
             testID="toggle-quiet-hours"
             icon="moon"
-            tone="ember"
+            tone="pine"
             label="Quiet hours (10pm–7am)"
             value={quietHoursEnabled}
             onValueChange={toggleQuietHours}
@@ -416,8 +416,8 @@ export default function SettingsScreen(): React.JSX.Element {
                   onPress={addMotivationTime}
                   style={styles.addTime}
                 >
-                  <Icon name="add" size={18} color="ember" />
-                  <Txt variant="eyebrow" color="ember" style={styles.addTimeLabel}>
+                  <Icon name="add" size={18} color="pine" />
+                  <Txt variant="eyebrow" color="pine" style={styles.addTimeLabel}>
                     Add a time ({motivationTimes.length}/{MAX_DAILY_MOTIVATION_TIMES} per day)
                   </Txt>
                 </PressableScale>

@@ -1,6 +1,6 @@
 /**
  * Absolute-fill linear gradient drawn with react-native-svg. `angle` follows CSS (0 = to top,
- * 90 = to right, 180 = to bottom, 135 = to bottom-right — the sunrise default). `radius` clips the
+ * 90 = to right, 180 = to bottom, 135 = to bottom-right — the trail default). `radius` clips the
  * fill to the parent's corners; the clip lives on this wrapper so a parent can keep its own glow
  * (a shadow is clipped by `overflow: hidden`, so parents must not set it).
  */
@@ -11,7 +11,7 @@ import { useTheme } from '../theme';
 import { useLayoutSize } from './useLayoutSize';
 
 export interface GradientProps {
-  /** Default: the theme's `sunrise`. */
+  /** Default: the theme's `trail`. */
   colors?: readonly string[];
   angle?: number;
   radius?: number;
@@ -34,7 +34,7 @@ export function Gradient({
   testID = 'gradient',
 }: GradientProps): React.JSX.Element {
   const theme = useTheme();
-  const colors = colorsProp ?? theme.gradients.sunrise;
+  const colors = colorsProp ?? theme.gradients.trail;
   const id = `g${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const { ready, onLayout } = useLayoutSize();
   const { x1, y1, x2, y2 } = gradientPoints(angle);

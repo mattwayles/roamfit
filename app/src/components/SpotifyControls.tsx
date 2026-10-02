@@ -298,7 +298,7 @@ export default function SpotifyControls(): React.JSX.Element | null {
             testID={`spotify-browse-favorite-${item.identifier}`}
             icon="heart"
             variant="plain"
-            tone={isFavorite ? 'ember' : 'text2'}
+            tone={isFavorite ? 'pine' : 'text2'}
             accessibilityLabel={isFavorite ? `Unfavorite ${name}` : `Favorite ${name}`}
             accessibilityState={{ selected: isFavorite }}
             onPress={() => toggleFavorite(item, !isFavorite)}
@@ -449,7 +449,7 @@ export default function SpotifyControls(): React.JSX.Element | null {
                 key={v.id}
                 testID={`spotify-vibe-${v.id}`}
                 label={v.label}
-                tone="ember"
+                tone="pine"
                 selected={vibes.includes(v.id)}
                 onPress={() => toggleVibe(v.id)}
               />
@@ -459,7 +459,7 @@ export default function SpotifyControls(): React.JSX.Element | null {
 
         {browseLoading ? (
           <View testID="spotify-browse-loading" accessibilityLabel="Loading" style={styles.empty}>
-            <ActivityIndicator color={theme.colors.ember} />
+            <ActivityIndicator color={theme.colors.pine} />
           </View>
         ) : atRoot ? (
           <SectionList
@@ -513,7 +513,7 @@ export default function SpotifyControls(): React.JSX.Element | null {
                     accessibilityLabel="Loading"
                     style={styles.empty}
                   >
-                    <ActivityIndicator color={theme.colors.ember} />
+                    <ActivityIndicator color={theme.colors.pine} />
                   </View>
                 );
               }

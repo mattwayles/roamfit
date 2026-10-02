@@ -4,7 +4,7 @@
  * this component only ever renders on the rest screen, its one home per the spec.
  *
  * Labels stay as words (colour alone is not a label). A selected option fills with its own accent
- * — Too easy = lagoon, Just right = ember, Too hard = summit — and there is no red anywhere: "too
+ * — Too easy = lagoon, Just right = pine, Too hard = summit — and there is no red anywhere: "too
  * hard" is information, not an error (invariant 4).
  */
 import React from 'react';
@@ -16,7 +16,7 @@ export type Difficulty = 'too_easy' | 'just_right' | 'too_hard';
 
 const DIFFICULTY_OPTIONS: { value: Difficulty; label: string; tone: AccentName }[] = [
   { value: 'too_easy', label: 'Too easy', tone: 'lagoon' },
-  { value: 'just_right', label: 'Just right', tone: 'ember' },
+  { value: 'just_right', label: 'Just right', tone: 'pine' },
   { value: 'too_hard', label: 'Too hard', tone: 'summit' },
 ];
 

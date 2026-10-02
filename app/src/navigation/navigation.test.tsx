@@ -99,7 +99,7 @@ describe('homeReset', () => {
 });
 
 describe('navigation shell in Daylight', () => {
-  it('tab bar is paper with the card shadow, and the active tab is the deep ember', async () => {
+  it('tab bar is paper with the card shadow, and the active tab is the deep pine', async () => {
     await render(
       <StoreProvider>
         <ThemeContext.Provider value={daylightTheme}>

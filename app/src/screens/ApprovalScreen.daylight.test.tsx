@@ -83,7 +83,7 @@ describe('Plan / Approval in Daylight', () => {
     expect(pass.backgroundColor).toBe(daylight.surface);
     expect(pass.borderColor).toBe(daylight.line);
     expect(StyleSheet.flatten(screen.getByTestId('plan-minutes').props.style).color).toBe(
-      daylight.ember,
+      daylight.pine,
     );
 
     const card = StyleSheet.flatten(screen.getByTestId(`entry-${first.exerciseId}`).props.style);
@@ -91,7 +91,7 @@ describe('Plan / Approval in Daylight', () => {
 
     const input = screen.getByTestId(`sets-input-${first.exerciseId}`);
     expect(input.props.keyboardAppearance).toBe('light');
-    expect(input.props.selectionColor).toBe(daylight.ember);
+    expect(input.props.selectionColor).toBe(daylight.pine);
     expect(StyleSheet.flatten(input.props.style).color).toBe(daylight.text);
     expect(daylightTheme.scheme).toBe('light');
   });

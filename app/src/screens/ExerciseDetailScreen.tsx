@@ -80,9 +80,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseDetail'>;
 const CHART_WINDOW = 12;
 
 /** Hero gradient per focus tone. Cardio's rose has no themed gradient (it is an identity color,
- *  not a CTA one), so it borrows the rose -> emberDeep pair from the theme's palette. */
+ *  not a CTA one), so it borrows the rose -> pineDeep pair from the theme's palette. */
 function heroGradient(theme: Theme, tone: AccentName): GradientColors {
-  return theme.accentGradient[tone] ?? [theme.colors.rose, theme.colors.emberDeep];
+  return theme.accentGradient[tone] ?? [theme.colors.rose, theme.colors.pineDeep];
 }
 
 interface DetailData {
@@ -240,7 +240,7 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
             value={timesCompleted}
             label={timesCompleted === 1 ? 'session completed' : 'sessions completed'}
             icon="flame"
-            tone="ember"
+            tone="pine"
           />
           <StatTile
             testID="detail-last-performed"
@@ -315,7 +315,7 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
                     key={line.label}
                     testID={`detail-gain-${line.label}`}
                     label={`${line.label} · ${line.detail}`}
-                    tone={line.improved ? 'ember' : 'neutral'}
+                    tone={line.improved ? 'pine' : 'neutral'}
                     icon={line.improved ? 'trendingUp' : undefined}
                     wrap
                   />
@@ -389,7 +389,7 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
             onPress={handleToggleDisabled}
             style={styles.toggleCard}
           >
-            <IconBadge icon="barbell" tone={enabled ? 'ember' : 'gold'} size={40} />
+            <IconBadge icon="barbell" tone={enabled ? 'pine' : 'gold'} size={40} />
             <View style={styles.toggleLabels}>
               <Txt variant="h3">Use in workouts</Txt>
               <Txt variant="caption" color="text2">
@@ -428,7 +428,7 @@ function progressionLabel(
  * A horizontal bar per session, oldest at the top. Deliberately not a line chart: this needs no
  * measured layout, no charting dependency, it reads at a glance on a phone, and every bar carries
  * its own date and value so the picture is never the only way to get the number. The fill is the
- * sunrise gradient (at most a dozen SVGs, and only on this page).
+ * trail gradient (at most a dozen SVGs, and only on this page).
  */
 function Chart({
   points,

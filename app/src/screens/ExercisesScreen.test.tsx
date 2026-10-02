@@ -107,7 +107,7 @@ describe('the exercise library', () => {
     expect(screen.getByText(PUSH_UP.name)).toBeTruthy();
     // banded-push-up's primary muscle in the bundled library.
     expect(screen.getAllByText('Chest').length).toBeGreaterThan(0);
-    // The ember ×N chip (its accessibility label spells it out as "2× completed").
+    // The pine ×N chip (its accessibility label spells it out as "2× completed").
     expect(screen.getByTestId(`exercise-card-count-${PUSH_UP.id}`)).toHaveTextContent('×2');
     expect(screen.getByLabelText('2× completed')).toBeTruthy();
   });

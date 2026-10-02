@@ -204,7 +204,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
   if (data === undefined) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={theme.colors.ember} />
+        <ActivityIndicator color={theme.colors.pine} />
       </View>
     );
   }
@@ -250,7 +250,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
                 value={lifetime.sessions}
                 label="Sessions"
                 icon="flame"
-                tone="ember"
+                tone="pine"
               />
               <StatTile
                 testID="lifetime-sets"
@@ -535,8 +535,8 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
         <SectionTitle
           title="Logbook"
           icon="today"
-          tone="ember"
-          right={<Chip label={calendarMonthLabel} tone="ember" size="sm" />}
+          tone="pine"
+          right={<Chip label={calendarMonthLabel} tone="pine" size="sm" />}
         />
         {hasSessions ? (
           <View testID="calendar-heatmap" style={styles.calendar}>
@@ -569,7 +569,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
           <EmptyState
             testID="logbook-empty"
             icon="today"
-            tone="ember"
+            tone="pine"
             title="Every session leaves a mark"
             body="Your first workout lights up its day here — and you can log a workout from outside the app too."
           />
@@ -663,7 +663,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
           <SectionTitle
             title="Muscle balance"
             icon="barbell"
-            tone="ember"
+            tone="pine"
             caption="Hard sets per muscle, trailing 14 days"
           />
           {muscleBalance.length > 0 ? (
@@ -680,7 +680,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
                         { width: `${Math.min(100, (row.hardSets / maxSets) * 100)}%` },
                       ]}
                     >
-                      <Gradient colors={theme.gradients.sunrise} angle={90} radius={radius.pill} />
+                      <Gradient colors={theme.gradients.trail} angle={90} radius={radius.pill} />
                     </View>
                   </View>
                   <Txt variant="small" color="text2" align="right" style={styles.muscleSets}>
@@ -694,7 +694,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
             <EmptyState
               testID="muscle-balance-empty"
               icon="barbell"
-              tone="ember"
+              tone="pine"
               title="Your balance builds as you train"
               body="Hard sets from the last two weeks show up here, muscle by muscle."
             />
@@ -727,7 +727,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
                 {option.label}
               </Txt>
               {editingCurrent === option.marker ? (
-                <Icon name="check" size={18} color="ember" />
+                <Icon name="check" size={18} color="pine" />
               ) : null}
             </PressableScale>
           ))}
@@ -806,7 +806,7 @@ const useStyles = makeStyles((t) =>
       borderWidth: 1,
       borderColor: t.colors.line,
     },
-    markerOptionCurrent: { borderColor: t.colors.ember },
+    markerOptionCurrent: { borderColor: t.colors.pine },
     markerGlyph: { width: 32, alignItems: 'center', marginRight: space.sm },
   }),
 );

@@ -253,7 +253,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
       }
     >
       <Enter index={0} style={styles.titleBlock}>
-        <Txt variant="eyebrow" color="ember">
+        <Txt variant="eyebrow" color="pine">
           New session
         </Txt>
         <Txt variant="display" accessibilityRole="header">
@@ -338,7 +338,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
                 style={[
                   styles.timeChip,
                   selected && styles.timeChipOn,
-                  selected && theme.glow(theme.colors.ember),
+                  selected && theme.glow(theme.colors.pine),
                 ]}
               >
                 <Txt variant="h1" color={selected ? 'ink' : 'text'}>
@@ -586,7 +586,7 @@ const useStyles = makeStyles((t) =>
       borderColor: t.colors.line,
       backgroundColor: t.colors.surface,
     },
-    timeChipOn: { backgroundColor: t.colors.ember, borderColor: t.colors.ember },
+    timeChipOn: { backgroundColor: t.colors.pine, borderColor: t.colors.pine },
 
     // -- intensity segments
     segments: {
@@ -606,7 +606,7 @@ const useStyles = makeStyles((t) =>
       gap: space.xs,
       borderRadius: radius.md - space.xs,
     },
-    segmentOn: { backgroundColor: t.colors.ember },
+    segmentOn: { backgroundColor: t.colors.pine },
     flames: { flexDirection: 'row', height: 22, alignItems: 'center' },
 
     // -- equipment
@@ -626,7 +626,7 @@ const useStyles = makeStyles((t) =>
       borderWidth: 1,
       borderColor: t.colors.line,
     },
-    anchorRowOn: { borderColor: t.colors.ember, backgroundColor: t.tints.ember },
+    anchorRowOn: { borderColor: t.colors.pine, backgroundColor: t.tints.pine },
     anchorCheck: {
       width: 24,
       height: 24,
@@ -636,7 +636,7 @@ const useStyles = makeStyles((t) =>
       borderWidth: 2,
       borderColor: t.colors.lineStrong,
     },
-    anchorCheckOn: { backgroundColor: t.colors.ember, borderColor: t.colors.ember },
+    anchorCheckOn: { backgroundColor: t.colors.pine, borderColor: t.colors.pine },
     anchorLabels: { flex: 1 },
 
     // -- extras

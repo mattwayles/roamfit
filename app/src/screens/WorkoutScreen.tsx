@@ -14,7 +14,7 @@
  * **Presentation (docs/DESIGN.md §5.7, "Ignition").** The native header is hidden; this screen draws
  * its own top bar (home / elapsed clock / pause / stop), a session `SegmentedBar`, and a section
  * chip. The exercise hero is a card with a gradient border in the section's color (gold warm-up,
- * ember main, lagoon cool-down); rest flips it to lagoon. Everything visual is a token or a `ui/`
+ * pine main, lagoon cool-down); rest flips it to lagoon. Everything visual is a token or a `ui/`
  * primitive — none of it reads or writes anything the store didn't already.
  *
  * **Remove set** mid-workout has no store mutation to call (only §10.3 approval-time removal
@@ -443,7 +443,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   if (!session) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={theme.colors.ember} />
+        <ActivityIndicator color={theme.colors.pine} />
       </View>
     );
   }
@@ -464,7 +464,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   if (!current || !entry) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={theme.colors.ember} />
+        <ActivityIndicator color={theme.colors.pine} />
       </View>
     );
   }
@@ -949,7 +949,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   };
 
   const sessionSection = entry.section as Section;
-  const sectionTone = SECTION_TONE[sessionSection] ?? 'ember';
+  const sectionTone = SECTION_TONE[sessionSection] ?? 'pine';
   const entries = activeEntries(session);
   const segmentValues = entries.map(
     (e) => e.setLogs.filter((l) => l.status === 'completed').length / Math.max(e.sets, 1),
@@ -1015,7 +1015,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             size="sm"
             icon={paused ? 'play' : 'pause'}
             accessibilityLabel={paused ? 'Resume workout' : 'Pause workout'}
-            tone={paused ? 'ember' : 'text'}
+            tone={paused ? 'pine' : 'text'}
             onPress={paused ? handleResume : handlePause}
           />
           <AbandonSessionButton onConfirm={handleAbandon} variant="icon" iconSize="sm" />
@@ -1027,7 +1027,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       <SegmentedBar
         values={segmentValues}
         activeIndex={activeSegment}
-        color={theme.section[sessionSection] ?? theme.colors.ember}
+        color={theme.section[sessionSection] ?? theme.colors.pine}
         style={styles.segments}
       />
 
@@ -1195,7 +1195,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
                       ),
                     ),
                     justDone: restingSetIndex,
-                    color: theme.section[restingEntry.section as Section] ?? theme.colors.ember,
+                    color: theme.section[restingEntry.section as Section] ?? theme.colors.pine,
                   }
                 : null
             }
@@ -1287,7 +1287,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
 const SECTION_TONE: Record<Section, AccentName> = {
   warmup: 'gold',
-  main: 'ember',
+  main: 'pine',
   cooldown: 'lagoon',
 };
 
@@ -1571,8 +1571,8 @@ function RepsExercise({
   // the set's own logged value when it has one, not the prescription.
   const [reps, setReps] = useState(repsDefault);
   const [bandUsed, setBandUsed] = useState(band);
-  const color = theme.section[entry.section as Section] ?? theme.colors.ember;
-  const tone = SECTION_TONE[entry.section as Section] ?? 'ember';
+  const color = theme.section[entry.section as Section] ?? theme.colors.pine;
+  const tone = SECTION_TONE[entry.section as Section] ?? 'pine';
   const closesExercise = setIndex === entry.sets - 1;
   return (
     <>
@@ -1614,7 +1614,7 @@ function RepsExercise({
               style={styles.repCountInput}
               keyboardType="number-pad"
               keyboardAppearance={theme.scheme}
-              selectionColor={theme.colors.ember}
+              selectionColor={theme.colors.pine}
               selectTextOnFocus
               maxFontSizeMultiplier={1.3}
               accessibilityLabel="Reps completed"
@@ -2108,8 +2108,8 @@ function TimedExercise({
             ? 'Resume the hold'
             : 'Pause the hold';
 
-  const color = theme.section[entry.section as Section] ?? theme.colors.ember;
-  const tone = SECTION_TONE[entry.section as Section] ?? 'ember';
+  const color = theme.section[entry.section as Section] ?? theme.colors.pine;
+  const tone = SECTION_TONE[entry.section as Section] ?? 'pine';
   const stopped = selfPaused || paused;
 
   // How far through the current phase the ring is drawn: the hold fills as it is held, the
@@ -2169,7 +2169,7 @@ function TimedExercise({
               progress={ringProgress}
               size={RING_SIZE}
               stroke={14}
-              gradient={theme.gradients.sunrise}
+              gradient={theme.gradients.trail}
               trackColor={withAlpha(color, 0.18)}
               animate={false}
             >

@@ -2,7 +2,7 @@
  * One calendar day, shared by Today's "This week" strip (fixed 40pt) and Journey's Logbook
  * (fills its grid column). Tint and glyph come from `lib/dayMarkers` so the two surfaces always
  * agree; an untrained day is a plain `surface` cell (neutral, never empty-looking-bad — invariant
- * 4) and today gets a 2px ember ring rather than a color, so it never reads as a workout state.
+ * 4) and today gets a 2px pine ring rather than a color, so it never reads as a workout state.
  */
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -76,7 +76,7 @@ const useStyles = makeStyles((t) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    today: { borderWidth: 2, borderColor: t.colors.ember },
+    today: { borderWidth: 2, borderColor: t.colors.pine },
     date: { position: 'absolute', top: 2, left: 5 },
     // Emoji are content (the day marker), not an icon or a type size; leading keeps them centered.
     emoji: { lineHeight: 24, marginTop: 6 },

@@ -34,9 +34,9 @@ describe('theme tokens', () => {
   });
 
   it('semantic maps and helpers resolve', () => {
-    expect(goldenHourTheme.section.main).toBe(goldenHour.ember);
+    expect(goldenHourTheme.section.main).toBe(goldenHour.pine);
     expect(goldenHourTheme.trainedColor('legs')).toBe(goldenHour.summit);
-    expect(goldenHourTheme.trainedColor(undefined)).toBe(goldenHour.ember);
+    expect(goldenHourTheme.trainedColor(undefined)).toBe(goldenHour.pine);
     expect(goldenHourTheme.glow(goldenHour.gold).shadowColor).toBe(goldenHour.gold);
   });
 

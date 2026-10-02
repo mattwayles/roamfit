@@ -1,6 +1,6 @@
 /**
  * §5.8 Debrief and §5.9 Completion presentation, through the real SummaryScreen and store: the
- * additive stat tiles, the 30pt set squares (ember-filled / outlined / dashed) with their feedback
+ * additive stat tiles, the 30pt set squares (pine-filled / outlined / dashed) with their feedback
  * dots, the labeled chips in the edit sheet, the Trail Notes card and the sticky footer — and, after
  * FINISH, the Golden Hour celebration: `bg` night base, no violet anywhere on the page. Behavior
  * (jump-to-set, feedback edits, FINISH, the haptic sequence) is covered by SummaryScreen.test.tsx.
@@ -150,7 +150,7 @@ describe('§5.8 Debrief presentation', () => {
     expect(footer.getByTestId('back-to-workout')).toBeTruthy();
   });
 
-  it('draws completed sets ember with the count in ink, skipped as an outline, at 30pt', async () => {
+  it('draws completed sets pine with the count in ink, skipped as an outline, at 30pt', async () => {
     const { db, sessionId, featuredId } = await mount({ logged: true });
     const entry = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === featuredId)!;
     const done = entry.setLogs.find((l) => l.setIndex === 0)!;
@@ -159,7 +159,7 @@ describe('§5.8 Debrief presentation', () => {
     expect(flat(`summary-set-${done.id}`)).toMatchObject({
       width: 30,
       height: 30,
-      backgroundColor: goldenHour.ember,
+      backgroundColor: goldenHour.pine,
     });
     const count = within(screen.getByTestId(`summary-set-${done.id}`)).getByText('12');
     expect(StyleSheet.flatten(count.props.style).color).toBe(goldenHour.ink);
@@ -226,7 +226,7 @@ const VIOLETS = [
 ];
 
 describe('§5.9 Completion presentation', () => {
-  it('is the Golden Hour re-skin: bg night base, gold stat labels, sunrise Heck yes, and no violet', async () => {
+  it('is the Golden Hour re-skin: bg night base, gold stat labels, trail Heck yes, and no violet', async () => {
     await mount({ logged: true });
     await fireEvent.press(screen.getByTestId('finish-button'));
     await waitFor(() => expect(screen.getByTestId('session-complete')).toBeTruthy(), WAIT_OPTS);
@@ -253,11 +253,11 @@ describe('§5.9 Completion presentation', () => {
 });
 
 describe('Daylight', () => {
-  it('debrief: paper ground in the notes input, ember squares with white counts, light keyboard', async () => {
+  it('debrief: paper ground in the notes input, pine squares with white counts, light keyboard', async () => {
     const { db, sessionId, featuredId } = await mount({ logged: true, daylight: true });
     const entry = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === featuredId)!;
     const done = entry.setLogs.find((l) => l.setIndex === 0)!;
-    expect(flat(`summary-set-${done.id}`).backgroundColor).toBe(daylight.ember);
+    expect(flat(`summary-set-${done.id}`).backgroundColor).toBe(daylight.pine);
     const count = within(screen.getByTestId(`summary-set-${done.id}`)).getByText('12');
     expect(StyleSheet.flatten(count.props.style).color).toBe(daylight.ink);
     const input = screen.getByTestId('retrospective-input');
@@ -268,7 +268,7 @@ describe('Daylight', () => {
     });
   });
 
-  it('completion: paper background, brass labels, deep-ember stamped headline over vivid gold', async () => {
+  it('completion: paper background, brass labels, deep-pine stamped headline over vivid gold', async () => {
     await mount({ logged: true, daylight: true });
     await fireEvent.press(screen.getByTestId('finish-button'));
     await waitFor(() => expect(screen.getByTestId('session-complete')).toBeTruthy(), WAIT_OPTS);
@@ -281,6 +281,6 @@ describe('Daylight', () => {
     const lastShadow = screen.getAllByTestId(/^hype-word-\d+-shadow$/, { hidden: true }).at(-1)!;
     expect(StyleSheet.flatten(lastShadow.props.style).color).toBe(vivid.gold);
     const words = screen.getAllByTestId(/^hype-word-\d+$/);
-    expect(StyleSheet.flatten(words.at(-1)!.props.style).color).toBe(daylight.ember);
+    expect(StyleSheet.flatten(words.at(-1)!.props.style).color).toBe(daylight.pine);
   });
 });

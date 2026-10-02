@@ -22,9 +22,9 @@ export type CardVariant = 'plain' | 'hero' | 'accent';
 
 export interface CardProps {
   variant?: CardVariant;
-  /** Gradient for `hero` (default sunrise) and `accent` (default sunrise) variants. */
+  /** Gradient for `hero` (default trail) and `accent` (default trail) variants. */
   gradient?: GradientColors;
-  /** Shortcut for `gradient`: use the gradient of an accent (ember, gold, lagoon, summit). */
+  /** Shortcut for `gradient`: use the gradient of an accent (pine, gold, lagoon, summit). */
   tone?: AccentName;
   /** Topo seed for `hero`. */
   seed?: string;
@@ -55,7 +55,7 @@ export function Card({
   const theme = useTheme();
   const styles = useStyles();
   const colorsForGradient =
-    gradient ?? (tone && theme.accentGradient[tone]) ?? theme.gradients.sunrise;
+    gradient ?? (tone && theme.accentGradient[tone]) ?? theme.gradients.trail;
   const pad = PADDING[padding];
 
   let body: React.ReactNode;
