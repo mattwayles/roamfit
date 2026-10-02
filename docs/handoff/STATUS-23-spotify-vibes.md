@@ -1,5 +1,5 @@
 ## Track: 23 — Spotify browse: vibe picker, fresh results, recents + favorites
-Last updated: 2026-10-02
+Last updated: 2026-10-02 (closed)
 
 ### The ask (user feedback on Track 20's browse sheet)
 1. Results skew heavily to women-targeted playlists ("Women's Workout", "Baddie Girl Playlist");
@@ -63,22 +63,21 @@ per-user-table precedent).
   partial-failure-tolerant `getFitnessContent(vibeIds, { random, excludeIds })` — 4881bdf.
 - [x] A — migration 0023 (`spotify_playlists`, `users.spotify_vibes`), `spotifyPlaylistsRepo`
   (exported from the store index), `UserRecord.spotifyVibes` — 9aba136.
+- [x] C — browse sheet: persisted multi-select vibe chips, Favorites (open) / Recently played
+  (collapsed) / Fresh picks (refresh) sections, heart on every playlist row, plays recorded (a
+  track inside a playlist records the playlist), favorites/recents render offline; IconButton
+  gains an additive `accessibilityState` prop; DESIGN.md + BACKLOG device-pass item — 485172b.
+- [x] `npm run check` on master after landing: typecheck, lint (0 errors), engine-purity, and
+  engine/data/store/functions tests green. App: 726/727 — the one failure is a 5s timeout in
+  `ExercisesScreen.test.tsx` (unrelated; passes alone before and after this track; that suite
+  runs ~22s under full-suite load). Spotify suites green.
 
 ### In progress
-- C (UI) is **done but not on master**: commit 3710c81 on branch
-  `worktree-agent-a38a25d9734a9dfb2` (worktree `.claude/worktrees/agent-a38a25d9734a9dfb2`),
-  already rebased onto 054e116. Touches SpotifyControls.tsx/.test.tsx, ui/IconButton.tsx
-  (additive `accessibilityState` prop), docs/BACKLOG.md, docs/DESIGN.md (~L302, ~L437).
-  Check in the worktree: typecheck/lint/engine-purity green, store/engine/data/functions green,
-  SpotifyControls 36/36 + WorkoutScreen.spotify green; the app suites that failed under load
-  (load avg ~82) were 5s timeouts and all pass run alone.
-- **Held on the user's call**: the main tree has another session's uncommitted docs/DESIGN.md
-  edits (Journey section, disjoint hunks). User chose to wait for that session to commit, then
-  land C with a plain `git cherry-pick 3710c81`.
+- Nothing. Track closed.
 
 ### Next
-- Once main tree's docs/DESIGN.md is clean: `git cherry-pick 3710c81`, `npm run check`, remove the
-  worktree + branch, close this file.
+- Device pass (BACKLOG): real vibe searches — do gendered results still dominate? tune terms;
+  refresh variety; recents/favorites across relaunch.
 
 ### Decisions / gotchas
 - **Agent worktrees were created from a stale commit (e52637b), not master.** Any subagent
