@@ -58,16 +58,27 @@ per-user-table precedent).
   item; this file closed.
 
 ### Done
-- [x] Plan written (this file).
+- [x] Plan written (this file) — b79dcac.
+- [x] B — vibe catalog (`app/src/lib/spotifyVibes.ts`, FITNESS_NAME moved there) + randomized,
+  partial-failure-tolerant `getFitnessContent(vibeIds, { random, excludeIds })` — 4881bdf.
+- [x] A — migration 0023 (`spotify_playlists`, `users.spotify_vibes`), `spotifyPlaylistsRepo`
+  (exported from the store index), `UserRecord.spotifyVibes` — 9aba136.
 
 ### In progress
-- A and B delegated in parallel to Sonnet subagents in isolated worktrees; merged by the
-  orchestrator, then C delegated.
+- C (UI) delegated to a Sonnet subagent in an isolated worktree pinned to 9aba136.
 
 ### Next
-- A, B → merge → C → `npm run check` → close.
+- Merge C → `npm run check` → close this file.
 
 ### Decisions / gotchas
+- **Agent worktrees were created from a stale commit (e52637b), not master.** Any subagent
+  brief must tell it to verify/reset its base first, and commits are cherry-picked onto master.
+- **A concurrent session was editing the main tree mid-track** (session place: `app/src/lib/place.ts`,
+  migration `0024_session_place.sql`, Journey/dashboard tests). No file overlap with this track;
+  left untouched. Its uncommitted state makes `npm run check` in the main tree fail
+  (migrate.test byte-sync, Journey/dashboard suites) — not this track's regression.
+- `spotifyPlaylists` repo functions take `now: Date` (other repos take ISO strings) — deliberate,
+  per the brief.
 - Vibe picker rather than a gendered-term blocklist: the user asked for results tuned to the vibe
   they want, not for a filter. If gendered results still dominate after a device pass, a name
   exclusion is a small follow-up — not built now.
