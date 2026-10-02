@@ -16,6 +16,15 @@ the record of what was completed and why.
 
 ## Desired Fixes
 
+- **Pine recolor — device pass owed.** Track 24 replaced ember orange with pine green (`pine`,
+  `pineDeep`, `trail` gradient; Golden Hour `#4FD176`, Daylight `#10702D`). Jest-verified only (contrast
+  floors in `themes.test.ts` hold). On a device, in both themes: (1) pine vs lagoon (teal) — Main rail
+  against Cooldown rail, and Upper vs Full-body focus chips, must read as different colors; (2) the
+  Spotify button (`#1db954`, `SpotifyControls.tsx`) next to pine controls — accepted, but look; (3) the
+  `trail` hero gradient with the sepia topo ink on Home and Completion, and the stamp's hard `pineDeep`
+  shadow; (4) `assets/icon.png` and `assets/splash-icon.png` — never inspected, may still be orange;
+  (5) the theme names "Golden Hour" / "Daylight" — with no orange primary, decide whether the dark theme
+  keeps its name (gold/sun/rose still carry the warm side).
 - **`lifetime_total_minutes` is now write-only.** The Journey tile moved from minutes to sets
   (`lifetimeSets` in `stats.ts`, derived from `set_logs`), so nothing reads the column
   (`rolled_up_stats`, migration 0003) or `lifetimeTotalMinutes` any more. Drop both with a
@@ -33,7 +42,7 @@ the record of what was completed and why.
   `docs/handoff/STATUS-21-ui-redesign.md`. Checklist, most important first:
   1. Launch: fonts load (Barlow), no white flash between screens or behind the WebView, light status
      bar, tab bar, the disclaimer gate with the tab bar hidden.
-  2. **Completion** (the page the user loves): the stamped headline (hard `emberDeep` 3/4pt shadow, ember
+  2. **Completion** (the page the user loves): the stamped headline (hard `pineDeep` 3/4pt shadow, pine
      glow, forward lean — check the lean direction and that no long word re-wraps its copy), headline +
      stat chips + first highlight above the fold on a 6.1" phone, orb warmth on `bg`, gold sunburst,
      stamped highlight card, the glow breathing behind "Heck yes!".
@@ -79,7 +88,7 @@ the record of what was completed and why.
   4. System following iOS appearance live, including the automatic switch at sunset, with the app
      foregrounded.
   5. Status bar, keyboard (`keyboardAppearance`) and native stack headers follow the theme.
-  6. Completion: the stamped headline (fill `ember`, `vivid.gold` shadow, no glow) plus confetti and
+  6. Completion: the stamped headline (fill `pine`, `vivid.gold` shadow, no glow) plus confetti and
      orbs on paper.
   7. Tinted chips and badges (Daylight tints are 8% alpha) — legible, and distinguishable from
      `surface`/`bg`?
@@ -106,7 +115,7 @@ the record of what was completed and why.
 - **App icon and splash art to match Golden Hour — needs an artist.** The splash background is `bg` and
   stays Golden Hour in both appearances (one static image; Daylight does not get its own splash),
   but `app/assets/icon.png` and `splash-icon.png` were not redrawn for the
-  redesign (the redesign spec put the art out of scope). Design brief: night-sky `bg`, ember-to-gold sunrise, one travel motif (topographic
+  redesign (the redesign spec put the art out of scope). Design brief: night-sky `bg`, pine-to-fern trail, one travel motif (topographic
   contours or a stamp), Barlow Condensed wordmark.
 - **Show the app version in Settings' footer.** `expo-constants` is hoisted in by `expo` but not declared in
   `app/package.json`; add it (`npx expo install expo-constants`) and read `Constants.expoConfig?.version`.

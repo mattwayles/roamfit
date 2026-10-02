@@ -46,11 +46,11 @@ lineStrong:'#3A4558'
 text:      '#F7F3EA'
 text2:     '#B4BCC8'   // secondary
 text3:     '#7C8696'   // muted / captions / disabled
-ink:       '#170B03'   // text ON bright accent fills (ember/gold/lagoon). Never white on ember.
+ink:       '#170B03'   // text ON bright accent fills (pine/gold/lagoon). Never white on pine.
 
 // Accents
-ember:     '#FF6B35'   // primary: action, work, "go"
-emberDeep: '#E8491D'
+pine:     '#4FD176'   // primary: action, work, "go"
+pineDeep: '#209E46'
 gold:      '#FFB938'   // warm-up, achievements, best sets, notes
 sun:       '#FFD166'   // highlights inside gold moments
 lagoon:    '#2DD4BF'   // rest, recovery, cool-down, calm
@@ -62,9 +62,9 @@ rose:      '#FF5C93'   // cardio focus ONLY — never an error/negative state
 **Semantic maps** (export these; screens use the semantic name, not the accent):
 
 ```ts
-section:  { warmup: gold, main: ember, cooldown: lagoon }
-focus:    { upper: ember, legs: summit, abs: gold, full: lagoon, cardio: rose }
-setState: { completed: ember, skipped: text3 (outline only), not_reached: line (dashed) }
+section:  { warmup: gold, main: pine, cooldown: lagoon }
+focus:    { upper: pine, legs: summit, abs: gold, full: lagoon, cardio: rose }
+setState: { completed: pine, skipped: text3 (outline only), not_reached: line (dashed) }
 dayMarker:{ trained: <focus color>, travel: sky, quick: gold }
 ```
 
@@ -72,13 +72,13 @@ dayMarker:{ trained: <focus color>, travel: sky, quick: gold }
 quiet outline, an untrained day is a neutral surface, "over-worked" is informational text in the
 same style as every other row. `rose` exists only as the cardio identity color.
 
-Each accent also exposes a `tint` (`theme.tints.ember`; Golden Hour `rgba(255,107,53,0.15)`, 8% alpha in Daylight, §8.3) for chip
+Each accent also exposes a `tint` (`theme.tints.pine`; Golden Hour `rgba(79,209,118,0.15)`, 8% alpha in Daylight, §8.3) for chip
 and badge backgrounds.
 
 ### Gradients (rendered with `react-native-svg`)
 
 ```ts
-sunrise: ['#FF5E3A', '#FF9F1C']   // THE primary CTA + Ignition hero. 135°.
+trail: ['#40BD6E', '#5EE06B']   // THE primary CTA + Ignition hero. 135°.
 golden:  ['#FFB938', '#FFD166']   // achievements, best sets
 lagoon:  ['#14B8A6', '#38BDF8']   // rest ring, recovery
 summit:  ['#7B5CFF', '#C084FC']   // level ups, progression rings
@@ -145,7 +145,7 @@ Each is small, typed, tested for render + press, and styled only from tokens.
 | `TopoPattern` | Absolute-fill SVG of 5–7 organic contour loops, deterministic from a `seed` string, stroke `text` at 6–9% opacity. The travel-map texture for hero cards. |
 | `Screen` | SafeArea + `bg` + optional ScrollView + standard gutter + bottom inset for a sticky footer. |
 | `Card` | `surface`, radius `lg`, 1px `line` border, padding 16–20. `variant: 'plain' | 'hero' | 'accent'` (hero = gradient fill + TopoPattern; accent = 2px gradient border). |
-| `Button` | `variant: 'primary' | 'secondary' | 'ghost' | 'quiet'`, `size: 'lg' | 'md' | 'sm'`, optional `icon`, `loading`. Primary = `sunrise` gradient, `ink` text, glow, 64px tall at `lg`. Secondary = `surface2` + `line` border. |
+| `Button` | `variant: 'primary' | 'secondary' | 'ghost' | 'quiet'`, `size: 'lg' | 'md' | 'sm'`, optional `icon`, `loading`. Primary = `trail` gradient, `ink` text, glow, 64px tall at `lg`. Secondary = `surface2` + `line` border. |
 | `IconButton` | Circular 44/56px, `surface2`, optional label below (caption). |
 | `PressableScale` | The press animation + selection haptic, wraps any child. |
 | `Chip` | Pill, eyebrow text, `tone` (accent name) → tint bg + accent text; `selected` → solid accent + ink text. |
@@ -155,7 +155,7 @@ Each is small, typed, tested for render + press, and styled only from tokens.
 | `Pips` | N dots, `filled` count, `current` index ring; `pop` animates newly filled. Set progress. |
 | `StatTile` | Big `hero`/`h1` numeral + eyebrow label + optional icon, `tone`. |
 | `Stamp` | Passport stamp: rounded-rect or circle (seeded), double inset border in the stamp color, condensed uppercase text, rotation −8°..8° seeded, 90% opacity "ink". `title`, `subtitle`, `seed`, `tone?`. |
-| `Switch` | Custom pill toggle (ember when on) + selection haptic. |
+| `Switch` | Custom pill toggle (pine when on) + selection haptic. |
 | `Sheet` | Bottom sheet on `Modal` (fade backdrop + slide-up panel, radius `xl` top). Replaces ad-hoc centered dialogs. |
 | `Toast` | Transient floating line (e.g. "Strong set.") that rises and fades; used by Workout. |
 
@@ -165,7 +165,7 @@ Each is small, typed, tested for render + press, and styled only from tokens.
   `ExerciseDetail`. The flow screens (Generate → Approval → Workout → Summary) are full-screen, no
   tab bar.
 - Bottom tabs (`@react-navigation/bottom-tabs`, JS-only): **Today** (flame), **Journey**
-  (compass), **Field Guide** (book). Custom tab bar: `surface` with top hairline, active = ember
+  (compass), **Field Guide** (book). Custom tab bar: `surface` with top hairline, active = pine
   icon + eyebrow label, inactive = `text3`.
 - Settings is a gear `IconButton` on Today's header.
 - Stack headers: transparent over `bg`, title in `h2`, tint `text`, no hairline. The Workout
@@ -184,11 +184,11 @@ changes how things look and where they sit, not what the app decides.
 ### 5.1 Today (was Home, top half)
 
 Top to bottom:
-1. **Header row** — `ROAMFIT` wordmark (`h1`, ember) with a time-of-day greeting under it
+1. **Header row** — `ROAMFIT` wordmark (`h1`, pine) with a time-of-day greeting under it
    ("Good morning" / "Good afternoon" / "Good evening", `small`, text2). Gear `IconButton` right.
 2. **Banners** (comeback / travel-suggest / recovery week) as compact `Card`s with a leading
    icon in a tinted circle (sky for travel, lagoon for recovery/comeback). Same copy & actions.
-3. **Hero card** (`Card variant="hero"`, sunrise gradient + TopoPattern, ~220pt tall):
+3. **Hero card** (`Card variant="hero"`, trail gradient + TopoPattern, ~220pt tall):
    - No pending session: eyebrow `TODAY`, `display` "READY TO MOVE?", `small` "Pick your time,
      focus and gear — we'll build the rest." and an embedded dark pill button
      "BUILD A SESSION →". Whole card is the `today-card` target.
@@ -198,7 +198,7 @@ Top to bottom:
 4. **Two-up tiles**: **Quick Session** (bolt icon, gold, "7 min · zero decisions") and
    **In transit** (airplane, sky, "Mark today as travel"). Square-ish `Card`s, `PressableScale`.
 5. **This week** — a 7-day strip (Mon–Sun containing today) of 40pt rounded cells using the same
-   markers/emojis as the Journey logbook; today has a 2px ember ring. Tap → Journey tab.
+   markers/emojis as the Journey logbook; today has a 2px pine ring. Tap → Journey tab.
 6. **Next unlock** — `Card` with a `ProgressRing` (summit gradient, 64pt) on the left showing
    level progress, and "HORIZONTAL PUSH" (`h2`) + "2 sessions to your next level" on the right.
    All-mastery state keeps its existing copy. Tap → Journey tab.
@@ -206,7 +206,7 @@ Top to bottom:
 ### 5.2 Journey (new tab — was Home, bottom half)
 
 The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
-1. **Lifetime** — 3×2 grid of `StatTile`s: Sessions (flame, ember), Minutes (time, gold),
+1. **Lifetime** — 3×2 grid of `StatTile`s: Sessions (flame, pine), Minutes (time, gold),
    Levels gained (trending-up, summit), Personal bests (trophy, sun), Places (location, sky),
    Countries (globe, lagoon). Numbers in `hero`-size condensed.
 2. **Trails** (the progression board, renamed in UI copy only). One card per family:
@@ -221,7 +221,7 @@ The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
      Collapsed by default: the board is for looking; adjusting is occasional.
    - Zero-session explanation and level-up notice keep their copy, styled as a summit-tinted note.
 3. **Logbook** — the month calendar. Rounded 40pt cells on `surface`, focus-colored cell tint
-   for trained days with the existing emoji markers, travel days sky-tinted, today with an ember
+   for trained days with the existing emoji markers, travel days sky-tinted, today with an pine
    ring, untrained days plain `surface` (neutral, never empty-looking-bad). Weekday header in
    `eyebrow`. Tap a day → the day-marker `Sheet` (same options).
 4. **Passport** — the passport finally has a purpose: **collecting stamps.** Header "PASSPORT"
@@ -230,7 +230,7 @@ The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
    abbreviates it, country as a 3-letter code; parts missing on older pins are dropped). Seeded by
    that label, so each place always gets the same shape, color and tilt. Opt-in state: a `Card` with three ghosted sample stamps and "Collect a stamp
    for every place you train" + a primary `sm` button "TURN ON PASSPORT".
-5. **Muscle balance** — rows with a rounded gradient bar (sunrise), trailing 14 days, same data.
+5. **Muscle balance** — rows with a rounded gradient bar (trail), trailing 14 days, same data.
 
 ### 5.3 Field Guide (Exercises list)
 
@@ -241,7 +241,7 @@ The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
 - Rows: 52pt rounded-square **avatar** tinted by the exercise's first focus color, with an icon
   for its movement pattern (push → arrow-forward, pull → arrow-back, squat/hinge → body, core →
   ellipse, carry/cardio → pulse…; one map in the file). Name `h3`, primary muscle `small` text2,
-  right side a `×12` ember chip for times completed; no-video / disabled as muted `Chip`s.
+  right side a `×12` pine chip for times completed; no-video / disabled as muted `Chip`s.
   Disabled rows at 50% opacity.
 
 ### 5.4 Exercise detail
@@ -251,7 +251,7 @@ The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
 - Two `StatTile`s: Times completed, Last performed.
 - Pinned note (gold-tinted sticky-note card).
 - Sections as `Card`s with an icon + eyebrow header: How to, Demo, Progress (chart bars use the
-  sunrise gradient, gain lines use `Chip`s), Details.
+  trail gradient, gain lines use `Chip`s), Details.
 - **Details** as a 2-column spec grid of small `surface2` tiles (eyebrow label, `bodyStrong`
   value) instead of a long label/value list. Library id stays last, `caption`.
 - Enable/disable as a `Switch` row at the bottom with its existing explanatory subtext.
@@ -322,7 +322,7 @@ empty. Every playlist row: tap plays, heart toggles favorite, chevron previews t
 - Pinned note above the hero (gold sticky card), How-to (open by default) and demo media below
   it, each a `Card`.
 
-**Exercise phase (timed)** — same hero, but the centerpiece is a 240pt `ProgressRing` (sunrise
+**Exercise phase (timed)** — same hero, but the centerpiece is a 240pt `ProgressRing` (trail
 gradient on section color track) with the `mega` countdown inside and "SEC" eyebrow; caption
 below ("Tap to start" / "Tap to finish early"). −/+ duration buttons flank the ring before it
 starts. Final 3 seconds: ring and numeral `pulse`, light haptic each second.
@@ -333,7 +333,7 @@ ring) so rest is unmistakable at a glance from across a room:
 - 220pt lagoon `ProgressRing` with the countdown in `mega`.
 - −15s / +15s / Skip as secondary pill buttons.
 - "How did that set feel?" + FeedbackControls as a 3-segment control (text labels kept;
-  Too easy = lagoon, Just right = ember, Too hard = summit when selected — no red).
+  Too easy = lagoon, Just right = pine, Too hard = summit when selected — no red).
 - `Button lg primary` "NEXT".
 - **Up next** `Card`: eyebrow `UP NEXT`, name `h2`, anchor + band chips, How-to and demo (open).
 
@@ -348,7 +348,7 @@ one button.**
   computed from what's already on screen: Sets done, Exercises, Reps/holds logged (additive
   counts only — never "of planned").
 - **Exercise rows** (dense): name `h3` on the left, a wrapping row of 30pt rounded set squares on
-  the right: completed = ember fill with the rep/second count inside in `ink`; skipped = `text3`
+  the right: completed = pine fill with the rep/second count inside in `ink`; skipped = `text3`
   outline; not reached = dashed `line` outline. The feedback label (if any) is a tiny colored dot
   under its square, and the full labeled chip shows in the edit sheet. Tap square → jump to that
   set in Workout (unchanged); long-press or the dot → the feedback edit `Sheet`.
@@ -374,12 +374,12 @@ share-button text in `HighlightCard`, and the lilac stat labels in `AnimatedStat
 it goes. **No violet surfaces or violet-dominant elements on this page** — `summit` is not used
 here at all.
 
-- **Background**: `bg` night base with the drifting glow orbs recolored to **ember, gold and
+- **Background**: `bg` night base with the drifting glow orbs recolored to **pine, gold and
   sun** (big, soft, ~35–45% opacity) so the whole screen reads as a warm sunset bloom, not a
   flat color. Optional third orb in lagoon at low opacity for depth.
 - **Sunburst rays**: gold/sun at low opacity, still spinning.
 - **Hype headline**: keeps the stamp-in, word-by-word slam and bounce. Barlow Condensed 800,
-  `display`/`hero` scale, uppercase; words in `text` with the accent word in `sun`, and an ember
+  `display`/`hero` scale, uppercase; words in `text` with the accent word in `sun`, and an pine
   text-shadow glow so it looks stamped in light.
 - "You just finished your 12th workout on RoamFit!" in `h2`, then "32 min · upper" in `small`.
 - **Stat chips**: keep the tile-by-tile pop-in and count-up. 2×2 grid of `StatTile`-style
@@ -388,12 +388,12 @@ here at all.
   the first highlight are visible without scrolling on a 6.1" phone.
 - **Highlights** (level ups / best sets): keep the stamped reveal beat with its own sound, haptic,
   shake and confetti pop. Card = `surface` with a 2px `golden` gradient border; a `Stamp`
-  ("LEVEL UP" in ember / "BEST SET" in gold) on the left stamps in on the reveal; level bar
-  fills with the `sunrise` gradient; share is an `IconButton` (share icon), not violet text.
+  ("LEVEL UP" in pine / "BEST SET" in gold) on the left stamps in on the reveal; level bar
+  fills with the `trail` gradient; share is an `IconButton` (share icon), not violet text.
 - **Quiet milestones**: small gold `Chip`s, wrapping.
-- **Confetti**: same physics, cannons and pops, palette → ember, emberDeep, gold, sun, lagoon,
+- **Confetti**: same physics, cannons and pops, palette → pine, pineDeep, gold, sun, lagoon,
   sky, rose, `text` white. No violet.
-- **"Heck yes! 💪"**: keeps its entrance and endless pulse, now `Button lg primary` (sunrise
+- **"Heck yes! 💪"**: keeps its entrance and endless pulse, now `Button lg primary` (trail
   gradient, `ink` text, glow) — the pulse should also breathe the glow.
 
 ### 5.10 Settings — Basecamp
@@ -424,9 +424,9 @@ cards, radius `lg`. Group eyebrows above each card. Footer: small `ROAMFIT` word
 Nothing ships on the old look. Beyond the screens above, the redesign covers:
 
 - **Disclaimer gate** (first launch, on Home): full-screen `bg` with the TopoPattern texture at
-  low opacity, `ROAMFIT` wordmark in `hero` ember, tagline "TRAIN ANYWHERE." in `eyebrow` gold,
+  low opacity, `ROAMFIT` wordmark in `hero` pine, tagline "TRAIN ANYWHERE." in `eyebrow` gold,
   the disclaimer in a `Card`, and `Button lg primary` "I UNDERSTAND".
-- **Loading states**: a centered ember `ActivityIndicator` on `bg` — never a white screen. Screen
+- **Loading states**: a centered pine `ActivityIndicator` on `bg` — never a white screen. Screen
   bodies that load synchronously fade in with `enter`.
 - **Empty states** (e.g. no exercises match filters, no progress yet on a detail page, zero
   sessions on Journey): an icon in a tinted circle, one `h3` line, one `small` line, optionally a
@@ -443,9 +443,9 @@ Nothing ships on the old look. Beyond the screens above, the redesign covers:
   dark pill, Spotify green is allowed *only* as the logo/brand dot; its browse sheet is vibe chips
   over Favorites / Recently played / Fresh picks sections, with a heart on every playlist row), `FeedbackControls`,
   `HighlightCard`, `AnimatedStatCounter`, `HypeHeadline`, `CelebrationBackdrop`, `ConfettiBurst`
-  (palette → ember/gold/sun/summit/lagoon/sky), `OptionPicker` (restyle or delete if unused).
+  (palette → pine/gold/sun/summit/lagoon/sky), `OptionPicker` (restyle or delete if unused).
 - **Keyboard accessories** (Summary "Done", Workout/Approval inputs): `surface2` bar with an
-  ember "Done".
+  pine "Done".
 - **Native chrome**: `app.json` `userInterfaceStyle: "dark"`, splash `backgroundColor` = `bg`,
   `StatusBar style="light"`, React Navigation dark theme with our tokens. (The app icon image
   itself is out of scope — it needs an artist; noted in BACKLOG.)
@@ -494,7 +494,7 @@ are stable):
 
 Golden Hour is unreadable in direct sun: dim surfaces and mid-luminance text drown in glare.
 Daylight keeps everything that makes the app *RoamFit* — Barlow highway-sign type, the travel
-motifs, the sunrise CTA, the three moods, the copy — and changes only the light it is seen in.
+motifs, the trail CTA, the three moods, the copy — and changes only the light it is seen in.
 
 **The metaphor:** a paper trail map in your hand at noon. Warm paper ground, near-black ink, contour
 lines printed in sepia, and accent panels with white legends — the way a highway sign (white on
@@ -520,8 +520,8 @@ text2: '#4A4036'   //  8.9:1
 text3: '#6B6052'   //  5.4:1 — still AA, because "muted" outdoors is "invisible"
 
 // Accents — deepened so each is ≥ 4.5:1 as text on bg AND carries a white legend as a fill
-ember:     '#B83507'   // 5.2:1 on bg; white on it 5.9:1
-emberDeep: '#9E2E06'
+pine:     '#10702D'   // 5.5:1 on bg; white on it 6.2:1
+pineDeep: '#0A6124'
 gold:      '#8F5A00'   // brass — reads as gold on paper, unlike a yellow
 sun:       '#A86F00'   // large text / icons only (3.8:1)
 lagoon:    '#00706A'
@@ -533,7 +533,7 @@ rose:      '#BF1D63'   // still cardio-only, still never an error
 **`ink` changes meaning slightly.** It was always "the text on an accent fill". In Golden Hour the
 fills are bright, so it is near-black; in Daylight the fills are deep, so it is **white
 (`#FFFFFF`)**. Every `color="ink"` call site is therefore correct in both modes without change —
-the "never white on ember" rule is a Golden Hour rule (bright ember); Daylight's deep ember wants
+the "never white on pine" rule is a Golden Hour rule (bright pine); Daylight's deep pine wants
 white. Two **mode-invariant** tokens cover content on colors that do *not* change with the theme:
 `fixedInk` (`#170B03`) and `fixedPaper` (`#F7F3EA`) — band swatches (real-world colors, user data),
 anything over video/imagery.
@@ -550,7 +550,7 @@ Deepened in the same proportion as the accents so white legends hold ≥ 4.2:1 a
 gradient text is large/bold):
 
 ```ts
-sunrise: ['#CC3B12', '#C95A04']
+trail: ['#0F6E2C', '#2A7D23']
 golden:  ['#8F5A00', '#A46D00']
 lagoon:  ['#00706A', '#0A74A8']
 summit:  ['#5A3BD1', '#8B3FD0']
@@ -573,9 +573,8 @@ Daylight: always `ink`, i.e. white).
   `Switch` thumb is `fixedPaper` plus `elevation.card` (Daylight `text` is ink, which would make a
   black thumb).
 - **Tints are 8% alpha in Daylight** (15% on Golden Hour): at 15%, accent text on its own tint over
-  `bg` falls to 3.9–4.3:1 for ember/gold/lagoon/sky/rose; at 8% every accent holds ≥ 4.5:1 over
-  `surface` and `bg` (`sun` ≥ 3). Asserted in `themes.test.ts`. Ember was deepened to `#B83507` for
-  this (ember on tint over `bg` was 4.38:1 even at 8% with `#BF3708`).
+  `bg` falls to 3.9–4.3:1 for pine/gold/lagoon/sky/rose; at 8% every accent holds ≥ 4.5:1 over
+  `surface` and `bg` (`sun` ≥ 3). Asserted in `themes.test.ts`. Pine's Daylight `#10702D` holds 4.9:1 on its own 8% tint over `bg`.
 - **Calendar day cells fill with the vivid hue.** A deep accent washed over paper goes muddy (the
   Logbook read as greyed-out at 20%), so Daylight `dayCell[tone]` = `vivid` at 40% alpha, bordered
   by the deep accent at 70%. The date numeral (`text`) stays >= 7:1 on every marker fill. Golden
@@ -586,7 +585,7 @@ Daylight: always `ink`, i.e. white).
 - **Topo contours are printed sepia.** `topo.color` `#3B2410` at `topo.strength` 1.3× the seeded
   opacity (Golden Hour: `text`, 1×). Sepia reads on both paper and the deep hero gradients.
 - **Completion's stamped headline** (the screen the user loves) keeps its construction, swaps its
-  inks: Golden Hour fill `sun` / hard shadow `emberDeep` / ember glow; Daylight fill `ember` (deep) /
+  inks: Golden Hour fill `sun` / hard shadow `pineDeep` / pine glow; Daylight fill `pine` (deep) /
   hard shadow `vivid.gold` / no glow — a two-color screenprinted poster. Exposed as `stamp.fill`,
   `stamp.shadow`, `stamp.glow` (`null` = none).
 
@@ -598,7 +597,7 @@ Daylight: always `ink`, i.e. white).
   dayCell, trainedColor, onGradient, heroCta, glow, elevation, topo, stamp, statusBar, navTheme,
   headerOptions }`. `onGradient(tone)` returns a color token *name* (`'ink' | 'fixedPaper'`), not a
   hex; `heroCta` is the token name of the Home hero pill's legend (Golden Hour `sun`, Daylight
-  `ember` — sun is 3.8:1 on Daylight's white pill). No scattered `scheme === ` color checks: add a
+  `pine` — sun is 3.8:1 on Daylight's white pill). No scattered `scheme === ` color checks: add a
   Theme field instead.
   Two instances, built once at module load.
 - `ThemeProvider` resolves a **preference** (`'system' | 'light' | 'dark'`) with RN's
@@ -610,7 +609,7 @@ Daylight: always `ink`, i.e. white).
   at most twice per app lifetime. This is the one pattern for themed styles — replace a module-level
   `StyleSheet.create` that reads colors with it; a `StyleSheet.create` with no color stays as is.
 - `<Txt color>` / `<Icon color>` take token names and resolve them through `useTheme()`, so the
-  hundreds of `color="ember"` props are themed for free.
+  hundreds of `color="pine"` props are themed for free.
 - Switching is **live** — no reload. Every themed style is a hook, so a preference change re-renders
   the tree with the other palette, mid-workout included.
 - **Persistence:** `users.theme_preference TEXT NOT NULL DEFAULT 'system'` (migration 0022), through

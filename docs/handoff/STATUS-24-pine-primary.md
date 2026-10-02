@@ -6,19 +6,16 @@ orange as the primary color. Replace `ember` + `emberDeep` outright with a pine 
 fern" (hue ~138). Spotify-green proximity was discussed and explicitly accepted.
 
 ### Done
-- [x] 1. (commit below) Behavior-neutral token rename `ember`→`pine`, `emberDeep`→`pineDeep`, gradient `sunrise`→`trail`
-      (values unchanged, so tests pass untouched apart from names).
+- [x] Token rename `ember`->`pine`, `emberDeep`->`pineDeep`, gradient `sunrise`->`trail`, values unchanged (8aec2b5).
+- [x] New values in `palettes.ts` + test literals; `npm run check` green incl. contrast floors (1215c96).
+- [x] `docs/DESIGN.md` palette/prose and `docs/BACKLOG.md` renamed and revalued; device pass and the
+      theme-name question parked in BACKLOG under "Pine recolor" (this commit).
 
 ### In progress
-- Step 3: doc/comment sweep (DESIGN.md, BACKLOG, stale prose), then park device-pass items.
+- Nothing. Track is code-complete; only the device pass in BACKLOG remains.
 
 ### Next
-- [x] 2. (done) New values in `app/src/theme/palettes.ts` (see decisions) + update hex/rgba literals in
-   `theme.test.ts` / `themes.test.ts`; `npm run check`.
-3. Doc/comment sweep: leftover "ember"/"sunrise" prose, BACKLOG device-pass items that name `emberDeep`
-   (Golden Hour redesign item 2), DESIGN.md mentions if any.
-4. Park in BACKLOG: device pass (look at the greens on a simulator; Spotify button proximity; icon.png /
-   splash-icon.png still orange?), and the theme-name question (below).
+- Device pass (BACKLOG "Pine recolor"); then delete that BACKLOG item.
 
 ### Decisions / gotchas
 - Values (HSV hue 138): Golden Hour `pine #4FD176`, `pineDeep #209E46`; Daylight `pine #10702D`,
