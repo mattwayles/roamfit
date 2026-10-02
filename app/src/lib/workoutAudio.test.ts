@@ -17,6 +17,8 @@ import {
   cueStart,
   hapticHeavy,
   setCueSoundsEnabled,
+  startBackgroundKeepAlive,
+  stopBackgroundKeepAlive,
 } from './workoutAudio';
 
 afterEach(() => setCueSoundsEnabled(true));
@@ -24,6 +26,13 @@ afterEach(() => setCueSoundsEnabled(true));
 describe('workoutAudio', () => {
   it('configureWorkoutAudioSession never throws even without a real expo-audio native module', async () => {
     await expect(configureWorkoutAudioSession()).resolves.toBeUndefined();
+  });
+
+  it('background keep-alive start/stop and mute toggling never throw without a native module', () => {
+    expect(() => startBackgroundKeepAlive()).not.toThrow();
+    expect(() => setCueSoundsEnabled(false)).not.toThrow();
+    expect(() => setCueSoundsEnabled(true)).not.toThrow();
+    expect(() => stopBackgroundKeepAlive()).not.toThrow();
   });
 
   it('every cue helper is safe to call with no native audio module present', () => {

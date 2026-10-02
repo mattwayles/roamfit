@@ -102,6 +102,8 @@ import SpotifyControls from '../components/SpotifyControls';
 import {
   configureWorkoutAudioSession,
   setCueSoundsEnabled,
+  startBackgroundKeepAlive,
+  stopBackgroundKeepAlive,
   cueCompletion,
   cueCount,
   cueHalfway,
@@ -259,9 +261,12 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     // §10.8 — configured once for the life of the session, re-asserted here rather than only at
     // app boot: the guard against Wave 6's YouTube player having last left the shared audio
     // session in a different shape (see workoutAudio.ts's file header).
-    void configureWorkoutAudioSession();
+    void configureWorkoutAudioSession().then(startBackgroundKeepAlive);
     void ensureNotificationPermission();
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      stopBackgroundKeepAlive();
+    };
   }, [reload]);
 
   /** The workout's own front edge: §10.8's derived "first not-yet-logged set". This is what says

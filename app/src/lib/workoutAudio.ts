@@ -76,6 +76,7 @@ const SOUNDS = {
   sessionComplete: require('../../assets/audio/session-complete.wav') as AudioSource,
   levelUp: require('../../assets/audio/level-up.wav') as AudioSource,
 };
+const SILENCE = require('../../assets/audio/silence-loop.wav') as AudioSource;
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 type SoundKey = keyof typeof SOUNDS;
@@ -126,6 +127,53 @@ let cueSoundsEnabled = true;
 
 export function setCueSoundsEnabled(enabled: boolean): void {
   cueSoundsEnabled = enabled;
+  syncKeepAlive();
+}
+
+/**
+ * Background keep-alive. `UIBackgroundModes: audio` only keeps the app running while audio is
+ * *actually playing*; the cues are fired from JS timers and are separated by long silences, so
+ * without something playing iOS suspends the JS thread a few seconds after backgrounding and the
+ * 3-2-1 beeps never fire. A looping silent track holds the (already mix-with-others) session
+ * active for the life of the workout screen, so every existing cue keeps firing locked or
+ * backgrounded. It is not set active for lock screen, so no Now Playing entry appears.
+ *
+ * Only runs while cue sounds are enabled — a muted workout has nothing to sound in the background
+ * (haptics don't fire there), so it shouldn't pay the battery cost.
+ */
+let keepAliveWanted = false;
+let keepAlivePlayer: AudioPlayer | null = null;
+
+function syncKeepAlive(): void {
+  const shouldRun = keepAliveWanted && cueSoundsEnabled;
+  try {
+    if (shouldRun) {
+      const mod = loadAudioModule();
+      if (!mod) return;
+      if (!keepAlivePlayer) {
+        keepAlivePlayer = mod.createAudioPlayer(SILENCE);
+        keepAlivePlayer.loop = true;
+      }
+      if (!keepAlivePlayer.playing) keepAlivePlayer.play();
+    } else if (keepAlivePlayer) {
+      keepAlivePlayer.pause();
+    }
+  } catch (e) {
+    // Best-effort — worst case is the pre-existing foreground-only behaviour.
+    if (__DEV__) console.warn('[workoutAudio] background keep-alive failed', e);
+  }
+}
+
+/** Call when the active workout screen mounts (after `configureWorkoutAudioSession`). */
+export function startBackgroundKeepAlive(): void {
+  keepAliveWanted = true;
+  syncKeepAlive();
+}
+
+/** Call when the active workout screen unmounts. */
+export function stopBackgroundKeepAlive(): void {
+  keepAliveWanted = false;
+  syncKeepAlive();
 }
 
 function playSound(key: SoundKey): void {

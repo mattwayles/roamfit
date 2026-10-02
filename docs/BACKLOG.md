@@ -16,6 +16,12 @@ the record of what was completed and why.
 
 ## Desired Fixes
 
+- **Background timer sounds — device check owed.** A looping silent track (`silence-loop.wav`,
+  `startBackgroundKeepAlive` in `workoutAudio.ts`) now plays for the life of the Workout screen so
+  iOS keeps JS timers alive and the 3-2-1 / chime / completion cues sound locked or backgrounded.
+  Jest can't verify it. Check on a device: background mid-countdown, lock the screen, with and
+  without Spotify playing; confirm no Now Playing entry appears and music isn't interrupted. If iOS
+  still suspends, fall back to scheduled local notifications with bundled sounds.
 - **Golden Hour redesign — device pass owed.** Run `npm run ios` (react-native-svg is a new native
   dep: dev-client rebuild + pod install; `app.json`'s dark style and splash `bg` also only apply after
   the rebuild). Every screen of the redesign is Jest-verified only — layout was reasoned, never seen.
