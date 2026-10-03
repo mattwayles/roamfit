@@ -24,6 +24,7 @@ import {
   getFitnessContent,
   getContentChildren,
   playSpotifyContent,
+  openSpotifyApp,
 } from '../lib/spotifyRemote';
 import type { SpotifyContentItem, SpotifyPlayer } from '../lib/spotifyRemote';
 
@@ -32,6 +33,7 @@ jest.mock('../lib/spotifyRemote', () => ({
   getFitnessContent: jest.fn(),
   getContentChildren: jest.fn(),
   playSpotifyContent: jest.fn(),
+  openSpotifyApp: jest.fn(),
 }));
 
 const mockedHook = useSpotifyPlayer as jest.MockedFunction<typeof useSpotifyPlayer>;
@@ -176,6 +178,24 @@ describe('SpotifyControls', () => {
     expect(screen.queryByTestId('spotify-artist')).toBeNull();
     // The transport is still offered — resume is exactly what you want when nothing is playing.
     expect(screen.getByTestId('spotify-play-pause')).toBeTruthy();
+  });
+
+  it('opens the Spotify app from the logo, and says so if it cannot', async () => {
+    (openSpotifyApp as jest.Mock).mockResolvedValueOnce('Couldn’t open the Spotify app.');
+    mockedHook.mockReturnValue(player());
+    await renderControls();
+
+    await fireEvent.press(screen.getByTestId('spotify-open-app'));
+
+    expect(openSpotifyApp).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('Couldn’t open the Spotify app.')).toBeTruthy();
+  });
+
+  it('has no open-Spotify button before connecting', async () => {
+    mockedHook.mockReturnValue(player({ connectionState: 'disconnected' }));
+    await renderControls();
+
+    expect(screen.queryByTestId('spotify-open-app')).toBeNull();
   });
 
   it('drives each transport control', async () => {

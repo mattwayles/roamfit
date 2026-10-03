@@ -19,6 +19,11 @@
  * edge case), so this must never happen on mount. Mid-set is precisely the wrong moment to be
  * thrown into another app. The user taps once, at a moment of their choosing.
  *
+ * **Open Spotify: the logo dot, only while connected.** To like a song, add it to a playlist or
+ * change what's playing from Spotify's own library. Deliberately not "any tap on the widget" — that
+ * would turn a missed skip press into being thrown out of the workout. Disconnected, the dot is
+ * just a logo; Connect already handles waking Spotify.
+ *
  * **Skip buttons gate on Spotify's own restrictions**, not on our optimism: an advert, or some
  * radio contexts, genuinely cannot be skipped, and a button that silently does nothing is worse
  * than one that is visibly unavailable.
@@ -63,6 +68,7 @@ import { nowUtcInstant } from '../lib/localClock';
 import {
   getContentChildren,
   getFitnessContent,
+  openSpotifyApp,
   playSpotifyContent,
   useSpotifyPlayer,
   type SpotifyContentItem,
@@ -142,6 +148,9 @@ export default function SpotifyControls(): React.JSX.Element | null {
     skipNext,
     skipPrevious,
   } = useSpotifyPlayer();
+
+  const [openError, setOpenError] = useState<string | null>(null);
+  const openSpotify = async () => setOpenError(await openSpotifyApp());
 
   const { height } = useWindowDimensions();
   const { db } = useStore();
@@ -321,9 +330,10 @@ export default function SpotifyControls(): React.JSX.Element | null {
     );
   };
 
-  const error = lastError ? (
+  const shownError = lastError ?? openError;
+  const error = shownError ? (
     <Txt testID="spotify-error" variant="caption" color="text2" style={styles.error}>
-      {lastError}
+      {shownError}
     </Txt>
   ) : null;
 
@@ -353,7 +363,18 @@ export default function SpotifyControls(): React.JSX.Element | null {
   return (
     <View testID="spotify-controls" style={styles.block}>
       <View style={[styles.pill, styles.row]}>
-        <BrandDot />
+        {/* The logo doubles as "open Spotify". Its own button rather than the whole widget being
+            tappable (a stray thumb mid-set would throw the user out of the workout), and the logo
+            rather than a sixth icon because this row has no width to spare. */}
+        <PressableScale
+          testID="spotify-open-app"
+          accessibilityRole="button"
+          accessibilityLabel="Open Spotify"
+          hitSlop={8}
+          onPress={openSpotify}
+        >
+          <BrandDot />
+        </PressableScale>
         {/* Flexible and clipped rather than wrapping: a long title must not be allowed to push
             the transport buttons off the row or grow this block to two rows. */}
         <View style={styles.trackBox}>

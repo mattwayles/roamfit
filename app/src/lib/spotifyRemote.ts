@@ -66,7 +66,7 @@
  * first-ever connect.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Linking } from 'react-native';
 import {
   clearStoredSpotifySession,
   loadStoredSpotifySession,
@@ -288,7 +288,10 @@ function connectWithSilentRetries(
           await mod.AppRemote.connect(accessToken);
           return;
         } catch (error) {
-          if (errorCode(error) !== 'CONNECTION_FAILED' || attempt >= SILENT_RETRY_DELAYS_MS.length) {
+          if (
+            errorCode(error) !== 'CONNECTION_FAILED' ||
+            attempt >= SILENT_RETRY_DELAYS_MS.length
+          ) {
             throw error;
           }
           await new Promise((resolve) => setTimeout(resolve, SILENT_RETRY_DELAYS_MS[attempt]));
@@ -450,6 +453,21 @@ async function transport(
     return null;
   } catch (error) {
     return describeError(error);
+  }
+}
+
+/**
+ * Opens the Spotify app itself (to like a song, add it to a playlist, change the playlist) —
+ * the one deliberate foregrounding of Spotify that isn't a connect. `spotify:` is already in
+ * `LSApplicationQueriesSchemes`. Playback keeps going: App Remote only needs Spotify alive, and
+ * the silent foreground resume reattaches on the way back.
+ */
+export async function openSpotifyApp(): Promise<SpotifyErrorMessage> {
+  try {
+    await Linking.openURL('spotify:');
+    return null;
+  } catch {
+    return 'Couldn’t open the Spotify app.';
   }
 }
 
