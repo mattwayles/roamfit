@@ -75,6 +75,7 @@ const SOUNDS = {
   restZero: require('../../assets/audio/rest-zero.wav') as AudioSource,
   sessionComplete: require('../../assets/audio/session-complete.wav') as AudioSource,
   levelUp: require('../../assets/audio/level-up.wav') as AudioSource,
+  stampThunk: require('../../assets/audio/stamp-thunk.wav') as AudioSource,
 };
 const SILENCE = require('../../assets/audio/silence-loop.wav') as AudioSource;
 /* eslint-enable @typescript-eslint/no-require-imports */
@@ -282,4 +283,20 @@ export function cueLevelUp(): void {
   playSound('levelUp');
   hapticHeavy();
   setTimeout(hapticCompletion, 140);
+}
+
+/** The stamp lifting off the page, a beat before it comes down: one light selection tick. */
+export function hapticStampLift(): void {
+  haptics.selection();
+}
+
+/** A passport stamp hitting the page. Built to feel like a hand stamping the phone: a sharp rigid
+ *  contact, the heavy weight of the stamp driving through 45ms behind it, then a soft rebound as
+ *  the rubber settles. The thunk is the same three beats in sound. Muted users still get every
+ *  beat physically (§10.8). */
+export function cueStampImpact(): void {
+  playSound('stampThunk');
+  haptics.rigid();
+  setTimeout(haptics.heavy, 45);
+  setTimeout(haptics.light, 150);
 }

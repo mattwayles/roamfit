@@ -56,8 +56,10 @@ import {
   type HighlightCelebration,
 } from '../lib/celebration';
 import { buildSessionCompletionStats } from '../lib/sessionStats';
+import { lookupNewStamp, type NewStamp } from '../lib/newStamp';
 import {
   cueLevelUp,
+  cueStampImpact,
   cueSessionComplete,
   hapticCompletion,
   hapticHeavy,
@@ -67,8 +69,13 @@ import { FOCUS_LABELS } from '../lib/focusLabels';
 import ConfettiBurst, { type ConfettiVariant } from '../components/ConfettiBurst';
 import CelebrationBackdrop, { Sunburst } from '../components/CelebrationBackdrop';
 import HypeHeadline from '../components/HypeHeadline';
-import { buildCompletionTimeline, HIGHLIGHT_SCROLL_LEAD_MS } from '../lib/completionTimeline';
+import {
+  buildCompletionTimeline,
+  HIGHLIGHT_SCROLL_LEAD_MS,
+  STAMP_SETTLE_MS,
+} from '../lib/completionTimeline';
 import HighlightCard from '../components/HighlightCard';
+import NewStampCard, { STAMP_IMPACT_MS } from '../components/NewStampCard';
 import FeedbackControls, { type Difficulty } from '../components/FeedbackControls';
 import AnimatedStatCounter from '../components/AnimatedStatCounter';
 import BandChip from '../components/BandChip';
@@ -159,6 +166,10 @@ function focusLabel(focus: string): string {
   return (FOCUS_LABELS as Record<string, string>)[focus] ?? focus;
 }
 
+function stampShareText(s: NewStamp): string {
+  return `Just earned a new stamp in my RoamFit passport — ${s.label}.`;
+}
+
 function celebrationShareText(c: HighlightCelebration): string {
   return c.kind === 'level_up'
     ? `Just leveled up in RoamFit — ${c.familyName}, now training ${c.newExerciseName}.`
@@ -225,6 +236,12 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   const viewportHeight = useRef(0);
   const highlightsTop = useRef(0);
   const cardLayouts = useRef<{ y: number; height: number }[]>([]);
+  /** Whether this session's Passport lookup is running, i.e. the timeline reserves a stamp beat. */
+  const [stampSlot, setStampSlot] = useState(false);
+  /** The Passport stamp this session earned, once the lookup has found one. */
+  const [newStamp, setNewStamp] = useState<NewStamp | null>(null);
+  const stampLookup = useRef<Promise<NewStamp | null> | null>(null);
+  const stampLayout = useRef<{ y: number; height: number } | null>(null);
   const { width: windowWidth } = useWindowDimensions();
   const insets = useInsets();
 
@@ -374,8 +391,9 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
         hypeHeadline.split(' ').length,
         statTiles.length,
         celebration.highlights.length,
+        stampSlot,
       ),
-    [hypeHeadline, statTiles.length, celebration.highlights.length],
+    [hypeHeadline, statTiles.length, celebration.highlights.length, stampSlot],
   );
 
   // The whole completion choreography, run once when the screen appears. Every beat is a timer
@@ -386,6 +404,8 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   //   content      count text fades up; each stat tile pops with its own tick
   //   highlights   each level-up/Mastery card stamps down (`cueLevelUp`, shake, confetti pop),
   //                scrolled into view first if it's below the fold
+  //   stamp        Passport on: a new place's stamp slams down (`NewStampCard`), after the lookup
+  //                that started at FINISH has answered — "Heck yes!" waits for it, never forever
   //   button       a Success pulse and "Heck yes!" springs in, then keeps pulsing
   useEffect(() => {
     if (!showingCompletionScreen) return;
@@ -394,7 +414,9 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     buttonOpacity.setValue(0);
     raysVisible.setValue(0);
     setRevealedHighlights(0);
+    setNewStamp(null);
 
+    let cancelled = false;
     const timers: ReturnType<typeof setTimeout>[] = [];
     const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
     const loops: { stop: () => void }[] = [];
@@ -441,7 +463,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
       });
     });
 
-    at(timeline.button, () => {
+    const showButton = () => {
       hapticCompletion();
       Animated.spring(buttonOpacity, {
         toValue: 1,
@@ -459,9 +481,40 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
         pulse.start();
         loops.push(pulse);
       }
-    });
+    };
+
+    if (timeline.stamp === null) {
+      at(timeline.button, showButton);
+    } else {
+      at(timeline.stamp, () => {
+        const lookup = stampLookup.current;
+        if (!lookup) return showButton();
+        void lookup.then((found) => {
+          if (cancelled) return;
+          if (!found) return showButton();
+          setNewStamp(found);
+          // The card mounts and runs its own flight; this is the rest of the beat around it.
+          // Scroll first (the stamp slamming below the fold is a stamp nobody saw), keeping the
+          // card's heading in view when the card is taller than the room.
+          at(80, () => {
+            const card = stampLayout.current;
+            if (!card) return;
+            const target = Math.min(
+              card.y + card.height - viewportHeight.current + 110,
+              card.y - 24,
+            );
+            if (target > scrollY.current)
+              scrollRef.current?.scrollTo({ y: target, animated: true });
+          });
+          at(STAMP_IMPACT_MS + 150, () => addBurst('rain'));
+          at(STAMP_IMPACT_MS + 350, hapticCompletion);
+          at(STAMP_IMPACT_MS + STAMP_SETTLE_MS, showButton);
+        });
+      });
+    }
 
     return () => {
+      cancelled = true;
       timers.forEach(clearTimeout);
       loops.forEach((l) => l.stop());
     };
@@ -469,6 +522,19 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     // rotation would replay the whole sequence from the top (no react-hooks lint plugin is
     // configured in this project to flag the omission).
   }, [showingCompletionScreen]);
+
+  /** The stamp's moment of contact — the first stamping and every tap-to-restamp. The card owns
+   *  the flight and the squash; this is the screen's half: the thunk and its three-beat haptic,
+   *  the shake, and a confetti pop from the stamp's own spot on the page. */
+  const handleStampImpact = () => {
+    cueStampImpact();
+    shakeScreen(8);
+    const card = stampLayout.current;
+    addBurst(
+      'pop',
+      card ? { x: windowWidth / 2, y: card.y + card.height * 0.45 - scrollY.current } : undefined,
+    );
+  };
 
   const handleHeadlinePress = () => {
     hapticHeavy();
@@ -659,6 +725,26 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
               </View>
             )}
 
+            {newStamp && (
+              <View
+                style={styles.flexRow}
+                onLayout={(e: LayoutChangeEvent) => {
+                  stampLayout.current = {
+                    y: e.nativeEvent.layout.y,
+                    height: e.nativeEvent.layout.height,
+                  };
+                }}
+              >
+                <NewStampCard
+                  testID="new-stamp"
+                  stamp={newStamp}
+                  still={reduceMotion}
+                  onImpact={handleStampImpact}
+                  onShare={() => handleShare(stampShareText(newStamp))}
+                />
+              </View>
+            )}
+
             {celebration.quiet.length > 0 && (
               <Animated.View
                 testID="quiet-milestones"
@@ -741,6 +827,11 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
       { sessionId, library, families, retrospective: retrospective || undefined },
       nowUtcInstant(),
     );
+    // Passport on: ask for the place right now, in the background of the whole celebration, so a
+    // new stamp can slam down as its finale instead of landing silently on Journey later.
+    const passportOn = usersRepo.getUser(db)?.passportEnabled === true;
+    stampLookup.current = passportOn ? lookupNewStamp(db, sessionId) : null;
+    setStampSlot(passportOn);
     setResult(completion);
     setMilestones(milestonesRepo.getMilestonesForSession(db, sessionId));
     setWorkoutCount(sessionsRepo.countCompletedSessions(db));

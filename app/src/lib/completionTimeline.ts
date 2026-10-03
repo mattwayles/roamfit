@@ -23,14 +23,22 @@ export interface CompletionTimeline {
   statsDone: number;
   /** Each level-up / Mastery card stamps down. */
   highlights: number[];
-  /** "Heck yes!" arrives. */
+  /** The new-stamp slot, when Passport is on: where the screen checks whether this session
+   *  earned a stamp (it lands here if so). Null when Passport is off. */
+  stamp: number | null;
+  /** "Heck yes!" arrives. With a stamp slot this is the earliest it can, i.e. when there is no
+   *  stamp to wait for; a stamp that lands pushes it back by `STAMP_SETTLE_MS`. */
   button: number;
 }
+
+/** After a new stamp has slammed down: how long it gets to sit alone before "Heck yes!" arrives. */
+export const STAMP_SETTLE_MS = 1500;
 
 export function buildCompletionTimeline(
   wordCount: number,
   statTileCount: number,
   highlightCount: number,
+  hasStampSlot = false,
 ): CompletionTimeline {
   const words = Math.max(1, wordCount);
   const wordTicks = Array.from({ length: words - 1 }, (_, i) => i * WORD_STAGGER_MS + 120);
@@ -48,5 +56,14 @@ export function buildCompletionTimeline(
     (_, i) => statsDone + 200 + i * HIGHLIGHT_GAP_MS,
   );
   const button = highlightCount > 0 ? highlights[highlights.length - 1] + 1100 : statsDone;
-  return { wordTicks, slam, content, statTiles, statsDone, highlights, button };
+  return {
+    wordTicks,
+    slam,
+    content,
+    statTiles,
+    statsDone,
+    highlights,
+    stamp: hasStampSlot ? button : null,
+    button,
+  };
 }

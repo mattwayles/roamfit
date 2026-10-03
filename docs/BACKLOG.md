@@ -16,6 +16,15 @@ the record of what was completed and why.
 
 ## Desired Fixes
 
+- **New passport stamp on Completion — device pass owed.** Track 25 (`docs/handoff/STATUS-25-new-stamp.md`)
+  is Jest-verified only; the feel can't be. On a device with Passport on and location allowed, finish a
+  workout somewhere new: (1) the haptics read as a hand stamping the phone — lift tick, a sharp rigid hit,
+  the heavy weight 45ms behind it, a soft rebound at 150ms (`cueStampImpact`, `workoutAudio.ts`); tune the
+  gaps there if it feels like three taps rather than one stamp; (2) `stamp-thunk.wav` level next to
+  `level-up.wav` (regenerate with `tools/make_stamp_sound.py`); (3) the descent (ease-in, 420ms), squash,
+  ink ring and card dent; (4) the lookup wait — a GPS fix can take a few seconds, and "Heck yes!" is held
+  up to `STAMP_LOOKUP_TIMEOUT_MS` (6s) for it; if that feels long, shorten it (a late stamp still lands
+  on Journey via the queue, but not on this screen); (5) Reduce Motion; (6) both themes.
 - **Spotify foreground reconnect — device check owed.** The silent resume now retries `connect()` twice (500/1500 ms) and swallows the native `CONNECTION_FAILED` event while it runs. Check on a device: Spotify connected, switch to YouTube for a while, return — should reconnect with no error. If Spotify was fully suspended/killed the silent path still can't wake it (by design); the Connect button remains the way back, but the error is gone and a banner-free "Connect" state shows instead.
 - **Pine recolor — device pass owed.** Track 24 replaced ember orange with pine green (`pine`,
   `pineDeep`, `trail` gradient; Golden Hour `#4FD176`, Daylight `#10702D`). Jest-verified only (contrast

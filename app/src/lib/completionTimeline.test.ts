@@ -26,4 +26,15 @@ describe('completion screen timeline', () => {
     expect(t.statTiles).toEqual([]);
     expect(t.slam).toBe(120);
   });
+
+  it('with a stamp slot, the slot sits where the button would have, and without one there is none', () => {
+    const plain = buildCompletionTimeline(3, 4, 2);
+    expect(plain.stamp).toBeNull();
+    const withSlot = buildCompletionTimeline(3, 4, 2, true);
+    expect(withSlot.stamp).toBe(plain.button);
+    expect(withSlot.stamp).toBeGreaterThan(withSlot.highlights[1]);
+    expect(buildCompletionTimeline(2, 3, 0, true).stamp).toBe(
+      buildCompletionTimeline(2, 3, 0).statsDone,
+    );
+  });
 });

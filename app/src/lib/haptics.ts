@@ -26,6 +26,8 @@ export const haptics = {
   medium: () => fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)),
   /** The one moment that should read bigger than an ordinary completion. */
   heavy: () => fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)),
+  /** A hard, sharp contact — the stamp's first touch on the page. */
+  rigid: () => fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid)),
   /** Last set of an exercise, START, exercise/timed completion. */
   success: () => fire(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)),
 };
