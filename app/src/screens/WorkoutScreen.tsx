@@ -163,6 +163,9 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [phase, setPhase] = useState<Phase>('exercise');
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
+  // The "how did that feel" modal over the rest page. Opened by `commitSetAndRest` (a completed
+  // set just landed), never derived from `phase`, so resuming a persisted rest does not re-ask.
+  const [feedbackPromptOpen, setFeedbackPromptOpen] = useState(false);
   // §8.1 — which entry the rest screen's feedback controls apply to (the one just performed,
   // not `current`'s post-reload "next up" entry). See the comment in `finishSetAndRest`.
   const [restingEntryId, setRestingEntryId] = useState<string | null>(null);
@@ -212,6 +215,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const user = usersRepo.ensureUser(db, nowUtcInstant());
   const bandTensions = user.bandTensions;
   const soundsAvailable = user.cueSoundsEnabled;
+  const feedbackAsModal = user.feedbackPromptEnabled;
   useEffect(() => {
     setCueSoundsEnabled(soundsAvailable);
     return () => setCueSoundsEnabled(soundsAvailable);
@@ -759,6 +763,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     setRestingEntryId(entry.id);
     setRestingSetIndex(setIndex);
     setDifficulty(null);
+    setFeedbackPromptOpen(status === 'completed' && feedbackAsModal);
     setPhase('resting');
     setPausedCompletion(null);
     // Persisted alongside the local state above — see `setRestingCursor`'s doc comment for why:
@@ -948,6 +953,12 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     recordFeedback({ difficulty: d ?? null });
   };
 
+  /** Any answer from the modal records it and uncovers the rest timer; Skip records nothing. */
+  const handleFeedbackPromptAnswer = (d: Difficulty | null) => {
+    if (d) handleDifficultyChange(d);
+    setFeedbackPromptOpen(false);
+  };
+
   const sessionSection = entry.section as Section;
   const sectionTone = SECTION_TONE[sessionSection] ?? 'pine';
   const entries = activeEntries(session);
@@ -1117,6 +1128,32 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           </View>
         </Sheet>
 
+        {/* "How did that set feel?" over the running rest timer. Like the paused-completion nudge
+            it is a real prompt the screen waits on, so no backdrop or back-gesture dismiss — but
+            Skip is always there, and nothing is required. */}
+        <Sheet
+          visible={feedbackPromptOpen && phase === 'resting'}
+          onClose={() => {}}
+          dismissable={false}
+          testID="feedback-prompt"
+        >
+          <View style={styles.nudge}>
+            <Txt variant="h2">How did that set feel?</Txt>
+            <FeedbackControls
+              difficulty={null}
+              onDifficultyChange={(d) => handleFeedbackPromptAnswer(d ?? null)}
+            />
+            <Button
+              testID="feedback-prompt-skip"
+              label="Skip"
+              variant="secondary"
+              size="md"
+              fullWidth
+              onPress={() => handleFeedbackPromptAnswer(null)}
+            />
+          </View>
+        </Sheet>
+
         {/* The user's own note about this exercise, above the exercise itself: it is the thing
             they wrote down *because* they wanted to see it before doing the movement again. While
             resting, this is the exercise just finished (`noteExerciseId`), not the upcoming one
@@ -1233,6 +1270,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             howTo={!isFinalRest && exercise ? exercise.setup : null}
             difficulty={difficulty}
             onDifficultyChange={handleDifficultyChange}
+            showFeedback={!feedbackAsModal}
             onNext={handleNextAfterRest}
             onExtend={handleRestExtend}
           />
@@ -2266,6 +2304,7 @@ function RestPhase({
   howTo,
   difficulty,
   onDifficultyChange,
+  showFeedback,
   onNext,
   onExtend,
 }: {
@@ -2303,6 +2342,8 @@ function RestPhase({
   howTo: string | null;
   difficulty: Difficulty | null;
   onDifficultyChange: (d: Difficulty | undefined) => void;
+  /** False when the feedback question is asked in a modal over this page instead. */
+  showFeedback: boolean;
   onNext: () => void;
   /** §10.7 — "+15s taps are recorded as a fatigue signal." Called only for +15 (never −15/Skip). */
   onExtend: () => void;
@@ -2471,10 +2512,14 @@ function RestPhase({
             />
           </View>
 
-          <Txt variant="eyebrow" color="text2" align="center" style={styles.feelLabel}>
-            How did that set feel?
-          </Txt>
-          <FeedbackControls difficulty={difficulty} onDifficultyChange={onDifficultyChange} />
+          {showFeedback && (
+            <>
+              <Txt variant="eyebrow" color="text2" align="center" style={styles.feelLabel}>
+                How did that set feel?
+              </Txt>
+              <FeedbackControls difficulty={difficulty} onDifficultyChange={onDifficultyChange} />
+            </>
+          )}
 
           <Button
             testID="rest-next"

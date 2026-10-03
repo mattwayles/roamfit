@@ -57,6 +57,9 @@ export const users = sqliteTable('users', {
   cueSoundsEnabled: integer('cue_sounds_enabled', { mode: 'boolean' }).notNull().default(true),
   /** Daylight light mode (DESIGN.md §8): 'system' | 'light' | 'dark'. Migration 0022. */
   themePreference: text('theme_preference').notNull().default('system'),
+  feedbackPromptEnabled: integer('feedback_prompt_enabled', { mode: 'boolean' })
+    .notNull()
+    .default(true),
   /** JSON array of Spotify vibe ids (stable strings); '[]' = no preference. Migration 0023. */
   spotifyVibes: text('spotify_vibes').notNull().default('[]'),
   /** JSON: { enabled, quiet_hours, observed_training_window }. */

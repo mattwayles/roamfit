@@ -540,6 +540,14 @@ ALTER TABLE sessions ADD COLUMN region TEXT;
 ALTER TABLE sessions ADD COLUMN country_code TEXT;
 `;
 
+const MIGRATION_0025_FEEDBACK_PROMPT = `-- 0025_feedback_prompt.sql — "How did that set feel?" can open as a modal over the rest screen
+-- instead of sitting inline on it. Default 1 (modal) because the answer is the most useful signal
+-- progression gets; turning it off restores the inline control, which is the behaviour every
+-- earlier install had.
+
+ALTER TABLE users ADD COLUMN feedback_prompt_enabled INTEGER NOT NULL DEFAULT 1;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -571,4 +579,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0022_theme_preference.sql', sql: MIGRATION_0022_THEME_PREFERENCE },
   { id: '0023_spotify_playlists.sql', sql: MIGRATION_0023_SPOTIFY_PLAYLISTS },
   { id: '0024_session_place.sql', sql: MIGRATION_0024_SESSION_PLACE },
+  { id: '0025_feedback_prompt.sql', sql: MIGRATION_0025_FEEDBACK_PROMPT },
 ];

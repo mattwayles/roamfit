@@ -178,3 +178,18 @@ describe('spotifyVibes (migration 0023)', () => {
     }
   });
 });
+
+describe('feedbackPromptEnabled (migration 0025)', () => {
+  it('defaults to on and round-trips through updateUser', () => {
+    const { db, close } = createTestDb();
+    try {
+      expect(ensureUser(db, utcInstantFor('2026-08-01')).feedbackPromptEnabled).toBe(true);
+      updateUser(db, { feedbackPromptEnabled: false }, utcInstantFor('2026-08-02'));
+      expect(getUser(db)!.feedbackPromptEnabled).toBe(false);
+      updateUser(db, { units: 'kg' }, utcInstantFor('2026-08-03'));
+      expect(getUser(db)!.feedbackPromptEnabled).toBe(false);
+    } finally {
+      close();
+    }
+  });
+});

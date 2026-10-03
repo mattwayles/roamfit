@@ -103,6 +103,7 @@ describe('settings', () => {
 
   it.each([
     ['toggle-cue-sounds', (u: usersRepo.UserRecord) => u.cueSoundsEnabled],
+    ['toggle-feedback-prompt', (u: usersRepo.UserRecord) => u.feedbackPromptEnabled],
     ['toggle-passport', (u: usersRepo.UserRecord) => u.passportEnabled],
     ['toggle-healthkit-write', (u: usersRepo.UserRecord) => u.healthWriteEnabled],
     [

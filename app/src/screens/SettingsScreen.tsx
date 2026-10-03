@@ -222,6 +222,14 @@ export default function SettingsScreen(): React.JSX.Element {
     [db, refresh],
   );
 
+  const toggleFeedbackPrompt = useCallback(
+    (value: boolean) => {
+      usersRepo.updateUser(db, { feedbackPromptEnabled: value }, nowUtcInstant());
+      refresh();
+    },
+    [db, refresh],
+  );
+
   const toggleQuietHours = useCallback(
     (value: boolean) => {
       usersRepo.updateUser(
@@ -335,7 +343,7 @@ export default function SettingsScreen(): React.JSX.Element {
       <Enter index={2}>
         <Group
           title="Training"
-          caption="The 3-2-1 count, the halfway chime and the end-of-rest tone. They mix with whatever else is playing rather than pausing it. Vibration cues are unaffected either way, so a silent workout still tells you when a hold or a rest is up. There is also a mute button on the workout itself, for one session at a time."
+          caption="“Ask how each set felt” opens a quick Too easy / Just right / Too hard question over the rest timer after every set (Skip is always there); turn it off and the same question sits on the rest screen instead. The 3-2-1 count, the halfway chime and the end-of-rest tone. They mix with whatever else is playing rather than pausing it. Vibration cues are unaffected either way, so a silent workout still tells you when a hold or a rest is up. There is also a mute button on the workout itself, for one session at a time."
         >
           <SwitchRow
             testID="toggle-cue-sounds"
@@ -344,6 +352,14 @@ export default function SettingsScreen(): React.JSX.Element {
             label="Timer sounds"
             value={user.cueSoundsEnabled}
             onValueChange={toggleCueSounds}
+          />
+          <SwitchRow
+            testID="toggle-feedback-prompt"
+            icon="sparkles"
+            tone="pine"
+            label="Ask how each set felt"
+            value={user.feedbackPromptEnabled}
+            onValueChange={toggleFeedbackPrompt}
           />
         </Group>
       </Enter>
@@ -441,9 +457,9 @@ export default function SettingsScreen(): React.JSX.Element {
           </Group>
           <View style={styles.privacyCopy}>
             <Txt variant="caption" color="text3">
-              Location: opt-in, coarse (nearest town or area) only, resolved once when you complete a session. No
-              coordinates and no continuous or background tracking — only place names (like “Bend, OR, USA”) are
-              ever stored.
+              Location: opt-in, coarse (nearest town or area) only, resolved once when you complete
+              a session. No coordinates and no continuous or background tracking — only place names
+              (like “Bend, OR, USA”) are ever stored.
             </Txt>
             <Txt variant="caption" color="text3">
               Health data (workout duration and estimated energy) is written to Apple Health, never

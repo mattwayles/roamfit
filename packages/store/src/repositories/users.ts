@@ -79,6 +79,8 @@ export interface UserRecord {
   passportEnabled: boolean;
   healthWriteEnabled: boolean;
   cueSoundsEnabled: boolean;
+  /** Ask "how did that set feel?" as a modal over the rest screen (off = inline on it). */
+  feedbackPromptEnabled: boolean;
   themePreference: ThemePreference;
   /** Stable Spotify vibe ids the user picked; `[]` = no preference. */
   spotifyVibes: string[];
@@ -123,6 +125,7 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
     passportEnabled: row.passportEnabled,
     healthWriteEnabled: row.healthWriteEnabled,
     cueSoundsEnabled: row.cueSoundsEnabled,
+    feedbackPromptEnabled: row.feedbackPromptEnabled,
     themePreference: row.themePreference as ThemePreference,
     spotifyVibes: parseStringArray(row.spotifyVibes),
     notificationPrefs: JSON.parse(row.notificationPrefs) as NotificationPrefs,
@@ -160,6 +163,7 @@ export interface UserPatch {
   passportEnabled?: boolean;
   healthWriteEnabled?: boolean;
   cueSoundsEnabled?: boolean;
+  feedbackPromptEnabled?: boolean;
   themePreference?: ThemePreference;
   /** Replaces the stored list wholesale (it is a selection, not a bag to merge into). */
   spotifyVibes?: string[];
@@ -179,6 +183,9 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
   if (patch.passportEnabled !== undefined) values.passportEnabled = patch.passportEnabled;
   if (patch.healthWriteEnabled !== undefined) values.healthWriteEnabled = patch.healthWriteEnabled;
   if (patch.cueSoundsEnabled !== undefined) values.cueSoundsEnabled = patch.cueSoundsEnabled;
+  if (patch.feedbackPromptEnabled !== undefined) {
+    values.feedbackPromptEnabled = patch.feedbackPromptEnabled;
+  }
   if (patch.themePreference !== undefined) values.themePreference = patch.themePreference;
   if (patch.spotifyVibes !== undefined) values.spotifyVibes = JSON.stringify(patch.spotifyVibes);
   if (patch.notificationPrefs !== undefined) {

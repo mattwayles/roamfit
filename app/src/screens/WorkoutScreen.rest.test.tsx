@@ -28,7 +28,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import { generate, sessionsRepo } from '@roamfit/store';
+import { generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
@@ -114,6 +114,8 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
       recoveryWeekManual,
     });
     sessionsRepo.startSession(db, sessionId, nowUtcInstant());
+    // This file covers the inline question; the modal has its own file (feedbackPrompt).
+    usersRepo.updateUser(db, { feedbackPromptEnabled: false }, nowUtcInstant());
 
     const session = sessionsRepo.getSession(db, sessionId)!;
     const activeEntries = session.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
