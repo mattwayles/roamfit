@@ -262,6 +262,47 @@ async function freshAccessToken(
   }
 }
 
+/** Delays before each extra silent `connect()` try. Right as RoamFit returns to the foreground,
+ *  Spotify's App Remote server is often not accepting connections yet (it was suspended while
+ *  another app was in front), so the first attempt fails and a second one a moment later succeeds —
+ *  which is what the manual button was doing for the user. */
+const SILENT_RETRY_DELAYS_MS = [500, 1500];
+
+/** How many silent `connect()` calls are in flight — while non-zero, the native `connectionError`
+ *  event is expected noise (the failure is handled by retrying, or by quietly staying disconnected)
+ *  and must not reach the user as "Couldn't reach the Spotify app". */
+let silentConnectsInFlight = 0;
+
+function connectWithSilentRetries(
+  mod: SpotifyModule,
+  accessToken: string,
+  allowWake: boolean,
+): Promise<void> {
+  // An explicit tap falls through to `authorizeAndPlay` on failure, so it never needs retries.
+  if (allowWake) return mod.AppRemote.connect(accessToken);
+  return (async () => {
+    silentConnectsInFlight += 1;
+    try {
+      for (let attempt = 0; ; attempt += 1) {
+        try {
+          await mod.AppRemote.connect(accessToken);
+          return;
+        } catch (error) {
+          if (errorCode(error) !== 'CONNECTION_FAILED' || attempt >= SILENT_RETRY_DELAYS_MS.length) {
+            throw error;
+          }
+          await new Promise((resolve) => setTimeout(resolve, SILENT_RETRY_DELAYS_MS[attempt]));
+        }
+      }
+    } finally {
+      // Deferred a tick: the native error event can land just after the promise rejects.
+      setTimeout(() => {
+        silentConnectsInFlight -= 1;
+      }, 250);
+    }
+  })();
+}
+
 async function attemptResume(
   mod: SpotifyModule,
   options: { allowWake: boolean },
@@ -275,7 +316,7 @@ async function attemptResume(
   if (!accessToken) return NOT_RESUMED;
 
   try {
-    await mod.AppRemote.connect(accessToken);
+    await connectWithSilentRetries(mod, accessToken, options.allowWake);
     return { connected: true, blockingError: null };
   } catch (error) {
     if (errorCode(error) !== 'CONNECTION_FAILED') {
@@ -655,6 +696,7 @@ export function useSpotifyPlayer(): SpotifyPlayer {
       }
     });
     const connectionError = mod.AppRemote.addListener('connectionError', (event) => {
+      if (silentConnectsInFlight > 0 && errorCode(event) === 'CONNECTION_FAILED') return;
       setLastError(describeError(event));
     });
     const player = mod.Player.addListener('playerStateChange', (state) => {

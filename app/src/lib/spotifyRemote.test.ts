@@ -808,6 +808,34 @@ describe('useSpotifyPlayer', () => {
     expect(mockModule.AppRemote.authorizeAndPlay).not.toHaveBeenCalled();
   });
 
+  it('retries a silent resume that fails right as the app returns to the foreground, never waking Spotify', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+    mockModule.AppRemote.connect
+      .mockRejectedValueOnce(new FakeSpotifyError('CONNECTION_FAILED'))
+      .mockResolvedValue(undefined);
+
+    await renderHook(() => useSpotifyPlayer());
+
+    await waitFor(() => expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(2), {
+      timeout: 3000,
+    });
+    expect(mockModule.AppRemote.authorizeAndPlay).not.toHaveBeenCalled();
+  });
+
+  it('does not surface the native connection error that a silent resume attempt triggers', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+    mockModule.AppRemote.connect.mockImplementationOnce(async () => {
+      emit('connectionError', { code: 'CONNECTION_FAILED', message: 'gone' });
+      throw new FakeSpotifyError('CONNECTION_FAILED');
+    });
+
+    const { result } = await renderHook(() => useSpotifyPlayer());
+    await waitFor(() => expect(mockModule.AppRemote.connect).toHaveBeenCalled());
+    await act(async () => {});
+
+    expect(result.current.lastError).toBeNull();
+  });
+
   it('does nothing on mount when already connected', async () => {
     mockModule.AppRemote.isConnected.mockReturnValue(true);
     mockLoadStoredSpotifySession.mockResolvedValue(storedSession());

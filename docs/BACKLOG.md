@@ -16,6 +16,7 @@ the record of what was completed and why.
 
 ## Desired Fixes
 
+- **Spotify foreground reconnect — device check owed.** The silent resume now retries `connect()` twice (500/1500 ms) and swallows the native `CONNECTION_FAILED` event while it runs. Check on a device: Spotify connected, switch to YouTube for a while, return — should reconnect with no error. If Spotify was fully suspended/killed the silent path still can't wake it (by design); the Connect button remains the way back, but the error is gone and a banner-free "Connect" state shows instead.
 - **Pine recolor — device pass owed.** Track 24 replaced ember orange with pine green (`pine`,
   `pineDeep`, `trail` gradient; Golden Hour `#4FD176`, Daylight `#10702D`). Jest-verified only (contrast
   floors in `themes.test.ts` hold). On a device, in both themes: (1) pine vs lagoon (teal) — Main rail
