@@ -4,6 +4,10 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '/ios/', '/android/'],
   setupFiles: ['<rootDir>/jest.setup.js'],
   globalTeardown: '<rootDir>/jest.globalTeardown.js',
+  // Screen tests mount real screens over the real SQLite driver; with the whole suite running in
+  // parallel, the 5s default intermittently expires on a loaded machine (a different test each
+  // run). Tests that chain several `waitFor`s still pass their own larger timeout.
+  testTimeout: 20000,
   // NOTE on parallelism: several test files exercise the REAL on-device op-sqlite driver
   // (app/src/db) deliberately (see STATUS-4-loop.md — this is what caught the node:fs Metro bug
   // and a real feedback-clear bug a mock never would have). An earlier version of this config set
