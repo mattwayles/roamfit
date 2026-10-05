@@ -54,6 +54,9 @@ export { baseStartLevel } from './progression/ladder';
 export { resolveLadderSlot } from './progression/resolveSlot';
 export type { ResolvedLadderSlot } from './progression/resolveSlot';
 export { defaultMicroForExercise, microAdvance, microStepsToNextLevel } from './progression/micro';
+// The "Progress" chart's y-value: how far up the micro ladder a past session was performed.
+export { ladderPosition } from './progression/ladderPosition';
+export type { LadderPosition, PerformedSession } from './progression/ladderPosition';
 
 // Wave 5 wiring surface — §14.1.4 progression board / §6.4 Next Unlock. Read-only ladder lookups
 // the UI needs to render every family's level badge, mastery state, and next-unlock exercise
