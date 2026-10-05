@@ -41,7 +41,9 @@ describe('workoutNotifications', () => {
   it('suppresses the banner for rest-complete notifications while foregrounded, but not others', async () => {
     const handler = handlerArg;
     const make = (data?: Record<string, unknown>) => ({ request: { content: { data } } });
-    await expect(handler.handleNotification(make({ kind: 'rest-complete' }))).resolves.toMatchObject({
+    await expect(
+      handler.handleNotification(make({ kind: 'rest-complete' })),
+    ).resolves.toMatchObject({
       shouldShowBanner: false,
       shouldShowList: false,
     });

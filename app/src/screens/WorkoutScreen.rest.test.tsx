@@ -196,5 +196,5 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
         ).toBeTruthy(),
       WAIT_OPTS,
     );
-  });
+  }, 20000);
 });

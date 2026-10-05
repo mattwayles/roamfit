@@ -49,7 +49,7 @@ import type { RootStackParamList } from '../navigation/types';
 import { homeReset } from '../navigation/routes';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
-import { findCurrentEntry, type Section } from '../lib/sessionProgress';
+import { findCurrentEntry } from '../lib/sessionProgress';
 import {
   buildCelebrationViewModel,
   pickHypeHeadline,

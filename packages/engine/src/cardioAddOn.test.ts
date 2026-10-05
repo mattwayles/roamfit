@@ -122,7 +122,13 @@ describe('cardio add-on', () => {
 describe('interleaveEvenly', () => {
   it('spaces cardio evenly between strength entries', () => {
     expect(interleaveEvenly(['a', 'b', 'c', 'd', 'e'], ['X', 'Y'])).toEqual([
-      'a', 'X', 'b', 'c', 'Y', 'd', 'e',
+      'a',
+      'X',
+      'b',
+      'c',
+      'Y',
+      'd',
+      'e',
     ]);
     expect(interleaveEvenly(['a', 'b', 'c', 'd'], ['X'])).toEqual(['a', 'b', 'X', 'c', 'd']);
   });
