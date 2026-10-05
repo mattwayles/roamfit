@@ -112,6 +112,19 @@ describe('Journey after a completed session', () => {
     // an unscoped query would then (correctly) fail on ambiguity rather than pin the wrong thing.
     expect(screen.getByTestId('lifetime-counters')).toBeTruthy();
     expect(within(screen.getByTestId('lifetime-sessions')).getByText('1')).toBeTruthy();
+    // Reading order: the effort counts on top, Levels gained leads the places row.
+    const order = screen
+      .getAllByTestId(/^lifetime-[a-z-]+$/)
+      .map((n) => n.props.testID as string)
+      .filter((id) => id !== 'lifetime-counters' && !id.endsWith('-value'));
+    expect(order).toEqual([
+      'lifetime-sessions',
+      'lifetime-sets',
+      'lifetime-personal-bests',
+      'lifetime-levels',
+      'lifetime-places',
+      'lifetime-countries',
+    ]);
     // Every Journey Marker tile wears the primary; icon and label tell them apart.
     for (const id of ['sessions', 'sets', 'levels', 'personal-bests', 'places', 'countries']) {
       const value = screen.getByTestId(`lifetime-${id}-value`);

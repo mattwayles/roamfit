@@ -339,21 +339,21 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                 tone="teal"
               />
               <StatTile
-                testID="lifetime-levels"
-                style={styles.tile}
-                value={lifetime.levelsGained}
-                label="Levels gained"
-                icon="trendingUp"
-                tone="teal"
-              />
-            </View>
-            <View style={styles.tileRow}>
-              <StatTile
                 testID="lifetime-personal-bests"
                 style={styles.tile}
                 value={lifetime.bestSets}
                 label="Personal bests"
                 icon="trophy"
+                tone="teal"
+              />
+            </View>
+            <View style={styles.tileRow}>
+              <StatTile
+                testID="lifetime-levels"
+                style={styles.tile}
+                value={lifetime.levelsGained}
+                label="Levels gained"
+                icon="trendingUp"
                 tone="teal"
               />
               <StatTile

@@ -206,7 +206,7 @@ Top to bottom:
 
 The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
 1. **Journey Markers** — 3×2 grid of `StatTile`s, all in the primary `teal`: Sessions (flame),
-   Sets completed (barbell), Levels gained (trending-up), Personal bests (trophy), Places
+   Sets completed (barbell), Personal bests (trophy), Levels gained (trending-up), Places
    (location), Countries (globe). The icon and label tell them apart, not colour. Numbers in
    `hero`-size condensed.
 2. **Trails** (the progression board, renamed in UI copy only). One card per family:
