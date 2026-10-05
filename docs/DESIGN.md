@@ -52,7 +52,6 @@ ink:       '#170B03'   // text ON bright accent fills (teal/gold/coral). Never w
 teal:     '#4FB8C4'   // primary (Midnight Green's light complement): action, work, "go"
 tealDeep: '#2E8C98'
 gold:      '#FFB938'   // warm-up, achievements, best sets, notes
-sun:       '#FFD166'   // highlights inside gold moments
 coral:    '#FF8A5C'   // rest, recovery, cool-down, calm
 sky:       '#5AA9FF'   // travel / in transit / passport
 summit:    '#C77DFF'   // plum: progression, levels, ladders
@@ -207,7 +206,7 @@ Top to bottom:
 
 The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
 1. **Lifetime** — 3×2 grid of `StatTile`s: Sessions (flame, teal), Minutes (time, gold),
-   Levels gained (trending-up, summit), Personal bests (trophy, sun), Places (location, sky),
+   Levels gained (trending-up, summit), Personal bests (trophy, gold), Places (location, sky),
    Countries (globe, coral). Numbers in `hero`-size condensed.
 2. **Trails** (the progression board, renamed in UI copy only). One card per family:
    - Left: family name (`h2`), current exercise (`small`, text2).
@@ -374,12 +373,12 @@ share-button text in `HighlightCard`, and the lilac stat labels in `AnimatedStat
 it goes. **No violet surfaces or violet-dominant elements on this page** — `summit` is not used
 here at all.
 
-- **Background**: `bg` night base with the drifting glow orbs recolored to **teal, gold and
-  sun** (big, soft, ~35–45% opacity) so the whole screen reads as a warm sunset bloom, not a
+- **Background**: `bg` night base with the drifting glow orbs recolored to **teal and
+  gold** (two gold orbs; big, soft, ~35–45% opacity) so the whole screen reads as a warm sunset bloom, not a
   flat color. Optional third orb in coral at low opacity for depth.
-- **Sunburst rays**: gold/sun at low opacity, still spinning.
+- **Sunburst rays**: gold at two low opacities, still spinning.
 - **Hype headline**: keeps the stamp-in, word-by-word slam and bounce. Barlow Condensed 800,
-  `display`/`hero` scale, uppercase; words in `text` with the accent word in `sun`, and a teal
+  `display`/`hero` scale, uppercase; words in `text` with the accent word in `gold` (`stamp.fill`), and a teal
   text-shadow glow so it looks stamped in light.
 - "You just finished your 12th workout on RoamFit!" in `h2`, then "32 min · upper" in `small`.
 - **Stat chips**: keep the tile-by-tile pop-in and count-up. 2×2 grid of `StatTile`-style
@@ -391,7 +390,7 @@ here at all.
   ("LEVEL UP" in teal / "BEST SET" in gold) on the left stamps in on the reveal; level bar
   fills with the `trail` gradient; share is an `IconButton` (share icon), not violet text.
 - **Quiet milestones**: small gold `Chip`s, wrapping.
-- **Confetti**: same physics, cannons and pops, palette → teal, tealDeep, gold, sun, coral,
+- **Confetti**: same physics, cannons and pops, palette → teal, tealDeep, gold, coral,
   sky, rose, `text` white. No violet.
 - **"Heck yes! 💪"**: keeps its entrance and endless pulse, now `Button lg primary` (trail
   gradient, `ink` text, glow) — the pulse should also breathe the glow.
@@ -443,7 +442,7 @@ Nothing ships on the old look. Beyond the screens above, the redesign covers:
   dark pill, Spotify green is allowed *only* as the logo/brand dot; its browse sheet is vibe chips
   over Favorites / Recently played / Fresh picks sections, with a heart on every playlist row), `FeedbackControls`,
   `HighlightCard`, `AnimatedStatCounter`, `HypeHeadline`, `CelebrationBackdrop`, `ConfettiBurst`
-  (palette → teal/gold/sun/summit/coral/sky), `OptionPicker` (restyle or delete if unused).
+  (palette → teal/gold/summit/coral/sky), `OptionPicker` (restyle or delete if unused).
 - **Keyboard accessories** (Summary "Done", Workout/Approval inputs): `surface2` bar with an
   teal "Done".
 - **Native chrome**: `app.json` `userInterfaceStyle: "dark"`, splash `backgroundColor` = `bg`,
@@ -523,7 +522,6 @@ text3: '#6B6052'   //  5.4:1 — still AA, because "muted" outdoors is "invisibl
 teal:     '#004C54'   // Midnight Green; 8.6:1 on bg; white on it 9.7:1
 tealDeep: '#003A40'
 gold:      '#8F5A00'   // brass — reads as gold on paper, unlike a yellow
-sun:       '#7A6B00'   // mustard, hue 53 vs gold's 38 so the two read apart; 4.7:1 on bg
 coral:    '#B04219'   // 5.8:1 white, 5.1:1 on bg, 4.7:1 on surface2
 sky:       '#1A5FC2'
 summit:    '#7E2BB0'   // plum; 7.3:1 white, 6.5:1 on bg, 6.0:1 on surface2
@@ -573,7 +571,7 @@ night:   ['#FFFDF8', '#F6F0E4']   // card sheen: surface -> bg
   black thumb).
 - **Tints are 8% alpha in Daybreak** (15% on Midnight): at 15%, accent text on its own tint over
   `bg` falls to 3.9–4.3:1 for teal/gold/coral/sky/rose; at 8% every accent holds ≥ 4.5:1 over
-  `surface` and `bg` (`sun` ≥ 3). Asserted in `themes.test.ts`. Teal's Daybreak `#004C54` holds 7.5:1 on its own 8% tint over `bg`.
+  `surface` and `bg`. Asserted in `themes.test.ts`. Teal's Daybreak `#004C54` holds 7.5:1 on its own 8% tint over `bg`.
 - **Calendar day cells fill with the vivid hue.** A deep accent washed over paper goes muddy (the
   Logbook read as greyed-out at 20%), so Daybreak `dayCell[tone]` = `vivid` at 40% alpha, bordered
   by the deep accent at 70%. The date numeral (`text`) stays >= 7:1 on every marker fill. Golden
@@ -584,7 +582,7 @@ night:   ['#FFFDF8', '#F6F0E4']   // card sheen: surface -> bg
 - **Topo contours are printed sepia.** `topo.color` `#3B2410` at `topo.strength` 1.3× the seeded
   opacity (Midnight: `text`, 1×). Sepia reads on both paper and the deep hero gradients.
 - **Completion's stamped headline** (the screen the user loves) keeps its construction, swaps its
-  inks: Midnight fill `sun` / hard shadow `tealDeep` / teal glow; Daybreak fill `teal` (deep) /
+  inks: Midnight fill `gold` / hard shadow `tealDeep` / teal glow; Daybreak fill `teal` (deep) /
   hard shadow `vivid.gold` / no glow — a two-color screenprinted poster. Exposed as `stamp.fill`,
   `stamp.shadow`, `stamp.glow` (`null` = none).
 
@@ -595,8 +593,8 @@ night:   ['#FFFDF8', '#F6F0E4']   // card sheen: surface -> bg
   `{ scheme, colors, vivid, tints, gradients, accentGradient, section, focus, setState, dayMarker,
   dayCell, trainedColor, onGradient, heroCta, glow, elevation, topo, stamp, statusBar, navTheme,
   headerOptions }`. `onGradient(tone)` returns a color token *name* (`'ink' | 'fixedPaper'`), not a
-  hex; `heroCta` is the token name of the Home hero pill's legend (Midnight `sun`, Daybreak
-  `teal` — sun is 3.8:1 on Daybreak's white pill). No scattered `scheme === ` color checks: add a
+  hex; `heroCta` is the token name of the Home hero pill's legend (Midnight `gold`, Daybreak
+  `teal`). No scattered `scheme === ` color checks: add a
   Theme field instead.
   Two instances, built once at module load.
 - `ThemeProvider` resolves a **preference** (`'system' | 'light' | 'dark'`) with RN's

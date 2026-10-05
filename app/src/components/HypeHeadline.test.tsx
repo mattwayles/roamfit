@@ -34,7 +34,7 @@ describe('HypeHeadline stamped shadow', () => {
     }
   });
 
-  it('keeps the soft teal glow and leaves the real letters crisp, accent word in sun', async () => {
+  it('keeps the soft teal glow and leaves the real letters crisp, accent word in gold', async () => {
     await renderHeadline('BEAST MODE ACTIVATED');
     const glow = style('hype-word-0-shadow');
     expect(glow.textShadowColor).toContain('79,184,196');
@@ -42,7 +42,7 @@ describe('HypeHeadline stamped shadow', () => {
     const word = style('hype-word-0');
     expect(word.color).toBe(midnight.text);
     expect(word.textShadowRadius).toBeUndefined();
-    expect(style('hype-word-2').color).toBe(midnight.sun);
+    expect(style('hype-word-2').color).toBe(midnight.gold);
   });
 
   it('reads once: the shadow copies are hidden from accessibility', async () => {

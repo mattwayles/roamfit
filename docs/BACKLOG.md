@@ -53,12 +53,13 @@ the record of what was completed and why.
   (track 28b: `summit` is plum `#C77DFF` / `#7E2BB0`, `periwinkle` became warm `coral` `#FF8A5C` / `#B04219`),
   and renamed the themes Midnight (dark) and Daybreak (light). Jest-verified only (contrast floors hold).
   On a device, in both themes: (1) coral against Daybreak's brass gold (`#8F5A00`, only ~22 degrees of
-  hue) and against rose (Cardio) — Countries (coral) vs Sets completed (gold) tiles, the cooldown rail
+  hue) and against rose (Cardio) — Countries (coral) vs Personal bests (gold) tiles, the cooldown rail
   (coral) vs the warm-up rail (gold), Full-body (coral) vs Abs (gold) vs Cardio (rose) chips; plum
   (summit) vs rose; the rest ring, now warm coral; sky vs teal (Travel-day vs Main rail) and the
   Journey tiles Levels gained (plum) / Places (sky) / Countries (coral) now read as three colors;
-  Daybreak `sun` is now mustard `#7A6B00` (was brass-brown `#A86F00`, same hue as gold): Personal
-  bests (sun) vs Sets completed (gold) tiles, and mustard best-set highlights on paper;
+  the `sun` accent is gone (it duplicated gold): Sets completed now shares teal with Sessions, the
+  Midnight Completion stamp headline and Today hero pill text are gold, and the confetti, orbs and
+  rays lost their pale yellow — check the celebration still feels warm enough;
   (2) the `trail` hero gradient with the sepia topo ink on Home and Completion; (3) the stamp's hard
   `tealDeep` shadow; (4) the Spotify button (`#1db954`, `SpotifyControls.tsx`) next to teal controls;
   (5) `assets/icon.png` and `assets/splash-icon.png` — still the old colors, never inspected.

@@ -49,8 +49,8 @@ export interface Theme {
   trainedColor(focusKey: string | null | undefined): string;
   /** Token name of the legend color for text on a hero gradient of this accent tone. */
   onGradient(tone: AccentName): 'ink' | 'fixedPaper';
-  /** Legend color for the Home hero pill (an `ink` fill): `sun` reads on Midnight's near-black;
-   *  Daybreak's white pill takes deep teal (sun is only 3.8:1 there). */
+  /** Legend color for the Home hero pill (an `ink` fill): `gold` reads on Midnight's near-black;
+   *  Daybreak's white pill takes deep teal. */
   heroCta: ColorName;
   /** Accent glow as iOS shadow props. Tamed in Daybreak, where a big bloom reads as a smudge. */
   glow(color?: string): ViewStyle;
@@ -136,7 +136,7 @@ export function buildTheme(scheme: Scheme): Theme {
     // Ink everywhere: Midnight's bright fills (plum included, >= 4.9:1 over its whole gradient)
     // take near-black, Daybreak's deep fills take white. Paper would be 1.9:1 on plum's light end.
     onGradient: () => 'ink',
-    heroCta: dark ? 'sun' : 'teal',
+    heroCta: dark ? 'gold' : 'teal',
     glow: (color = c.teal) => ({
       shadowColor: color,
       shadowOpacity: dark ? 0.45 : 0.28,
@@ -156,7 +156,7 @@ export function buildTheme(scheme: Scheme): Theme {
     // Sepia contours read on both paper and the deep hero gradients.
     topo: dark ? { color: c.text, strength: 1 } : { color: '#3B2410', strength: 1.3 },
     stamp: dark
-      ? { fill: c.sun, shadow: c.tealDeep, glow: c.teal }
+      ? { fill: c.gold, shadow: c.tealDeep, glow: c.teal }
       : { fill: c.teal, shadow: vivid.gold, glow: null },
     statusBar: dark ? 'light' : 'dark',
     navTheme,

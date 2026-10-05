@@ -266,7 +266,7 @@ const useStyles = makeStyles((t) =>
       top: -60,
       bottom: -60,
       width: 60,
-      backgroundColor: withAlpha(t.vivid.sun, 0.18),
+      backgroundColor: withAlpha(t.vivid.gold, 0.18),
     },
     row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
     body: { flex: 1, gap: 2 },

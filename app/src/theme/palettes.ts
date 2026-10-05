@@ -30,7 +30,6 @@ export const midnight = {
   teal: '#4FB8C4',
   tealDeep: '#2E8C98',
   gold: '#FFB938',
-  sun: '#FFD166',
   coral: '#FF8A5C',
   sky: '#5AA9FF',
   summit: '#C77DFF',
@@ -42,13 +41,12 @@ export type ColorName = keyof typeof midnight;
 export type Palette = Record<ColorName, string>;
 
 /** The accent colors — the ones that can carry a tint, a chip tone or a glow. */
-export type AccentName = 'teal' | 'tealDeep' | 'gold' | 'sun' | 'coral' | 'sky' | 'summit' | 'rose';
+export type AccentName = 'teal' | 'tealDeep' | 'gold' | 'coral' | 'sky' | 'summit' | 'rose';
 
 export const accentNames: readonly AccentName[] = [
   'teal',
   'tealDeep',
   'gold',
-  'sun',
   'coral',
   'sky',
   'summit',
@@ -80,9 +78,6 @@ export const daybreak: Palette = {
   tealDeep: '#003A40',
   /** Brass — reads as gold on paper, unlike a yellow. */
   gold: '#8F5A00',
-  /** Mustard, not a lighter brass: at gold's hue it read as the same brown on paper, so it
-   *  shifts toward yellow (53 degrees vs gold's 38). 4.7:1 on bg. */
-  sun: '#7A6B00',
   coral: '#B04219',
   sky: '#1A5FC2',
   summit: '#7E2BB0',
@@ -95,7 +90,6 @@ export const vivid: Record<AccentName, string> = {
   teal: midnight.teal,
   tealDeep: midnight.tealDeep,
   gold: midnight.gold,
-  sun: midnight.sun,
   coral: midnight.coral,
   sky: midnight.sky,
   summit: midnight.summit,

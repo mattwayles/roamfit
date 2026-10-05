@@ -77,7 +77,6 @@ describe('palettes', () => {
       teal: '#4FB8C4',
       tealDeep: '#2E8C98',
       gold: '#FFB938',
-      sun: '#FFD166',
       coral: '#FF8A5C',
       sky: '#5AA9FF',
       summit: '#C77DFF',
@@ -128,18 +127,17 @@ describe('Daybreak contrast (WCAG)', () => {
     }
   });
 
-  it('every accent except sun >= 4.5 on bg and surface; sun >= 3', () => {
+  it('every accent >= 4.5 on bg and surface', () => {
     for (const n of accentNames) {
       for (const g of ['bg', 'surface'] as const) {
         const ratio = contrast(daybreak[n], daybreak[g]);
-        expect(ratio).toBeGreaterThanOrEqual(n === 'sun' ? 3 : 4.5);
+        expect(ratio).toBeGreaterThanOrEqual(4.5);
       }
     }
   });
 
-  it('ink (white) >= 4.5 on every accent fill except sun', () => {
+  it('ink (white) >= 4.5 on every accent fill', () => {
     for (const n of accentNames) {
-      if (n === 'sun') continue;
       expect(contrast(daybreak.ink, daybreak[n])).toBeGreaterThanOrEqual(4.5);
     }
   });
@@ -161,8 +159,8 @@ describe('Midnight contrast is not regressed', () => {
 });
 
 describe('accent hues stay apart', () => {
-  // The six hues a screen shows side by side. gold and sun are one family on purpose, so sun is
-  // left out. Teal, sky, plum (summit), coral, gold and rose must each be >= 20 degrees from the rest.
+  // The six hues a screen shows side by side. Teal, sky, plum (summit), coral, gold and rose must
+  // each be >= 20 degrees from the rest.
   const spread = ['teal', 'sky', 'summit', 'coral', 'gold', 'rose'] as const;
   it.each([
     ['Midnight', midnight],
@@ -179,11 +177,6 @@ describe('accent hues stay apart', () => {
       }
     },
   );
-  it('Daybreak: sun (mustard) stays apart from gold (brass)', () => {
-    // Both are deepened for paper; at one hue they read as the same brown (Sets completed vs
-    // Personal bests on Journey).
-    expect(hueDistance(daybreak.sun, daybreak.gold)).toBeGreaterThanOrEqual(12);
-  });
 });
 
 describe('buildTheme', () => {
@@ -204,9 +197,8 @@ describe('buildTheme', () => {
   it('Daybreak accent text on its own tint holds contrast over surface and bg', () => {
     for (const n of accentNames) {
       for (const base of [daybreak.surface, daybreak.bg]) {
-        const floor = n === 'sun' ? 3 : 4.5;
         expect(contrast(daybreak[n], composite(daybreak[n], 0.08, base))).toBeGreaterThanOrEqual(
-          floor,
+          4.5,
         );
       }
     }
@@ -247,8 +239,8 @@ describe('buildTheme', () => {
     expect(midnightTheme.gradients).toEqual(midnightGradients);
   });
 
-  it('heroCta: sun on Midnight, deep teal on Daybreak', () => {
-    expect(midnightTheme.heroCta).toBe('sun');
+  it('heroCta: gold on Midnight, deep teal on Daybreak', () => {
+    expect(midnightTheme.heroCta).toBe('gold');
     expect(daybreakTheme.heroCta).toBe('teal');
   });
 
@@ -289,7 +281,7 @@ describe('buildTheme', () => {
     expect(midnightTheme.topo).toEqual({ color: midnight.text, strength: 1 });
     expect(daybreakTheme.topo).toEqual({ color: '#3B2410', strength: 1.3 });
     expect(midnightTheme.stamp).toEqual({
-      fill: midnight.sun,
+      fill: midnight.gold,
       shadow: midnight.tealDeep,
       glow: midnight.teal,
     });

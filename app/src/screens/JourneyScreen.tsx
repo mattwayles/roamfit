@@ -335,7 +335,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                 value={lifetime.totalSets}
                 label="Sets completed"
                 icon="barbell"
-                tone="gold"
+                tone="teal"
               />
               <StatTile
                 testID="lifetime-levels"
@@ -353,7 +353,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                 value={lifetime.bestSets}
                 label="Personal bests"
                 icon="trophy"
-                tone="sun"
+                tone="gold"
               />
               <StatTile
                 testID="lifetime-places"

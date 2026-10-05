@@ -32,3 +32,16 @@ Last updated: 2026-10-04
 - Hue test now: every pair of {teal, sky, summit, coral, gold, rose} >= 20 deg in both themes (tightest: coral-gold 22.0, teal-sky 25.1/29.6).
 - Daybreak coral nudged #B4441C -> #B04219 (same hue, 16.3 deg): #B4441C is 4.38:1 as text on its own 8% tint over bg (floor 4.5); #B04219 is 4.54, white 5.77, surface2 4.70.
 - Daybreak chip hue gaps: coral-gold 22.0 (both themes), coral-rose 37.2/41.7.
+
+## Track: 28c — Drop the `sun` accent
+Last updated: 2026-10-05
+### Done
+- [x] a4f4fdc made Daybreak sun mustard to split Personal bests from Sets completed; superseded here.
+- [x] `sun` removed from both palettes, AccentName, accentNames and vivid. Midnight heroCta and stamp.fill
+  are gold; confetti drops sun; the sun orb, faint ray and highlight glow use gold. Journey tiles:
+  Sets completed -> teal (pairs with Sessions as volume counts), Personal bests -> gold (trophy).
+### Decisions / gotchas
+- Why: in Daybreak sun was used only by the Personal bests tile, and in Midnight only for the hero
+  pill text, stamp fill and decoration — gold covers all of it. The six-tile grid was the real
+  constraint; retoning tiles beat adding a colour.
+- Contrast tests lost their sun exemptions: every accent now holds 4.5:1 everywhere they check.

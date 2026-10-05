@@ -1,5 +1,5 @@
 /**
- * The completion screen's living background (DESIGN.md §5.9): soft teal, gold and sun glow orbs
+ * The completion screen's living background (DESIGN.md §5.9): soft teal, gold and coral glow orbs
  * (plus a faint coral one for depth) drifting across the `bg` night base, so the screen reads as
  * a moving sunset bloom rather than a flat fill. Each orb is a stack of concentric translucent
  * circles (a stepped radial falloff that reads as a soft glow once it's large and moving), and
@@ -47,7 +47,7 @@ const orbsFor = ({ vivid }: Theme): OrbSpec[] => [
     period: 9000,
   },
   {
-    color: vivid.sun,
+    color: vivid.gold,
     ring: 0.07,
     size: 0.8,
     x: 0.1,
@@ -174,9 +174,9 @@ export function Sunburst({
   const spin = useRef(new Animated.Value(0)).current;
   const { vivid } = useTheme();
   const RAYS = 14;
-  // Rays alternate gold and sun, low opacity.
+  // Rays alternate a stronger and a fainter gold, low opacity.
   const rayGold = withAlpha(vivid.gold, 0.16);
-  const raySun = withAlpha(vivid.sun, 0.1);
+  const rayFaint = withAlpha(vivid.gold, 0.1);
 
   useEffect(() => {
     if (still) return;
@@ -230,7 +230,7 @@ export function Sunburst({
               borderTopWidth: half,
               borderLeftColor: 'transparent',
               borderRightColor: 'transparent',
-              borderTopColor: i % 2 === 0 ? rayGold : raySun,
+              borderTopColor: i % 2 === 0 ? rayGold : rayFaint,
             }}
           />
         </View>
