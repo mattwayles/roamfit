@@ -17,8 +17,8 @@ the record of what was completed and why.
 ## Desired Fixes
 
 - **History / past months / progress graphs — device pass owed.** Track 27
-  (`docs/handoff/STATUS-27-history-progress.md`) is Jest-verified only. On a device, in Golden Hour
-  and Daylight: (1) `ProgressChart` (Exercise detail and Trail progress): the tap-to-read target is
+  (`docs/handoff/STATUS-27-history-progress.md`) is Jest-verified only. On a device, in Midnight
+  and Daybreak: (1) `ProgressChart` (Exercise detail and Trail progress): the tap-to-read target is
   the whole plot, so check nearest-point taps feel right on a long history, y/date labels and the
   dashed level ticks read at phone width, the per-exercise colours separate (a colour-blind check
   was not run — `dataviz`'s validator was not run on the five accent tones), and the Best set /
@@ -47,15 +47,17 @@ the record of what was completed and why.
   up to `STAMP_LOOKUP_TIMEOUT_MS` (6s) for it; if that feels long, shorten it (a late stamp still lands
   on Journey via the queue, but not on this screen); (5) Reduce Motion; (6) both themes.
 - **Spotify foreground reconnect — device check owed.** The silent resume now retries `connect()` twice (500/1500 ms) and swallows the native `CONNECTION_FAILED` event while it runs. Check on a device: Spotify connected, switch to YouTube for a while, return — should reconnect with no error. If Spotify was fully suspended/killed the silent path still can't wake it (by design); the Connect button remains the way back, but the error is gone and a banner-free "Connect" state shows instead.
-- **Pine recolor — device pass owed.** Track 24 replaced ember orange with pine green (`pine`,
-  `pineDeep`, `trail` gradient; Golden Hour `#4FD176`, Daylight `#10702D`). Jest-verified only (contrast
-  floors in `themes.test.ts` hold). On a device, in both themes: (1) pine vs lagoon (teal) — Main rail
-  against Cooldown rail, and Upper vs Full-body focus chips, must read as different colors; (2) the
-  Spotify button (`#1db954`, `SpotifyControls.tsx`) next to pine controls — accepted, but look; (3) the
-  `trail` hero gradient with the sepia topo ink on Home and Completion, and the stamp's hard `pineDeep`
-  shadow; (4) `assets/icon.png` and `assets/splash-icon.png` — never inspected, may still be orange;
-  (5) the theme names "Golden Hour" / "Daylight" — with no orange primary, decide whether the dark theme
-  keeps its name (gold/sun/rose still carry the warm side).
+- **Midnight Green recolor — device pass owed.** Track 28 (`docs/handoff/STATUS-28-midnight-green.md`)
+  replaced the teal green with Midnight Green (`teal`/`tealDeep`: Midnight `#4FB8C4`/`#2E8C98`, Daybreak
+  `#004C54`/`#003A40`), made the old teal `lagoon` a blue-violet `periwinkle` (`#7F97FF` / `#3B4FC2`),
+  and renamed the themes Midnight (dark) and Daybreak (light). Jest-verified only (contrast floors hold).
+  On a device, in both themes: (1) teal, periwinkle, sky and summit read as four distinct colors — the
+  cooldown rail (periwinkle) against the Main rail (teal), the Full-body (periwinkle) vs Upper (teal)
+  vs Legs (summit) chips, the rest ring, and Travel-day (sky) vs Legs (summit) markers on the Logbook
+  (periwinkle sits only ~15-20 degrees of hue from sky and summit by design; the test pins that);
+  (2) the `trail` hero gradient with the sepia topo ink on Home and Completion; (3) the stamp's hard
+  `tealDeep` shadow; (4) the Spotify button (`#1db954`, `SpotifyControls.tsx`) next to teal controls;
+  (5) `assets/icon.png` and `assets/splash-icon.png` — still the old colors, never inspected.
 - **`lifetime_total_minutes` is now write-only.** The Journey tile moved from minutes to sets
   (`lifetimeSets` in `stats.ts`, derived from `set_logs`), so nothing reads the column
   (`rolled_up_stats`, migration 0003) or `lifetimeTotalMinutes` any more. Drop both with a
@@ -66,14 +68,14 @@ the record of what was completed and why.
   Jest can't verify it. Check on a device: background mid-countdown, lock the screen, with and
   without Spotify playing; confirm no Now Playing entry appears and music isn't interrupted. If iOS
   still suspends, fall back to scheduled local notifications with bundled sounds.
-- **Golden Hour redesign — device pass owed.** Run `npm run ios` (react-native-svg is a new native
+- **Midnight redesign — device pass owed.** Run `npm run ios` (react-native-svg is a new native
   dep: dev-client rebuild + pod install; `app.json`'s dark style and splash `bg` also only apply after
   the rebuild). Every screen of the redesign is Jest-verified only — layout was reasoned, never seen.
   Deliberate deviations from `docs/DESIGN.md` are logged per phase in
   `docs/handoff/STATUS-21-ui-redesign.md`. Checklist, most important first:
   1. Launch: fonts load (Barlow), no white flash between screens or behind the WebView, light status
      bar, tab bar, the disclaimer gate with the tab bar hidden.
-  2. **Completion** (the page the user loves): the stamped headline (hard `pineDeep` 3/4pt shadow, pine
+  2. **Completion** (the page the user loves): the stamped headline (hard `tealDeep` 3/4pt shadow, teal
      glow, forward lean — check the lean direction and that no long word re-wraps its copy), headline +
      stat chips + first highlight above the fold on a 6.1" phone, orb warmth on `bg`, gold sunburst,
      stamped highlight card, the glow breathing behind "Heck yes!".
@@ -106,22 +108,22 @@ the record of what was completed and why.
   to Favorites and back, and the vibe selection is remembered; (4) airplane mode: Favorites/Recents
   still render and play, with only Fresh picks showing the error.
 
-- **Daylight light mode — device pass owed.** Track 22 shipped Jest-verified only (render tests per
+- **Daybreak light mode — device pass owed.** Track 22 shipped Jest-verified only (render tests per
   screen under both themes; contrast asserted in `theme.test`/`themes.test`). Needs a dev-client
   rebuild first: `app.json` `userInterfaceStyle` is now `"automatic"` and only applies natively after
   one. Design: `docs/DESIGN.md` §8. Checklist:
   1. Every screen in both modes (Today, Journey, Field Guide, Exercise detail, Generate, Plan, Active
      Workout, Debrief, Completion, Settings, sheets, toasts).
-  2. An outdoor full-sun glance test of Daylight — can you read the set, the clock and the Done
+  2. An outdoor full-sun glance test of Daybreak — can you read the set, the clock and the Done
      button at arm's length mid-set? That is the whole point of the mode.
   3. The Workout `theme-toggle` (sun/moon, left of Home) mid-session: switches live, no lost state, the
      preference persists, Settings' Appearance reflects it.
   4. System following iOS appearance live, including the automatic switch at sunset, with the app
      foregrounded.
   5. Status bar, keyboard (`keyboardAppearance`) and native stack headers follow the theme.
-  6. Completion: the stamped headline (fill `pine`, `vivid.gold` shadow, no glow) plus confetti and
+  6. Completion: the stamped headline (fill `teal`, `vivid.gold` shadow, no glow) plus confetti and
      orbs on paper.
-  7. Tinted chips and badges (Daylight tints are 8% alpha) — legible, and distinguishable from
+  7. Tinted chips and badges (Daybreak tints are 8% alpha) — legible, and distinguishable from
      `surface`/`bg`?
   8. Cards' shadow on paper (`elevation.card`), the Switch thumb, Toast and tab bar lift.
   9. Band-chip labels on mid-tone swatches: BandChip's pre-existing 0.45 luminance threshold may pick
@@ -143,10 +145,10 @@ the record of what was completed and why.
   Plan focus. Watch for a one-frame flash of ellipsized text before the first fit (a clipped text
   is drawn at full size until its first layout reports the room). Re-run the generator if the fonts
   are upgraded: `python3 tools/font_metrics.py --check` exits 1 when stale.
-- **App icon and splash art to match Golden Hour — needs an artist.** The splash background is `bg` and
-  stays Golden Hour in both appearances (one static image; Daylight does not get its own splash),
+- **App icon and splash art to match Midnight — needs an artist.** The splash background is `bg` and
+  stays Midnight in both appearances (one static image; Daybreak does not get its own splash),
   but `app/assets/icon.png` and `splash-icon.png` were not redrawn for the
-  redesign (the redesign spec put the art out of scope). Design brief: night-sky `bg`, pine-to-fern trail, one travel motif (topographic
+  redesign (the redesign spec put the art out of scope). Design brief: night-sky `bg`, Midnight Green trail, one travel motif (topographic
   contours or a stamp), Barlow Condensed wordmark.
 - **Show the app version in Settings' footer.** `expo-constants` is hoisted in by `expo` but not declared in
   `app/package.json`; add it (`npx expo install expo-constants`) and read `Constants.expoConfig?.version`.
@@ -222,7 +224,7 @@ sibling got drawn, which is exactly what anchoring avoids, so it needs a design 
   can do has landed (track 17: slammed-in headline, physics confetti cannons/pops, drifting glow-orb
   backdrop, spinning rays, level-ups folded in as stamped reveal cards with their own sound, tap the
   headline to re-burst — see `SummaryScreen.tsx`, `lib/completionTimeline.ts`), and `react-native-svg` is
-  now installed (Golden Hour redesign). Still open: a true blurred/radial gradient backdrop
+  now installed (Midnight redesign). Still open: a true blurred/radial gradient backdrop
   (`CelebrationBackdrop` still fakes the glow orbs with stacked translucent rings; an SVG
   `RadialGradient` is now possible without a new dep), a muscle-worked visualization (SVG is available;
   nothing built), and — each needing a new native dep and another dev-client rebuild — 60fps UI-thread

@@ -49,11 +49,11 @@ text3:     '#7C8696'   // muted / captions / disabled
 ink:       '#170B03'   // text ON bright accent fills (teal/gold/periwinkle). Never white on teal.
 
 // Accents
-teal:     '#4FD176'   // primary: action, work, "go"
-tealDeep: '#209E46'
+teal:     '#4FB8C4'   // primary (Midnight Green's light complement): action, work, "go"
+tealDeep: '#2E8C98'
 gold:      '#FFB938'   // warm-up, achievements, best sets, notes
 sun:       '#FFD166'   // highlights inside gold moments
-periwinkle:    '#2DD4BF'   // rest, recovery, cool-down, calm
+periwinkle:    '#7F97FF'   // rest, recovery, cool-down, calm
 sky:       '#5AA9FF'   // travel / in transit / passport
 summit:    '#8E7BFF'   // progression, levels, ladders
 rose:      '#FF5C93'   // cardio focus ONLY — never an error/negative state
@@ -72,15 +72,15 @@ dayMarker:{ trained: <focus color>, travel: sky, quick: gold }
 quiet outline, an untrained day is a neutral surface, "over-worked" is informational text in the
 same style as every other row. `rose` exists only as the cardio identity color.
 
-Each accent also exposes a `tint` (`theme.tints.teal`; Midnight `rgba(79,209,118,0.15)`, 8% alpha in Daybreak, §8.3) for chip
+Each accent also exposes a `tint` (`theme.tints.teal`; Midnight `rgba(79,184,196,0.15)`, 8% alpha in Daybreak, §8.3) for chip
 and badge backgrounds.
 
 ### Gradients (rendered with `react-native-svg`)
 
 ```ts
-trail: ['#40BD6E', '#5EE06B']   // THE primary CTA + Ignition hero. 135°.
+trail: ['#3FA9B6', '#62CBD5']   // THE primary CTA + Ignition hero. 135°.
 golden:  ['#FFB938', '#FFD166']   // achievements, best sets
-periwinkle:  ['#14B8A6', '#38BDF8']   // rest ring, recovery
+periwinkle:  ['#6478F0', '#8FA2FF']   // rest ring, recovery
 summit:  ['#7B5CFF', '#C084FC']   // level ups, progression rings
 night:   ['#1C2330', '#0B0E13']   // subtle card sheen, top→bottom
 ```
@@ -520,11 +520,11 @@ text2: '#4A4036'   //  8.9:1
 text3: '#6B6052'   //  5.4:1 — still AA, because "muted" outdoors is "invisible"
 
 // Accents — deepened so each is ≥ 4.5:1 as text on bg AND carries a white legend as a fill
-teal:     '#10702D'   // 5.5:1 on bg; white on it 6.2:1
-tealDeep: '#0A6124'
+teal:     '#004C54'   // Midnight Green; 8.6:1 on bg; white on it 9.7:1
+tealDeep: '#003A40'
 gold:      '#8F5A00'   // brass — reads as gold on paper, unlike a yellow
 sun:       '#A86F00'   // large text / icons only (3.8:1)
-periwinkle:    '#00706A'
+periwinkle:    '#3B4FC2'   // 6.8:1 white, 6.0:1 on bg
 sky:       '#1A5FC2'
 summit:    '#5A3BD1'
 rose:      '#BF1D63'   // still cardio-only, still never an error
@@ -550,9 +550,9 @@ Deepened in the same proportion as the accents so white legends hold ≥ 4.2:1 a
 gradient text is large/bold):
 
 ```ts
-trail: ['#0F6E2C', '#2A7D23']
+trail: ['#003F46', '#0A5C66']
 golden:  ['#8F5A00', '#A46D00']
-periwinkle:  ['#00706A', '#0A74A8']
+periwinkle:  ['#3448B8', '#4A5CD0']
 summit:  ['#5A3BD1', '#8B3FD0']
 night:   ['#FFFDF8', '#F6F0E4']   // card sheen: surface -> bg
 ```
@@ -574,7 +574,7 @@ Daybreak: always `ink`, i.e. white).
   black thumb).
 - **Tints are 8% alpha in Daybreak** (15% on Midnight): at 15%, accent text on its own tint over
   `bg` falls to 3.9–4.3:1 for teal/gold/periwinkle/sky/rose; at 8% every accent holds ≥ 4.5:1 over
-  `surface` and `bg` (`sun` ≥ 3). Asserted in `themes.test.ts`. Teal's Daybreak `#10702D` holds 4.9:1 on its own 8% tint over `bg`.
+  `surface` and `bg` (`sun` ≥ 3). Asserted in `themes.test.ts`. Teal's Daybreak `#004C54` holds 7.5:1 on its own 8% tint over `bg`.
 - **Calendar day cells fill with the vivid hue.** A deep accent washed over paper goes muddy (the
   Logbook read as greyed-out at 20%), so Daybreak `dayCell[tone]` = `vivid` at 40% alpha, bordered
   by the deep accent at 70%. The date numeral (`text`) stays >= 7:1 on every marker fill. Golden
