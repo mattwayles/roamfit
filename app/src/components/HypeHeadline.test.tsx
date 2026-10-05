@@ -37,7 +37,7 @@ describe('HypeHeadline stamped shadow', () => {
   it('keeps the soft teal glow and leaves the real letters crisp, accent word in sun', async () => {
     await renderHeadline('BEAST MODE ACTIVATED');
     const glow = style('hype-word-0-shadow');
-    expect(glow.textShadowColor).toContain('79,209,118');
+    expect(glow.textShadowColor).toContain('79,184,196');
     expect(glow.textShadowRadius).toBeGreaterThan(0);
     const word = style('hype-word-0');
     expect(word.color).toBe(midnight.text);

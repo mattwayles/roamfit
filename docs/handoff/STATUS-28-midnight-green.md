@@ -3,7 +3,7 @@ Last updated: 2026-10-04
 ### Done
 - [x] Increment 1: pure renames (pine->teal, pineDeep->tealDeep, lagoon->periwinkle, goldenHour->midnight, daylight->daybreak; Golden Hour/Daylight copy -> Midnight/Daybreak). Values unchanged.
 ### In progress
-- Increment 2 (see Next).
+- Increment 2 committing: values + tests; hue-distance test added; day-cell chroma floor 45 -> 40 (lighter Midnight teal vivid).
 ### Next
 - Increment 2: new values in app/src/theme/palettes.ts (Midnight teal #4FB8C4 / tealDeep #2E8C98 / periwinkle #7F97FF; Daybreak teal #004C54 / tealDeep #003A40 / periwinkle #3B4FC2; gradients per request), update pinned hexes in tests, hunt old hexes elsewhere.
 - Increment 3: docs/DESIGN.md palette sections, BACKLOG device-pass item, finalise this file.

@@ -27,11 +27,11 @@ export const midnight = {
   backdrop: 'rgba(5,7,10,0.72)',
 
   // Accents
-  teal: '#4FD176',
-  tealDeep: '#209E46',
+  teal: '#4FB8C4',
+  tealDeep: '#2E8C98',
   gold: '#FFB938',
   sun: '#FFD166',
-  periwinkle: '#2DD4BF',
+  periwinkle: '#7F97FF',
   sky: '#5AA9FF',
   summit: '#8E7BFF',
   /** Cardio focus ONLY — never an error/negative state. */
@@ -77,13 +77,13 @@ export const daybreak: Palette = {
   backdrop: 'rgba(26,19,12,0.40)',
 
   // Accents — deepened so each is >= 4.5:1 as text on bg AND carries a white legend as a fill
-  teal: '#10702D',
-  tealDeep: '#0A6124',
+  teal: '#004C54',
+  tealDeep: '#003A40',
   /** Brass — reads as gold on paper, unlike a yellow. */
   gold: '#8F5A00',
   /** Large text / icons only (3.8:1). */
   sun: '#A86F00',
-  periwinkle: '#00706A',
+  periwinkle: '#3B4FC2',
   sky: '#1A5FC2',
   summit: '#5A3BD1',
   rose: '#BF1D63',
@@ -107,11 +107,11 @@ export type GradientColors = readonly [string, string];
 
 export const midnightGradients: Record<GradientName, GradientColors> = {
   /** THE primary CTA + Ignition hero. 135deg. */
-  trail: ['#40BD6E', '#5EE06B'],
+  trail: ['#3FA9B6', '#62CBD5'],
   /** Achievements, best sets. */
   golden: ['#FFB938', '#FFD166'],
   /** Rest ring, recovery. */
-  periwinkle: ['#14B8A6', '#38BDF8'],
+  periwinkle: ['#6478F0', '#8FA2FF'],
   /** Level ups, progression rings. */
   summit: ['#7B5CFF', '#C084FC'],
   /** Subtle card sheen, top -> bottom. */
@@ -120,9 +120,9 @@ export const midnightGradients: Record<GradientName, GradientColors> = {
 
 /** Deepened in step with the accents so a white legend holds >= 4.2:1 at every stop. */
 export const daybreakGradients: Record<GradientName, GradientColors> = {
-  trail: ['#0F6E2C', '#2A7D23'],
+  trail: ['#003F46', '#0A5C66'],
   golden: ['#8F5A00', '#A46D00'],
-  periwinkle: ['#00706A', '#0A74A8'],
+  periwinkle: ['#3448B8', '#4A5CD0'],
   summit: ['#5A3BD1', '#8B3FD0'],
   /** Card sheen: surface -> bg. */
   night: ['#FFFDF8', '#F6F0E4'],

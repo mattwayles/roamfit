@@ -38,6 +38,24 @@ function chroma(hex: string): number {
   return Math.max(...ch) - Math.min(...ch);
 }
 
+/** Hue in degrees (0..360) of a `#RRGGBB`. */
+function hue(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [
+    number,
+    number,
+    number,
+  ];
+  const max = Math.max(r, g, b);
+  const d = max - Math.min(r, g, b);
+  if (d === 0) return 0;
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
+}
+function hueDistance(a: string, b: string): number {
+  const d = Math.abs(hue(a) - hue(b));
+  return Math.min(d, 360 - d);
+}
+
 describe('palettes', () => {
   it('have identical key sets', () => {
     expect(Object.keys(daybreak).sort()).toEqual(Object.keys(midnight).sort());
@@ -56,23 +74,23 @@ describe('palettes', () => {
       text2: '#B4BCC8',
       text3: '#7C8696',
       ink: '#170B03',
-      teal: '#4FD176',
-      tealDeep: '#209E46',
+      teal: '#4FB8C4',
+      tealDeep: '#2E8C98',
       gold: '#FFB938',
       sun: '#FFD166',
-      periwinkle: '#2DD4BF',
+      periwinkle: '#7F97FF',
       sky: '#5AA9FF',
       summit: '#8E7BFF',
       rose: '#FF5C93',
     });
     expect(midnightTheme.gradients).toEqual({
-      trail: ['#40BD6E', '#5EE06B'],
+      trail: ['#3FA9B6', '#62CBD5'],
       golden: ['#FFB938', '#FFD166'],
-      periwinkle: ['#14B8A6', '#38BDF8'],
+      periwinkle: ['#6478F0', '#8FA2FF'],
       summit: ['#7B5CFF', '#C084FC'],
       night: ['#1C2330', '#0B0E13'],
     });
-    expect(midnightTheme.tints.teal).toBe('rgba(79,209,118,0.15)');
+    expect(midnightTheme.tints.teal).toBe('rgba(79,184,196,0.15)');
   });
 
   it('Daybreak values match DESIGN.md §8', () => {
@@ -81,11 +99,11 @@ describe('palettes', () => {
       surface: '#FFFDF8',
       text: '#1A130C',
       ink: '#FFFFFF',
-      teal: '#10702D',
+      teal: '#004C54',
       gold: '#8F5A00',
       backdrop: 'rgba(26,19,12,0.40)',
     });
-    expect(daybreakGradients.trail).toEqual(['#0F6E2C', '#2A7D23']);
+    expect(daybreakGradients.trail).toEqual(['#003F46', '#0A5C66']);
   });
 
   it('fixedInk / fixedPaper / vivid are mode-invariant', () => {
@@ -142,6 +160,25 @@ describe('Midnight contrast is not regressed', () => {
   });
 });
 
+describe('teal and periwinkle stay distinguishable', () => {
+  // sky, summit and periwinkle are all blue-violet by design (hue ~210-250), so periwinkle only
+  // sits ~15-20 degrees from each; teal (hue ~186) is the one that must stay clearly apart.
+  it.each([
+    ['Midnight', midnight],
+    ['Daybreak', daybreak],
+  ] as const)(
+    '%s: teal is >= 20 degrees from the blues, periwinkle >= 15 from sky and summit',
+    (_n, p) => {
+      for (const other of ['periwinkle', 'sky', 'summit'] as const) {
+        expect(hueDistance(p.teal, p[other])).toBeGreaterThanOrEqual(20);
+      }
+      for (const other of ['sky', 'summit'] as const) {
+        expect(hueDistance(p.periwinkle, p[other])).toBeGreaterThanOrEqual(15);
+      }
+    },
+  );
+});
+
 describe('buildTheme', () => {
   it('builds two cached, frozen instances', () => {
     expect(themeFor('dark')).toBe(midnightTheme);
@@ -188,7 +225,7 @@ describe('buildTheme', () => {
       const cell = composite(vivid[n], 0.4, daybreak.surface);
       // Clearly more colorful than the old deep-accent 20% wash it replaces.
       expect(chroma(cell)).toBeGreaterThan(chroma(composite(daybreak[n], 0.2, daybreak.surface)));
-      expect(chroma(cell)).toBeGreaterThanOrEqual(45);
+      expect(chroma(cell)).toBeGreaterThanOrEqual(40);
       expect(contrast(daybreak.text, cell)).toBeGreaterThanOrEqual(7);
     }
   });

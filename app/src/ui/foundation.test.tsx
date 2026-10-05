@@ -333,6 +333,6 @@ describe('Daybreak (foundation)', () => {
     });
     const json = JSON.stringify(screen.toJSON()).toLowerCase();
     expect(json).toMatch(/linearGradient/i);
-    expect(json).not.toContain('40bd6e');
+    expect(json).not.toContain('3fa9b6');
   });
 });
