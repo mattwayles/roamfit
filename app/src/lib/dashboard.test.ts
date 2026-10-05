@@ -225,6 +225,19 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
     expect(days.find((d) => d.localDate === '2026-05-01')!.marker).toBe('none');
   });
 
+  it('collects every session id on a day (listed, not merged); untrained days have none', () => {
+    const days = buildCalendarDays(
+      [
+        summary('2026-05-05', { id: 'a', actualMinutes: 10 }),
+        summary('2026-05-05', { id: 'b', actualMinutes: 25 }),
+      ],
+      '2026-05-05',
+      new Set(),
+    );
+    expect(days.find((d) => d.localDate === '2026-05-05')!.sessionIds).toEqual(['a', 'b']);
+    expect(days.find((d) => d.localDate === '2026-05-06')!.sessionIds).toEqual([]);
+  });
+
   it('attributes the day to whichever of two same-day sessions took more minutes', () => {
     const days = buildCalendarDays(
       [
@@ -323,6 +336,7 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
       focus: 'full',
       manualMarker: null,
       marker: 'full',
+      sessionIds: ['session-2026-05-04'],
     });
     // 2026-05-05 was travelled and untrained — this is the case the marker exists for.
     expect(days.find((d) => d.localDate === '2026-05-05')).toEqual({
@@ -332,6 +346,7 @@ describe('§14.1.6 calendar heatmap — untrained days are present and neutral, 
       focus: null,
       manualMarker: null,
       marker: 'travel',
+      sessionIds: [],
     });
   });
 

@@ -187,6 +187,9 @@ export interface CalendarDay {
   /** What the calendar cell actually shows: `manualMarker` if set, else the day's own derived
    *  state (a session's focus, else 'travel', else 'none'). */
   marker: DayMarker;
+  /** Ids of every completed session on this day, newest first as read. Listed, never merged: the
+   *  day sheet shows one card per session. Empty on an untrained day. */
+  sessionIds: string[];
 }
 
 /** Sunday-first day-of-week labels for the calendar grid header. */
@@ -270,7 +273,7 @@ export function buildCalendarDays(
 ): CalendarDay[] {
   const byDate = new Map<
     string,
-    { minutes: number; focus: Focus; isQuick: boolean; dominantMinutes: number }
+    { minutes: number; focus: Focus; isQuick: boolean; dominantMinutes: number; ids: string[] }
   >();
   for (const s of sessions) {
     const minutes = s.actualMinutes ?? s.estimatedMinutes;
@@ -281,8 +284,10 @@ export function buildCalendarDays(
         focus: s.focus,
         isQuick: s.isQuick,
         dominantMinutes: minutes,
+        ids: [s.id],
       });
     } else {
+      existing.ids.push(s.id);
       existing.minutes += minutes;
       // Two sessions on one day is rare, but if it happens the marker follows whichever session
       // actually took the most time, not simply the last one read.
@@ -320,6 +325,7 @@ export function buildCalendarDays(
       focus: trained?.focus ?? null,
       manualMarker,
       marker: manualMarker ?? derivedMarker,
+      sessionIds: trained?.ids ?? [],
     });
   }
   return out;

@@ -137,8 +137,55 @@ describe('Journey after a completed session', () => {
     expect(manualDayMarkersRepo.getManualDayMarkers(testDb()).get(today)).toBe('travel');
     expect(sessionsRepo.getCompletedSessionsForDashboard(testDb()).length).toBeGreaterThan(0);
     expect(screen.getByTestId(`calendar-day-${today}`).props.accessibilityLabel).toBe(
-      'Travel day — tap to edit',
+      'Travel day — tap for details',
     );
+  });
+
+  it('a trained day opens a sheet with the session card on top and the markers below', async () => {
+    await mountJourney();
+    const today = nowEngineClock().today;
+
+    await fireEvent.press(screen.getByTestId(`calendar-day-${today}`));
+    await waitFor(() => expect(screen.getByTestId('day-marker-sheet')).toBeTruthy(), WAIT_OPTS);
+    const card = screen.getByTestId(`day-session-${completedSessionId}`);
+    expect(within(card).getByText(/Full body · \d+ min/)).toBeTruthy();
+    expect(within(card).getByText(/\d+ exercises? · \d+ sets?/)).toBeTruthy();
+    expect(screen.getByText('Mark this day as…')).toBeTruthy();
+    expect(screen.getByTestId('day-marker-option-legs')).toBeTruthy();
+    expect(screen.queryByTestId('day-hand-logged')).toBeNull();
+  });
+
+  it('tapping the session card closes the sheet and opens that workout', async () => {
+    await mountJourney();
+    const today = nowEngineClock().today;
+
+    await fireEvent.press(screen.getByTestId(`calendar-day-${today}`));
+    await waitFor(() => expect(screen.getByTestId('day-marker-sheet')).toBeTruthy(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId(`day-session-${completedSessionId}`));
+    await waitFor(
+      () => expect(screen.getByTestId('session-history-screen')).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    expect(screen.queryByTestId('day-marker-sheet')).toBeNull();
+  });
+
+  it('an untrained day shows only the markers; a hand-marked one says it was logged by hand', async () => {
+    await mountJourney();
+    const today = nowEngineClock().today;
+    const [y, m, d] = today.split('-');
+    const other = `${y}-${m}-${d === '02' ? '03' : '02'}`;
+
+    await fireEvent.press(screen.getByTestId(`calendar-day-${other}`));
+    await waitFor(() => expect(screen.getByTestId('day-marker-sheet')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.queryByTestId(/^day-session-/)).toBeNull();
+    expect(screen.queryByTestId('day-hand-logged')).toBeNull();
+    expect(screen.getByTestId('day-marker-option-travel')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('day-marker-option-legs'));
+    await waitFor(() => expect(screen.queryByTestId('day-marker-sheet')).toBeNull(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId(`calendar-day-${other}`));
+    await waitFor(() => expect(screen.getByTestId('day-hand-logged')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.queryByTestId(/^day-session-/)).toBeNull();
   });
 
   it('Passport: opt-in card first, then a stamp per place once turned on and a place is pinned', async () => {

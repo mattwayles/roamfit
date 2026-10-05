@@ -18,9 +18,15 @@
  * of a level change.
  */
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Share, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { levelUpFamily, levelDownFamily, manualDayMarkersRepo, usersRepo } from '@roamfit/store';
+import {
+  levelUpFamily,
+  levelDownFamily,
+  manualDayMarkersRepo,
+  sessionsRepo,
+  usersRepo,
+} from '@roamfit/store';
 import type { ProgressionFamilyId } from '@roamfit/data';
 import { createRng, seedFromString } from '@roamfit/engine';
 import type { TabScreenProps } from '../navigation/types';
@@ -28,12 +34,13 @@ import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import {
   buildCalendarWeeks,
-  monthLabelForLocalDate,
   WEEKDAY_LABELS,
+  type CalendarDay,
   type DayMarker,
   type FamilyBoardEntry,
 } from '../lib/dashboard';
 import { DAY_MARKER_OPTIONS } from '../lib/dayMarkers';
+import { buildSessionHistoryView, formatFullLocalDate } from '../lib/sessionHistory';
 import { useDashboardData } from '../lib/useDashboardData';
 import { requestLocationPermission } from '../lib/geocode';
 import { makeStyles, radius, space, useTheme } from '../theme';
@@ -70,7 +77,18 @@ function plural(n: number, one: string, many: string): string {
   return n === 1 ? one : many;
 }
 
-export default function JourneyScreen(_props: Props): React.JSX.Element {
+/** One workout on the day sheet: what the card prints, built from the same view model as the
+ *  history page it opens. */
+interface DaySessionCard {
+  sessionId: string;
+  emoji: string;
+  focusLabel: string;
+  minutes: number;
+  place: string | null;
+  summary: string;
+}
+
+export default function JourneyScreen({ navigation }: Props): React.JSX.Element {
   const theme = useTheme();
   const styles = useStyles();
   const { db, library, families } = useStore();
@@ -88,6 +106,8 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
    *  closes so its title doesn't blank out during the exit animation. */
   const [editingDay, setEditingDay] = useState<string | null>(null);
   const [daySheetOpen, setDaySheetOpen] = useState(false);
+  /** The tapped day's workouts, loaded on tap (a few indexed reads) rather than for every cell. */
+  const [dayCards, setDayCards] = useState<DaySessionCard[]>([]);
 
   // Reload on every focus, exactly like Today: a level change, a marker or a passport toggle made
   // anywhere must show here immediately.
@@ -184,6 +204,34 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
     reload();
   };
 
+  const openDay = (day: CalendarDay) => {
+    const cards: DaySessionCard[] = [];
+    for (const id of day.sessionIds) {
+      const session = sessionsRepo.getCompletedSessionDetail(db, id);
+      if (!session) continue;
+      const view = buildSessionHistoryView(session, library.exercises);
+      cards.push({
+        sessionId: id,
+        emoji: view.emoji,
+        focusLabel: view.focusLabel,
+        minutes: view.minutes,
+        place: view.place,
+        summary: view.stats
+          .filter((st) => st.key === 'exercises' || st.key === 'sets')
+          .map((st) => st.label)
+          .join(' · '),
+      });
+    }
+    setDayCards(cards);
+    setEditingDay(day.localDate);
+    setDaySheetOpen(true);
+  };
+
+  const openSession = (sessionId: string) => {
+    setDaySheetOpen(false);
+    navigation.navigate('SessionHistory', { sessionId });
+  };
+
   const handleSharePassport = () => {
     if (!data) return;
     const { places, countries } = data.passport;
@@ -215,11 +263,13 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
   const isZeroSession = !hasSessions;
   const calendarWeeks = buildCalendarWeeks(calendarDays);
   const maxSets = muscleBalance[0]?.hardSets || 1;
-  const editingTitle =
-    editingDay !== null
-      ? `${monthLabelForLocalDate(editingDay)} ${Number(editingDay.split('-')[2])}`
-      : undefined;
-  const editingCurrent = calendarDays.find((d) => d.localDate === editingDay)?.marker;
+  const editingTitle = editingDay !== null ? formatFullLocalDate(editingDay) : undefined;
+  const editingCalendarDay = calendarDays.find((d) => d.localDate === editingDay);
+  const editingCurrent = editingCalendarDay?.marker;
+  const handMarkedOnly =
+    dayCards.length === 0 &&
+    editingCalendarDay?.manualMarker != null &&
+    editingCalendarDay.manualMarker !== 'none';
 
   let stagger = 0;
   const next = () => Math.min(stagger++, MAX_STAGGER);
@@ -556,9 +606,7 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
                     isToday={day?.localDate === data.todayLocalDate}
                     testID={day ? `calendar-day-${day.localDate}` : undefined}
                     onPress={() => {
-                      if (!day) return;
-                      setEditingDay(day.localDate);
-                      setDaySheetOpen(true);
+                      if (day) openDay(day);
                     }}
                   />
                 ))}
@@ -708,30 +756,64 @@ export default function JourneyScreen(_props: Props): React.JSX.Element {
         title={editingTitle}
         testID="day-marker-sheet"
       >
-        <View style={styles.markerOptions}>
-          {DAY_MARKER_OPTIONS.map((option) => (
+        <ScrollView style={styles.daySheetScroll} showsVerticalScrollIndicator={false}>
+          {dayCards.map((card) => (
             <PressableScale
-              key={option.marker}
-              testID={`day-marker-option-${option.marker}`}
-              accessibilityLabel={option.label}
-              style={[
-                styles.markerOption,
-                editingCurrent === option.marker && styles.markerOptionCurrent,
-              ]}
-              onPress={() => editingDay != null && handleSetDayMarker(editingDay, option.marker)}
+              key={card.sessionId}
+              testID={`day-session-${card.sessionId}`}
+              accessibilityRole="button"
+              accessibilityLabel={`${card.focusLabel}, ${card.minutes} minutes — open workout`}
+              style={styles.sessionCard}
+              onPress={() => openSession(card.sessionId)}
             >
               <View style={styles.markerGlyph}>
-                {option.emoji !== '' ? <Txt variant="h3">{option.emoji}</Txt> : null}
+                <Txt variant="h3">{card.emoji}</Txt>
               </View>
-              <Txt variant="bodyStrong" style={styles.flex}>
-                {option.label}
-              </Txt>
-              {editingCurrent === option.marker ? (
-                <Icon name="check" size={18} color="pine" />
-              ) : null}
+              <View style={styles.flex}>
+                <Txt variant="bodyStrong">
+                  {card.focusLabel} · {card.minutes} min
+                </Txt>
+                <Txt variant="small" color="text2">
+                  {card.place ? `${card.place} · ` : ''}
+                  {card.summary}
+                </Txt>
+              </View>
+              <Icon name="chevronRight" size={18} color="text3" />
             </PressableScale>
           ))}
-        </View>
+          {handMarkedOnly ? (
+            <Txt testID="day-hand-logged" variant="small" color="text2" style={styles.handLogged}>
+              Logged by hand — no details recorded
+            </Txt>
+          ) : null}
+          <Txt variant="eyebrow" color="text3" style={styles.markAs}>
+            Mark this day as…
+          </Txt>
+          <View style={styles.markerOptions}>
+            {DAY_MARKER_OPTIONS.map((option) => (
+              <PressableScale
+                key={option.marker}
+                testID={`day-marker-option-${option.marker}`}
+                accessibilityLabel={option.label}
+                style={[
+                  styles.markerOption,
+                  editingCurrent === option.marker && styles.markerOptionCurrent,
+                ]}
+                onPress={() => editingDay != null && handleSetDayMarker(editingDay, option.marker)}
+              >
+                <View style={styles.markerGlyph}>
+                  {option.emoji !== '' ? <Txt variant="h3">{option.emoji}</Txt> : null}
+                </View>
+                <Txt variant="bodyStrong" style={styles.flex}>
+                  {option.label}
+                </Txt>
+                {editingCurrent === option.marker ? (
+                  <Icon name="check" size={18} color="pine" />
+                ) : null}
+              </PressableScale>
+            ))}
+          </View>
+        </ScrollView>
       </Sheet>
     </Screen>
   );
@@ -795,6 +877,21 @@ const useStyles = makeStyles((t) =>
     },
     muscleFill: { height: '100%' },
     muscleSets: { minWidth: 56, maxWidth: 110 },
+    daySheetScroll: { flexGrow: 0 },
+    sessionCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 56,
+      borderRadius: radius.md,
+      paddingHorizontal: space.md,
+      paddingVertical: space.sm,
+      marginBottom: space.sm,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.pine,
+    },
+    handLogged: { marginBottom: space.sm },
+    markAs: { marginTop: space.sm, marginBottom: space.sm },
     markerOptions: { gap: space.sm },
     markerOption: {
       flexDirection: 'row',

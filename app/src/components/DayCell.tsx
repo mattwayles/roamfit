@@ -44,7 +44,7 @@ export function DayCell({
       haptic="selection"
       scaleTo={0.9}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? `${markerLabel(day.marker)} — tap to edit`}
+      accessibilityLabel={accessibilityLabel ?? `${markerLabel(day.marker)} — tap for details`}
       style={[
         styles.cell,
         box,

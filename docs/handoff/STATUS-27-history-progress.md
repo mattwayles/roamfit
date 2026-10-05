@@ -9,7 +9,7 @@ Plan: `~/.claude/plans/let-s-plan-a-joint-rippling-rabin.md` (read-only over loc
   `screens/SessionHistoryScreen.tsx`; tests `sessionHistory.test.ts`, `SessionHistoryScreen.test.tsx` (incl. Daylight).
   The "Trail ›" link is NOT built (no `TrailProgress` route yet) — Increment 6 adds it; rows already carry `familyId`.
 ### In progress
-- Nothing (Increments 1-2 landed). Next agent starts Increment 3.
+- Increment 3 (day sheet does both): `CalendarDay.sessionIds` in lib/dashboard.ts; JourneyScreen day sheet = session cards (navigate to SessionHistory) + "Mark this day as…"; DayCell a11y label "tap for details"; tests in JourneyScreen.afterSession.test.tsx. HomeScreen week strip does NOT share the handler (it just navigates to Journey) so it is left alone.
 ### Next
 3. Increment 3 — Journey day sheet does both (session cards + "Mark this day as…"); `CalendarDay.sessionIds`.
 4. Increment 4 — Logbook past months: `viewedMonth`, ‹ › arrows, month picker, `useLogbookMonth`.
