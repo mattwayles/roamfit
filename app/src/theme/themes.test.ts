@@ -78,16 +78,16 @@ describe('palettes', () => {
       tealDeep: '#2E8C98',
       gold: '#FFB938',
       sun: '#FFD166',
-      coral: '#7F97FF',
+      coral: '#FF8A5C',
       sky: '#5AA9FF',
-      summit: '#8E7BFF',
+      summit: '#C77DFF',
       rose: '#FF5C93',
     });
     expect(midnightTheme.gradients).toEqual({
       trail: ['#3FA9B6', '#62CBD5'],
       golden: ['#FFB938', '#FFD166'],
-      coral: ['#6478F0', '#8FA2FF'],
-      summit: ['#7B5CFF', '#C084FC'],
+      coral: ['#F07040', '#FFA27A'],
+      summit: ['#A45CF0', '#D59BFF'],
       night: ['#1C2330', '#0B0E13'],
     });
     expect(midnightTheme.tints.teal).toBe('rgba(79,184,196,0.15)');
@@ -160,23 +160,22 @@ describe('Midnight contrast is not regressed', () => {
   });
 });
 
-describe('teal and coral stay distinguishable', () => {
-  // sky, summit and coral are all blue-violet by design (hue ~210-250), so coral only
-  // sits ~15-20 degrees from each; teal (hue ~186) is the one that must stay clearly apart.
+describe('accent hues stay apart', () => {
+  // The six hues a screen shows side by side. gold and sun are one family on purpose, so sun is
+  // left out. Teal, sky, plum (summit), coral, gold and rose must each be >= 20 degrees from the rest.
+  const spread = ['teal', 'sky', 'summit', 'coral', 'gold', 'rose'] as const;
   it.each([
     ['Midnight', midnight],
     ['Daybreak', daybreak],
-  ] as const)(
-    '%s: teal is >= 20 degrees from the blues, coral >= 15 from sky and summit',
-    (_n, p) => {
-      for (const other of ['coral', 'sky', 'summit'] as const) {
-        expect(hueDistance(p.teal, p[other])).toBeGreaterThanOrEqual(20);
+  ] as const)('%s: every pair of teal/sky/summit/coral/gold/rose is >= 20 degrees apart', (_n, p) => {
+    for (let i = 0; i < spread.length; i++) {
+      for (let k = i + 1; k < spread.length; k++) {
+        const a = spread[i]!;
+        const b = spread[k]!;
+        expect([a, b, hueDistance(p[a], p[b]) >= 20]).toEqual([a, b, true]);
       }
-      for (const other of ['sky', 'summit'] as const) {
-        expect(hueDistance(p.coral, p[other])).toBeGreaterThanOrEqual(15);
-      }
-    },
-  );
+    }
+  });
 });
 
 describe('buildTheme', () => {
@@ -245,8 +244,8 @@ describe('buildTheme', () => {
     expect(daybreakTheme.heroCta).toBe('teal');
   });
 
-  it('onGradient: Midnight summit takes paper, everything else ink; Daybreak always ink', () => {
-    expect(midnightTheme.onGradient('summit')).toBe('fixedPaper');
+  it('onGradient: always ink (near-black on Midnight, white on Daybreak), plum included', () => {
+    expect(midnightTheme.onGradient('summit')).toBe('ink');
     expect(midnightTheme.onGradient('teal')).toBe('ink');
     expect(daybreakTheme.onGradient('summit')).toBe('ink');
   });

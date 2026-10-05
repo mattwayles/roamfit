@@ -19,10 +19,15 @@ Last updated: 2026-10-04
 Last updated: 2026-10-04
 (Same file as track 28; sky stays. periwinkle/summit sat too close to sky on the Journey tiles.)
 ### Done
-- [x] Increment 1: pure rename periwinkle -> coral (token, gradient key, tone props, comments), values unchanged.
+- [x] Increment 1: pure rename periwinkle -> coral (token, gradient key, tone props, comments), values unchanged. 6892fc5
+- [x] Increment 2: summit plum + coral values, tests, hue-spread test (commit follows this line in git log).
 ### In progress
-- Increment 1 (rename), then 2 (summit plum #C77DFF/#7E2BB0, coral #FF8A5C/#B4441C + gradients, hue test over {teal,sky,summit,coral,gold,rose} >= 20 deg), then 3 (DESIGN.md + BACKLOG device-pass note).
+- Increment 3: DESIGN.md palette + BACKLOG device-pass note.
 ### Next
-- Increments 2 and 3 as above.
+- Increment 3 only.
 ### Decisions / gotchas
 - Token `summit` keeps its name (semantic); only its value changes.
+- Increment 2 also made `onGradient` always 'ink' (Midnight plum gradient: ink >= 4.9:1, paper only 1.9-3.5:1); the old summit->paper special case is gone.
+- Hue test now: every pair of {teal, sky, summit, coral, gold, rose} >= 20 deg in both themes (tightest: coral-gold 22.0, teal-sky 25.1/29.6).
+- Daybreak coral nudged #B4441C -> #B04219 (same hue, 16.3 deg): #B4441C is 4.38:1 as text on its own 8% tint over bg (floor 4.5); #B04219 is 4.54, white 5.77, surface2 4.70.
+- Daybreak chip hue gaps: coral-gold 22.0 (both themes), coral-rose 37.2/41.7.

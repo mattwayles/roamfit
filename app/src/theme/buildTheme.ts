@@ -133,9 +133,9 @@ export function buildTheme(scheme: Scheme): Theme {
     dayMarker: { travel: c.sky, quick: c.gold },
     dayCell,
     trainedColor: (focusKey) => (focus as Record<string, string>)[focusKey ?? ''] ?? c.teal,
-    // Midnight: summit's violet hero is the one place `ink` is only 3.9:1, so it takes paper.
-    // Daybreak's fills are all deep enough for white.
-    onGradient: (tone) => (dark && tone === 'summit' ? 'fixedPaper' : 'ink'),
+    // Ink everywhere: Midnight's bright fills (plum included, >= 4.9:1 over its whole gradient)
+    // take near-black, Daybreak's deep fills take white. Paper would be 1.9:1 on plum's light end.
+    onGradient: () => 'ink',
     heroCta: dark ? 'sun' : 'teal',
     glow: (color = c.teal) => ({
       shadowColor: color,

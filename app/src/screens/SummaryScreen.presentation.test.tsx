@@ -214,6 +214,9 @@ const VIOLETS = [
   midnight.summit,
   '#7B5CFF',
   '#C084FC',
+  '#8E7BFF',
+  '#A45CF0',
+  '#D59BFF',
   '#5b21b6',
   '#7c3aed',
   '#a78bfa',
@@ -221,6 +224,7 @@ const VIOLETS = [
   '#e9d5ff',
   '#4c1d95',
   'rgba(142,123,255',
+  'rgba(199,125,255',
 ];
 
 describe('§5.9 Completion presentation', () => {

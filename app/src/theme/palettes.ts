@@ -31,9 +31,9 @@ export const midnight = {
   tealDeep: '#2E8C98',
   gold: '#FFB938',
   sun: '#FFD166',
-  coral: '#7F97FF',
+  coral: '#FF8A5C',
   sky: '#5AA9FF',
-  summit: '#8E7BFF',
+  summit: '#C77DFF',
   /** Cardio focus ONLY — never an error/negative state. */
   rose: '#FF5C93',
 } as const;
@@ -83,9 +83,9 @@ export const daybreak: Palette = {
   gold: '#8F5A00',
   /** Large text / icons only (3.8:1). */
   sun: '#A86F00',
-  coral: '#3B4FC2',
+  coral: '#B04219',
   sky: '#1A5FC2',
-  summit: '#5A3BD1',
+  summit: '#7E2BB0',
   rose: '#BF1D63',
 };
 
@@ -111,9 +111,9 @@ export const midnightGradients: Record<GradientName, GradientColors> = {
   /** Achievements, best sets. */
   golden: ['#FFB938', '#FFD166'],
   /** Rest ring, recovery. */
-  coral: ['#6478F0', '#8FA2FF'],
+  coral: ['#F07040', '#FFA27A'],
   /** Level ups, progression rings. */
-  summit: ['#7B5CFF', '#C084FC'],
+  summit: ['#A45CF0', '#D59BFF'],
   /** Subtle card sheen, top -> bottom. */
   night: ['#1C2330', '#0B0E13'],
 };
@@ -122,8 +122,8 @@ export const midnightGradients: Record<GradientName, GradientColors> = {
 export const daybreakGradients: Record<GradientName, GradientColors> = {
   trail: ['#003F46', '#0A5C66'],
   golden: ['#8F5A00', '#A46D00'],
-  coral: ['#3448B8', '#4A5CD0'],
-  summit: ['#5A3BD1', '#8B3FD0'],
+  coral: ['#A63C16', '#C0521F'],
+  summit: ['#6A22A0', '#8E3BC4'],
   /** Card sheen: surface -> bg. */
   night: ['#FFFDF8', '#F6F0E4'],
 };
