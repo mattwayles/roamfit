@@ -507,8 +507,8 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
         />
         {swapNotice != null && (
           <View testID="swap-notice" accessibilityRole="alert" style={styles.swapNotice}>
-            <Icon name="swap" size={16} color="coral" />
-            <Txt variant="small" color="coral" style={styles.swapNoticeText}>
+            <Icon name="swap" size={16} color="fern" />
+            <Txt variant="small" color="fern" style={styles.swapNoticeText}>
               {swapNotice}
             </Txt>
           </View>
@@ -636,7 +636,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
 const SECTION_TONE: Record<Section, AccentName> = {
   warmup: 'gold',
   main: 'teal',
-  cooldown: 'coral',
+  cooldown: 'fern',
 };
 const SECTION_LABEL: Record<Section, string> = {
   warmup: 'Warm-up',
@@ -842,13 +842,13 @@ function EntryCard({
         </View>
 
         {/* Both actions are icons on the title's own row, so they cost no vertical space at
-            all. The accessible names carry the meaning the glyphs cannot. Swap wears the coral
+            all. The accessible names carry the meaning the glyphs cannot. Swap wears the fern
             tint so the one control that replaces the exercise never reads as a plain one. */}
         <View style={styles.cardActions}>
           <IconButton
             testID={`swap-${entry.exerciseId}`}
             icon="swap"
-            tone="coral"
+            tone="fern"
             accessibilityLabel={`Swap ${exerciseName} for another exercise`}
             style={styles.swapButton}
             onPress={onSwap}
@@ -1045,7 +1045,7 @@ const useStyles = makeStyles((t) =>
       paddingHorizontal: space.md,
       paddingVertical: space.sm,
       borderRadius: radius.pill,
-      backgroundColor: t.tints.coral,
+      backgroundColor: t.tints.fern,
     },
     swapNoticeText: { flexShrink: 1 },
 
@@ -1151,7 +1151,7 @@ const useStyles = makeStyles((t) =>
     // used to occupy, and giving it a whole line cost ~26pt of every card for no information.
     // Pinned to the top so they stay level with the first line of a name that wraps.
     cardActions: { flexDirection: 'row', gap: space.xs, alignSelf: 'flex-start' },
-    swapButton: { backgroundColor: t.tints.coral, borderColor: 'transparent' },
+    swapButton: { backgroundColor: t.tints.fern, borderColor: 'transparent' },
 
     // -- add sheet
     addList: { marginBottom: space.sm },

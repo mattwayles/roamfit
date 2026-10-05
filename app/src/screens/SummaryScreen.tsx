@@ -123,7 +123,7 @@ const DIFFICULTY_LABEL: Record<Difficulty, string> = {
 
 /** The same three tones as accent names, for the legacy whole-stage `Chip`. */
 const DIFFICULTY_CHIP_TONE: Record<Difficulty, AccentName> = {
-  too_easy: 'coral',
+  too_easy: 'fern',
   just_right: 'teal',
   too_hard: 'summit',
 };
@@ -885,7 +885,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
             <StatTile
               testID="debrief-stat-reps"
               size="h1"
-              tone="coral"
+              tone="fern"
               value={
                 completionStats.totalReps > 0 || completionStats.totalSeconds === 0
                   ? completionStats.totalReps
@@ -1136,7 +1136,7 @@ const useStyles = makeStyles((t) =>
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: t.colors.line,
     },
-    // A 3pt strip in the section's colour (gold warm-up / teal main / coral cool-down), so the
+    // A 3pt strip in the section's colour (gold warm-up / teal main / fern cool-down), so the
     // rows read as the route they walked without a section header eating a line.
     rail: {
       position: 'absolute',

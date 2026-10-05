@@ -116,7 +116,7 @@ describe('Workout presentation (§5.7)', () => {
 
     fireEvent.press(screen.getByTestId('complete-set'));
 
-    // Rest page: coral hero, the rest-pool line seeded by (entry, set), pips for the set just done.
+    // Rest page: fern hero, the rest-pool line seeded by (entry, set), pips for the set just done.
     await waitFor(() => expect(screen.getByTestId('rest-hero')).toBeTruthy(), WAIT_OPTS);
     expect(screen.getByTestId('rest-line')).toHaveTextContent(pick(rest, `${target.id}:0`));
     expect(screen.getByTestId('rest-pips')).toBeTruthy();

@@ -30,7 +30,7 @@ import { Txt } from '../ui';
 export type { ChartMarker, SeriesPoint };
 
 /** Fixed order; `rose` is reserved for cardio and so never appears here. */
-export const SEGMENT_TONES: readonly AccentName[] = ['teal', 'sky', 'gold', 'coral', 'summit'];
+export const SEGMENT_TONES: readonly AccentName[] = ['teal', 'sky', 'gold', 'fern', 'summit'];
 
 export interface ProgressChartProps {
   points: readonly SeriesPoint[];

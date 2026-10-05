@@ -77,7 +77,7 @@ describe('palettes', () => {
       teal: '#4FB8C4',
       tealDeep: '#2E8C98',
       gold: '#FFB938',
-      coral: '#FF8A5C',
+      fern: '#FF8A5C',
       sky: '#5AA9FF',
       summit: '#C77DFF',
       rose: '#FF5C93',
@@ -85,7 +85,7 @@ describe('palettes', () => {
     expect(midnightTheme.gradients).toEqual({
       trail: ['#3FA9B6', '#62CBD5'],
       golden: ['#FFB938', '#FFD166'],
-      coral: ['#F07040', '#FFA27A'],
+      fern: ['#F07040', '#FFA27A'],
       summit: ['#A45CF0', '#D59BFF'],
       night: ['#1C2330', '#0B0E13'],
     });
@@ -152,21 +152,21 @@ describe('Daybreak contrast (WCAG)', () => {
 
 describe('Midnight contrast is not regressed', () => {
   it('ink is legible on the bright accents it sits on', () => {
-    for (const n of ['teal', 'gold', 'coral'] as const) {
+    for (const n of ['teal', 'gold', 'fern'] as const) {
       expect(contrast(midnight.ink, midnight[n])).toBeGreaterThanOrEqual(4.5);
     }
   });
 });
 
 describe('accent hues stay apart', () => {
-  // The six hues a screen shows side by side. Teal, sky, plum (summit), coral, gold and rose must
+  // The six hues a screen shows side by side. Teal, sky, plum (summit), fern, gold and rose must
   // each be >= 20 degrees from the rest.
-  const spread = ['teal', 'sky', 'summit', 'coral', 'gold', 'rose'] as const;
+  const spread = ['teal', 'sky', 'summit', 'fern', 'gold', 'rose'] as const;
   it.each([
     ['Midnight', midnight],
     ['Daybreak', daybreak],
   ] as const)(
-    '%s: every pair of teal/sky/summit/coral/gold/rose is >= 20 degrees apart',
+    '%s: every pair of teal/sky/summit/fern/gold/rose is >= 20 degrees apart',
     (_n, p) => {
       for (let i = 0; i < spread.length; i++) {
         for (let k = i + 1; k < spread.length; k++) {
@@ -219,7 +219,7 @@ describe('buildTheme', () => {
 
   it('Daybreak day cells read as color, not a muddy wash, and keep the date legible', () => {
     // Every accent a day marker can resolve to (focus colors, travel = sky, quick = gold).
-    const markerAccents = ['teal', 'summit', 'gold', 'coral', 'rose', 'sky'] as const;
+    const markerAccents = ['teal', 'summit', 'gold', 'fern', 'rose', 'sky'] as const;
     for (const n of markerAccents) {
       const cell = composite(vivid[n], 0.4, daybreak.surface);
       // Clearly more colorful than the old deep-accent 20% wash it replaces.
@@ -239,8 +239,8 @@ describe('buildTheme', () => {
     expect(midnightTheme.gradients).toEqual(midnightGradients);
   });
 
-  it('heroCta: gold on Midnight, deep teal on Daybreak', () => {
-    expect(midnightTheme.heroCta).toBe('gold');
+  it('heroCta: white on Midnight, deep teal on Daybreak', () => {
+    expect(midnightTheme.heroCta).toBe('text');
     expect(daybreakTheme.heroCta).toBe('teal');
   });
 

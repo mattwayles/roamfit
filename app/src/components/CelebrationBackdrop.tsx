@@ -1,6 +1,6 @@
 /**
- * The completion screen's living background (DESIGN.md §5.9): soft teal, gold and coral glow orbs
- * (plus a faint coral one for depth) drifting across the `bg` night base, so the screen reads as
+ * The completion screen's living background (DESIGN.md §5.9): soft teal, gold and fern glow orbs
+ * (plus a faint fern one for depth) drifting across the `bg` night base, so the screen reads as
  * a moving sunset bloom rather than a flat fill. Each orb is a stack of concentric translucent
  * circles (a stepped radial falloff that reads as a soft glow once it's large and moving), and
  * every motion is a native-driver transform loop. Never violet: `summit` is not used on this page.
@@ -57,7 +57,7 @@ const orbsFor = ({ vivid }: Theme): OrbSpec[] => [
     period: 8000,
   },
   {
-    color: vivid.coral,
+    color: vivid.fern,
     ring: 0.045,
     size: 0.85,
     x: -0.2,

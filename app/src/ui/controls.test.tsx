@@ -146,10 +146,10 @@ describe('SegmentedBar', () => {
 
   it('only the active segment glows', async () => {
     await render(
-      <SegmentedBar testID="sb" values={[0, 0]} activeIndex={0} color={midnight.coral} />,
+      <SegmentedBar testID="sb" values={[0, 0]} activeIndex={0} color={midnight.fern} />,
     );
     await ready('sb');
-    expect(flat('sb-segment-0').shadowColor).toBe(midnight.coral);
+    expect(flat('sb-segment-0').shadowColor).toBe(midnight.fern);
     expect(flat('sb-segment-1').shadowColor).toBeUndefined();
   });
 });

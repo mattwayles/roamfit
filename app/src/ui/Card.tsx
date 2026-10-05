@@ -24,7 +24,7 @@ export interface CardProps {
   variant?: CardVariant;
   /** Gradient for `hero` (default trail) and `accent` (default trail) variants. */
   gradient?: GradientColors;
-  /** Shortcut for `gradient`: use the gradient of an accent (teal, gold, coral, summit). */
+  /** Shortcut for `gradient`: use the gradient of an accent (teal, gold, fern, summit). */
   tone?: AccentName;
   /** Topo seed for `hero`. */
   seed?: string;

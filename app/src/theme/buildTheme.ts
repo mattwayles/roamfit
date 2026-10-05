@@ -33,7 +33,7 @@ export interface Theme {
    *  where a stronger wash drags accent-text-on-tint under 4.5:1 (see theme tests). */
   tints: Record<AccentName, string>;
   gradients: Record<GradientName, GradientColors>;
-  /** Gradient for an accent color (teal, gold, coral, summit have one). */
+  /** Gradient for an accent color (teal, gold, fern, summit have one). */
   accentGradient: Partial<Record<AccentName, GradientColors>>;
   section: { warmup: string; main: string; cooldown: string };
   focus: { upper: string; legs: string; abs: string; full: string; cardio: string };
@@ -49,7 +49,7 @@ export interface Theme {
   trainedColor(focusKey: string | null | undefined): string;
   /** Token name of the legend color for text on a hero gradient of this accent tone. */
   onGradient(tone: AccentName): 'ink' | 'fixedPaper';
-  /** Legend color for the Home hero pill (an `ink` fill): `gold` reads on Midnight's near-black;
+  /** Legend color for the Home hero pill (an `ink` fill): `text` (paper white) reads on Midnight's near-black;
    *  Daybreak's white pill takes deep teal. */
   heroCta: ColorName;
   /** Accent glow as iOS shadow props. Tamed in Daybreak, where a big bloom reads as a smudge. */
@@ -97,7 +97,7 @@ export function buildTheme(scheme: Scheme): Theme {
     ]),
   ) as Record<AccentName, { fill: string; border: string }>;
 
-  const focus = { upper: c.teal, legs: c.summit, abs: c.gold, full: c.coral, cardio: c.rose };
+  const focus = { upper: c.teal, legs: c.summit, abs: c.gold, full: c.fern, cardio: c.rose };
 
   const base = dark ? DarkTheme : DefaultTheme;
   const navTheme: NavTheme = {
@@ -124,10 +124,10 @@ export function buildTheme(scheme: Scheme): Theme {
     accentGradient: {
       teal: gradients.trail,
       gold: gradients.golden,
-      coral: gradients.coral,
+      fern: gradients.fern,
       summit: gradients.summit,
     },
-    section: { warmup: c.gold, main: c.teal, cooldown: c.coral },
+    section: { warmup: c.gold, main: c.teal, cooldown: c.fern },
     focus,
     setState: { completed: c.teal, skipped: c.text3, not_reached: c.line },
     dayMarker: { travel: c.sky, quick: c.gold },
@@ -136,7 +136,7 @@ export function buildTheme(scheme: Scheme): Theme {
     // Ink everywhere: Midnight's bright fills (plum included, >= 4.9:1 over its whole gradient)
     // take near-black, Daybreak's deep fills take white. Paper would be 1.9:1 on plum's light end.
     onGradient: () => 'ink',
-    heroCta: dark ? 'gold' : 'teal',
+    heroCta: dark ? 'text' : 'teal',
     glow: (color = c.teal) => ({
       shadowColor: color,
       shadowOpacity: dark ? 0.45 : 0.28,

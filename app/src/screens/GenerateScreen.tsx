@@ -472,7 +472,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
           testID="recovery-week-toggle"
           switchTestID="recovery-week-checkbox"
           icon="leaf"
-          tone="coral"
+          tone="fern"
           title="Recovery Workout"
           subtitle="Lighter loads, same consistency."
           value={recoveryWeek}

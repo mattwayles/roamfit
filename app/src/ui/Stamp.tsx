@@ -9,7 +9,7 @@ import { seededRng } from '../lib/seed';
 import { radius, useTheme, type AccentName } from '../theme';
 import { Txt } from './Txt';
 
-const INKS: readonly AccentName[] = ['teal', 'gold', 'sky', 'summit', 'coral'];
+const INKS: readonly AccentName[] = ['teal', 'gold', 'sky', 'summit', 'fern'];
 
 export interface StampSpec {
   shape: 'circle' | 'rect';

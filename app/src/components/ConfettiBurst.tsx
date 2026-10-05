@@ -17,12 +17,12 @@ import { Animated, StyleSheet, useWindowDimensions } from 'react-native';
 import { useTheme, type Theme } from '../theme';
 
 /**
- * Teal, tealDeep, gold, coral, sky, rose (the `vivid` hexes in both modes: deep confetti on
+ * Teal, tealDeep, gold, fern, sky, rose (the `vivid` hexes in both modes: deep confetti on
  * paper looks like dirt) and one flake of the theme `text` — no violet (DESIGN.md §5.9, §8.1).
  */
 function confettiPalette(theme: Theme): string[] {
   const v = theme.vivid;
-  return [v.teal, v.tealDeep, v.gold, v.coral, v.sky, v.rose, theme.colors.text];
+  return [v.teal, v.tealDeep, v.gold, v.fern, v.sky, v.rose, theme.colors.text];
 }
 const SAMPLES = 12;
 

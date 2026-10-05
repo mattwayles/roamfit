@@ -277,7 +277,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           <BannerCard
             testID="comeback-banner"
             icon="sparkles"
-            tone="coral"
+            tone="fern"
             title="Welcome back — let's ease in."
           />
         </Enter>
@@ -319,7 +319,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           <BannerCard
             testID="recovery-week-banner"
             icon="leaf"
-            tone="coral"
+            tone="fern"
             title="Recovery week — lighter loads, same consistency."
             subtitle="Tap to build one today"
             onPress={handleRecoveryWeekAccept}

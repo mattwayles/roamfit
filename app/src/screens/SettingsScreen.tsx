@@ -478,7 +478,7 @@ export default function SettingsScreen(): React.JSX.Element {
           <SwitchRow
             testID="toggle-healthkit-write"
             icon="heart"
-            tone="coral"
+            tone="fern"
             label="Write workouts to Apple Health"
             value={user.healthWriteEnabled}
             onValueChange={toggleHealthWrite}

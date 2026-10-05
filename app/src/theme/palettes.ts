@@ -30,7 +30,7 @@ export const midnight = {
   teal: '#4FB8C4',
   tealDeep: '#2E8C98',
   gold: '#FFB938',
-  coral: '#FF8A5C',
+  fern: '#FF8A5C',
   sky: '#5AA9FF',
   summit: '#C77DFF',
   /** Cardio focus ONLY — never an error/negative state. */
@@ -41,13 +41,13 @@ export type ColorName = keyof typeof midnight;
 export type Palette = Record<ColorName, string>;
 
 /** The accent colors — the ones that can carry a tint, a chip tone or a glow. */
-export type AccentName = 'teal' | 'tealDeep' | 'gold' | 'coral' | 'sky' | 'summit' | 'rose';
+export type AccentName = 'teal' | 'tealDeep' | 'gold' | 'fern' | 'sky' | 'summit' | 'rose';
 
 export const accentNames: readonly AccentName[] = [
   'teal',
   'tealDeep',
   'gold',
-  'coral',
+  'fern',
   'sky',
   'summit',
   'rose',
@@ -78,7 +78,7 @@ export const daybreak: Palette = {
   tealDeep: '#003A40',
   /** Brass — reads as gold on paper, unlike a yellow. */
   gold: '#8F5A00',
-  coral: '#B04219',
+  fern: '#B04219',
   sky: '#1A5FC2',
   summit: '#7E2BB0',
   rose: '#BF1D63',
@@ -90,13 +90,13 @@ export const vivid: Record<AccentName, string> = {
   teal: midnight.teal,
   tealDeep: midnight.tealDeep,
   gold: midnight.gold,
-  coral: midnight.coral,
+  fern: midnight.fern,
   sky: midnight.sky,
   summit: midnight.summit,
   rose: midnight.rose,
 };
 
-export type GradientName = 'trail' | 'golden' | 'coral' | 'summit' | 'night';
+export type GradientName = 'trail' | 'golden' | 'fern' | 'summit' | 'night';
 export type GradientColors = readonly [string, string];
 
 export const midnightGradients: Record<GradientName, GradientColors> = {
@@ -105,7 +105,7 @@ export const midnightGradients: Record<GradientName, GradientColors> = {
   /** Achievements, best sets. */
   golden: ['#FFB938', '#FFD166'],
   /** Rest ring, recovery. */
-  coral: ['#F07040', '#FFA27A'],
+  fern: ['#F07040', '#FFA27A'],
   /** Level ups, progression rings. */
   summit: ['#A45CF0', '#D59BFF'],
   /** Subtle card sheen, top -> bottom. */
@@ -116,7 +116,7 @@ export const midnightGradients: Record<GradientName, GradientColors> = {
 export const daybreakGradients: Record<GradientName, GradientColors> = {
   trail: ['#003F46', '#0A5C66'],
   golden: ['#8F5A00', '#A46D00'],
-  coral: ['#A63C16', '#C0521F'],
+  fern: ['#A63C16', '#C0521F'],
   summit: ['#6A22A0', '#8E3BC4'],
   /** Card sheen: surface -> bg. */
   night: ['#FFFDF8', '#F6F0E4'],
