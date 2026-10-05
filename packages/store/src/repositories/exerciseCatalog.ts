@@ -162,19 +162,73 @@ export function getExercisePerformanceHistory(
   db: Db,
   exerciseId: string,
 ): ExerciseSessionPerformance[] {
-  const entryRows = db
+  return foldPerformance(db, entriesWhere(db, eq(schema.sessionEntries.exerciseId, exerciseId)));
+}
+
+/** One session's worth of a progression family's work, with which exercise ran and at which rung. */
+export interface FamilySessionPerformance extends ExerciseSessionPerformance {
+  /** `session_entries.exercise_id` — what actually ran (the first such entry, when several did). */
+  exerciseId: string;
+  /** `session_entries.progression_level_id_at_time` — a stable level id (invariant 5), never an
+   *  index. Null for entries recorded before the family tracked it. */
+  progressionLevelIdAtTime: string | null;
+}
+
+/**
+ * Like {@link getExercisePerformanceHistory}, but across a whole progression family: entries are
+ * selected by `progression_family_id`, so a ladder that moved through several exercises reads as
+ * one series. Each session point also carries the exercise that ran and the rung it ran at, which
+ * is what a movement-group progress page needs to segment and mark level changes. Same scoping and
+ * folding rules (completed sessions only, no `removed_at_approval`, all-skipped sessions dropped).
+ *
+ * One session holding entries for two exercises of the same family folds into one point, labelled
+ * by the first such entry in the session.
+ */
+export function getFamilyPerformanceHistory(
+  db: Db,
+  familyId: string,
+): FamilySessionPerformance[] {
+  return foldPerformance(
+    db,
+    entriesWhere(db, eq(schema.sessionEntries.progressionFamilyId, familyId)),
+    (entry) => ({
+      exerciseId: entry.exerciseId,
+      progressionLevelIdAtTime: entry.progressionLevelIdAtTime,
+    }),
+  );
+}
+
+function entriesWhere(db: Db, where: ReturnType<typeof eq>) {
+  return db
     .select({
       id: schema.sessionEntries.id,
       sessionId: schema.sessionEntries.sessionId,
+      exerciseId: schema.sessionEntries.exerciseId,
+      progressionLevelIdAtTime: schema.sessionEntries.progressionLevelIdAtTime,
+      orderIndex: schema.sessionEntries.orderIndex,
       band: schema.sessionEntries.band,
       restSec: schema.sessionEntries.restSec,
       tempoSec: schema.sessionEntries.tempoSec,
       entryStatus: schema.sessionEntries.entryStatus,
     })
     .from(schema.sessionEntries)
-    .where(eq(schema.sessionEntries.exerciseId, exerciseId))
+    .where(where)
     .all()
     .filter((e) => e.entryStatus !== 'removed_at_approval');
+}
+
+type PerfEntry = ReturnType<typeof entriesWhere>[number];
+
+/**
+ * The shared fold behind both histories: given candidate entries, keep those in completed sessions,
+ * fold their completed sets into one point per session, and sort oldest first. `extra` stamps
+ * additional fields from a session's first entry.
+ */
+function foldPerformance<X extends object = Record<never, never>>(
+  db: Db,
+  entryRows: PerfEntry[],
+  extra?: (entry: PerfEntry) => X,
+): (ExerciseSessionPerformance & X)[] {
   if (entryRows.length === 0) return [];
 
   const sessionRows = db
@@ -198,7 +252,9 @@ export function getExercisePerformanceHistory(
   if (sessionRows.length === 0) return [];
 
   const completedSessions = new Map(sessionRows.map((s) => [s.id, s]));
-  const liveEntries = entryRows.filter((e) => completedSessions.has(e.sessionId));
+  const liveEntries = entryRows
+    .filter((e) => completedSessions.has(e.sessionId))
+    .sort((a, b) => a.orderIndex - b.orderIndex);
 
   const setRows = db
     .select()
@@ -221,24 +277,27 @@ export function getExercisePerformanceHistory(
 
   // Fold by session, not by entry: one session can hold more than one entry for the same exercise
   // (an approval-time add alongside the generated one), and the chart plots sessions.
-  const bySession = new Map<string, ExerciseSessionPerformance>();
+  const bySession = new Map<string, ExerciseSessionPerformance & X>();
   for (const entry of liveEntries) {
     const sets = byEntry.get(entry.id) ?? [];
     if (sets.length === 0) continue;
     const session = completedSessions.get(entry.sessionId)!;
 
-    const point: ExerciseSessionPerformance = bySession.get(entry.sessionId) ?? {
-      sessionId: entry.sessionId,
-      localDate: session.localDate,
-      setsCompleted: 0,
-      bestReps: null,
-      bestSeconds: null,
-      totalReps: 0,
-      totalSeconds: 0,
-      band: null,
-      restSec: entry.restSec,
-      tempoSec: entry.tempoSec,
-    };
+    const point =
+      bySession.get(entry.sessionId) ??
+      ({
+        sessionId: entry.sessionId,
+        localDate: session.localDate,
+        setsCompleted: 0,
+        bestReps: null,
+        bestSeconds: null,
+        totalReps: 0,
+        totalSeconds: 0,
+        band: null,
+        restSec: entry.restSec,
+        tempoSec: entry.tempoSec,
+        ...(extra ? extra(entry) : {}),
+      } as ExerciseSessionPerformance & X);
 
     for (const set of sets) {
       point.setsCompleted += 1;

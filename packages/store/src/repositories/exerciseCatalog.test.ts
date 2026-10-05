@@ -13,6 +13,7 @@ import {
   emptyCatalogState,
   getExerciseCatalogState,
   getExercisePerformanceHistory,
+  getFamilyPerformanceHistory,
 } from './exerciseCatalog';
 import type { Db } from '../db';
 
@@ -69,6 +70,8 @@ function insertEntry(
     restSec?: number;
     tempoSec?: number;
     entryStatus?: 'planned' | 'removed_at_approval' | 'unplanned_added';
+    familyId?: string | null;
+    levelId?: string | null;
   },
 ): string {
   const entryId = id('entry');
@@ -91,6 +94,8 @@ function insertEntry(
       anchorClass: 'none',
       estimatedSec: 200,
       entryStatus: opts.entryStatus ?? 'planned',
+      progressionFamilyId: opts.familyId ?? null,
+      progressionLevelIdAtTime: opts.levelId ?? null,
     })
     .run();
   return entryId;
@@ -345,5 +350,85 @@ describe('getExercisePerformanceHistory', () => {
     const entryId = insertEntry(db, sessionId, { exerciseId: OTHER_EXERCISE_ID });
     insertSet(db, entryId, { setIndex: 0, reps: 10 });
     expect(getExercisePerformanceHistory(db, EXERCISE_ID)).toEqual([]);
+  });
+});
+
+describe('getFamilyPerformanceHistory', () => {
+  const FAMILY = 'push-family';
+
+  it('is empty for a family that has never run', () => {
+    const { db } = createTestDb();
+    expect(getFamilyPerformanceHistory(db, FAMILY)).toEqual([]);
+  });
+
+  it('spans several exercises, carrying the exercise and rung that ran, oldest first', () => {
+    const { db } = createTestDb();
+    const a = insertSession(db, { localDate: '2026-08-10', status: 'completed' });
+    const b = insertSession(db, { localDate: '2026-08-01', status: 'completed' });
+    const ea = insertEntry(db, a, { exerciseId: OTHER_EXERCISE_ID, familyId: FAMILY, levelId: 'lvl-b' });
+    const eb = insertEntry(db, b, { exerciseId: EXERCISE_ID, familyId: FAMILY, levelId: 'lvl-a' });
+    insertSet(db, ea, { setIndex: 0, reps: 6 });
+    insertSet(db, eb, { setIndex: 0, reps: 12 });
+    insertSet(db, eb, { setIndex: 1, reps: 10 });
+
+    const points = getFamilyPerformanceHistory(db, FAMILY);
+    expect(points.map((p) => [p.localDate, p.exerciseId, p.progressionLevelIdAtTime])).toEqual([
+      ['2026-08-01', EXERCISE_ID, 'lvl-a'],
+      ['2026-08-10', OTHER_EXERCISE_ID, 'lvl-b'],
+    ]);
+    expect(points[0]).toMatchObject({ setsCompleted: 2, bestReps: 12, totalReps: 22 });
+  });
+
+  it('ignores other families, discarded sessions, removed entries and all-skipped sessions', () => {
+    const { db } = createTestDb();
+    const ok = insertSession(db, { localDate: '2026-08-01', status: 'completed' });
+    insertSet(db, insertEntry(db, ok, { exerciseId: EXERCISE_ID, familyId: FAMILY }), {
+      setIndex: 0,
+      reps: 5,
+    });
+    const other = insertSession(db, { localDate: '2026-08-02', status: 'completed' });
+    insertSet(db, insertEntry(db, other, { exerciseId: EXERCISE_ID, familyId: 'other' }), {
+      setIndex: 0,
+      reps: 5,
+    });
+    const discarded = insertSession(db, { localDate: '2026-08-03', status: 'discarded' });
+    insertSet(db, insertEntry(db, discarded, { exerciseId: EXERCISE_ID, familyId: FAMILY }), {
+      setIndex: 0,
+      reps: 5,
+    });
+    const removed = insertSession(db, { localDate: '2026-08-04', status: 'completed' });
+    insertSet(
+      db,
+      insertEntry(db, removed, {
+        exerciseId: EXERCISE_ID,
+        familyId: FAMILY,
+        entryStatus: 'removed_at_approval',
+      }),
+      { setIndex: 0, reps: 5 },
+    );
+    const skipped = insertSession(db, { localDate: '2026-08-05', status: 'completed' });
+    insertSet(db, insertEntry(db, skipped, { exerciseId: EXERCISE_ID, familyId: FAMILY }), {
+      setIndex: 0,
+      status: 'skipped',
+    });
+
+    expect(getFamilyPerformanceHistory(db, FAMILY).map((p) => p.localDate)).toEqual(['2026-08-01']);
+  });
+
+  it('folds two entries of one session into a single point', () => {
+    const { db } = createTestDb();
+    const s = insertSession(db, { localDate: '2026-08-01', status: 'completed' });
+    insertSet(db, insertEntry(db, s, { exerciseId: EXERCISE_ID, familyId: FAMILY, levelId: 'x' }), {
+      setIndex: 0,
+      reps: 8,
+    });
+    insertSet(
+      db,
+      insertEntry(db, s, { exerciseId: OTHER_EXERCISE_ID, familyId: FAMILY, levelId: 'y' }),
+      { setIndex: 0, reps: 9 },
+    );
+    const points = getFamilyPerformanceHistory(db, FAMILY);
+    expect(points).toHaveLength(1);
+    expect(points[0]).toMatchObject({ setsCompleted: 2, bestReps: 9, totalReps: 17 });
   });
 });

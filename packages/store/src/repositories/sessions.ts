@@ -6,7 +6,7 @@
  * just re-reading `getSession` — there is no separate "cursor" that could go stale, because
  * "which set was in progress" is entirely reconstructible from which `set_logs` rows exist.
  */
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, gte, lte } from 'drizzle-orm';
 import { estimateEntrySec } from '@roamfit/engine';
 import type {
   BandId,
@@ -1289,6 +1289,8 @@ export function getHistoryForGeneration(db: Db, limit = 90): SessionHistoryRecor
  *  Sorted newest-first, capped at `limit` (the calendar/passport are both bounded-window UI —
  *  a year of daily sessions is already generous for what either can usefully show). */
 export interface DashboardSessionSummary {
+  /** The session's id, so a calendar day can open its workout (history page). */
+  id: string;
   localDate: string;
   actualMinutes: number | null;
   estimatedMinutes: number;
@@ -1337,23 +1339,76 @@ export function countCompletedSessions(db: Db): number {
     .all().length;
 }
 
+const DASHBOARD_COLUMNS = {
+  id: schema.sessions.id,
+  localDate: schema.sessions.localDate,
+  actualMinutes: schema.sessions.actualMinutes,
+  estimatedMinutes: schema.sessions.estimatedMinutes,
+  focus: schema.sessions.focus,
+  isQuick: schema.sessions.isQuick,
+  city: schema.sessions.city,
+  country: schema.sessions.country,
+  region: schema.sessions.region,
+  countryCode: schema.sessions.countryCode,
+};
+
 export function getCompletedSessionsForDashboard(db: Db, limit = 365): DashboardSessionSummary[] {
   return db
-    .select({
-      localDate: schema.sessions.localDate,
-      actualMinutes: schema.sessions.actualMinutes,
-      estimatedMinutes: schema.sessions.estimatedMinutes,
-      focus: schema.sessions.focus,
-      isQuick: schema.sessions.isQuick,
-      city: schema.sessions.city,
-      country: schema.sessions.country,
-      region: schema.sessions.region,
-      countryCode: schema.sessions.countryCode,
-    })
+    .select(DASHBOARD_COLUMNS)
     .from(schema.sessions)
     .where(and(eq(schema.sessions.userId, USER_ID), eq(schema.sessions.status, 'completed')))
     .orderBy(desc(schema.sessions.localDate))
     .limit(limit)
     .all()
     .map((r) => ({ ...r, focus: r.focus as Focus }));
+}
+
+/**
+ * Completed sessions whose `local_date` falls in [from, to], both ends inclusive (invariant 6 —
+ * 'YYYY-MM-DD' strings compare correctly as text). Uncapped, unlike the dashboard read: the Logbook
+ * uses this for any month it shows, and a cap would silently drop older months. Newest first.
+ */
+export function getCompletedSessionsInRange(
+  db: Db,
+  from: string,
+  to: string,
+): DashboardSessionSummary[] {
+  return db
+    .select(DASHBOARD_COLUMNS)
+    .from(schema.sessions)
+    .where(
+      and(
+        eq(schema.sessions.userId, USER_ID),
+        eq(schema.sessions.status, 'completed'),
+        gte(schema.sessions.localDate, from),
+        lte(schema.sessions.localDate, to),
+      ),
+    )
+    .orderBy(desc(schema.sessions.localDate), desc(schema.sessions.createdAt))
+    .all()
+    .map((r) => ({ ...r, focus: r.focus as Focus }));
+}
+
+/** Completed-workout counts keyed by 'YYYY-MM' of `local_date` — the month picker, and the earliest
+ *  month with a session. Months with no workout are simply absent. */
+export function countCompletedSessionsByMonth(db: Db): Map<string, number> {
+  const out = new Map<string, number>();
+  const rows = db
+    .select({ localDate: schema.sessions.localDate })
+    .from(schema.sessions)
+    .where(and(eq(schema.sessions.userId, USER_ID), eq(schema.sessions.status, 'completed')))
+    .all();
+  for (const { localDate } of rows) {
+    const month = localDate.slice(0, 7);
+    out.set(month, (out.get(month) ?? 0) + 1);
+  }
+  return out;
+}
+
+/** A finished workout with its entries and set logs, for the history page. Null when the session
+ *  doesn't exist or isn't `completed` (a discarded or in-flight session is not history). Entries
+ *  removed at approval are still present on the record; callers drop them. */
+export function getCompletedSessionDetail(db: Db, sessionId: string): SessionRecord | null {
+  const session = getSession(db, sessionId);
+  return session && session.status === 'completed' ? session : null;
 }

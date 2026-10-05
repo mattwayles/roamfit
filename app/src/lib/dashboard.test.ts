@@ -159,6 +159,7 @@ function summary(
   opts: Partial<DashboardSessionSummary> = {},
 ): DashboardSessionSummary {
   return {
+    id: `session-${localDate}`,
     localDate,
     actualMinutes: 30,
     estimatedMinutes: 30,
