@@ -120,18 +120,18 @@ describe('§5.6 Plan / Approval presentation', () => {
     expect(screen.getByTestId('approval-keyboard-done')).toBeTruthy();
   });
 
-  it('swap wears its own tint, and its notice is a periwinkle pill', async () => {
+  it('swap wears its own tint, and its notice is a coral pill', async () => {
     const { db, sessionId } = await mount();
     const entry = sessionsRepo
       .getSession(db, sessionId)!
       .entries.find((e) => e.section === 'main' && e.progressionFamilyId)!;
     const bg = StyleSheet.flatten(screen.getByTestId(`swap-${entry.exerciseId}`).props.style);
-    expect(bg?.backgroundColor).toBe(midnightTheme.tints.periwinkle);
+    expect(bg?.backgroundColor).toBe(midnightTheme.tints.coral);
 
     await fireEvent.press(screen.getByTestId(`swap-${entry.exerciseId}`));
     await waitFor(() => expect(screen.getByTestId('swap-notice')).toBeTruthy(), WAIT_OPTS);
     expect(StyleSheet.flatten(screen.getByTestId('swap-notice').props.style)?.backgroundColor).toBe(
-      midnightTheme.tints.periwinkle,
+      midnightTheme.tints.coral,
     );
   });
 

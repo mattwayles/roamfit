@@ -25,6 +25,6 @@ export const FOCUS_TONE: Record<Focus, AccentName> = {
   upper: 'teal',
   abs: 'gold',
   legs: 'summit',
-  full: 'periwinkle',
+  full: 'coral',
   cardio: 'rose',
 };

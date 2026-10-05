@@ -369,7 +369,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                 value={lifetime.countries}
                 label="Countries"
                 icon="globe"
-                tone="periwinkle"
+                tone="coral"
               />
             </View>
           </View>

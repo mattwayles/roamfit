@@ -14,3 +14,15 @@ Last updated: 2026-10-04
 - STATUS-22-daylight.md and other historical handoffs left alone.
 - periwinkle is only ~15-20 degrees of hue from sky/summit (all three blue-violet by request); the hue test pins teal >= 20 from them and periwinkle >= 15.
 - ExercisesScreen.test.tsx times out (first test, `render` not called) under a loaded full `npm run check`; passes alone and in `cd app && npx jest`.
+
+## Track: 28b — Accent spread (summit -> plum, periwinkle -> coral)
+Last updated: 2026-10-04
+(Same file as track 28; sky stays. periwinkle/summit sat too close to sky on the Journey tiles.)
+### Done
+- [x] Increment 1: pure rename periwinkle -> coral (token, gradient key, tone props, comments), values unchanged.
+### In progress
+- Increment 1 (rename), then 2 (summit plum #C77DFF/#7E2BB0, coral #FF8A5C/#B4441C + gradients, hue test over {teal,sky,summit,coral,gold,rose} >= 20 deg), then 3 (DESIGN.md + BACKLOG device-pass note).
+### Next
+- Increments 2 and 3 as above.
+### Decisions / gotchas
+- Token `summit` keeps its name (semantic); only its value changes.

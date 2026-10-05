@@ -78,7 +78,7 @@ describe('palettes', () => {
       tealDeep: '#2E8C98',
       gold: '#FFB938',
       sun: '#FFD166',
-      periwinkle: '#7F97FF',
+      coral: '#7F97FF',
       sky: '#5AA9FF',
       summit: '#8E7BFF',
       rose: '#FF5C93',
@@ -86,7 +86,7 @@ describe('palettes', () => {
     expect(midnightTheme.gradients).toEqual({
       trail: ['#3FA9B6', '#62CBD5'],
       golden: ['#FFB938', '#FFD166'],
-      periwinkle: ['#6478F0', '#8FA2FF'],
+      coral: ['#6478F0', '#8FA2FF'],
       summit: ['#7B5CFF', '#C084FC'],
       night: ['#1C2330', '#0B0E13'],
     });
@@ -154,26 +154,26 @@ describe('Daybreak contrast (WCAG)', () => {
 
 describe('Midnight contrast is not regressed', () => {
   it('ink is legible on the bright accents it sits on', () => {
-    for (const n of ['teal', 'gold', 'periwinkle'] as const) {
+    for (const n of ['teal', 'gold', 'coral'] as const) {
       expect(contrast(midnight.ink, midnight[n])).toBeGreaterThanOrEqual(4.5);
     }
   });
 });
 
-describe('teal and periwinkle stay distinguishable', () => {
-  // sky, summit and periwinkle are all blue-violet by design (hue ~210-250), so periwinkle only
+describe('teal and coral stay distinguishable', () => {
+  // sky, summit and coral are all blue-violet by design (hue ~210-250), so coral only
   // sits ~15-20 degrees from each; teal (hue ~186) is the one that must stay clearly apart.
   it.each([
     ['Midnight', midnight],
     ['Daybreak', daybreak],
   ] as const)(
-    '%s: teal is >= 20 degrees from the blues, periwinkle >= 15 from sky and summit',
+    '%s: teal is >= 20 degrees from the blues, coral >= 15 from sky and summit',
     (_n, p) => {
-      for (const other of ['periwinkle', 'sky', 'summit'] as const) {
+      for (const other of ['coral', 'sky', 'summit'] as const) {
         expect(hueDistance(p.teal, p[other])).toBeGreaterThanOrEqual(20);
       }
       for (const other of ['sky', 'summit'] as const) {
-        expect(hueDistance(p.periwinkle, p[other])).toBeGreaterThanOrEqual(15);
+        expect(hueDistance(p.coral, p[other])).toBeGreaterThanOrEqual(15);
       }
     },
   );
@@ -220,7 +220,7 @@ describe('buildTheme', () => {
 
   it('Daybreak day cells read as color, not a muddy wash, and keep the date legible', () => {
     // Every accent a day marker can resolve to (focus colors, travel = sky, quick = gold).
-    const markerAccents = ['teal', 'summit', 'gold', 'periwinkle', 'rose', 'sky'] as const;
+    const markerAccents = ['teal', 'summit', 'gold', 'coral', 'rose', 'sky'] as const;
     for (const n of markerAccents) {
       const cell = composite(vivid[n], 0.4, daybreak.surface);
       // Clearly more colorful than the old deep-accent 20% wash it replaces.

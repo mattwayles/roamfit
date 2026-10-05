@@ -33,7 +33,7 @@ export interface Theme {
    *  where a stronger wash drags accent-text-on-tint under 4.5:1 (see theme tests). */
   tints: Record<AccentName, string>;
   gradients: Record<GradientName, GradientColors>;
-  /** Gradient for an accent color (teal, gold, periwinkle, summit have one). */
+  /** Gradient for an accent color (teal, gold, coral, summit have one). */
   accentGradient: Partial<Record<AccentName, GradientColors>>;
   section: { warmup: string; main: string; cooldown: string };
   focus: { upper: string; legs: string; abs: string; full: string; cardio: string };
@@ -97,7 +97,7 @@ export function buildTheme(scheme: Scheme): Theme {
     ]),
   ) as Record<AccentName, { fill: string; border: string }>;
 
-  const focus = { upper: c.teal, legs: c.summit, abs: c.gold, full: c.periwinkle, cardio: c.rose };
+  const focus = { upper: c.teal, legs: c.summit, abs: c.gold, full: c.coral, cardio: c.rose };
 
   const base = dark ? DarkTheme : DefaultTheme;
   const navTheme: NavTheme = {
@@ -124,10 +124,10 @@ export function buildTheme(scheme: Scheme): Theme {
     accentGradient: {
       teal: gradients.trail,
       gold: gradients.golden,
-      periwinkle: gradients.periwinkle,
+      coral: gradients.coral,
       summit: gradients.summit,
     },
-    section: { warmup: c.gold, main: c.teal, cooldown: c.periwinkle },
+    section: { warmup: c.gold, main: c.teal, cooldown: c.coral },
     focus,
     setState: { completed: c.teal, skipped: c.text3, not_reached: c.line },
     dayMarker: { travel: c.sky, quick: c.gold },

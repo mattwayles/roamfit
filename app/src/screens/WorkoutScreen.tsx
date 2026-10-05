@@ -14,7 +14,7 @@
  * **Presentation (docs/DESIGN.md §5.7, "Ignition").** The native header is hidden; this screen draws
  * its own top bar (home / elapsed clock / pause / stop), a session `SegmentedBar`, and a section
  * chip. The exercise hero is a card with a gradient border in the section's color (gold warm-up,
- * teal main, periwinkle cool-down); rest flips it to periwinkle. Everything visual is a token or a `ui/`
+ * teal main, coral cool-down); rest flips it to coral. Everything visual is a token or a `ui/`
  * primitive — none of it reads or writes anything the store didn't already.
  *
  * **Remove set** mid-workout has no store mutation to call (only §10.3 approval-time removal
@@ -1098,7 +1098,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             testID="swap-notice"
             style={[styles.swapNotice, { opacity: swapNoticeOpacity }]}
           >
-            <Txt variant="small" color="periwinkle" align="center">
+            <Txt variant="small" color="coral" align="center">
               {swapNotice}
             </Txt>
           </Animated.View>
@@ -1339,7 +1339,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 const SECTION_TONE: Record<Section, AccentName> = {
   warmup: 'gold',
   main: 'teal',
-  cooldown: 'periwinkle',
+  cooldown: 'coral',
 };
 
 const SECTION_LABEL: Record<Section, string> = {
@@ -1550,7 +1550,7 @@ function SetNavRow({
         testID="swap-set"
         icon="swap"
         label="Swap"
-        tone="periwinkle"
+        tone="coral"
         accessibilityLabel="Swap this exercise for another"
         onPress={onSwap}
       />
@@ -2453,11 +2453,11 @@ function RestPhase({
 
   return (
     <>
-      {/* Rest is the periwinkle mood: a periwinkle border and ring so it is unmistakable at a glance from
+      {/* Rest is the coral mood: a coral border and ring so it is unmistakable at a glance from
           across a room. */}
-      <Card variant="accent" tone="periwinkle" padding="md" testID="rest-hero">
+      <Card variant="accent" tone="coral" padding="md" testID="rest-hero">
         <View style={styles.restBody}>
-          <Txt variant="eyebrow" color="periwinkle" align="center">
+          <Txt variant="eyebrow" color="coral" align="center">
             Rest
           </Txt>
           <Txt variant="h2" align="center" testID="rest-line">
@@ -2485,8 +2485,8 @@ function RestPhase({
               progress={mostMsRef.current > 0 ? remainingMs / mostMsRef.current : 0}
               size={REST_RING_SIZE}
               stroke={14}
-              gradient={theme.gradients.periwinkle}
-              trackColor={withAlpha(theme.colors.periwinkle, 0.18)}
+              gradient={theme.gradients.coral}
+              trackColor={withAlpha(theme.colors.coral, 0.18)}
               animate={false}
             >
               <Txt
@@ -2643,7 +2643,7 @@ function Disclosure({
         onPress={() => setOpen((o) => !o)}
       >
         <View style={styles.disclosureTitle}>
-          <Icon name="info" size={16} color="periwinkle" style={styles.disclosureIcon} />
+          <Icon name="info" size={16} color="coral" style={styles.disclosureIcon} />
           <Txt variant="eyebrow" color="text2">
             {title}
           </Txt>
@@ -2687,7 +2687,7 @@ const useStyles = makeStyles((t) =>
     pausedChip: { alignSelf: 'flex-start' },
     swapNotice: {
       alignSelf: 'center',
-      backgroundColor: t.tints.periwinkle,
+      backgroundColor: t.tints.coral,
       borderRadius: radius.pill,
       paddingHorizontal: space.lg,
       paddingVertical: space.sm,

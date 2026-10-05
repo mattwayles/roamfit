@@ -46,7 +46,7 @@ describe('Card', () => {
 
   it('accent wraps the body in a gradient border', async () => {
     await render(
-      <Card variant="accent" tone="periwinkle" testID="a">
+      <Card variant="accent" tone="coral" testID="a">
         <Txt>a</Txt>
       </Card>,
     );
