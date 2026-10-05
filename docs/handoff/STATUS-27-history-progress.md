@@ -2,6 +2,7 @@
 Last updated: 2026-10-04
 Plan: `~/.claude/plans/let-s-plan-a-joint-rippling-rabin.md` (read-only over local SQLite; no schema change, no migration).
 ### Done
+- [x] Increment 5: `components/ProgressChart.tsx` (SVG line chart: time-proportional x, labelled y gridlines, nearest-point tap readout, dashed markers, per-segment colours, step mode, onLayout width), `lib/chartGeometry.ts`; Exercise detail now charts the FULL history with a Best set / Total volume toggle (CHART_WINDOW and the bar Chart removed). Tests: chartGeometry.test.ts, ProgressChart.test.tsx (both themes), ExerciseDetailScreen.test.tsx. See `git log`.
 - [x] Increment 3: day sheet does both (7312880): `CalendarDay.sessionIds`, session cards -> SessionHistory, "Mark this day as…", by-hand line, "tap for details". HomeScreen week strip does not share the handler (it only navigates to Journey), left alone.
 - [x] Increment 4: Logbook past months (see `git log`): `shiftMonth/monthLabel/monthShortName/earliestMonth/monthOfLocalDate` in lib/dashboard.ts, `monthCounts`+`earliestMonth` on DashboardData, `lib/useLogbookMonth.ts`, ‹ label › header + month picker Sheet; tests `JourneyScreen.pastMonths.test.tsx`, dashboard.test.ts.
 - [x] Pre-flight: this file (cc79c80).
@@ -11,9 +12,8 @@ Plan: `~/.claude/plans/let-s-plan-a-joint-rippling-rabin.md` (read-only over loc
   `screens/SessionHistoryScreen.tsx`; tests `sessionHistory.test.ts`, `SessionHistoryScreen.test.tsx` (incl. Daylight).
   The "Trail ›" link is NOT built (no `TrailProgress` route yet) — Increment 6 adds it; rows already carry `familyId`.
 ### In progress
-- Nothing (Increments 1-4 landed). Next agent starts Increment 5.
+- Increment 6 (Trail progress page) — starting.
 ### Next
-5. Increment 5 — `ProgressChart` + `chartGeometry.ts`; Exercise detail full-history line chart (load `dataviz` skill first).
 6. Increment 6 — Trail progress page (`TrailProgress` route, `lib/trailProgress.ts`, screen, "Progress ›" on Trail cards); also add the "Trail ›" link on the history page's exercise rows.
 7. Increment 7 — Docs: BACKLOG device-pass-owed item; park deliberately-omitted ideas (focus filter / "last leg day" search, weekly-volume charts).
 ### Decisions / gotchas

@@ -31,6 +31,7 @@ import type { Exercise } from '@roamfit/data';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { localDateFromDate, nowUtcInstant } from '../lib/localClock';
+import { ProgressChart } from '../components/ProgressChart';
 import DemoMedia from '../components/DemoMedia';
 import PinnedNote from '../components/PinnedNote';
 import { EmptyState } from '../components/EmptyState';
@@ -43,7 +44,6 @@ import {
   progressSummary,
   unitLabel,
 } from '../lib/exerciseProgress';
-import type { ChartPoint } from '../lib/exerciseProgress';
 import { FOCUS_TONE } from '../lib/focusLabels';
 import {
   gutter,
@@ -74,11 +74,6 @@ import { useInsets } from '../ui/useInsets';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseDetail'>;
 
-/** A long history would otherwise squeeze the bars into invisibility. The most recent dozen is
- *  enough to see a trend on a phone; the gain rows below are computed over *all* of it, so nothing
- *  earned is dropped just because it scrolled off the chart. */
-const CHART_WINDOW = 12;
-
 /** Hero gradient per focus tone. Cardio's rose has no themed gradient (it is an identity color,
  *  not a CTA one), so it borrows the rose -> pineDeep pair from the theme's palette. */
 function heroGradient(theme: Theme, tone: AccentName): GradientColors {
@@ -106,6 +101,7 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
     [library, exerciseId],
   );
   const [data, setData] = useState<DetailData | null>(null);
+  const [chartMode, setChartMode] = useState<'best' | 'volume'>('best');
 
   const load = useCallback(() => {
     setData({
@@ -190,7 +186,7 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
   }
 
   const progress = buildExerciseProgress(data?.history ?? [], exercise.metric);
-  const chart = progress.chart.slice(-CHART_WINDOW);
+  const chart = chartMode === 'volume' ? progress.volumeChart : progress.chart;
   const tone = FOCUS_TONE[exercise.focus[0] ?? 'full'];
   const ink = theme.onGradient(tone);
   const timesCompleted = data?.catalog.timesCompleted ?? 0;
@@ -302,11 +298,32 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
               </Txt>
 
               <View testID="detail-chart" style={styles.chart}>
-                <Txt variant="caption" color="text3">
-                  Best set per session
-                  {progress.chart.length > chart.length ? ` · last ${CHART_WINDOW}` : ''}
-                </Txt>
-                <Chart points={chart} unit={progress.unit} />
+                <View style={styles.gains}>
+                  <Chip
+                    testID="detail-chart-best"
+                    label="Best set"
+                    size="sm"
+                    tone="summit"
+                    selected={chartMode === 'best'}
+                    onPress={() => setChartMode('best')}
+                  />
+                  <Chip
+                    testID="detail-chart-volume"
+                    label="Total volume"
+                    size="sm"
+                    tone="summit"
+                    selected={chartMode === 'volume'}
+                    onPress={() => setChartMode('volume')}
+                  />
+                </View>
+                <ProgressChart
+                  testID="detail-progress-chart"
+                  title={chartMode === 'volume' ? 'Total volume' : 'Best set'}
+                  points={chart}
+                  formatValue={(v) => unitLabel(progress.unit, v)}
+                  integerTicks
+                  zeroBase={chartMode === 'volume'}
+                />
               </View>
 
               <View style={styles.gains}>
@@ -424,42 +441,6 @@ function progressionLabel(
   return `${family.name} · level ${ordinal.n} of ${ordinal.of}`;
 }
 
-/**
- * A horizontal bar per session, oldest at the top. Deliberately not a line chart: this needs no
- * measured layout, no charting dependency, it reads at a glance on a phone, and every bar carries
- * its own date and value so the picture is never the only way to get the number. The fill is the
- * trail gradient (at most a dozen SVGs, and only on this page).
- */
-function Chart({
-  points,
-  unit,
-}: {
-  points: ChartPoint[];
-  unit: 'reps' | 'seconds';
-}): React.JSX.Element {
-  const styles = useStyles();
-  const max = Math.max(...points.map((p) => p.value), 1);
-  return (
-    <View style={styles.chartBody}>
-      {points.map((point, i) => (
-        <View key={`${point.localDate}-${i}`} style={styles.chartRow}>
-          <Txt variant="caption" color="text3" style={styles.chartDate}>
-            {formatLocalDate(point.localDate)}
-          </Txt>
-          <View style={styles.chartTrack}>
-            <View style={[styles.chartFill, { width: `${(point.value / max) * 100}%` }]}>
-              <Gradient radius={radius.pill} angle={90} />
-            </View>
-          </View>
-          <Txt variant="caption" color="text2" align="right" style={styles.chartValue}>
-            {unitLabel(unit, point.value)}
-          </Txt>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 /** Section-card header: an accent icon and an eyebrow label (matches `DemoMedia`'s own header). */
 function CardHeader({
   icon,
@@ -523,18 +504,6 @@ const useStyles = makeStyles((t) =>
     cardHeader: { flexDirection: 'row', alignItems: 'center' },
     cardHeaderIcon: { marginRight: space.sm - 2 },
     chart: { gap: space.sm },
-    chartBody: { gap: space.sm },
-    chartRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-    chartDate: { width: 52 },
-    chartTrack: {
-      flex: 1,
-      height: 12,
-      borderRadius: radius.pill,
-      backgroundColor: t.colors.surface2,
-      overflow: 'hidden',
-    },
-    chartFill: { height: 12 },
-    chartValue: { width: 64 },
     gains: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
     spec: {

@@ -250,6 +250,18 @@ describe('the exercise detail page', () => {
       new RegExp(`^${improvedSessionCount}sessions? completed$`),
     );
     expect(screen.getByTestId('detail-chart')).toBeTruthy();
+    // The line chart draws once measured, over the whole history (no 12-row window).
+    await fireEvent(screen.getByTestId('detail-progress-chart-area'), 'layout', {
+      nativeEvent: { layout: { width: 320, height: 180 } },
+    });
+    expect(screen.getByTestId('detail-progress-chart-touch')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('detail-progress-chart-touch'), {
+      nativeEvent: { locationX: 1000 },
+    });
+    expect(screen.getByTestId('detail-progress-chart-readout')).toHaveTextContent(/·/);
+    // Total volume is the same history on a second measure.
+    await fireEvent.press(screen.getByTestId('detail-chart-volume'));
+    expect(screen.getByTestId('detail-progress-chart')).toBeTruthy();
     expect(screen.getByTestId('detail-progress-summary')).toHaveTextContent(
       /Stronger than your first session/,
     );
