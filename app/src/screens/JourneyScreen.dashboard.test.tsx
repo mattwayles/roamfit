@@ -40,6 +40,10 @@ describe('§14.2 cold start — Journey is never empty', () => {
       expect(screen.getByTestId(`board-row-${family.id}`)).toBeTruthy();
     }
     expect(screen.queryAllByText('Summit').length).toBe(0);
+    // No trail has a session yet, so no card draws a best-set chart, and there is no Progress
+    // button: the chart lives on the card itself.
+    expect(screen.queryAllByTestId(/^board-best-chart-/)).toHaveLength(0);
+    expect(screen.queryAllByTestId(/^board-trail-progress-/)).toHaveLength(0);
 
     // The sections that need a first session say what will land there instead of going blank —
     // and none of them shows a zero count.

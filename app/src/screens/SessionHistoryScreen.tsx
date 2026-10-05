@@ -124,10 +124,9 @@ export default function SessionHistoryScreen({ route, navigation }: Props): Reac
                     size="sm"
                     icon="chevronRight"
                     iconRight
-                    accessibilityLabel={`${row.name} trail progress`}
-                    onPress={() =>
-                      navigation.navigate('TrailProgress', { familyId: row.familyId! })
-                    }
+                    accessibilityLabel={`See ${row.name}'s trail on Journey`}
+                    // The trail's best-set chart lives on its card in Journey's Trails section.
+                    onPress={() => navigation.navigate('Tabs', { screen: 'Journey' })}
                   />
                 ) : null}
               </View>

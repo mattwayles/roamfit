@@ -220,6 +220,9 @@ The long-term story. Title `Journey Markers` in `display`, no eyebrow.
      Mastery = whole track gold + "SUMMIT" chip.
    - Right: `ProgressRing` (56pt, sky gradient) with the sessions-to-next number inside and
      "to next level" caption beneath — still the loudest thing on the row.
+   - **Best set per session**: once the trail has a measured session, a 140pt `ProgressChart` sits
+     under the level line — one line across every rung, coloured per exercise with a legend when
+     more than one has run, dashed ticks where the ladder moved up. There is no separate trail page.
    - An **Adjust** `quiet` button (`board-adjust-${familyId}`) expands the row to reveal the
      existing Too easy / Too hard controls and their two-step confirms, unchanged in behavior.
      Collapsed by default: the board is for looking; adjusting is occasional.

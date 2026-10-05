@@ -158,6 +158,16 @@ describe('SessionHistoryScreen', () => {
     expect(screen.getByTestId('detail-name')).toHaveTextContent(exercise.name);
   });
 
+  it("opens Journey from an exercise's Trail link, where the trail's chart now lives", async () => {
+    await openHistory(completedId);
+    await waitFor(
+      () => expect(screen.getAllByTestId(/^history-trail-/).length).toBeGreaterThan(0),
+      WAIT,
+    );
+    await fireEvent.press(screen.getAllByTestId(/^history-trail-/)[0]!);
+    await waitFor(() => expect(screen.getByTestId('journey-screen')).toBeTruthy(), WAIT);
+  });
+
   it('says so plainly for a session that was discarded, instead of showing its sets', async () => {
     await openHistory(discardedId);
     await waitFor(() => expect(screen.getByTestId('session-history-missing')).toBeTruthy(), WAIT);

@@ -48,9 +48,7 @@ describe('buildTrailProgress', () => {
     expect(t.unit).toBeNull();
     expect(t.points).toEqual([]);
     expect(t.markers).toEqual([]);
-    expect(t.rungPoints).toEqual([]);
     expect(t.exercises).toEqual([]);
-    expect(t.headline).toMatch(/No sessions on this trail yet/);
   });
 
   it('segments the best-set series by exercise, in order of first appearance', () => {
@@ -76,8 +74,6 @@ describe('buildTrailProgress', () => {
     ]);
     // lv_a is the 2nd rung even though its id sorts first alphabetically.
     expect(t.markers).toEqual([{ localDate: '2026-01-15', label: 'L2' }]);
-    expect(t.rungPoints.map((r) => r.value)).toEqual([1, 1, 2, 2]);
-    expect(t.headline).toBe('Rung 1 → Rung 2 since Jan 1.');
   });
 
   it('charts the dominant unit and leaves other-unit sessions as gaps', () => {
@@ -95,7 +91,6 @@ describe('buildTrailProgress', () => {
     expect(t.points.map((p) => p.gapBefore)).toEqual([false, false, true]);
     // The hold is still on the list, in its own unit, and still moves the rung series.
     expect(t.exercises.find((e) => e.exerciseId === 'hold')?.summary).toBe('30s');
-    expect(t.rungPoints.map((r) => r.value)).toEqual([2, 2, 3, 2]);
   });
 
   it('charts seconds when a hold-based trail is mostly seconds', () => {
@@ -107,30 +102,11 @@ describe('buildTrailProgress', () => {
     expect(t.points.map((p) => p.value)).toEqual([20, 30]);
   });
 
-  it('never frames a lighter later day as a loss: headline is best against first', () => {
-    const t = buildTrailProgress(family, exercises, [
-      perf({ localDate: '2026-04-01', exerciseId: 'wall', level: 'lv_z', bestReps: 5 }),
-      perf({ localDate: '2026-04-08', exerciseId: 'wall', level: 'lv_z', bestReps: 15 }),
-      perf({ localDate: '2026-04-15', exerciseId: 'wall', level: 'lv_z', bestReps: 9 }),
-    ]);
-    expect(t.headline).toBe('Stronger than your first session on Apr 1.');
-    expect(t.headline).not.toMatch(/down|lost|drop|behind/i);
-  });
-
   it('copes with entries that predate level tracking (null level id)', () => {
     const t = buildTrailProgress(family, exercises, [
       perf({ localDate: '2026-05-01', exerciseId: 'wall', level: null as never, bestReps: 5 }),
       perf({ localDate: '2026-05-08', exerciseId: 'wall', level: 'lv_z', bestReps: 5 }),
     ]);
     expect(t.markers).toEqual([]);
-    expect(t.rungPoints).toHaveLength(1);
-    expect(t.headline).toBe('2 sessions on this trail. Holding steady.');
-  });
-
-  it('says baseline for a single session', () => {
-    const t = buildTrailProgress(family, exercises, [
-      perf({ localDate: '2026-06-01', exerciseId: 'wall', level: 'lv_z', bestReps: 5 }),
-    ]);
-    expect(t.headline).toBe('One session on this trail. That is your baseline.');
   });
 });

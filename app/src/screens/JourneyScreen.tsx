@@ -17,10 +17,11 @@
  * `useDashboardData`; the only "decisions" made here are layout and what to say about the outcome
  * of a level change.
  */
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
+  exerciseCatalogRepo,
   levelUpFamily,
   levelDownFamily,
   manualDayMarkersRepo,
@@ -47,6 +48,7 @@ import { DAY_MARKER_OPTIONS } from '../lib/dayMarkers';
 import { buildSessionHistoryView, formatFullLocalDate } from '../lib/sessionHistory';
 import { useDashboardData } from '../lib/useDashboardData';
 import { useLogbookMonth } from '../lib/useLogbookMonth';
+import { buildTrailProgress, type TrailProgress } from '../lib/trailProgress';
 import { requestLocationPermission } from '../lib/geocode';
 import { makeStyles, radius, space, useTheme } from '../theme';
 import {
@@ -68,6 +70,7 @@ import {
 import { DayCell } from '../components/DayCell';
 import { EmptyState } from '../components/EmptyState';
 import { RungTrack } from '../components/RungTrack';
+import { TrailBestSetChart } from '../components/TrailBestSetChart';
 import { SectionTitle } from '../components/SectionTitle';
 
 type Props = TabScreenProps<'Journey'>;
@@ -119,6 +122,17 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const { data, reload } = useDashboardData();
   const pastMonthDays = useLogbookMonth(viewedMonth, data);
+  // Each Trail card's best-set chart. Recomputed whenever the dashboard reloads (every focus and
+  // every level change), so a finished workout shows on its trail the next time Journey opens.
+  const trailCharts = useMemo(() => {
+    const out = new Map<string, TrailProgress>();
+    if (!data) return out;
+    for (const family of families.families) {
+      const history = exerciseCatalogRepo.getFamilyPerformanceHistory(db, family.id);
+      out.set(family.id, buildTrailProgress(family, library.exercises, history));
+    }
+    return out;
+  }, [data, db, families, library]);
 
   // Reload on every focus, exactly like Today: a level change, a marker or a passport toggle made
   // anywhere must show here immediately.
@@ -487,6 +501,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
           )}
           {board.map((entry, index) => {
             const open = adjusting.has(entry.familyId);
+            const chart = trailCharts.get(entry.familyId);
             const remaining = entry.sessionsToNextLevel;
             const total = entry.sessionsInLevel;
             const progress =
@@ -554,37 +569,25 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                     </Txt>
                   ) : null}
 
+                  {chart ? <TrailBestSetChart familyId={entry.familyId} progress={chart} /> : null}
+
                   {/* ADR 0012 — raise or drop the rung from the board, before generating anything.
                       The board is where a ladder position is actually shown, and a level is a
                       property of the user rather than of any one session, so this is the place to
                       correct it. Collapsed behind Adjust: looking is the common case, adjusting is
                       occasional. Nothing to offer up at the top of a ladder (§6.7 Mastery) or down
                       at the bottom. */}
-                  <View style={styles.trailActions}>
-                    <Button
-                      testID={`board-adjust-${entry.familyId}`}
-                      label="Adjust"
-                      variant="quiet"
-                      size="sm"
-                      icon={open ? 'chevronUp' : 'chevronDown'}
-                      iconRight
-                      accessibilityLabel={`Adjust ${entry.familyName} level`}
-                      onPress={() => toggleAdjust(entry.familyId)}
-                      style={styles.adjust}
-                    />
-                    <Button
-                      testID={`board-trail-progress-${entry.familyId}`}
-                      label="Progress"
-                      variant="quiet"
-                      size="sm"
-                      icon="chevronRight"
-                      iconRight
-                      accessibilityLabel={`${entry.familyName} progress over time`}
-                      onPress={() =>
-                        navigation.navigate('TrailProgress', { familyId: entry.familyId })
-                      }
-                    />
-                  </View>
+                  <Button
+                    testID={`board-adjust-${entry.familyId}`}
+                    label="Adjust"
+                    variant="quiet"
+                    size="sm"
+                    icon={open ? 'chevronUp' : 'chevronDown'}
+                    iconRight
+                    accessibilityLabel={`Adjust ${entry.familyName} level`}
+                    onPress={() => toggleAdjust(entry.familyId)}
+                    style={styles.adjust}
+                  />
 
                   {open ? (
                     <View style={styles.adjustPanel}>
@@ -962,7 +965,6 @@ const useStyles = makeStyles((t) =>
     ringBlock: { alignItems: 'center', width: 84 },
     ringCaption: { marginTop: space.xs },
     levelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    trailActions: { flexDirection: 'row', alignItems: 'center', marginLeft: -space.sm },
     adjust: { alignSelf: 'flex-start' },
     adjustPanel: { gap: space.sm },
     confirmBox: {

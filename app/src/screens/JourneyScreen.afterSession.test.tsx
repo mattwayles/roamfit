@@ -150,6 +150,9 @@ describe('Journey after a completed session', () => {
     );
     expect(StyleSheet.flatten(level.props.style).color).toBe(midnight.sky);
 
+    // A trail the finished session worked now draws its best-set chart right on its card.
+    expect(screen.queryAllByTestId(/^board-best-chart-/).length).toBeGreaterThan(0);
+
     // Section order: Journey Markers, then the Logbook, then Trails.
     const tree = JSON.stringify(screen.toJSON());
     const at = (id: string) => tree.indexOf(`"testID":"${id}"`);

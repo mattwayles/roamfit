@@ -1,23 +1,21 @@
 /**
- * A movement group ("Trail") over time: the store's family performance history turned into what
- * the Trail progress page draws. Pure, like `exerciseProgress.ts` — the caller reads, this derives.
+ * A movement group ("Trail") over time: the store's family performance history turned into the
+ * best-set chart drawn on each Trail card on Journey. Pure, like `exerciseProgress.ts` — the caller
+ * reads, this derives.
  *
  * - **Best-set series** across every rung, one point per session, `segment` = which exercise ran
  *   (so the line changes colour when the ladder moves onto a new exercise).
  * - **Level-change markers** where the stable `level_id` differs between consecutive sessions
  *   (ids compared, never array indices — invariant 5; the label is the engine's `levelOrdinal`).
- * - **Rung series**: the rung's ordinal at each session, drawn as a step line.
  * - **Units**: a rung change can switch reps <-> seconds. The dominant unit is charted and the
  *   other unit's sessions are *left out*, with the line broken there (`gapBefore`) rather than
  *   mixing units on one axis or plotting a fake zero.
- * - **Never a loss** (invariant 4): the headline compares best against first, like
- *   `progressSummary`; a lighter day later never rewrites it.
  */
 import { levelOrdinal } from '@roamfit/engine';
 import type { Exercise, ProgressionFamily } from '@roamfit/data';
 import type { exerciseCatalogRepo } from '@roamfit/store';
 import type { ChartMarker, SeriesPoint } from './chartGeometry';
-import { formatLocalDate, unitLabel } from './exerciseProgress';
+import { unitLabel } from './exerciseProgress';
 import type { ProgressUnit } from './exerciseProgress';
 
 type FamilyPerformance = exerciseCatalogRepo.FamilySessionPerformance;
@@ -43,10 +41,8 @@ export interface TrailProgress {
   /** Exercise name for each entry of `points` (same order). */
   pointExercise: string[];
   markers: ChartMarker[];
-  /** Rung ordinal over time (1-based), oldest first. */
-  rungPoints: SeriesPoint[];
+  /** One per exercise that has run on this trail, in order of first appearance (the legend). */
   exercises: TrailExerciseRow[];
-  headline: string;
 }
 
 const rungOf = (family: ProgressionFamily, levelId: string | null): number | null => {
@@ -108,12 +104,6 @@ export function buildTrailProgress(
     if (level) prevLevel = level;
   }
 
-  const rungPoints: SeriesPoint[] = [];
-  for (const p of history) {
-    const n = rungOf(family, p.progressionLevelIdAtTime);
-    if (n !== null) rungPoints.push({ localDate: p.localDate, value: n });
-  }
-
   const rows: TrailExerciseRow[] = [];
   for (const [exerciseId, segment] of segmentOf) {
     const mine = history.filter((p) => p.exerciseId === exerciseId);
@@ -144,31 +134,6 @@ export function buildTrailProgress(
     points,
     pointExercise,
     markers,
-    rungPoints,
     exercises: rows,
-    headline: trailHeadline(history.length, firstDate, rungPoints, points),
   };
-}
-
-/** Best against first, never latest against first. */
-function trailHeadline(
-  sessions: number,
-  firstDate: string | null,
-  rungs: readonly SeriesPoint[],
-  points: readonly SeriesPoint[],
-): string {
-  if (sessions === 0 || !firstDate) {
-    return 'No sessions on this trail yet — this is where your history lands.';
-  }
-  if (sessions === 1) return 'One session on this trail. That is your baseline.';
-  const since = formatLocalDate(firstDate);
-  if (rungs.length > 0) {
-    const first = rungs[0].value;
-    const best = Math.max(...rungs.map((r) => r.value));
-    if (best > first) return `Rung ${first} → Rung ${best} since ${since}.`;
-  }
-  if (points.length > 1 && Math.max(...points.map((p) => p.value)) > points[0].value) {
-    return `Stronger than your first session on ${since}.`;
-  }
-  return `${sessions} sessions on this trail. Holding steady.`;
 }

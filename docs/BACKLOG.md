@@ -18,15 +18,16 @@ the record of what was completed and why.
 
 - **History / past months / progress graphs — device pass owed.** Track 27
   (`docs/handoff/STATUS-27-history-progress.md`) is Jest-verified only. On a device, in Midnight
-  and Daybreak: (1) `ProgressChart` (Exercise detail and Trail progress): the tap-to-read target is
+  and Daybreak: (1) `ProgressChart` (Exercise detail and the best-set chart on each Journey Trail card): the tap-to-read target is
   the whole plot, so check nearest-point taps feel right on a long history, y/date labels and the
   dashed level ticks read at phone width, the per-exercise colours separate (a colour-blind check
   was not run — `dataviz`'s validator was not run on the five accent tones), and the Best set /
   Total volume toggle; (2) the Logbook day sheet's height with 2 sessions and 8 markers (does it
   scroll or clip?); (3) the month picker's pill touch targets (12 per year row) and ‹ › paging
-  speed through many months, including a multi-year jump; (4) the Trail progress page end to end
-  (Journey Trail card "Progress ›", history row "Trail ›"), including a family that crossed a
-  reps/seconds rung (the line should break, not plot a zero). Then the same in airplane mode.
+  speed through many months, including a multi-year jump; (4) the best-set chart on each Trail card
+  (eight 140pt charts make Trails a long scroll — check it still reads as a ladder, and that a tap on a
+  chart doesn't fight the page scroll), including a family that crossed a reps/seconds rung (the line
+  should break, not plot a zero); the history row "Trail ›" now just opens Journey. Then the same in airplane mode.
 - **Exercise-feedback modal — device pass owed.** Track 26: "How did those N sets of NAME feel?" is
   asked once, in a `Sheet` over the rest timer after an exercise's last set (Settings → Training →
   "Ask how each set felt", default on; off = the same question inline on that rest page). One answer
