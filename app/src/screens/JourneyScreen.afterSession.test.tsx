@@ -144,6 +144,13 @@ describe('Journey after a completed session', () => {
     expect(screen.getByTestId('muscle-balance')).toBeTruthy();
     expect(screen.getByTestId('calendar-heatmap')).toBeTruthy();
 
+    // Section order: Journey Markers, then the Logbook, then Trails.
+    const tree = JSON.stringify(screen.toJSON());
+    const at = (id: string) => tree.indexOf(`"testID":"${id}"`);
+    const sections = ['lifetime-counters', 'calendar-heatmap', 'board-row-horizontal_push'].map(at);
+    expect(sections.every((i) => i >= 0)).toBe(true);
+    expect([...sections].sort((a, b) => a - b)).toEqual(sections);
+
     // The zero-session first-session note and the empty states must be gone now that a session
     // exists.
     expect(screen.queryByTestId('first-session-explanation')).toBeNull();

@@ -382,6 +382,81 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
         )}
       </Enter>
 
+      {/* §14.1.6 Logbook — untrained days are neutral cells, never omitted or red. A trained day
+          shows the emoji for its focus on a focus-colored tint; a travel day is sky-tinted. Today's
+          cell gets a ring, not a color, so it never reads as a workout state. Every marker is
+          hand-editable (tap opens the sheet below) so a workout logged outside RoamFit, or a
+          travel day missed at the time, can still be reflected here. */}
+      <Enter index={next()} style={styles.section}>
+        <SectionTitle
+          title="Logbook"
+          icon="today"
+          tone="teal"
+          right={
+            <View style={styles.monthNav}>
+              <IconButton
+                testID="logbook-prev"
+                icon="back"
+                size="sm"
+                disabled={atEarliest}
+                accessibilityLabel="Previous month"
+                onPress={() => setViewedMonth(shiftMonth(viewedMonth, -1))}
+              />
+              <Chip
+                testID="logbook-month-label"
+                label={monthLabel(viewedMonth, currentMonth)}
+                tone="teal"
+                size="sm"
+                accessibilityLabel={`${monthLabel(viewedMonth)} — choose a month`}
+                onPress={() => setMonthPickerOpen(true)}
+              />
+              <IconButton
+                testID="logbook-next"
+                icon="chevronRight"
+                size="sm"
+                disabled={atCurrent}
+                accessibilityLabel="Next month"
+                onPress={() => setViewedMonth(shiftMonth(viewedMonth, 1))}
+              />
+            </View>
+          }
+        />
+        {hasSessions ? (
+          <View testID="calendar-heatmap" style={styles.calendar}>
+            <View style={styles.weekdayRow}>
+              {WEEKDAY_LABELS.map((label, i) => (
+                <Txt key={i} variant="eyebrow" color="text3" align="center" style={styles.flex}>
+                  {label}
+                </Txt>
+              ))}
+            </View>
+            {calendarWeeks.map((week, weekIndex) => (
+              <View key={weekIndex} style={styles.calendarRow}>
+                {week.map((day, dayIndex) => (
+                  <DayCell
+                    key={day?.localDate ?? `blank-${weekIndex}-${dayIndex}`}
+                    day={day}
+                    isToday={day?.localDate === data.todayLocalDate}
+                    testID={day ? `calendar-day-${day.localDate}` : undefined}
+                    onPress={() => {
+                      if (day) openDay(day);
+                    }}
+                  />
+                ))}
+              </View>
+            ))}
+          </View>
+        ) : (
+          <EmptyState
+            testID="logbook-empty"
+            icon="today"
+            tone="teal"
+            title="Every session leaves a mark"
+            body="Your first workout lights up its day here — and you can log a workout from outside the app too."
+          />
+        )}
+      </Enter>
+
       {/* Trails — the progression board (renamed in UI copy only; testIDs keep `board`). */}
       <View style={styles.section}>
         <Enter index={next()}>
@@ -417,7 +492,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
             const progress =
               total !== null && total > 0 && remaining !== null ? (total - remaining) / total : 0;
             return (
-              <Enter key={entry.familyId} index={Math.min(3 + index, MAX_STAGGER)}>
+              <Enter key={entry.familyId} index={Math.min(4 + index, MAX_STAGGER)}>
                 <Card testID={`board-row-${entry.familyId}`} padding="md" style={styles.trail}>
                   {/* Two columns: identity on the left, status on the right. How close you are is
                       the ring, the loudest thing on the row. */}
@@ -614,81 +689,6 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
           })}
         </View>
       </View>
-
-      {/* §14.1.6 Logbook — untrained days are neutral cells, never omitted or red. A trained day
-          shows the emoji for its focus on a focus-colored tint; a travel day is sky-tinted. Today's
-          cell gets a ring, not a color, so it never reads as a workout state. Every marker is
-          hand-editable (tap opens the sheet below) so a workout logged outside RoamFit, or a
-          travel day missed at the time, can still be reflected here. */}
-      <Enter index={next()} style={styles.section}>
-        <SectionTitle
-          title="Logbook"
-          icon="today"
-          tone="teal"
-          right={
-            <View style={styles.monthNav}>
-              <IconButton
-                testID="logbook-prev"
-                icon="back"
-                size="sm"
-                disabled={atEarliest}
-                accessibilityLabel="Previous month"
-                onPress={() => setViewedMonth(shiftMonth(viewedMonth, -1))}
-              />
-              <Chip
-                testID="logbook-month-label"
-                label={monthLabel(viewedMonth, currentMonth)}
-                tone="teal"
-                size="sm"
-                accessibilityLabel={`${monthLabel(viewedMonth)} — choose a month`}
-                onPress={() => setMonthPickerOpen(true)}
-              />
-              <IconButton
-                testID="logbook-next"
-                icon="chevronRight"
-                size="sm"
-                disabled={atCurrent}
-                accessibilityLabel="Next month"
-                onPress={() => setViewedMonth(shiftMonth(viewedMonth, 1))}
-              />
-            </View>
-          }
-        />
-        {hasSessions ? (
-          <View testID="calendar-heatmap" style={styles.calendar}>
-            <View style={styles.weekdayRow}>
-              {WEEKDAY_LABELS.map((label, i) => (
-                <Txt key={i} variant="eyebrow" color="text3" align="center" style={styles.flex}>
-                  {label}
-                </Txt>
-              ))}
-            </View>
-            {calendarWeeks.map((week, weekIndex) => (
-              <View key={weekIndex} style={styles.calendarRow}>
-                {week.map((day, dayIndex) => (
-                  <DayCell
-                    key={day?.localDate ?? `blank-${weekIndex}-${dayIndex}`}
-                    day={day}
-                    isToday={day?.localDate === data.todayLocalDate}
-                    testID={day ? `calendar-day-${day.localDate}` : undefined}
-                    onPress={() => {
-                      if (day) openDay(day);
-                    }}
-                  />
-                ))}
-              </View>
-            ))}
-          </View>
-        ) : (
-          <EmptyState
-            testID="logbook-empty"
-            icon="today"
-            tone="teal"
-            title="Every session leaves a mark"
-            body="Your first workout lights up its day here — and you can log a workout from outside the app too."
-          />
-        )}
-      </Enter>
 
       {/* §9.6 Passport — opt-in, strings only, one stamp per place (seeded by label, so a place always
           stamps the same way). Appears once there's something to pin (§14.2). */}
