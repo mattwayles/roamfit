@@ -2,14 +2,15 @@
 Last updated: 2026-10-04
 Plan: `~/.claude/plans/let-s-plan-a-joint-rippling-rabin.md` (read-only over local SQLite; no schema change, no migration).
 ### Done
-- [x] Pre-flight: this file.
+- [x] Pre-flight: this file (cc79c80).
+- [x] Increment 1: store reads + tests (9f54b7e). `DashboardSessionSummary.id`, `getCompletedSessionsInRange`,
+  `countCompletedSessionsByMonth`, `getCompletedSessionDetail`, `getFamilyPerformanceHistory`.
+- [x] Increment 2: workout history page (see `git log`): `SessionHistory` route, `lib/sessionHistory.ts`,
+  `screens/SessionHistoryScreen.tsx`; tests `sessionHistory.test.ts`, `SessionHistoryScreen.test.tsx` (incl. Daylight).
+  The "Trail ›" link is NOT built (no `TrailProgress` route yet) — Increment 6 adds it; rows already carry `familyId`.
 ### In progress
-- Increment 1: store reads. `packages/store/src/repositories/sessions.ts` (`id` on DashboardSessionSummary,
-  `getCompletedSessionsInRange`, `countCompletedSessionsByMonth`, `getCompletedSessionDetail`) and
-  `exerciseCatalog.ts` (`getFamilyPerformanceHistory`, shared set-folding). Tests alongside.
+- Nothing (Increments 1-2 landed). Next agent starts Increment 3.
 ### Next
-1. Increment 1 — store reads (in progress).
-2. Increment 2 — workout history page: `SessionHistory` route, `lib/sessionHistory.ts`, `SessionHistoryScreen.tsx`.
 3. Increment 3 — Journey day sheet does both (session cards + "Mark this day as…"); `CalendarDay.sessionIds`.
 4. Increment 4 — Logbook past months: `viewedMonth`, ‹ › arrows, month picker, `useLogbookMonth`.
 5. Increment 5 — `ProgressChart` + `chartGeometry.ts`; Exercise detail full-history line chart (load `dataviz` skill first).
@@ -20,3 +21,8 @@ Plan: `~/.claude/plans/let-s-plan-a-joint-rippling-rabin.md` (read-only over loc
 - Past months: ‹ › arrows on the Logbook header plus a month picker (tap the month label) showing a year/month grid with workout counts.
 - Graphs live on Trail pages and Exercise detail; a new movement-group page opens from each Trail card; Exercise detail's bars become a full-history line chart; the history page links to both.
 - Never punish: skipped sets neutral, headlines compare best to first, no red dips. Level ids, not indexes. `local_date` only.
+- `SessionHistory` is a root-stack route taking `{ sessionId }`. Navigate with `navigation.navigate('SessionHistory', { sessionId })`; it shows a quiet "not in your history" state for non-completed sessions.
+- `DashboardSessionSummary.id` is now on every dashboard summary; `getCompletedSessionsInRange(db, from, to)` is uncapped, newest first, inclusive; `countCompletedSessionsByMonth` returns `Map<'YYYY-MM', number>` (empty months absent).
+- `actualMinutes` is stored fractional; display code must round (history page does: `Math.max(1, Math.round(...))`).
+- Plan says `SectionTitle`; the real primitive is `SectionHeader`.
+- No new dependencies.

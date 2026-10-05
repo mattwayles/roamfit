@@ -33,6 +33,8 @@ export type RootStackParamList = {
   /** Reached from the library list. Keyed by the stable library id, never a list index, so the
    *  route survives the list being re-sorted or re-filtered underneath it. */
   ExerciseDetail: { exerciseId: string };
+  /** A finished workout, read-only: what was done, set by set. Reached from the Logbook day sheet. */
+  SessionHistory: { sessionId: string };
 };
 
 /** Props for a screen registered on the root stack: `RootScreenProps<'Workout'>`. */

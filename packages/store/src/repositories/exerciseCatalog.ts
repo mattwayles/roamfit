@@ -184,10 +184,7 @@ export interface FamilySessionPerformance extends ExerciseSessionPerformance {
  * One session holding entries for two exercises of the same family folds into one point, labelled
  * by the first such entry in the session.
  */
-export function getFamilyPerformanceHistory(
-  db: Db,
-  familyId: string,
-): FamilySessionPerformance[] {
+export function getFamilyPerformanceHistory(db: Db, familyId: string): FamilySessionPerformance[] {
   return foldPerformance(
     db,
     entriesWhere(db, eq(schema.sessionEntries.progressionFamilyId, familyId)),

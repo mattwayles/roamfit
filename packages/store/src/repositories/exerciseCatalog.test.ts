@@ -365,7 +365,11 @@ describe('getFamilyPerformanceHistory', () => {
     const { db } = createTestDb();
     const a = insertSession(db, { localDate: '2026-08-10', status: 'completed' });
     const b = insertSession(db, { localDate: '2026-08-01', status: 'completed' });
-    const ea = insertEntry(db, a, { exerciseId: OTHER_EXERCISE_ID, familyId: FAMILY, levelId: 'lvl-b' });
+    const ea = insertEntry(db, a, {
+      exerciseId: OTHER_EXERCISE_ID,
+      familyId: FAMILY,
+      levelId: 'lvl-b',
+    });
     const eb = insertEntry(db, b, { exerciseId: EXERCISE_ID, familyId: FAMILY, levelId: 'lvl-a' });
     insertSet(db, ea, { setIndex: 0, reps: 6 });
     insertSet(db, eb, { setIndex: 0, reps: 12 });

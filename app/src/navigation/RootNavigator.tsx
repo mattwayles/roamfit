@@ -8,6 +8,7 @@ import WorkoutScreen from '../screens/WorkoutScreen';
 import SummaryScreen from '../screens/SummaryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
+import SessionHistoryScreen from '../screens/SessionHistoryScreen';
 import { useTheme } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -39,6 +40,12 @@ export default function RootNavigator(): React.JSX.Element {
         name="ExerciseDetail"
         component={ExerciseDetailScreen}
         options={{ headerShown: false }}
+      />
+      {/* A finished workout, read-only. Draws its own title; the native header stays for back. */}
+      <Stack.Screen
+        name="SessionHistory"
+        component={SessionHistoryScreen}
+        options={{ title: '' }}
       />
     </Stack.Navigator>
   );
