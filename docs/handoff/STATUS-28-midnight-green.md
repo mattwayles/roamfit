@@ -20,11 +20,12 @@ Last updated: 2026-10-04
 (Same file as track 28; sky stays. periwinkle/summit sat too close to sky on the Journey tiles.)
 ### Done
 - [x] Increment 1: pure rename periwinkle -> coral (token, gradient key, tone props, comments), values unchanged. 6892fc5
-- [x] Increment 2: summit plum + coral values, tests, hue-spread test (commit follows this line in git log).
+- [x] Increment 2: summit plum + coral values, tests, hue-spread test 5505c97
+- [x] Increment 3: DESIGN.md palette/gradients/onGradient prose and BACKLOG device-pass note.
 ### In progress
-- Increment 3: DESIGN.md palette + BACKLOG device-pass note.
+- Nothing; track 28b complete bar the device pass (BACKLOG).
 ### Next
-- Increment 3 only.
+- Device pass.
 ### Decisions / gotchas
 - Token `summit` keeps its name (semantic); only its value changes.
 - Increment 2 also made `onGradient` always 'ink' (Midnight plum gradient: ink >= 4.9:1, paper only 1.9-3.5:1); the old summit->paper special case is gone.

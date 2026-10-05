@@ -49,12 +49,14 @@ the record of what was completed and why.
 - **Spotify foreground reconnect — device check owed.** The silent resume now retries `connect()` twice (500/1500 ms) and swallows the native `CONNECTION_FAILED` event while it runs. Check on a device: Spotify connected, switch to YouTube for a while, return — should reconnect with no error. If Spotify was fully suspended/killed the silent path still can't wake it (by design); the Connect button remains the way back, but the error is gone and a banner-free "Connect" state shows instead.
 - **Midnight Green recolor — device pass owed.** Track 28 (`docs/handoff/STATUS-28-midnight-green.md`)
   replaced the teal green with Midnight Green (`teal`/`tealDeep`: Midnight `#4FB8C4`/`#2E8C98`, Daybreak
-  `#004C54`/`#003A40`), made the old teal `lagoon` a blue-violet `periwinkle` (`#7F97FF` / `#3B4FC2`),
+  `#004C54`/`#003A40`), made the old teal `lagoon` a blue-violet `periwinkle`, then pulled it and `summit` away from `sky`
+  (track 28b: `summit` is plum `#C77DFF` / `#7E2BB0`, `periwinkle` became warm `coral` `#FF8A5C` / `#B04219`),
   and renamed the themes Midnight (dark) and Daybreak (light). Jest-verified only (contrast floors hold).
-  On a device, in both themes: (1) teal, periwinkle, sky and summit read as four distinct colors — the
-  cooldown rail (periwinkle) against the Main rail (teal), the Full-body (periwinkle) vs Upper (teal)
-  vs Legs (summit) chips, the rest ring, and Travel-day (sky) vs Legs (summit) markers on the Logbook
-  (periwinkle sits only ~15-20 degrees of hue from sky and summit by design; the test pins that);
+  On a device, in both themes: (1) coral against Daybreak's brass gold (`#8F5A00`, only ~22 degrees of
+  hue) and against rose (Cardio) — Countries (coral) vs Sets completed (gold) tiles, the cooldown rail
+  (coral) vs the warm-up rail (gold), Full-body (coral) vs Abs (gold) vs Cardio (rose) chips; plum
+  (summit) vs rose; the rest ring, now warm coral; sky vs teal (Travel-day vs Main rail) and the
+  Journey tiles Levels gained (plum) / Places (sky) / Countries (coral) now read as three colors;
   (2) the `trail` hero gradient with the sepia topo ink on Home and Completion; (3) the stamp's hard
   `tealDeep` shadow; (4) the Spotify button (`#1db954`, `SpotifyControls.tsx`) next to teal controls;
   (5) `assets/icon.png` and `assets/splash-icon.png` — still the old colors, never inspected.
