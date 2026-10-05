@@ -57,6 +57,8 @@ the record of what was completed and why.
   (coral) vs the warm-up rail (gold), Full-body (coral) vs Abs (gold) vs Cardio (rose) chips; plum
   (summit) vs rose; the rest ring, now warm coral; sky vs teal (Travel-day vs Main rail) and the
   Journey tiles Levels gained (plum) / Places (sky) / Countries (coral) now read as three colors;
+  Daybreak `sun` is now mustard `#7A6B00` (was brass-brown `#A86F00`, same hue as gold): Personal
+  bests (sun) vs Sets completed (gold) tiles, and mustard best-set highlights on paper;
   (2) the `trail` hero gradient with the sepia topo ink on Home and Completion; (3) the stamp's hard
   `tealDeep` shadow; (4) the Spotify button (`#1db954`, `SpotifyControls.tsx`) next to teal controls;
   (5) `assets/icon.png` and `assets/splash-icon.png` — still the old colors, never inspected.

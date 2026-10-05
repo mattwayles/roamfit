@@ -523,7 +523,7 @@ text3: '#6B6052'   //  5.4:1 — still AA, because "muted" outdoors is "invisibl
 teal:     '#004C54'   // Midnight Green; 8.6:1 on bg; white on it 9.7:1
 tealDeep: '#003A40'
 gold:      '#8F5A00'   // brass — reads as gold on paper, unlike a yellow
-sun:       '#A86F00'   // large text / icons only (3.8:1)
+sun:       '#7A6B00'   // mustard, hue 53 vs gold's 38 so the two read apart; 4.7:1 on bg
 coral:    '#B04219'   // 5.8:1 white, 5.1:1 on bg, 4.7:1 on surface2
 sky:       '#1A5FC2'
 summit:    '#7E2BB0'   // plum; 7.3:1 white, 6.5:1 on bg, 6.0:1 on surface2

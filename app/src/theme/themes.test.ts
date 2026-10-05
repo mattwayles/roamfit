@@ -167,14 +167,22 @@ describe('accent hues stay apart', () => {
   it.each([
     ['Midnight', midnight],
     ['Daybreak', daybreak],
-  ] as const)('%s: every pair of teal/sky/summit/coral/gold/rose is >= 20 degrees apart', (_n, p) => {
-    for (let i = 0; i < spread.length; i++) {
-      for (let k = i + 1; k < spread.length; k++) {
-        const a = spread[i]!;
-        const b = spread[k]!;
-        expect([a, b, hueDistance(p[a], p[b]) >= 20]).toEqual([a, b, true]);
+  ] as const)(
+    '%s: every pair of teal/sky/summit/coral/gold/rose is >= 20 degrees apart',
+    (_n, p) => {
+      for (let i = 0; i < spread.length; i++) {
+        for (let k = i + 1; k < spread.length; k++) {
+          const a = spread[i]!;
+          const b = spread[k]!;
+          expect([a, b, hueDistance(p[a], p[b]) >= 20]).toEqual([a, b, true]);
+        }
       }
-    }
+    },
+  );
+  it('Daybreak: sun (mustard) stays apart from gold (brass)', () => {
+    // Both are deepened for paper; at one hue they read as the same brown (Sets completed vs
+    // Personal bests on Journey).
+    expect(hueDistance(daybreak.sun, daybreak.gold)).toBeGreaterThanOrEqual(12);
   });
 });
 

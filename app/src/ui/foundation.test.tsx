@@ -2,14 +2,7 @@ import React from 'react';
 import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
-import {
-  daybreak,
-  daybreakTheme,
-  lineWidth,
-  numeralMaxFontScale,
-  type,
-  midnight,
-} from '../theme';
+import { daybreak, daybreakTheme, lineWidth, numeralMaxFontScale, type, midnight } from '../theme';
 import {
   Button,
   Gradient,
