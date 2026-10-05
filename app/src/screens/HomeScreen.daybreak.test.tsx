@@ -1,4 +1,4 @@
-/** Home under the Daylight theme: real Daylight values, and the hero pill stays legible. */
+/** Home under the Daybreak theme: real Daybreak values, and the hero pill stays legible. */
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { render, screen, waitFor } from '@testing-library/react-native';
@@ -6,8 +6,8 @@ import { StyleSheet } from 'react-native';
 import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { sessionsRepo, usersRepo } from '@roamfit/store';
-import { daylight } from '../theme';
-import { inDaylight } from '../ui/test-utils';
+import { daybreak } from '../theme';
+import { inDaybreak } from '../ui/test-utils';
 
 function Cleanup({ children }: { children: React.ReactNode }): React.JSX.Element {
   const { db } = useStore();
@@ -17,10 +17,10 @@ function Cleanup({ children }: { children: React.ReactNode }): React.JSX.Element
   return <>{children}</>;
 }
 
-describe('Home in Daylight', () => {
-  it('uses paper tiles and an pine legend on the white hero pill', async () => {
+describe('Home in Daybreak', () => {
+  it('uses paper tiles and a teal legend on the white hero pill', async () => {
     render(
-      inDaylight(
+      inDaybreak(
         <StoreProvider>
           <Cleanup>
             <NavigationContainer>
@@ -35,10 +35,10 @@ describe('Home in Daylight', () => {
       interval: 50,
     });
     const tile = StyleSheet.flatten(screen.getByTestId('quick-session-button').props.style);
-    expect(tile.backgroundColor).toBe(daylight.surface);
-    expect(tile.borderColor).toBe(daylight.line);
+    expect(tile.backgroundColor).toBe(daybreak.surface);
+    expect(tile.borderColor).toBe(daybreak.line);
     const cta = StyleSheet.flatten(screen.getByText('Build a session').props.style);
-    expect(cta.color).toBe(daylight.pine);
-    expect(daylight.ink).toBe('#FFFFFF');
+    expect(cta.color).toBe(daybreak.teal);
+    expect(daybreak.ink).toBe('#FFFFFF');
   });
 });

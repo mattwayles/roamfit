@@ -1,4 +1,4 @@
-/** Plan / Approval under the Daylight theme: paper cards, deep rails, light keyboard. */
+/** Plan / Approval under the Daybreak theme: paper cards, deep rails, light keyboard. */
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { render, screen, waitFor } from '@testing-library/react-native';
@@ -9,8 +9,8 @@ import { generate, sessionsRepo } from '@roamfit/store';
 import ApprovalScreen from './ApprovalScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
-import { daylight, daylightTheme } from '../theme';
-import { inDaylight } from '../ui/test-utils';
+import { daybreak, daybreakTheme } from '../theme';
+import { inDaybreak } from '../ui/test-utils';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
@@ -58,7 +58,7 @@ async function mount() {
   const sessionId = await seed(db);
   const navigation = mockNavigation();
   render(
-    inDaylight(
+    inDaybreak(
       <StoreProvider>
         <NavigationContainer>
           <ApprovalScreen
@@ -73,26 +73,26 @@ async function mount() {
   return { db, sessionId, navigation };
 }
 
-describe('Plan / Approval in Daylight', () => {
+describe('Plan / Approval in Daybreak', () => {
   it('paints the pass and cards on paper, rails in deep accents, and the keyboard light', async () => {
     const { db, sessionId } = await mount();
     const session = sessionsRepo.getSession(db, sessionId)!;
     const first = session.entries.find((e) => e.entryStatus !== 'removed_at_approval')!;
 
     const pass = StyleSheet.flatten(screen.getByTestId('boarding-pass').props.style);
-    expect(pass.backgroundColor).toBe(daylight.surface);
-    expect(pass.borderColor).toBe(daylight.line);
+    expect(pass.backgroundColor).toBe(daybreak.surface);
+    expect(pass.borderColor).toBe(daybreak.line);
     expect(StyleSheet.flatten(screen.getByTestId('plan-minutes').props.style).color).toBe(
-      daylight.pine,
+      daybreak.teal,
     );
 
     const card = StyleSheet.flatten(screen.getByTestId(`entry-${first.exerciseId}`).props.style);
-    expect(card.backgroundColor).toBe(daylight.surface);
+    expect(card.backgroundColor).toBe(daybreak.surface);
 
     const input = screen.getByTestId(`sets-input-${first.exerciseId}`);
     expect(input.props.keyboardAppearance).toBe('light');
-    expect(input.props.selectionColor).toBe(daylight.pine);
-    expect(StyleSheet.flatten(input.props.style).color).toBe(daylight.text);
-    expect(daylightTheme.scheme).toBe('light');
+    expect(input.props.selectionColor).toBe(daybreak.teal);
+    expect(StyleSheet.flatten(input.props.style).color).toBe(daybreak.text);
+    expect(daybreakTheme.scheme).toBe('light');
   });
 });

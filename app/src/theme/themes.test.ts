@@ -1,12 +1,12 @@
 import {
   accentNames,
   buildTheme,
-  daylight,
-  daylightGradients,
-  daylightTheme,
-  goldenHour,
-  goldenHourGradients,
-  goldenHourTheme,
+  daybreak,
+  daybreakGradients,
+  daybreakTheme,
+  midnight,
+  midnightGradients,
+  midnightTheme,
   themeFor,
   vivid,
   withAlpha,
@@ -40,12 +40,12 @@ function chroma(hex: string): number {
 
 describe('palettes', () => {
   it('have identical key sets', () => {
-    expect(Object.keys(daylight).sort()).toEqual(Object.keys(goldenHour).sort());
+    expect(Object.keys(daybreak).sort()).toEqual(Object.keys(midnight).sort());
   });
 
-  it('Golden Hour values are unchanged ', () => {
-    expect(goldenHourTheme.colors).toEqual(goldenHour);
-    expect(goldenHour).toMatchObject({
+  it('Midnight values are unchanged ', () => {
+    expect(midnightTheme.colors).toEqual(midnight);
+    expect(midnight).toMatchObject({
       bg: '#0B0E13',
       surface: '#141922',
       surface2: '#1C2330',
@@ -56,64 +56,64 @@ describe('palettes', () => {
       text2: '#B4BCC8',
       text3: '#7C8696',
       ink: '#170B03',
-      pine: '#4FD176',
-      pineDeep: '#209E46',
+      teal: '#4FD176',
+      tealDeep: '#209E46',
       gold: '#FFB938',
       sun: '#FFD166',
-      lagoon: '#2DD4BF',
+      periwinkle: '#2DD4BF',
       sky: '#5AA9FF',
       summit: '#8E7BFF',
       rose: '#FF5C93',
     });
-    expect(goldenHourTheme.gradients).toEqual({
+    expect(midnightTheme.gradients).toEqual({
       trail: ['#40BD6E', '#5EE06B'],
       golden: ['#FFB938', '#FFD166'],
-      lagoon: ['#14B8A6', '#38BDF8'],
+      periwinkle: ['#14B8A6', '#38BDF8'],
       summit: ['#7B5CFF', '#C084FC'],
       night: ['#1C2330', '#0B0E13'],
     });
-    expect(goldenHourTheme.tints.pine).toBe('rgba(79,209,118,0.15)');
+    expect(midnightTheme.tints.teal).toBe('rgba(79,209,118,0.15)');
   });
 
-  it('Daylight values match DESIGN.md §8', () => {
-    expect(daylight).toMatchObject({
+  it('Daybreak values match DESIGN.md §8', () => {
+    expect(daybreak).toMatchObject({
       bg: '#F6F0E4',
       surface: '#FFFDF8',
       text: '#1A130C',
       ink: '#FFFFFF',
-      pine: '#10702D',
+      teal: '#10702D',
       gold: '#8F5A00',
       backdrop: 'rgba(26,19,12,0.40)',
     });
-    expect(daylightGradients.trail).toEqual(['#0F6E2C', '#2A7D23']);
+    expect(daybreakGradients.trail).toEqual(['#0F6E2C', '#2A7D23']);
   });
 
   it('fixedInk / fixedPaper / vivid are mode-invariant', () => {
-    expect(daylight.fixedInk).toBe(goldenHour.fixedInk);
-    expect(daylight.fixedPaper).toBe(goldenHour.fixedPaper);
-    expect(daylightTheme.vivid).toBe(goldenHourTheme.vivid);
-    for (const n of accentNames) expect(vivid[n]).toBe(goldenHour[n]);
+    expect(daybreak.fixedInk).toBe(midnight.fixedInk);
+    expect(daybreak.fixedPaper).toBe(midnight.fixedPaper);
+    expect(daybreakTheme.vivid).toBe(midnightTheme.vivid);
+    for (const n of accentNames) expect(vivid[n]).toBe(midnight[n]);
   });
 });
 
-describe('Daylight contrast (WCAG)', () => {
+describe('Daybreak contrast (WCAG)', () => {
   const grounds: (keyof Palette)[] = ['bg', 'surface', 'surface2'];
 
   it('text >= 7 and text2 >= 7 on bg', () => {
-    expect(contrast(daylight.text, daylight.bg)).toBeGreaterThanOrEqual(7);
-    expect(contrast(daylight.text2, daylight.bg)).toBeGreaterThanOrEqual(7);
+    expect(contrast(daybreak.text, daybreak.bg)).toBeGreaterThanOrEqual(7);
+    expect(contrast(daybreak.text2, daybreak.bg)).toBeGreaterThanOrEqual(7);
   });
 
   it('text3 >= 4.5 on bg, surface and surface2', () => {
     for (const g of grounds) {
-      expect(contrast(daylight.text3, daylight[g])).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(daybreak.text3, daybreak[g])).toBeGreaterThanOrEqual(4.5);
     }
   });
 
   it('every accent except sun >= 4.5 on bg and surface; sun >= 3', () => {
     for (const n of accentNames) {
       for (const g of ['bg', 'surface'] as const) {
-        const ratio = contrast(daylight[n], daylight[g]);
+        const ratio = contrast(daybreak[n], daybreak[g]);
         expect(ratio).toBeGreaterThanOrEqual(n === 'sun' ? 3 : 4.5);
       }
     }
@@ -122,112 +122,112 @@ describe('Daylight contrast (WCAG)', () => {
   it('ink (white) >= 4.5 on every accent fill except sun', () => {
     for (const n of accentNames) {
       if (n === 'sun') continue;
-      expect(contrast(daylight.ink, daylight[n])).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(daybreak.ink, daybreak[n])).toBeGreaterThanOrEqual(4.5);
     }
   });
 
-  it('white >= 4.2 on every Daylight gradient stop except the paper sheen', () => {
-    for (const [name, stops] of Object.entries(daylightGradients)) {
+  it('white >= 4.2 on every Daybreak gradient stop except the paper sheen', () => {
+    for (const [name, stops] of Object.entries(daybreakGradients)) {
       if (name === 'night') continue;
       for (const s of stops) expect(contrast('#FFFFFF', s)).toBeGreaterThanOrEqual(4.2);
     }
   });
 });
 
-describe('Golden Hour contrast is not regressed', () => {
+describe('Midnight contrast is not regressed', () => {
   it('ink is legible on the bright accents it sits on', () => {
-    for (const n of ['pine', 'gold', 'lagoon'] as const) {
-      expect(contrast(goldenHour.ink, goldenHour[n])).toBeGreaterThanOrEqual(4.5);
+    for (const n of ['teal', 'gold', 'periwinkle'] as const) {
+      expect(contrast(midnight.ink, midnight[n])).toBeGreaterThanOrEqual(4.5);
     }
   });
 });
 
 describe('buildTheme', () => {
   it('builds two cached, frozen instances', () => {
-    expect(themeFor('dark')).toBe(goldenHourTheme);
-    expect(themeFor('light')).toBe(daylightTheme);
-    expect(Object.isFrozen(goldenHourTheme)).toBe(true);
-    expect(buildTheme('dark').colors).toEqual(goldenHourTheme.colors);
+    expect(themeFor('dark')).toBe(midnightTheme);
+    expect(themeFor('light')).toBe(daybreakTheme);
+    expect(Object.isFrozen(midnightTheme)).toBe(true);
+    expect(buildTheme('dark').colors).toEqual(midnightTheme.colors);
   });
 
-  it('tints are each accent at 15% alpha on Golden Hour, 8% on Daylight', () => {
+  it('tints are each accent at 15% alpha on Midnight, 8% on Daybreak', () => {
     for (const n of accentNames) {
-      expect(goldenHourTheme.tints[n]).toBe(withAlpha(goldenHour[n], 0.15));
-      expect(daylightTheme.tints[n]).toBe(withAlpha(daylight[n], 0.08));
+      expect(midnightTheme.tints[n]).toBe(withAlpha(midnight[n], 0.15));
+      expect(daybreakTheme.tints[n]).toBe(withAlpha(daybreak[n], 0.08));
     }
   });
 
-  it('Daylight accent text on its own tint holds contrast over surface and bg', () => {
+  it('Daybreak accent text on its own tint holds contrast over surface and bg', () => {
     for (const n of accentNames) {
-      for (const base of [daylight.surface, daylight.bg]) {
+      for (const base of [daybreak.surface, daybreak.bg]) {
         const floor = n === 'sun' ? 3 : 4.5;
-        expect(contrast(daylight[n], composite(daylight[n], 0.08, base))).toBeGreaterThanOrEqual(
+        expect(contrast(daybreak[n], composite(daybreak[n], 0.08, base))).toBeGreaterThanOrEqual(
           floor,
         );
       }
     }
   });
 
-  it('dayCell: Golden Hour washes the accent itself; Daylight fills with the vivid hue', () => {
+  it('dayCell: Midnight washes the accent itself; Daybreak fills with the vivid hue', () => {
     for (const n of accentNames) {
-      expect(goldenHourTheme.dayCell[n]).toEqual({
-        fill: withAlpha(goldenHour[n], 0.2),
-        border: withAlpha(goldenHour[n], 0.55),
+      expect(midnightTheme.dayCell[n]).toEqual({
+        fill: withAlpha(midnight[n], 0.2),
+        border: withAlpha(midnight[n], 0.55),
       });
-      expect(daylightTheme.dayCell[n]).toEqual({
+      expect(daybreakTheme.dayCell[n]).toEqual({
         fill: withAlpha(vivid[n], 0.4),
-        border: withAlpha(daylight[n], 0.7),
+        border: withAlpha(daybreak[n], 0.7),
       });
     }
   });
 
-  it('Daylight day cells read as color, not a muddy wash, and keep the date legible', () => {
+  it('Daybreak day cells read as color, not a muddy wash, and keep the date legible', () => {
     // Every accent a day marker can resolve to (focus colors, travel = sky, quick = gold).
-    const markerAccents = ['pine', 'summit', 'gold', 'lagoon', 'rose', 'sky'] as const;
+    const markerAccents = ['teal', 'summit', 'gold', 'periwinkle', 'rose', 'sky'] as const;
     for (const n of markerAccents) {
-      const cell = composite(vivid[n], 0.4, daylight.surface);
+      const cell = composite(vivid[n], 0.4, daybreak.surface);
       // Clearly more colorful than the old deep-accent 20% wash it replaces.
-      expect(chroma(cell)).toBeGreaterThan(chroma(composite(daylight[n], 0.2, daylight.surface)));
+      expect(chroma(cell)).toBeGreaterThan(chroma(composite(daybreak[n], 0.2, daybreak.surface)));
       expect(chroma(cell)).toBeGreaterThanOrEqual(45);
-      expect(contrast(daylight.text, cell)).toBeGreaterThanOrEqual(7);
+      expect(contrast(daybreak.text, cell)).toBeGreaterThanOrEqual(7);
     }
   });
 
   it('semantic maps resolve per palette', () => {
-    expect(daylightTheme.section.main).toBe(daylight.pine);
-    expect(daylightTheme.trainedColor('legs')).toBe(daylight.summit);
-    expect(daylightTheme.trainedColor(undefined)).toBe(daylight.pine);
-    expect(goldenHourTheme.setState.skipped).toBe(goldenHour.text3);
-    expect(daylightTheme.dayMarker.travel).toBe(daylight.sky);
-    expect(daylightTheme.accentGradient.pine).toBe(daylightTheme.gradients.trail);
-    expect(goldenHourTheme.gradients).toEqual(goldenHourGradients);
+    expect(daybreakTheme.section.main).toBe(daybreak.teal);
+    expect(daybreakTheme.trainedColor('legs')).toBe(daybreak.summit);
+    expect(daybreakTheme.trainedColor(undefined)).toBe(daybreak.teal);
+    expect(midnightTheme.setState.skipped).toBe(midnight.text3);
+    expect(daybreakTheme.dayMarker.travel).toBe(daybreak.sky);
+    expect(daybreakTheme.accentGradient.teal).toBe(daybreakTheme.gradients.trail);
+    expect(midnightTheme.gradients).toEqual(midnightGradients);
   });
 
-  it('heroCta: sun on Golden Hour, deep pine on Daylight', () => {
-    expect(goldenHourTheme.heroCta).toBe('sun');
-    expect(daylightTheme.heroCta).toBe('pine');
+  it('heroCta: sun on Midnight, deep teal on Daybreak', () => {
+    expect(midnightTheme.heroCta).toBe('sun');
+    expect(daybreakTheme.heroCta).toBe('teal');
   });
 
-  it('onGradient: Golden Hour summit takes paper, everything else ink; Daylight always ink', () => {
-    expect(goldenHourTheme.onGradient('summit')).toBe('fixedPaper');
-    expect(goldenHourTheme.onGradient('pine')).toBe('ink');
-    expect(daylightTheme.onGradient('summit')).toBe('ink');
+  it('onGradient: Midnight summit takes paper, everything else ink; Daybreak always ink', () => {
+    expect(midnightTheme.onGradient('summit')).toBe('fixedPaper');
+    expect(midnightTheme.onGradient('teal')).toBe('ink');
+    expect(daybreakTheme.onGradient('summit')).toBe('ink');
   });
 
-  it('glow is the original in Golden Hour and tamed in Daylight', () => {
-    expect(goldenHourTheme.glow()).toEqual({
-      shadowColor: goldenHour.pine,
+  it('glow is the original in Midnight and tamed in Daybreak', () => {
+    expect(midnightTheme.glow()).toEqual({
+      shadowColor: midnight.teal,
       shadowOpacity: 0.45,
       shadowRadius: 18,
       shadowOffset: { width: 0, height: 6 },
     });
-    expect(goldenHourTheme.glow(goldenHour.gold)).toMatchObject({
-      shadowColor: goldenHour.gold,
+    expect(midnightTheme.glow(midnight.gold)).toMatchObject({
+      shadowColor: midnight.gold,
       shadowOpacity: 0.45,
       shadowRadius: 18,
     });
-    expect(daylightTheme.glow()).toEqual({
-      shadowColor: daylight.pine,
+    expect(daybreakTheme.glow()).toEqual({
+      shadowColor: daybreak.teal,
       shadowOpacity: 0.28,
       shadowRadius: 10,
       shadowOffset: { width: 0, height: 4 },
@@ -235,31 +235,31 @@ describe('buildTheme', () => {
   });
 
   it('elevation, topo and stamp follow §8.3', () => {
-    expect(goldenHourTheme.elevation.card).toEqual({});
-    expect(daylightTheme.elevation.card).toEqual({
+    expect(midnightTheme.elevation.card).toEqual({});
+    expect(daybreakTheme.elevation.card).toEqual({
       shadowColor: '#5A4126',
       shadowOpacity: 0.1,
       shadowRadius: 12,
       shadowOffset: { width: 0, height: 4 },
     });
-    expect(goldenHourTheme.topo).toEqual({ color: goldenHour.text, strength: 1 });
-    expect(daylightTheme.topo).toEqual({ color: '#3B2410', strength: 1.3 });
-    expect(goldenHourTheme.stamp).toEqual({
-      fill: goldenHour.sun,
-      shadow: goldenHour.pineDeep,
-      glow: goldenHour.pine,
+    expect(midnightTheme.topo).toEqual({ color: midnight.text, strength: 1 });
+    expect(daybreakTheme.topo).toEqual({ color: '#3B2410', strength: 1.3 });
+    expect(midnightTheme.stamp).toEqual({
+      fill: midnight.sun,
+      shadow: midnight.tealDeep,
+      glow: midnight.teal,
     });
-    expect(daylightTheme.stamp).toEqual({ fill: daylight.pine, shadow: vivid.gold, glow: null });
+    expect(daybreakTheme.stamp).toEqual({ fill: daybreak.teal, shadow: vivid.gold, glow: null });
   });
 
   it('native chrome follows the theme', () => {
-    expect(goldenHourTheme.statusBar).toBe('light');
-    expect(daylightTheme.statusBar).toBe('dark');
-    expect(goldenHourTheme.navTheme.dark).toBe(true);
-    expect(daylightTheme.navTheme.dark).toBe(false);
-    expect(daylightTheme.navTheme.colors.background).toBe(daylight.bg);
-    expect(daylightTheme.headerOptions.headerStyle.backgroundColor).toBe(daylight.bg);
-    expect(daylightTheme.headerOptions.headerTintColor).toBe(daylight.text);
-    expect(goldenHourTheme.headerOptions.headerTitleStyle.color).toBe(goldenHour.text);
+    expect(midnightTheme.statusBar).toBe('light');
+    expect(daybreakTheme.statusBar).toBe('dark');
+    expect(midnightTheme.navTheme.dark).toBe(true);
+    expect(daybreakTheme.navTheme.dark).toBe(false);
+    expect(daybreakTheme.navTheme.colors.background).toBe(daybreak.bg);
+    expect(daybreakTheme.headerOptions.headerStyle.backgroundColor).toBe(daybreak.bg);
+    expect(daybreakTheme.headerOptions.headerTintColor).toBe(daybreak.text);
+    expect(midnightTheme.headerOptions.headerTitleStyle.color).toBe(midnight.text);
   });
 });

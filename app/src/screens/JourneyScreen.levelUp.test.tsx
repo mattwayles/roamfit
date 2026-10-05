@@ -7,7 +7,7 @@
  * it to the board: a ladder position is a property of the user, not of any one session, and the
  * board is the one surface that already shows which rung you are on. It is also the only placement
  * where an already-trained user can correct a too-low starting rung *before* generating anything,
- * which is the whole point given the cold start is level 1. Since the Golden Hour redesign the
+ * which is the whole point given the cold start is level 1. Since the Midnight redesign the
  * controls sit behind each trail's Adjust expander (looking is common, adjusting is occasional).
  */
 import React from 'react';

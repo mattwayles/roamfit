@@ -1,7 +1,7 @@
 /**
  * The app's button. `primary` is the trail-gradient CTA with a glow (one per screen);
  * `secondary` a `surface2` pill with a hairline; `ghost` an outline; `quiet` bare text.
- * Text on the gradient is `ink` (near-black on Golden Hour's bright pine, white on Daylight's deep one).
+ * Text on the gradient is `ink` (near-black on Midnight's bright teal, white on Daybreak's deep one).
  */
 import React from 'react';
 import { ActivityIndicator, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -98,7 +98,7 @@ export function Button({
         styles.base,
         { height: HEIGHT[size], paddingHorizontal: PAD[size] },
         stretch && styles.stretch,
-        variant === 'primary' && !inactive && theme.glow(theme.colors.pine),
+        variant === 'primary' && !inactive && theme.glow(theme.colors.teal),
         variant === 'secondary' && styles.secondary,
         variant === 'ghost' && styles.ghost,
         variant === 'quiet' && styles.quiet,

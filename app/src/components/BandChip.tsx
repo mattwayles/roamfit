@@ -18,7 +18,7 @@ import { StyleSheet, View } from 'react-native';
 import type { BandId } from '@roamfit/engine';
 import type { BandTension } from '@roamfit/store';
 import {
-  goldenHour,
+  midnight,
   makeStyles,
   radius,
   space,
@@ -52,7 +52,7 @@ export function textToneOn(background: string): ColorName {
 /** `textToneOn` resolved to the actual color. */
 export function textColorOn(background: string): string {
   // `fixedInk` / `fixedPaper` are identical in both palettes, so either one answers.
-  return goldenHour[textToneOn(background) as 'fixedInk' | 'fixedPaper'];
+  return midnight[textToneOn(background) as 'fixedInk' | 'fixedPaper'];
 }
 
 /** Fill used when a band has no tension record — a neutral, not a band color. */

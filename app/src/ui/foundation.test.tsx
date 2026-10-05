@@ -3,12 +3,12 @@ import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
 import {
-  daylight,
-  daylightTheme,
+  daybreak,
+  daybreakTheme,
   lineWidth,
   numeralMaxFontScale,
   type,
-  goldenHour,
+  midnight,
 } from '../theme';
 import {
   Button,
@@ -20,12 +20,12 @@ import {
   iconMap,
   useReduceMotion,
 } from './index';
-import { inDaylight, ready, WAIT } from './test-utils';
+import { inDaybreak, ready, WAIT } from './test-utils';
 
 describe('Txt', () => {
   it('applies the variant style and token color', async () => {
     await render(
-      <Txt variant="h1" color="pine" testID="t">
+      <Txt variant="h1" color="teal" testID="t">
         Hello
       </Txt>,
     );
@@ -34,7 +34,7 @@ describe('Txt', () => {
     expect(s.fontFamily).toBe(type.h1.fontFamily);
     expect(s.fontSize).toBe(30);
     expect(s.textTransform).toBe('uppercase');
-    expect(s.color).toBe(goldenHour.pine);
+    expect(s.color).toBe(midnight.teal);
   });
 
   it('defaults to body/text, and `upper` overrides the variant', async () => {
@@ -47,7 +47,7 @@ describe('Txt', () => {
       </>,
     );
     await ready('a');
-    expect(StyleSheet.flatten(screen.getByTestId('a').props.style).color).toBe(goldenHour.text);
+    expect(StyleSheet.flatten(screen.getByTestId('a').props.style).color).toBe(midnight.text);
     expect(StyleSheet.flatten(screen.getByTestId('b').props.style).textTransform).toBe('none');
   });
 
@@ -287,13 +287,13 @@ describe('Button', () => {
   });
 });
 
-describe('Daylight (foundation)', () => {
-  it('Txt defaults to Daylight ink and resolves tokens through the theme', async () => {
+describe('Daybreak (foundation)', () => {
+  it('Txt defaults to Daybreak ink and resolves tokens through the theme', async () => {
     await render(
-      inDaylight(
+      inDaybreak(
         <>
           <Txt testID="a">a</Txt>
-          <Txt color="pine" testID="b">
+          <Txt color="teal" testID="b">
             b
           </Txt>
           <Txt color="ink" testID="c">
@@ -304,29 +304,29 @@ describe('Daylight (foundation)', () => {
     );
     await ready('a');
     const color = (id: string) => StyleSheet.flatten(screen.getByTestId(id).props.style).color;
-    expect(color('a')).toBe(daylight.text);
-    expect(color('b')).toBe(daylight.pine);
+    expect(color('a')).toBe(daybreak.text);
+    expect(color('b')).toBe(daybreak.teal);
     expect(color('c')).toBe('#FFFFFF');
   });
 
-  it('Icon takes its color from the Daylight palette', async () => {
-    await render(inDaylight(<Icon name="bolt" color="gold" testID="i" />));
+  it('Icon takes its color from the Daybreak palette', async () => {
+    await render(inDaybreak(<Icon name="bolt" color="gold" testID="i" />));
     expect(StyleSheet.flatten(screen.getByTestId('i', { hidden: true }).props.style).color).toBe(
-      daylight.gold,
+      daybreak.gold,
     );
   });
 
-  it('primary Button gets the tamed Daylight glow and white-on-deep-pine legend', async () => {
-    await render(inDaylight(<Button label="Go" testID="p" />));
+  it('primary Button gets the tamed Daybreak glow and white-on-deep-teal legend', async () => {
+    await render(inDaybreak(<Button label="Go" testID="p" />));
     await ready('p');
     expect(StyleSheet.flatten(screen.getByTestId('p').props.style)).toMatchObject(
-      daylightTheme.glow(daylight.pine),
+      daybreakTheme.glow(daybreak.teal),
     );
     expect(StyleSheet.flatten(screen.getByText('Go').props.style).color).toBe('#FFFFFF');
   });
 
-  it('Gradient with no colors uses the Daylight trail', async () => {
-    await render(inDaylight(<Gradient testID="g" />));
+  it('Gradient with no colors uses the Daybreak trail', async () => {
+    await render(inDaybreak(<Gradient testID="g" />));
     await ready('g');
     await fireEvent(screen.getByTestId('g'), 'layout', {
       nativeEvent: { layout: { x: 0, y: 0, width: 320, height: 64 } },

@@ -190,7 +190,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   if (data === undefined) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={theme.colors.pine} />
+        <ActivityIndicator color={theme.colors.teal} />
       </View>
     );
   }
@@ -213,7 +213,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           style={styles.gateScreen}
         >
           <Enter index={0}>
-            <Txt variant="hero" color="pine" style={styles.wordmark}>
+            <Txt variant="hero" color="teal" style={styles.wordmark}>
               ROAMFIT
             </Txt>
             <Txt variant="eyebrow" color="gold">
@@ -257,7 +257,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     >
       <Enter index={next()} style={styles.header}>
         <View style={styles.headerText}>
-          <Txt variant="h1" color="pine">
+          <Txt variant="h1" color="teal">
             RoamFit
           </Txt>
           <Txt variant="small" color="text2" testID="today-greeting">
@@ -277,7 +277,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           <BannerCard
             testID="comeback-banner"
             icon="sparkles"
-            tone="lagoon"
+            tone="periwinkle"
             title="Welcome back — let's ease in."
           />
         </Enter>
@@ -319,7 +319,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           <BannerCard
             testID="recovery-week-banner"
             icon="leaf"
-            tone="lagoon"
+            tone="periwinkle"
             title="Recovery week — lighter loads, same consistency."
             subtitle="Tap to build one today"
             onPress={handleRecoveryWeekAccept}

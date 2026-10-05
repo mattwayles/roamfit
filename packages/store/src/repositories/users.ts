@@ -64,7 +64,7 @@ export const DEFAULT_NOTIFICATION_PREFS: Required<NotificationPrefs> = {
   motivationTimes: ['18:00'],
 };
 
-/** Which look the app wears: follow iOS, Daylight (light), or Golden Hour (dark). */
+/** Which look the app wears: follow iOS, Daybreak (light), or Midnight (dark). */
 export type ThemePreference = 'system' | 'light' | 'dark';
 
 export interface UserRecord {

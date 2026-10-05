@@ -9,7 +9,7 @@ import { act, render, screen, waitFor } from '@testing-library/react-native';
 import { usersRepo, type ThemePreference } from '@roamfit/store';
 import { getDb } from '../db';
 import { nowUtcInstant } from '../lib/localClock';
-import { daylight, goldenHour, useTheme } from '../theme';
+import { daybreak, midnight, useTheme } from '../theme';
 import { StoreProvider } from './StoreContext';
 import { ThemeProvider, resolveScheme, useThemePreference } from './ThemeProvider';
 
@@ -57,7 +57,7 @@ afterEach(() => {
 });
 
 describe('resolveScheme', () => {
-  it('explicit wins, system follows the OS, no OS scheme falls back to Golden Hour', () => {
+  it('explicit wins, system follows the OS, no OS scheme falls back to Midnight', () => {
     expect(resolveScheme('light', 'dark')).toBe('light');
     expect(resolveScheme('dark', 'light')).toBe('dark');
     expect(resolveScheme('system', 'light')).toBe('light');
@@ -72,20 +72,20 @@ describe('ThemeProvider', () => {
     await mount();
     expect(text('pref')).toBe('system');
     expect(text('scheme')).toBe('light');
-    expect(text('bg')).toBe(daylight.bg);
+    expect(text('bg')).toBe(daybreak.bg);
   });
 
-  it('system on a dark OS is Golden Hour', async () => {
+  it('system on a dark OS is Midnight', async () => {
     mockScheme = 'dark';
     await mount();
-    expect(text('bg')).toBe(goldenHour.bg);
+    expect(text('bg')).toBe(midnight.bg);
   });
 
   it('an explicit preference overrides the OS', async () => {
     mockScheme = 'dark';
     await mount('light');
     expect(text('scheme')).toBe('light');
-    expect(text('bg')).toBe(daylight.bg);
+    expect(text('bg')).toBe(daybreak.bg);
   });
 
   it('reads the stored preference from the user row at mount', async () => {
@@ -93,21 +93,21 @@ describe('ThemeProvider', () => {
     usersRepo.updateUser(getDb(), { themePreference: 'light' }, nowUtcInstant());
     await mount();
     expect(text('pref')).toBe('light');
-    expect(text('bg')).toBe(daylight.bg);
+    expect(text('bg')).toBe(daybreak.bg);
   });
 
   it('setPreference persists to the user row and re-renders live', async () => {
     mockScheme = 'dark';
     await mount();
-    expect(text('bg')).toBe(goldenHour.bg);
+    expect(text('bg')).toBe(midnight.bg);
 
     await act(async () => probeApi.setPreference('light'));
     expect(text('pref')).toBe('light');
-    expect(text('bg')).toBe(daylight.bg);
+    expect(text('bg')).toBe(daybreak.bg);
     expect(usersRepo.getUser(getDb())!.themePreference).toBe('light');
 
     await act(async () => probeApi.setPreference('dark'));
-    expect(text('bg')).toBe(goldenHour.bg);
+    expect(text('bg')).toBe(midnight.bg);
     expect(usersRepo.getUser(getDb())!.themePreference).toBe('dark');
   });
 

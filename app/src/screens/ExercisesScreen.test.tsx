@@ -17,8 +17,8 @@ import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider } from '../state/StoreContext';
 import { getDb } from '../db';
 import { nowUtcInstant } from '../lib/localClock';
-import { daylightTheme } from '../theme';
-import { flat, inDaylight } from '../ui/test-utils';
+import { daybreakTheme } from '../theme';
+import { flat, inDaybreak } from '../ui/test-utils';
 
 const PUSH_UP = { id: 'banded-push-up', name: 'Banded Push-Up' };
 
@@ -43,7 +43,7 @@ beforeAll(() => {
   exerciseStateRepo.assignUserVideo(db, PUSH_UP.id, 'dQw4w9WgXcQ', nowUtcInstant(), '2026-08-05');
 });
 
-async function openExercises(daylight = false) {
+async function openExercises(daybreak = false) {
   const app = (
     <StoreProvider>
       <NavigationContainer>
@@ -51,7 +51,7 @@ async function openExercises(daylight = false) {
       </NavigationContainer>
     </StoreProvider>
   );
-  render(daylight ? inDaylight(app) : app);
+  render(daybreak ? inDaybreak(app) : app);
   await waitFor(() => expect(screen.getByTestId('tab-Exercises')).toBeTruthy());
   await fireEvent.press(screen.getByTestId('tab-Exercises'));
   await waitFor(() => expect(screen.getByTestId('exercise-list')).toBeTruthy());
@@ -67,16 +67,16 @@ async function search(text: string) {
   await waitFor(() => expect(screen.getByTestId('exercise-count')).toBeTruthy());
 }
 
-describe('the exercise library in Daylight', () => {
-  it('paints the search well, rows and keyboard from the Daylight theme', async () => {
+describe('the exercise library in Daybreak', () => {
+  it('paints the search well, rows and keyboard from the Daybreak theme', async () => {
     await openExercises(true);
     await search(PUSH_UP.name);
     await waitFor(() => expect(screen.getByTestId(`exercise-card-${PUSH_UP.id}`)).toBeTruthy());
-    expect(flat(`exercise-card-${PUSH_UP.id}`).backgroundColor).toBe(daylightTheme.colors.surface);
-    expect(flat('exercise-search').color).toBe(daylightTheme.colors.text);
+    expect(flat(`exercise-card-${PUSH_UP.id}`).backgroundColor).toBe(daybreakTheme.colors.surface);
+    expect(flat('exercise-search').color).toBe(daybreakTheme.colors.text);
     expect(screen.getByTestId('exercise-search').props.keyboardAppearance).toBe('light');
     expect(screen.getByTestId('exercise-search').props.placeholderTextColor).toBe(
-      daylightTheme.colors.text3,
+      daybreakTheme.colors.text3,
     );
   });
 });
@@ -107,7 +107,7 @@ describe('the exercise library', () => {
     expect(screen.getByText(PUSH_UP.name)).toBeTruthy();
     // banded-push-up's primary muscle in the bundled library.
     expect(screen.getAllByText('Chest').length).toBeGreaterThan(0);
-    // The pine ×N chip (its accessibility label spells it out as "2× completed").
+    // The teal ×N chip (its accessibility label spells it out as "2× completed").
     expect(screen.getByTestId(`exercise-card-count-${PUSH_UP.id}`)).toHaveTextContent('×2');
     expect(screen.getByLabelText('2× completed')).toBeTruthy();
   });

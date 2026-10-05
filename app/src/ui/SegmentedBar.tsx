@@ -11,7 +11,7 @@ export interface SegmentedBarProps {
   /** Fill 0..1 per segment. */
   values: readonly number[];
   activeIndex?: number;
-  /** Default: the theme's `pine`. */
+  /** Default: the theme's `teal`. */
   color?: string;
   height?: number;
   gap?: number;
@@ -30,7 +30,7 @@ export function SegmentedBar({
 }: SegmentedBarProps): React.JSX.Element {
   const theme = useTheme();
   const styles = useStyles();
-  const color = colorProp ?? theme.colors.pine;
+  const color = colorProp ?? theme.colors.teal;
   return (
     <View
       testID={testID}

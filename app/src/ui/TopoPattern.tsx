@@ -1,7 +1,7 @@
 /**
  * Topographic contour lines — the travel-map texture for hero cards. 5-7 nested organic loops
  * around a seeded center, drawn at 6-9% opacity in the theme's `topo.color` (`text` on Golden
- * Hour, sepia on Daylight, scaled by `topo.strength`). Fully deterministic from `seed`, so a
+ * Hour, sepia on Daybreak, scaled by `topo.strength`). Fully deterministic from `seed`, so a
  * given card (or city) always gets the same map.
  */
 import React from 'react';

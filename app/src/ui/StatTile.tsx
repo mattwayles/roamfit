@@ -20,7 +20,7 @@ export function StatTile({
   value,
   label,
   icon,
-  tone = 'pine',
+  tone = 'teal',
   size = 'hero',
   style,
   testID,

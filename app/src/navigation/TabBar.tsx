@@ -1,7 +1,7 @@
 /**
- * Custom bottom tab bar (DESIGN.md §4): `surface` with a top hairline; active tab = pine icon +
- * eyebrow label and a small pine tick on the top edge; inactive = `text3`; lifts with the
- * theme's `elevation.card` in Daylight. To add a tab, add its
+ * Custom bottom tab bar (DESIGN.md §4): `surface` with a top hairline; active tab = teal icon +
+ * eyebrow label and a small teal tick on the top edge; inactive = `text3`; lifts with the
+ * theme's `elevation.card` in Daybreak. To add a tab, add its
  * route to `TabParamList` and one row to `TAB_META` — nothing else here changes.
  */
 import React from 'react';
@@ -40,7 +40,7 @@ export function TabBar({
       {state.routes.map((route, index) => {
         const meta = TAB_META[route.name as keyof TabParamList];
         const focused = state.index === index;
-        const color = focused ? 'pine' : 'text3';
+        const color = focused ? 'teal' : 'text3';
 
         const onPress = () => {
           const event = navigation.emit({
@@ -93,8 +93,8 @@ const useStyles = makeStyles((t) =>
       width: 28,
       height: 3,
       borderRadius: 2,
-      backgroundColor: t.colors.pine,
-      ...t.glow(t.colors.pine),
+      backgroundColor: t.colors.teal,
+      ...t.glow(t.colors.teal),
       shadowOpacity: 0.7,
       shadowRadius: 8,
       shadowOffset: { width: 0, height: 0 },

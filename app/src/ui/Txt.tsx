@@ -1,5 +1,5 @@
 /**
- * `<Txt variant="display" color="pine">` — every piece of text in the app. Variant supplies the
+ * `<Txt variant="display" color="teal">` — every piece of text in the app. Variant supplies the
  * family/size/line-height (and uppercase for display/h1/h2/eyebrow/button); color is a token name.
  *
  * `adjustsFontSizeToFit` is implemented here in JS (`fitFontSize`), not passed to the native Text:

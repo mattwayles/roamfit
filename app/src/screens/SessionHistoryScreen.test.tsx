@@ -15,8 +15,8 @@ import { StoreProvider } from '../state/StoreContext';
 import { getDb } from '../db';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { getNetworkStatus } from '../lib/networkStatus';
-import { daylightTheme, goldenHourTheme } from '../theme';
-import { inDaylight, WAIT } from '../ui/test-utils';
+import { daybreakTheme, midnightTheme } from '../theme';
+import { inDaybreak, WAIT } from '../ui/test-utils';
 
 jest.mock('../lib/networkStatus', () => ({ getNetworkStatus: jest.fn() }));
 const mockGetNetworkStatus = getNetworkStatus as jest.MockedFunction<typeof getNetworkStatus>;
@@ -98,7 +98,7 @@ beforeEach(() => {
   mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
 });
 
-async function openHistory(sessionId: string, daylight = false) {
+async function openHistory(sessionId: string, daybreak = false) {
   const app = (
     <StoreProvider>
       <NavigationContainer
@@ -111,7 +111,7 @@ async function openHistory(sessionId: string, daylight = false) {
       </NavigationContainer>
     </StoreProvider>
   );
-  await render(daylight ? inDaylight(app) : app);
+  await render(daybreak ? inDaybreak(app) : app);
 }
 
 describe('SessionHistoryScreen', () => {
@@ -142,8 +142,8 @@ describe('SessionHistoryScreen', () => {
     const note = screen.getByTestId(`history-skipped-${skippedEntryId}`);
     expect(note).toHaveTextContent('1 set skipped');
     const color = StyleSheet.flatten(note.props.style).color;
-    expect(color).toBe(goldenHourTheme.colors.text3);
-    expect(color).not.toBe(goldenHourTheme.colors.rose);
+    expect(color).toBe(midnightTheme.colors.text3);
+    expect(color).not.toBe(midnightTheme.colors.rose);
   });
 
   it('opens the exercise page from a row', async () => {
@@ -165,15 +165,15 @@ describe('SessionHistoryScreen', () => {
   });
 });
 
-describe('SessionHistoryScreen in Daylight', () => {
-  it('paints the header card on the Daylight surface', async () => {
+describe('SessionHistoryScreen in Daybreak', () => {
+  it('paints the header card on the Daybreak surface', async () => {
     await openHistory(completedId, true);
     await waitFor(() => expect(screen.getByTestId('history-header')).toBeTruthy(), WAIT);
     const card = StyleSheet.flatten(screen.getByTestId('history-header').props.style);
-    expect(card.backgroundColor).toBe(daylightTheme.colors.surface);
+    expect(card.backgroundColor).toBe(daybreakTheme.colors.surface);
     const skipped = StyleSheet.flatten(
       screen.getByTestId(`history-skipped-${skippedEntryId}`).props.style,
     );
-    expect(skipped.color).toBe(daylightTheme.colors.text3);
+    expect(skipped.color).toBe(daybreakTheme.colors.text3);
   });
 });

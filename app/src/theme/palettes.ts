@@ -1,11 +1,11 @@
 /**
- * The two palettes (docs/DESIGN.md §2 "Golden Hour" and §8 "Daylight"): same token names, only
+ * The two palettes (docs/DESIGN.md §2 "Midnight" and §8 "Daybreak"): same token names, only
  * the values change. `Palette` is the one shape both must satisfy — a missing key in either is a
  * compile error — and `buildTheme` turns each into a full `Theme`. Screens never import these
  * directly; they read `useTheme().colors`.
  */
 
-export const goldenHour = {
+export const midnight = {
   // Surfaces — night sky, bluish-black, never pure black
   bg: '#0B0E13',
   surface: '#141922',
@@ -18,7 +18,7 @@ export const goldenHour = {
   text: '#F7F3EA',
   text2: '#B4BCC8',
   text3: '#7C8696',
-  /** Text ON an accent fill. Near-black here (bright fills; never white on pine). */
+  /** Text ON an accent fill. Near-black here (bright fills; never white on teal). */
   ink: '#170B03',
   /** Content on colors that do not change with the theme (band swatches, imagery). */
   fixedInk: '#170B03',
@@ -27,37 +27,37 @@ export const goldenHour = {
   backdrop: 'rgba(5,7,10,0.72)',
 
   // Accents
-  pine: '#4FD176',
-  pineDeep: '#209E46',
+  teal: '#4FD176',
+  tealDeep: '#209E46',
   gold: '#FFB938',
   sun: '#FFD166',
-  lagoon: '#2DD4BF',
+  periwinkle: '#2DD4BF',
   sky: '#5AA9FF',
   summit: '#8E7BFF',
   /** Cardio focus ONLY — never an error/negative state. */
   rose: '#FF5C93',
 } as const;
 
-export type ColorName = keyof typeof goldenHour;
+export type ColorName = keyof typeof midnight;
 export type Palette = Record<ColorName, string>;
 
 /** The accent colors — the ones that can carry a tint, a chip tone or a glow. */
 export type AccentName =
-  'pine' | 'pineDeep' | 'gold' | 'sun' | 'lagoon' | 'sky' | 'summit' | 'rose';
+  'teal' | 'tealDeep' | 'gold' | 'sun' | 'periwinkle' | 'sky' | 'summit' | 'rose';
 
 export const accentNames: readonly AccentName[] = [
-  'pine',
-  'pineDeep',
+  'teal',
+  'tealDeep',
   'gold',
   'sun',
-  'lagoon',
+  'periwinkle',
   'sky',
   'summit',
   'rose',
 ];
 
-/** Daylight: printed trail map. Deep accents that carry a white legend; paper and ink. */
-export const daylight: Palette = {
+/** Daybreak: printed trail map. Deep accents that carry a white legend; paper and ink. */
+export const daybreak: Palette = {
   // Surfaces — warm map paper. Cards are lighter than the ground and lift with a shadow.
   bg: '#F6F0E4',
   surface: '#FFFDF8',
@@ -70,48 +70,48 @@ export const daylight: Palette = {
   text: '#1A130C',
   text2: '#4A4036',
   text3: '#6B6052',
-  /** Text ON an accent fill: white, because Daylight's fills are deep. */
+  /** Text ON an accent fill: white, because Daybreak's fills are deep. */
   ink: '#FFFFFF',
   fixedInk: '#170B03',
   fixedPaper: '#F7F3EA',
   backdrop: 'rgba(26,19,12,0.40)',
 
   // Accents — deepened so each is >= 4.5:1 as text on bg AND carries a white legend as a fill
-  pine: '#10702D',
-  pineDeep: '#0A6124',
+  teal: '#10702D',
+  tealDeep: '#0A6124',
   /** Brass — reads as gold on paper, unlike a yellow. */
   gold: '#8F5A00',
   /** Large text / icons only (3.8:1). */
   sun: '#A86F00',
-  lagoon: '#00706A',
+  periwinkle: '#00706A',
   sky: '#1A5FC2',
   summit: '#5A3BD1',
   rose: '#BF1D63',
 };
 
-/** The Golden Hour accent hexes in both themes — decoration with no text on it (confetti, orbs,
+/** The Midnight accent hexes in both themes — decoration with no text on it (confetti, orbs,
  *  the sunburst, the stamp shadow). Deep confetti looks like dirt; vivid reads sunny on paper. */
 export const vivid: Record<AccentName, string> = {
-  pine: goldenHour.pine,
-  pineDeep: goldenHour.pineDeep,
-  gold: goldenHour.gold,
-  sun: goldenHour.sun,
-  lagoon: goldenHour.lagoon,
-  sky: goldenHour.sky,
-  summit: goldenHour.summit,
-  rose: goldenHour.rose,
+  teal: midnight.teal,
+  tealDeep: midnight.tealDeep,
+  gold: midnight.gold,
+  sun: midnight.sun,
+  periwinkle: midnight.periwinkle,
+  sky: midnight.sky,
+  summit: midnight.summit,
+  rose: midnight.rose,
 };
 
-export type GradientName = 'trail' | 'golden' | 'lagoon' | 'summit' | 'night';
+export type GradientName = 'trail' | 'golden' | 'periwinkle' | 'summit' | 'night';
 export type GradientColors = readonly [string, string];
 
-export const goldenHourGradients: Record<GradientName, GradientColors> = {
+export const midnightGradients: Record<GradientName, GradientColors> = {
   /** THE primary CTA + Ignition hero. 135deg. */
   trail: ['#40BD6E', '#5EE06B'],
   /** Achievements, best sets. */
   golden: ['#FFB938', '#FFD166'],
   /** Rest ring, recovery. */
-  lagoon: ['#14B8A6', '#38BDF8'],
+  periwinkle: ['#14B8A6', '#38BDF8'],
   /** Level ups, progression rings. */
   summit: ['#7B5CFF', '#C084FC'],
   /** Subtle card sheen, top -> bottom. */
@@ -119,10 +119,10 @@ export const goldenHourGradients: Record<GradientName, GradientColors> = {
 };
 
 /** Deepened in step with the accents so a white legend holds >= 4.2:1 at every stop. */
-export const daylightGradients: Record<GradientName, GradientColors> = {
+export const daybreakGradients: Record<GradientName, GradientColors> = {
   trail: ['#0F6E2C', '#2A7D23'],
   golden: ['#8F5A00', '#A46D00'],
-  lagoon: ['#00706A', '#0A74A8'],
+  periwinkle: ['#00706A', '#0A74A8'],
   summit: ['#5A3BD1', '#8B3FD0'],
   /** Card sheen: surface -> bg. */
   night: ['#FFFDF8', '#F6F0E4'],

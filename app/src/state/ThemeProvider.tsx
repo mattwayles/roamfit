@@ -22,7 +22,7 @@ export interface ThemePreferenceValue {
 
 const ThemePreferenceContext = createContext<ThemePreferenceValue | null>(null);
 
-/** 'system' with no reported scheme falls back to Golden Hour, the original look. */
+/** 'system' with no reported scheme falls back to Midnight, the original look. */
 export function resolveScheme(
   preference: ThemePreference,
   system: ColorSchemeName | null | undefined,

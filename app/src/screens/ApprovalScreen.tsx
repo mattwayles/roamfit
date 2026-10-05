@@ -170,7 +170,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
     return (
       <Screen>
         <View style={styles.centered}>
-          <ActivityIndicator color={theme.colors.pine} />
+          <ActivityIndicator color={theme.colors.teal} />
         </View>
       </Screen>
     );
@@ -507,8 +507,8 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
         />
         {swapNotice != null && (
           <View testID="swap-notice" accessibilityRole="alert" style={styles.swapNotice}>
-            <Icon name="swap" size={16} color="lagoon" />
-            <Txt variant="small" color="lagoon" style={styles.swapNoticeText}>
+            <Icon name="swap" size={16} color="periwinkle" />
+            <Txt variant="small" color="periwinkle" style={styles.swapNoticeText}>
               {swapNotice}
             </Txt>
           </View>
@@ -635,8 +635,8 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
 /** Section -> accent tone (matches the workout's section chips) and display label. */
 const SECTION_TONE: Record<Section, AccentName> = {
   warmup: 'gold',
-  main: 'pine',
-  cooldown: 'lagoon',
+  main: 'teal',
+  cooldown: 'periwinkle',
 };
 const SECTION_LABEL: Record<Section, string> = {
   warmup: 'Warm-up',
@@ -684,7 +684,7 @@ function BoardingPass({
             <Txt variant="eyebrow" color="text3">
               Min
             </Txt>
-            <Txt variant="h1" color="pine" testID="plan-minutes">
+            <Txt variant="h1" color="teal" testID="plan-minutes">
               {minutes}
             </Txt>
           </View>
@@ -842,13 +842,13 @@ function EntryCard({
         </View>
 
         {/* Both actions are icons on the title's own row, so they cost no vertical space at
-            all. The accessible names carry the meaning the glyphs cannot. Swap wears the lagoon
+            all. The accessible names carry the meaning the glyphs cannot. Swap wears the periwinkle
             tint so the one control that replaces the exercise never reads as a plain one. */}
         <View style={styles.cardActions}>
           <IconButton
             testID={`swap-${entry.exerciseId}`}
             icon="swap"
-            tone="lagoon"
+            tone="periwinkle"
             accessibilityLabel={`Swap ${exerciseName} for another exercise`}
             style={styles.swapButton}
             onPress={onSwap}
@@ -984,7 +984,7 @@ function NumericField({
           keyboardType="number-pad"
           returnKeyType="done"
           inputAccessoryViewID={NUMBER_ACCESSORY_ID}
-          selectionColor={theme.colors.pine}
+          selectionColor={theme.colors.teal}
           keyboardAppearance={theme.scheme}
           selectTextOnFocus
           hitSlop={4}
@@ -1045,7 +1045,7 @@ const useStyles = makeStyles((t) =>
       paddingHorizontal: space.md,
       paddingVertical: space.sm,
       borderRadius: radius.pill,
-      backgroundColor: t.tints.lagoon,
+      backgroundColor: t.tints.periwinkle,
     },
     swapNoticeText: { flexShrink: 1 },
 
@@ -1151,7 +1151,7 @@ const useStyles = makeStyles((t) =>
     // used to occupy, and giving it a whole line cost ~26pt of every card for no information.
     // Pinned to the top so they stay level with the first line of a name that wraps.
     cardActions: { flexDirection: 'row', gap: space.xs, alignSelf: 'flex-start' },
-    swapButton: { backgroundColor: t.tints.lagoon, borderColor: 'transparent' },
+    swapButton: { backgroundColor: t.tints.periwinkle, borderColor: 'transparent' },
 
     // -- add sheet
     addList: { marginBottom: space.sm },

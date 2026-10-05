@@ -15,7 +15,7 @@ import { ThemeProvider } from '../state/ThemeProvider';
 import { getDb } from '../db';
 import { nowUtcInstant } from '../lib/localClock';
 import { StyleSheet } from 'react-native';
-import { ThemeContext, daylight, daylightTheme, goldenHourTheme } from '../theme';
+import { ThemeContext, daybreak, daybreakTheme, midnightTheme } from '../theme';
 
 const WAIT = { timeout: 5000, interval: 50 };
 
@@ -27,7 +27,7 @@ async function boot() {
   await render(
     <StoreProvider>
       <ThemeProvider initialPreference="dark">
-        <NavigationContainer theme={goldenHourTheme.navTheme}>
+        <NavigationContainer theme={midnightTheme.navTheme}>
           <RootNavigator />
         </NavigationContainer>
       </ThemeProvider>
@@ -98,12 +98,12 @@ describe('homeReset', () => {
   });
 });
 
-describe('navigation shell in Daylight', () => {
-  it('tab bar is paper with the card shadow, and the active tab is the deep pine', async () => {
+describe('navigation shell in Daybreak', () => {
+  it('tab bar is paper with the card shadow, and the active tab is the deep teal', async () => {
     await render(
       <StoreProvider>
-        <ThemeContext.Provider value={daylightTheme}>
-          <NavigationContainer theme={daylightTheme.navTheme}>
+        <ThemeContext.Provider value={daybreakTheme}>
+          <NavigationContainer theme={daybreakTheme.navTheme}>
             <RootNavigator />
           </NavigationContainer>
         </ThemeContext.Provider>
@@ -111,9 +111,9 @@ describe('navigation shell in Daylight', () => {
     );
     await waitFor(() => expect(screen.getByTestId('tab-bar')).toBeTruthy(), WAIT);
     expect(StyleSheet.flatten(screen.getByTestId('tab-bar').props.style)).toMatchObject({
-      backgroundColor: daylight.surface,
-      borderTopColor: daylight.line,
-      ...daylightTheme.elevation.card,
+      backgroundColor: daybreak.surface,
+      borderTopColor: daybreak.line,
+      ...daybreakTheme.elevation.card,
     });
   });
 });

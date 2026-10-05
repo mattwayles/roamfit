@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { ProgressChart } from './ProgressChart';
-import { inDaylight, ready } from '../ui/test-utils';
+import { inDaybreak, ready } from '../ui/test-utils';
 
 const POINTS = [
   { localDate: '2026-01-04', value: 2 },
@@ -25,8 +25,8 @@ const measure = () =>
   });
 
 describe.each([
-  ['Golden Hour', (n: React.ReactElement) => n],
-  ['Daylight', inDaylight],
+  ['Midnight', (n: React.ReactElement) => n],
+  ['Daybreak', inDaybreak],
 ])('ProgressChart (%s)', (_name, wrap) => {
   it('summarises the series for assistive tech, first to last', async () => {
     await render(wrap(chart()));

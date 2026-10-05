@@ -50,7 +50,7 @@ export function SectionHeader({
           hitSlop={12}
           accessibilityLabel={actionLabel}
         >
-          <Txt variant="eyebrow" color="pine">
+          <Txt variant="eyebrow" color="teal">
             {actionLabel}
           </Txt>
         </PressableScale>

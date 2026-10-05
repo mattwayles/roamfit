@@ -30,7 +30,7 @@ import { Txt } from '../ui';
 export type { ChartMarker, SeriesPoint };
 
 /** Fixed order; `rose` is reserved for cardio and so never appears here. */
-export const SEGMENT_TONES: readonly AccentName[] = ['pine', 'sky', 'gold', 'lagoon', 'summit'];
+export const SEGMENT_TONES: readonly AccentName[] = ['teal', 'sky', 'gold', 'periwinkle', 'summit'];
 
 export interface ProgressChartProps {
   points: readonly SeriesPoint[];
@@ -82,7 +82,7 @@ export function ProgressChart({
     { integerTicks, zeroBase },
   );
   const toneColor = (segment: number) =>
-    theme.colors[segmentTones[segment % segmentTones.length] ?? 'pine'];
+    theme.colors[segmentTones[segment % segmentTones.length] ?? 'teal'];
 
   const first = points[0];
   const last = points[points.length - 1];

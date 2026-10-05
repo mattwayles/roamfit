@@ -14,8 +14,8 @@ import { StoreProvider } from '../state/StoreContext';
 import { getDb } from '../db';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { getNetworkStatus } from '../lib/networkStatus';
-import { daylightTheme } from '../theme';
-import { inDaylight, WAIT } from '../ui/test-utils';
+import { daybreakTheme } from '../theme';
+import { inDaybreak, WAIT } from '../ui/test-utils';
 
 jest.mock('../lib/networkStatus', () => ({ getNetworkStatus: jest.fn() }));
 const mockGetNetworkStatus = getNetworkStatus as jest.MockedFunction<typeof getNetworkStatus>;
@@ -84,7 +84,7 @@ beforeEach(() => {
   mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
 });
 
-async function open(route: { name: string; params?: object }, daylight = false) {
+async function open(route: { name: string; params?: object }, daybreak = false) {
   const app = (
     <StoreProvider>
       <NavigationContainer initialState={{ index: 1, routes: [{ name: 'Tabs' }, route] }}>
@@ -92,7 +92,7 @@ async function open(route: { name: string; params?: object }, daylight = false) 
       </NavigationContainer>
     </StoreProvider>
   );
-  await render(daylight ? inDaylight(app) : app);
+  await render(daybreak ? inDaybreak(app) : app);
 }
 
 describe('TrailProgressScreen', () => {
@@ -160,12 +160,12 @@ describe('TrailProgressScreen', () => {
   });
 });
 
-describe('TrailProgressScreen in Daylight', () => {
-  it('paints the hero on the Daylight surface', async () => {
+describe('TrailProgressScreen in Daybreak', () => {
+  it('paints the hero on the Daybreak surface', async () => {
     await open({ name: 'TrailProgress', params: { familyId: doneFamilyId } }, true);
     await waitFor(() => expect(screen.getByTestId('trail-hero')).toBeTruthy(), WAIT);
     const card = StyleSheet.flatten(screen.getByTestId('trail-hero').props.style);
-    expect(card.backgroundColor).toBe(daylightTheme.colors.surface);
+    expect(card.backgroundColor).toBe(daybreakTheme.colors.surface);
     await fireEvent(screen.getByTestId('trail-best-chart-area'), 'layout', {
       nativeEvent: { layout: { width: 320, height: 180 } },
     });

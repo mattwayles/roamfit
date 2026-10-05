@@ -1,8 +1,8 @@
 /**
  * §5.8 Debrief and §5.9 Completion presentation, through the real SummaryScreen and store: the
- * additive stat tiles, the 30pt set squares (pine-filled / outlined / dashed) with their feedback
+ * additive stat tiles, the 30pt set squares (teal-filled / outlined / dashed) with their feedback
  * dots, the labeled chips in the edit sheet, the Trail Notes card and the sticky footer — and, after
- * FINISH, the Golden Hour celebration: `bg` night base, no violet anywhere on the page. Behavior
+ * FINISH, the Midnight celebration: `bg` night base, no violet anywhere on the page. Behavior
  * (jump-to-set, feedback edits, FINISH, the haptic sequence) is covered by SummaryScreen.test.tsx.
  */
 import React from 'react';
@@ -16,8 +16,8 @@ import SummaryScreen from './SummaryScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { buildSessionCompletionStats } from '../lib/sessionStats';
-import { daylight, vivid, goldenHour } from '../theme';
-import { inDaylight } from '../ui/test-utils';
+import { daybreak, vivid, midnight } from '../theme';
+import { inDaybreak } from '../ui/test-utils';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
@@ -90,7 +90,7 @@ async function seedSession(db: Db, opts: { logged: boolean }) {
   return { sessionId, featuredId: featured.id };
 }
 
-async function mount(opts: { logged: boolean; daylight?: boolean }) {
+async function mount(opts: { logged: boolean; daybreak?: boolean }) {
   let db!: Db;
   render(
     <StoreProvider>
@@ -110,7 +110,7 @@ async function mount(opts: { logged: boolean; daylight?: boolean }) {
       </NavigationContainer>
     </StoreProvider>
   );
-  render(opts.daylight ? inDaylight(tree) : tree);
+  render(opts.daybreak ? inDaybreak(tree) : tree);
   await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
   return { db, navigation, ...seeded };
 }
@@ -150,7 +150,7 @@ describe('§5.8 Debrief presentation', () => {
     expect(footer.getByTestId('back-to-workout')).toBeTruthy();
   });
 
-  it('draws completed sets pine with the count in ink, skipped as an outline, at 30pt', async () => {
+  it('draws completed sets teal with the count in ink, skipped as an outline, at 30pt', async () => {
     const { db, sessionId, featuredId } = await mount({ logged: true });
     const entry = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === featuredId)!;
     const done = entry.setLogs.find((l) => l.setIndex === 0)!;
@@ -159,14 +159,14 @@ describe('§5.8 Debrief presentation', () => {
     expect(flat(`summary-set-${done.id}`)).toMatchObject({
       width: 30,
       height: 30,
-      backgroundColor: goldenHour.pine,
+      backgroundColor: midnight.teal,
     });
     const count = within(screen.getByTestId(`summary-set-${done.id}`)).getByText('12');
-    expect(StyleSheet.flatten(count.props.style).color).toBe(goldenHour.ink);
+    expect(StyleSheet.flatten(count.props.style).color).toBe(midnight.ink);
 
     expect(flat(`summary-set-${skipped.id}`)).toMatchObject({
       backgroundColor: 'transparent',
-      borderColor: goldenHour.text3,
+      borderColor: midnight.text3,
     });
   });
 
@@ -211,7 +211,7 @@ describe('§5.8 Debrief presentation', () => {
 
 /** Every violet the old completion page (and the design system's `summit`) could have painted. */
 const VIOLETS = [
-  goldenHour.summit,
+  midnight.summit,
   '#7B5CFF',
   '#C084FC',
   '#5b21b6',
@@ -224,19 +224,19 @@ const VIOLETS = [
 ];
 
 describe('§5.9 Completion presentation', () => {
-  it('is the Golden Hour re-skin: bg night base, gold stat labels, trail Heck yes, and no violet', async () => {
+  it('is the Midnight re-skin: bg night base, gold stat labels, trail Heck yes, and no violet', async () => {
     await mount({ logged: true });
     await fireEvent.press(screen.getByTestId('finish-button'));
     await waitFor(() => expect(screen.getByTestId('session-complete')).toBeTruthy(), WAIT_OPTS);
 
-    expect(flat('session-complete').backgroundColor).toBe(goldenHour.bg);
+    expect(flat('session-complete').backgroundColor).toBe(midnight.bg);
     expect(screen.getByText('Heck yes! 💪')).toBeTruthy();
     expect(screen.getByTestId('return-home')).toBeTruthy();
 
     // Stat chips: gold eyebrow labels.
     await waitFor(() => expect(screen.getByTestId('completion-stat-sets-value')).toBeTruthy());
     const label = within(screen.getByTestId('completion-stat-sets')).getByText('Sets');
-    expect(StyleSheet.flatten(label.props.style).color).toBe(goldenHour.gold);
+    expect(StyleSheet.flatten(label.props.style).color).toBe(midnight.gold);
 
     // The cannons have fired by now (the slam beat) — the whole tree, confetti included, has no
     // violet in it anywhere.
@@ -245,40 +245,40 @@ describe('§5.9 Completion presentation', () => {
       { timeout: 8000, interval: 100 },
     );
     const tree = JSON.stringify(screen.toJSON()).toLowerCase();
-    expect(tree).toContain(goldenHour.gold.toLowerCase());
+    expect(tree).toContain(midnight.gold.toLowerCase());
     for (const violet of VIOLETS) expect(tree).not.toContain(violet.toLowerCase());
   });
 });
 
-describe('Daylight', () => {
-  it('debrief: paper ground in the notes input, pine squares with white counts, light keyboard', async () => {
-    const { db, sessionId, featuredId } = await mount({ logged: true, daylight: true });
+describe('Daybreak', () => {
+  it('debrief: paper ground in the notes input, teal squares with white counts, light keyboard', async () => {
+    const { db, sessionId, featuredId } = await mount({ logged: true, daybreak: true });
     const entry = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === featuredId)!;
     const done = entry.setLogs.find((l) => l.setIndex === 0)!;
-    expect(flat(`summary-set-${done.id}`).backgroundColor).toBe(daylight.pine);
+    expect(flat(`summary-set-${done.id}`).backgroundColor).toBe(daybreak.teal);
     const count = within(screen.getByTestId(`summary-set-${done.id}`)).getByText('12');
-    expect(StyleSheet.flatten(count.props.style).color).toBe(daylight.ink);
+    expect(StyleSheet.flatten(count.props.style).color).toBe(daybreak.ink);
     const input = screen.getByTestId('retrospective-input');
     expect(input.props.keyboardAppearance).toBe('light');
     expect(flat('retrospective-input')).toMatchObject({
-      color: daylight.text,
-      backgroundColor: daylight.surface2,
+      color: daybreak.text,
+      backgroundColor: daybreak.surface2,
     });
   });
 
-  it('completion: paper background, brass labels, deep-pine stamped headline over vivid gold', async () => {
-    await mount({ logged: true, daylight: true });
+  it('completion: paper background, brass labels, deep-teal stamped headline over vivid gold', async () => {
+    await mount({ logged: true, daybreak: true });
     await fireEvent.press(screen.getByTestId('finish-button'));
     await waitFor(() => expect(screen.getByTestId('session-complete')).toBeTruthy(), WAIT_OPTS);
-    expect(flat('session-complete').backgroundColor).toBe(daylight.bg);
+    expect(flat('session-complete').backgroundColor).toBe(daybreak.bg);
 
     await waitFor(() => expect(screen.getByTestId('completion-stat-sets-value')).toBeTruthy());
     const label = within(screen.getByTestId('completion-stat-sets')).getByText('Sets');
-    expect(StyleSheet.flatten(label.props.style).color).toBe(daylight.gold);
+    expect(StyleSheet.flatten(label.props.style).color).toBe(daybreak.gold);
 
     const lastShadow = screen.getAllByTestId(/^hype-word-\d+-shadow$/, { hidden: true }).at(-1)!;
     expect(StyleSheet.flatten(lastShadow.props.style).color).toBe(vivid.gold);
     const words = screen.getAllByTestId(/^hype-word-\d+$/);
-    expect(StyleSheet.flatten(words.at(-1)!.props.style).color).toBe(daylight.pine);
+    expect(StyleSheet.flatten(words.at(-1)!.props.style).color).toBe(daybreak.teal);
   });
 });

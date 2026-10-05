@@ -2,7 +2,7 @@
  * Surface container. `plain` = `surface` + 1px `line` border; `hero` = gradient fill + a seeded
  * TopoPattern (borderless); `accent` = 2px gradient border around a `surface` body. Give it
  * `onPress` and it becomes a `PressableScale` target. `plain` and `accent` lift with the theme's
- * `elevation.card` (a soft shadow in Daylight, nothing on dark); `hero` clips, so it cannot cast one.
+ * `elevation.card` (a soft shadow in Daybreak, nothing on dark); `hero` clips, so it cannot cast one.
  */
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -24,7 +24,7 @@ export interface CardProps {
   variant?: CardVariant;
   /** Gradient for `hero` (default trail) and `accent` (default trail) variants. */
   gradient?: GradientColors;
-  /** Shortcut for `gradient`: use the gradient of an accent (pine, gold, lagoon, summit). */
+  /** Shortcut for `gradient`: use the gradient of an accent (teal, gold, periwinkle, summit). */
   tone?: AccentName;
   /** Topo seed for `hero`. */
   seed?: string;

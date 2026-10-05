@@ -1,5 +1,5 @@
 /**
- * The Golden Hour presentation layer of the active workout (docs/DESIGN.md §5.7), driven through
+ * The Midnight presentation layer of the active workout (docs/DESIGN.md §5.7), driven through
  * the real WorkoutScreen: the session progress bar, the coach toast + rest line (seeded, so the
  * same set always gets the same words), the rest page's pips, the paused dim, and the timed ring.
  * Behavior — logging, timers, rest resume — is covered by the sibling `WorkoutScreen.*.test.tsx`
@@ -14,7 +14,7 @@ import { generate, sessionsRepo } from '@roamfit/store';
 import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
-import { goldenHour } from '../theme';
+import { midnight } from '../theme';
 import { exerciseComplete, lastSet, pick, rest, setComplete } from '../lib/hypeCopy';
 import { fastForwardTo, setUpTimedEntry } from './timedTestHelpers';
 
@@ -116,7 +116,7 @@ describe('Workout presentation (§5.7)', () => {
 
     fireEvent.press(screen.getByTestId('complete-set'));
 
-    // Rest page: lagoon hero, the rest-pool line seeded by (entry, set), pips for the set just done.
+    // Rest page: periwinkle hero, the rest-pool line seeded by (entry, set), pips for the set just done.
     await waitFor(() => expect(screen.getByTestId('rest-hero')).toBeTruthy(), WAIT_OPTS);
     expect(screen.getByTestId('rest-line')).toHaveTextContent(pick(rest, `${target.id}:0`));
     expect(screen.getByTestId('rest-pips')).toBeTruthy();
@@ -126,7 +126,7 @@ describe('Workout presentation (§5.7)', () => {
       () =>
         expect(
           StyleSheet.flatten(screen.getByTestId('rest-pips-0-dot').props.style).backgroundColor,
-        ).toBe(goldenHour.pine),
+        ).toBe(midnight.teal),
       WAIT_OPTS,
     );
 

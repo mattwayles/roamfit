@@ -3,10 +3,10 @@ import { StyleSheet } from 'react-native';
 import { renderHook } from '@testing-library/react-native';
 import {
   ThemeContext,
-  daylight,
-  daylightTheme,
-  goldenHour,
-  goldenHourTheme,
+  daybreak,
+  daybreakTheme,
+  midnight,
+  midnightTheme,
   makeStyles,
   useTheme,
   type Theme,
@@ -18,14 +18,14 @@ const wrap = (theme: Theme) =>
   };
 
 describe('useTheme', () => {
-  it('defaults to Golden Hour with no provider', async () => {
+  it('defaults to Midnight with no provider', async () => {
     const { result } = await renderHook(() => useTheme());
-    expect(result.current).toBe(goldenHourTheme);
+    expect(result.current).toBe(midnightTheme);
   });
 
   it('returns the provided theme', async () => {
-    const { result } = await renderHook(() => useTheme(), { wrapper: wrap(daylightTheme) });
-    expect(result.current).toBe(daylightTheme);
+    const { result } = await renderHook(() => useTheme(), { wrapper: wrap(daybreakTheme) });
+    expect(result.current).toBe(daybreakTheme);
   });
 });
 
@@ -34,15 +34,15 @@ describe('makeStyles', () => {
     const factory = jest.fn((t: Theme) => StyleSheet.create({ a: { color: t.colors.text } }));
     const useStyles = makeStyles(factory);
 
-    const dark1 = await renderHook(() => useStyles(), { wrapper: wrap(goldenHourTheme) });
-    const dark2 = await renderHook(() => useStyles(), { wrapper: wrap(goldenHourTheme) });
-    const light = await renderHook(() => useStyles(), { wrapper: wrap(daylightTheme) });
+    const dark1 = await renderHook(() => useStyles(), { wrapper: wrap(midnightTheme) });
+    const dark2 = await renderHook(() => useStyles(), { wrapper: wrap(midnightTheme) });
+    const light = await renderHook(() => useStyles(), { wrapper: wrap(daybreakTheme) });
     await light.rerender({});
 
     expect(dark1.result.current).toBe(dark2.result.current);
     expect(light.result.current).not.toBe(dark1.result.current);
-    expect(light.result.current.a.color).toBe(daylight.text);
-    expect(dark1.result.current.a.color).toBe(goldenHour.text);
+    expect(light.result.current.a.color).toBe(daybreak.text);
+    expect(dark1.result.current.a.color).toBe(midnight.text);
     expect(factory).toHaveBeenCalledTimes(2);
   });
 });

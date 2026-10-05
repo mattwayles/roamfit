@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { daylight, daylightTheme, goldenHour, goldenHourTheme } from '../theme';
+import { daybreak, daybreakTheme, midnight, midnightTheme } from '../theme';
 import {
   Card,
   ProgressRing,
@@ -12,7 +12,7 @@ import {
   stampSpec,
   topoLoops,
 } from './index';
-import { flat, inDaylight, ready } from './test-utils';
+import { flat, inDaybreak, ready } from './test-utils';
 
 describe('Card', () => {
   it('plain is a surface with a 1px line border', async () => {
@@ -23,8 +23,8 @@ describe('Card', () => {
     );
     await ready('c');
     const s = flat('c');
-    expect(s.backgroundColor).toBe(goldenHour.surface);
-    expect(s.borderColor).toBe(goldenHour.line);
+    expect(s.backgroundColor).toBe(midnight.surface);
+    expect(s.borderColor).toBe(midnight.line);
     expect(s.borderWidth).toBe(1);
   });
 
@@ -46,7 +46,7 @@ describe('Card', () => {
 
   it('accent wraps the body in a gradient border', async () => {
     await render(
-      <Card variant="accent" tone="lagoon" testID="a">
+      <Card variant="accent" tone="periwinkle" testID="a">
         <Txt>a</Txt>
       </Card>,
     );
@@ -132,7 +132,7 @@ describe('Stamp', () => {
     const b = flat('s2');
     expect(a.transform).toEqual(b.transform);
     expect(a.borderColor).toBe(b.borderColor);
-    expect(a.borderColor).toBe(goldenHour[stampSpec('Lisbon').tone]);
+    expect(a.borderColor).toBe(midnight[stampSpec('Lisbon').tone]);
     expect(screen.getAllByText('Lisbon')).toHaveLength(2);
     expect(screen.getAllByLabelText('Lisbon, PT')).toHaveLength(2);
   });
@@ -173,7 +173,7 @@ describe('ProgressRing', () => {
 
   it('renders children in the center and honors a custom gradient', async () => {
     await render(
-      <ProgressRing progress={0.5} gradient={goldenHourTheme.gradients.golden} animate={false}>
+      <ProgressRing progress={0.5} gradient={midnightTheme.gradients.golden} animate={false}>
         <Txt>3</Txt>
       </ProgressRing>,
     );
@@ -189,14 +189,14 @@ describe('StatTile', () => {
     expect(screen.getByText('42')).toBeTruthy();
     expect(screen.getByText('Sessions')).toBeTruthy();
     expect(screen.getByLabelText('Sessions: 42')).toBeTruthy();
-    expect(StyleSheet.flatten(screen.getByText('42').props.style).color).toBe(goldenHour.gold);
+    expect(StyleSheet.flatten(screen.getByText('42').props.style).color).toBe(midnight.gold);
   });
 });
 
-describe('Daylight (surfaces)', () => {
+describe('Daybreak (surfaces)', () => {
   it('plain Card is paper with a line border and the card shadow', async () => {
     await render(
-      inDaylight(
+      inDaybreak(
         <Card testID="c">
           <Txt>hi</Txt>
         </Card>,
@@ -204,15 +204,15 @@ describe('Daylight (surfaces)', () => {
     );
     await ready('c');
     expect(flat('c')).toMatchObject({
-      backgroundColor: daylight.surface,
-      borderColor: daylight.line,
-      ...daylightTheme.elevation.card,
+      backgroundColor: daybreak.surface,
+      borderColor: daybreak.line,
+      ...daybreakTheme.elevation.card,
     });
   });
 
   it('accent Card lifts too; hero does not (it clips)', async () => {
     await render(
-      inDaylight(
+      inDaybreak(
         <>
           <Card variant="accent" testID="a">
             <Txt>a</Txt>
@@ -224,12 +224,12 @@ describe('Daylight (surfaces)', () => {
       ),
     );
     await ready('a');
-    expect(flat('a')).toMatchObject(daylightTheme.elevation.card);
+    expect(flat('a')).toMatchObject(daybreakTheme.elevation.card);
     expect(flat('h').shadowOpacity).toBeUndefined();
   });
 
   it('TopoPattern prints sepia at 1.3x the seeded opacity', async () => {
-    await render(inDaylight(<TopoPattern seed="s" testID="t" />));
+    await render(inDaybreak(<TopoPattern seed="s" testID="t" />));
     await ready('t');
     await fireEvent(screen.getByTestId('t'), 'layout', {
       nativeEvent: { layout: { x: 0, y: 0, width: 200, height: 200 } },
@@ -242,17 +242,17 @@ describe('Daylight (surfaces)', () => {
   });
 
   it('StatTile is paper with the card shadow', async () => {
-    await render(inDaylight(<StatTile testID="st" value={3} label="Sessions" />));
+    await render(inDaybreak(<StatTile testID="st" value={3} label="Sessions" />));
     await ready('st');
     expect(flat('st')).toMatchObject({
-      backgroundColor: daylight.surface,
-      ...daylightTheme.elevation.card,
+      backgroundColor: daybreak.surface,
+      ...daybreakTheme.elevation.card,
     });
   });
 
-  it('Stamp inks come from the Daylight palette', async () => {
-    await render(inDaylight(<Stamp testID="sp" title="Lisbon" seed="lisbon" tone="gold" />));
+  it('Stamp inks come from the Daybreak palette', async () => {
+    await render(inDaybreak(<Stamp testID="sp" title="Lisbon" seed="lisbon" tone="gold" />));
     await ready('sp');
-    expect(flat('sp').borderColor).toBe(daylight.gold);
+    expect(flat('sp').borderColor).toBe(daybreak.gold);
   });
 });

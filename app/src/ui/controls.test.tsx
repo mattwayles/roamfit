@@ -1,24 +1,24 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
-import { daylight, daylightTheme, goldenHour, goldenHourTheme } from '../theme';
+import { daybreak, daybreakTheme, midnight, midnightTheme } from '../theme';
 import { Chip, IconButton, Pips, SectionHeader, SegmentedBar, Switch } from './index';
-import { flat, inDaylight, ready } from './test-utils';
+import { flat, inDaybreak, ready } from './test-utils';
 
 describe('Chip', () => {
   it('tone = tint background + accent text; selected = solid accent + ink text', async () => {
     await render(
       <>
         <Chip testID="t" label="Warm-up" tone="gold" />
-        <Chip testID="s" label="Main" tone="pine" selected />
+        <Chip testID="s" label="Main" tone="teal" selected />
       </>,
     );
     await ready('t');
-    expect(flat('t').backgroundColor).toBe(goldenHourTheme.tints.gold);
-    expect(flat('s').backgroundColor).toBe(goldenHour.pine);
+    expect(flat('t').backgroundColor).toBe(midnightTheme.tints.gold);
+    expect(flat('s').backgroundColor).toBe(midnight.teal);
     expect(screen.getByText('Main')).toBeTruthy();
     const label = screen.getByText('Main').props.style;
-    expect(JSON.stringify(label)).toContain(goldenHour.ink);
+    expect(JSON.stringify(label)).toContain(midnight.ink);
   });
 
   it('presses (with selection haptic) only when given onPress and reports selected state', async () => {
@@ -50,7 +50,7 @@ describe('IconButton', () => {
       width: 44,
       height: 44,
       borderRadius: 22,
-      backgroundColor: goldenHour.surface2,
+      backgroundColor: midnight.surface2,
     });
     await fireEvent.press(screen.getByLabelText('Settings'));
     expect(onPress).toHaveBeenCalledTimes(1);
@@ -146,10 +146,10 @@ describe('SegmentedBar', () => {
 
   it('only the active segment glows', async () => {
     await render(
-      <SegmentedBar testID="sb" values={[0, 0]} activeIndex={0} color={goldenHour.lagoon} />,
+      <SegmentedBar testID="sb" values={[0, 0]} activeIndex={0} color={midnight.periwinkle} />,
     );
     await ready('sb');
-    expect(flat('sb-segment-0').shadowColor).toBe(goldenHour.lagoon);
+    expect(flat('sb-segment-0').shadowColor).toBe(midnight.periwinkle);
     expect(flat('sb-segment-1').shadowColor).toBeUndefined();
   });
 });
@@ -158,9 +158,9 @@ describe('Pips', () => {
   it('fills `filled` dots and rings the current one', async () => {
     await render(<Pips testID="p" count={4} filled={2} current={2} />);
     await ready('p');
-    expect(flat('p-0-dot').backgroundColor).toBe(goldenHour.pine);
-    expect(flat('p-1-dot').backgroundColor).toBe(goldenHour.pine);
-    expect(flat('p-2-dot').backgroundColor).toBe(goldenHour.surface3);
+    expect(flat('p-0-dot').backgroundColor).toBe(midnight.teal);
+    expect(flat('p-1-dot').backgroundColor).toBe(midnight.teal);
+    expect(flat('p-2-dot').backgroundColor).toBe(midnight.surface3);
     expect(screen.getByTestId('p-2-ring')).toBeTruthy();
     expect(screen.queryByTestId('p-1-ring')).toBeNull();
     expect(screen.getByLabelText('2 of 4 sets done')).toBeTruthy();
@@ -169,9 +169,9 @@ describe('Pips', () => {
   it('takes a per-dot flag list for non-contiguous done sets (a skipped set stays empty)', async () => {
     await render(<Pips testID="p" count={3} filled={[false, true, true]} current={0} />);
     await ready('p');
-    expect(flat('p-0-dot').backgroundColor).toBe(goldenHour.surface3);
-    expect(flat('p-1-dot').backgroundColor).toBe(goldenHour.pine);
-    expect(flat('p-2-dot').backgroundColor).toBe(goldenHour.pine);
+    expect(flat('p-0-dot').backgroundColor).toBe(midnight.surface3);
+    expect(flat('p-1-dot').backgroundColor).toBe(midnight.teal);
+    expect(flat('p-2-dot').backgroundColor).toBe(midnight.teal);
     expect(screen.getByLabelText('2 of 3 sets done')).toBeTruthy();
   });
 
@@ -179,56 +179,56 @@ describe('Pips', () => {
     const { rerender } = await render(<Pips testID="p" count={3} filled={1} current={1} />);
     await ready('p');
     await rerender(<Pips testID="p" count={3} filled={2} current={2} />);
-    expect(flat('p-1-dot').backgroundColor).toBe(goldenHour.pine);
+    expect(flat('p-1-dot').backgroundColor).toBe(midnight.teal);
     expect(screen.getByTestId('p-2-ring')).toBeTruthy();
   });
 });
 
-describe('Daylight (controls)', () => {
-  it('Chip tone uses the Daylight tint and deep accent text; selected fills solid with white ink', async () => {
+describe('Daybreak (controls)', () => {
+  it('Chip tone uses the Daybreak tint and deep accent text; selected fills solid with white ink', async () => {
     await render(
-      inDaylight(
+      inDaybreak(
         <>
-          <Chip label="Upper" tone="pine" testID="t" />
-          <Chip label="Picked" tone="pine" selected testID="s" />
+          <Chip label="Upper" tone="teal" testID="t" />
+          <Chip label="Picked" tone="teal" selected testID="s" />
           <Chip label="Plain" testID="n" />
         </>,
       ),
     );
     await ready('t');
-    expect(flat('t').backgroundColor).toBe(daylightTheme.tints.pine);
-    expect(flat('s').backgroundColor).toBe(daylight.pine);
+    expect(flat('t').backgroundColor).toBe(daybreakTheme.tints.teal);
+    expect(flat('s').backgroundColor).toBe(daybreak.teal);
     expect(flat('n')).toMatchObject({
-      backgroundColor: daylight.surface2,
-      borderColor: daylight.line,
+      backgroundColor: daybreak.surface2,
+      borderColor: daybreak.line,
     });
   });
 
-  it('Switch is a paper thumb on a Daylight pine track', async () => {
-    await render(inDaylight(<Switch testID="sw" value onValueChange={() => {}} />));
+  it('Switch is a paper thumb on a Daybreak teal track', async () => {
+    await render(inDaybreak(<Switch testID="sw" value onValueChange={() => {}} />));
     await ready('sw');
-    expect(flat('sw').backgroundColor).toBe(daylight.surface3);
-    expect(flat('sw').borderColor).toBe(daylight.lineStrong);
+    expect(flat('sw').backgroundColor).toBe(daybreak.surface3);
+    expect(flat('sw').borderColor).toBe(daybreak.lineStrong);
   });
 
-  it('IconButton filled disc is a Daylight surface2', async () => {
-    await render(inDaylight(<IconButton icon="add" accessibilityLabel="More" testID="ib" />));
+  it('IconButton filled disc is a Daybreak surface2', async () => {
+    await render(inDaybreak(<IconButton icon="add" accessibilityLabel="More" testID="ib" />));
     await ready('ib');
-    expect(flat('ib').backgroundColor).toBe(daylight.surface2);
+    expect(flat('ib').backgroundColor).toBe(daybreak.surface2);
   });
 
-  it('SegmentedBar fill defaults to the Daylight pine and the active glow is the tamed one', async () => {
-    await render(inDaylight(<SegmentedBar values={[1, 0.5]} activeIndex={1} testID="sb" />));
+  it('SegmentedBar fill defaults to the Daybreak teal and the active glow is the tamed one', async () => {
+    await render(inDaybreak(<SegmentedBar values={[1, 0.5]} activeIndex={1} testID="sb" />));
     await ready('sb');
-    expect(flat('sb-fill-0').backgroundColor).toBe(daylight.pine);
-    expect(flat('sb-segment-1').shadowColor).toBe(daylight.pine);
-    expect(flat('sb-segment-0').backgroundColor).toBe(daylight.surface2);
+    expect(flat('sb-fill-0').backgroundColor).toBe(daybreak.teal);
+    expect(flat('sb-segment-1').shadowColor).toBe(daybreak.teal);
+    expect(flat('sb-segment-0').backgroundColor).toBe(daybreak.surface2);
   });
 
-  it('Pips fill with the Daylight pine over a surface3 track', async () => {
-    await render(inDaylight(<Pips count={2} filled={1} testID="p" />));
+  it('Pips fill with the Daybreak teal over a surface3 track', async () => {
+    await render(inDaybreak(<Pips count={2} filled={1} testID="p" />));
     await ready('p');
-    expect(flat('p-0-dot').backgroundColor).toBe(daylight.pine);
-    expect(flat('p-1-dot').backgroundColor).toBe(daylight.surface3);
+    expect(flat('p-0-dot').backgroundColor).toBe(daybreak.teal);
+    expect(flat('p-1-dot').backgroundColor).toBe(daybreak.surface3);
   });
 });

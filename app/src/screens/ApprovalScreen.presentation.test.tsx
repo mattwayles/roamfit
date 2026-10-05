@@ -14,7 +14,7 @@ import { generate, sessionsRepo } from '@roamfit/store';
 import ApprovalScreen, { estimateMinutes } from './ApprovalScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
-import { goldenHourTheme } from '../theme';
+import { midnightTheme } from '../theme';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
@@ -120,18 +120,18 @@ describe('§5.6 Plan / Approval presentation', () => {
     expect(screen.getByTestId('approval-keyboard-done')).toBeTruthy();
   });
 
-  it('swap wears its own tint, and its notice is a lagoon pill', async () => {
+  it('swap wears its own tint, and its notice is a periwinkle pill', async () => {
     const { db, sessionId } = await mount();
     const entry = sessionsRepo
       .getSession(db, sessionId)!
       .entries.find((e) => e.section === 'main' && e.progressionFamilyId)!;
     const bg = StyleSheet.flatten(screen.getByTestId(`swap-${entry.exerciseId}`).props.style);
-    expect(bg?.backgroundColor).toBe(goldenHourTheme.tints.lagoon);
+    expect(bg?.backgroundColor).toBe(midnightTheme.tints.periwinkle);
 
     await fireEvent.press(screen.getByTestId(`swap-${entry.exerciseId}`));
     await waitFor(() => expect(screen.getByTestId('swap-notice')).toBeTruthy(), WAIT_OPTS);
     expect(StyleSheet.flatten(screen.getByTestId('swap-notice').props.style)?.backgroundColor).toBe(
-      goldenHourTheme.tints.lagoon,
+      midnightTheme.tints.periwinkle,
     );
   });
 

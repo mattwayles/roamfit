@@ -2,7 +2,7 @@
  * How a calendar day marker looks, shared by the Today tab's "This week" strip and the Journey
  * Logbook so the two can never disagree (DESIGN.md §5.1/§5.2). Emoji stay as the marker glyphs
  * (a deliberate carry-over, not a stray icon); the tint is a color *token name* the component
- * resolves through the theme (so it follows Daylight / Golden Hour): trained = the session's focus
+ * resolves through the theme (so it follows Daybreak / Midnight): trained = the session's focus
  * color, travel = sky, quick = gold, untrained = no tint at all (neutral, never
  * empty-looking-bad — invariant 4).
  */

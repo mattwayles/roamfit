@@ -64,7 +64,7 @@ export default function SessionHistoryScreen({ route, navigation }: Props): Reac
 
       <Enter index={1} style={styles.stats} testID="history-stats">
         {view.stats.map((stat) => (
-          <Chip key={stat.key} testID={`history-stat-${stat.key}`} label={stat.label} tone="pine" />
+          <Chip key={stat.key} testID={`history-stat-${stat.key}`} label={stat.label} tone="teal" />
         ))}
       </Enter>
 

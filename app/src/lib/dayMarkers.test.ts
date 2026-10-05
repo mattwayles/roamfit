@@ -1,6 +1,6 @@
 import { FOCUS_TONE } from './focusLabels';
 import { markerTone } from './dayMarkers';
-import { daylightTheme, goldenHourTheme } from '../theme';
+import { daybreakTheme, midnightTheme } from '../theme';
 
 describe('markerTone', () => {
   it('is null for an untrained day, sky for travel, gold for quick, the focus tone for trained', () => {
@@ -12,7 +12,7 @@ describe('markerTone', () => {
   });
 
   it('agrees with the theme semantic maps in both themes', () => {
-    for (const t of [goldenHourTheme, daylightTheme]) {
+    for (const t of [midnightTheme, daybreakTheme]) {
       expect(t.colors[markerTone('travel')!]).toBe(t.dayMarker.travel);
       expect(t.colors[markerTone('quick')!]).toBe(t.dayMarker.quick);
       for (const f of ['upper', 'legs', 'abs', 'full', 'cardio'] as const) {

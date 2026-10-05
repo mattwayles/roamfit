@@ -253,7 +253,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
       }
     >
       <Enter index={0} style={styles.titleBlock}>
-        <Txt variant="eyebrow" color="pine">
+        <Txt variant="eyebrow" color="teal">
           New session
         </Txt>
         <Txt variant="display" accessibilityRole="header">
@@ -338,7 +338,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
                 style={[
                   styles.timeChip,
                   selected && styles.timeChipOn,
-                  selected && theme.glow(theme.colors.pine),
+                  selected && theme.glow(theme.colors.teal),
                 ]}
               >
                 <Txt variant="h1" color={selected ? 'ink' : 'text'}>
@@ -472,7 +472,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
           testID="recovery-week-toggle"
           switchTestID="recovery-week-checkbox"
           icon="leaf"
-          tone="lagoon"
+          tone="periwinkle"
           title="Recovery Workout"
           subtitle="Lighter loads, same consistency."
           value={recoveryWeek}
@@ -586,7 +586,7 @@ const useStyles = makeStyles((t) =>
       borderColor: t.colors.line,
       backgroundColor: t.colors.surface,
     },
-    timeChipOn: { backgroundColor: t.colors.pine, borderColor: t.colors.pine },
+    timeChipOn: { backgroundColor: t.colors.teal, borderColor: t.colors.teal },
 
     // -- intensity segments
     segments: {
@@ -606,7 +606,7 @@ const useStyles = makeStyles((t) =>
       gap: space.xs,
       borderRadius: radius.md - space.xs,
     },
-    segmentOn: { backgroundColor: t.colors.pine },
+    segmentOn: { backgroundColor: t.colors.teal },
     flames: { flexDirection: 'row', height: 22, alignItems: 'center' },
 
     // -- equipment
@@ -626,7 +626,7 @@ const useStyles = makeStyles((t) =>
       borderWidth: 1,
       borderColor: t.colors.line,
     },
-    anchorRowOn: { borderColor: t.colors.pine, backgroundColor: t.tints.pine },
+    anchorRowOn: { borderColor: t.colors.teal, backgroundColor: t.tints.teal },
     anchorCheck: {
       width: 24,
       height: 24,
@@ -636,7 +636,7 @@ const useStyles = makeStyles((t) =>
       borderWidth: 2,
       borderColor: t.colors.lineStrong,
     },
-    anchorCheckOn: { backgroundColor: t.colors.pine, borderColor: t.colors.pine },
+    anchorCheckOn: { backgroundColor: t.colors.teal, borderColor: t.colors.teal },
     anchorLabels: { flex: 1 },
 
     // -- extras

@@ -2,8 +2,8 @@
  * The completion screen's headline, slammed in one word at a time: each word drops from oversized
  * and tilted down onto the page with a hard spring, like a stamp. Barlow Condensed 800 in `text`,
  * the last word in the theme's `stamp.fill`, stamped with a hard zero-blur `stamp.shadow` offset and
- * (Golden Hour only) lit with a soft `stamp.glow` (DESIGN.md §5.9, §8.3). React Native allows one `textShadow` per Text, so each word is
- * two layers: a copy underneath (offset down-right, `pineDeep`, carrying the glow) and the real
+ * (Midnight only) lit with a soft `stamp.glow` (DESIGN.md §5.9, §8.3). React Native allows one `textShadow` per Text, so each word is
+ * two layers: a copy underneath (offset down-right, `tealDeep`, carrying the glow) and the real
  * word on top. The copy is hidden from accessibility, so the headline still reads once. A forward
  * lean (`skewX`, on a static wrapper — Barlow Condensed has no italic face loaded, and the native
  * driver only needs to see the animated transforms) keeps the stamped-on feel the old headline
@@ -133,7 +133,7 @@ const useStyles = makeStyles(() =>
     // A static lean, deliberately outside the Animated transforms (see the header).
     stamp: { transform: [{ skewX: '-8deg' }] },
     word: { textAlign: 'center' },
-    // The hard stamp: zero blur, straight down-right. It carries the pine glow too, so the light
+    // The hard stamp: zero blur, straight down-right. It carries the teal glow too, so the light
     // radiates from the whole stamped shape while the letters on top stay crisp.
     shadowLayer: {
       position: 'absolute',
@@ -144,7 +144,7 @@ const useStyles = makeStyles(() =>
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 16,
     },
-    // Daylight: no glow, so the copy carries no textShadow at all.
+    // Daybreak: no glow, so the copy carries no textShadow at all.
     noGlow: { textShadowRadius: 0 },
   }),
 );

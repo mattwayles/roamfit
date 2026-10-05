@@ -3,7 +3,7 @@
  * step-through full-screen interrupt, now the completion screen's crescendo (DESIGN.md §5.9).
  * Laid out from the start (so revealing it never shifts the page), invisible and untappable until
  * `revealed`, then: the card stamps down with an overshooting spring, a `Stamp` ("LEVEL UP" in
- * pine, "BEST SET" in gold) slams onto its left a beat later, a pulsing gold glow sits behind it,
+ * teal, "BEST SET" in gold) slams onto its left a beat later, a pulsing gold glow sits behind it,
  * a shine sweeps across it on a loop, and — for a level-up — the "Level N of M" bar fills from the
  * old rung to the new one in the `trail` gradient. The card is `surface` inside a 2px `golden`
  * gradient border; share is an `IconButton`. Plain `Animated` API throughout, and no violet.
@@ -171,7 +171,7 @@ export default function HighlightCard({
                 testID={`${testID}-stamp`}
                 title={isLevelUp ? 'LEVEL UP' : 'BEST SET'}
                 seed={`${highlight.kind}:${highlight.familyName}`}
-                tone={isLevelUp ? 'pine' : 'gold'}
+                tone={isLevelUp ? 'teal' : 'gold'}
                 size={STAMP_SIZE}
               />
             </Animated.View>

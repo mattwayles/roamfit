@@ -153,12 +153,12 @@ const APPEARANCE_OPTIONS: {
   icon?: IconName;
 }[] = [
   { value: 'system', label: 'System', testID: 'appearance-system' },
-  { value: 'light', label: 'Daylight', testID: 'appearance-light', icon: 'sun' },
-  { value: 'dark', label: 'Golden Hour', testID: 'appearance-dark', icon: 'moon' },
+  { value: 'light', label: 'Daybreak', testID: 'appearance-light', icon: 'sun' },
+  { value: 'dark', label: 'Midnight', testID: 'appearance-dark', icon: 'moon' },
 ];
 
 const APPEARANCE_CAPTION =
-  'Daylight is built for training outdoors in full sun. System follows your iPhone, which can switch at sunset.';
+  'Daybreak is built for training outdoors in full sun. System follows your iPhone, which can switch at sunset.';
 
 /** The three-way theme picker: one selectable `Chip` per preference, equal width. The selected one
  *  is the stored preference (not the resolved scheme — "System" stays selected while following). */
@@ -175,7 +175,7 @@ function AppearanceControl(): React.JSX.Element {
             testID={option.testID}
             label={option.label}
             icon={option.icon}
-            tone="pine"
+            tone="teal"
             selected={selected}
             style={styles.appearanceOption}
             onPress={() => {
@@ -356,7 +356,7 @@ export default function SettingsScreen(): React.JSX.Element {
           <SwitchRow
             testID="toggle-feedback-prompt"
             icon="sparkles"
-            tone="pine"
+            tone="teal"
             label="Ask how each exercise felt"
             value={user.feedbackPromptEnabled}
             onValueChange={toggleFeedbackPrompt}
@@ -374,7 +374,7 @@ export default function SettingsScreen(): React.JSX.Element {
           <SwitchRow
             testID="toggle-motivation"
             icon="sparkles"
-            tone="pine"
+            tone="teal"
             label="Daily motivation"
             value={motivationEnabled}
             onValueChange={toggleMotivation}
@@ -382,7 +382,7 @@ export default function SettingsScreen(): React.JSX.Element {
           <SwitchRow
             testID="toggle-quiet-hours"
             icon="moon"
-            tone="pine"
+            tone="teal"
             label="Quiet hours (10pm–7am)"
             value={quietHoursEnabled}
             onValueChange={toggleQuietHours}
@@ -432,8 +432,8 @@ export default function SettingsScreen(): React.JSX.Element {
                   onPress={addMotivationTime}
                   style={styles.addTime}
                 >
-                  <Icon name="add" size={18} color="pine" />
-                  <Txt variant="eyebrow" color="pine" style={styles.addTimeLabel}>
+                  <Icon name="add" size={18} color="teal" />
+                  <Txt variant="eyebrow" color="teal" style={styles.addTimeLabel}>
                     Add a time ({motivationTimes.length}/{MAX_DAILY_MOTIVATION_TIMES} per day)
                   </Txt>
                 </PressableScale>
@@ -478,7 +478,7 @@ export default function SettingsScreen(): React.JSX.Element {
           <SwitchRow
             testID="toggle-healthkit-write"
             icon="heart"
-            tone="lagoon"
+            tone="periwinkle"
             label="Write workouts to Apple Health"
             value={user.healthWriteEnabled}
             onValueChange={toggleHealthWrite}

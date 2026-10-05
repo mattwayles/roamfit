@@ -14,7 +14,7 @@
  * **Presentation (docs/DESIGN.md §5.7, "Ignition").** The native header is hidden; this screen draws
  * its own top bar (home / elapsed clock / pause / stop), a session `SegmentedBar`, and a section
  * chip. The exercise hero is a card with a gradient border in the section's color (gold warm-up,
- * pine main, lagoon cool-down); rest flips it to lagoon. Everything visual is a token or a `ui/`
+ * teal main, periwinkle cool-down); rest flips it to periwinkle. Everything visual is a token or a `ui/`
  * primitive — none of it reads or writes anything the store didn't already.
  *
  * **Remove set** mid-workout has no store mutation to call (only §10.3 approval-time removal
@@ -468,7 +468,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   if (!session) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={theme.colors.pine} />
+        <ActivityIndicator color={theme.colors.teal} />
       </View>
     );
   }
@@ -489,7 +489,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   if (!current || !entry) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={theme.colors.pine} />
+        <ActivityIndicator color={theme.colors.teal} />
       </View>
     );
   }
@@ -973,7 +973,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   };
 
   const sessionSection = entry.section as Section;
-  const sectionTone = SECTION_TONE[sessionSection] ?? 'pine';
+  const sectionTone = SECTION_TONE[sessionSection] ?? 'teal';
   const entries = activeEntries(session);
   const segmentValues = entries.map(
     (e) => e.setLogs.filter((l) => l.status === 'completed').length / Math.max(e.sets, 1),
@@ -1015,7 +1015,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               size="sm"
               icon={themePreference.scheme === 'dark' ? 'sun' : 'moon'}
               accessibilityLabel={
-                themePreference.scheme === 'dark' ? 'Switch to Daylight' : 'Switch to Golden Hour'
+                themePreference.scheme === 'dark' ? 'Switch to Daybreak' : 'Switch to Midnight'
               }
               onPress={() =>
                 themePreference.setPreference(themePreference.scheme === 'dark' ? 'light' : 'dark')
@@ -1039,7 +1039,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             size="sm"
             icon={paused ? 'play' : 'pause'}
             accessibilityLabel={paused ? 'Resume workout' : 'Pause workout'}
-            tone={paused ? 'pine' : 'text'}
+            tone={paused ? 'teal' : 'text'}
             onPress={paused ? handleResume : handlePause}
           />
           <AbandonSessionButton onConfirm={handleAbandon} variant="icon" iconSize="sm" />
@@ -1051,7 +1051,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       <SegmentedBar
         values={segmentValues}
         activeIndex={activeSegment}
-        color={theme.section[sessionSection] ?? theme.colors.pine}
+        color={theme.section[sessionSection] ?? theme.colors.teal}
         style={styles.segments}
       />
 
@@ -1098,7 +1098,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             testID="swap-notice"
             style={[styles.swapNotice, { opacity: swapNoticeOpacity }]}
           >
-            <Txt variant="small" color="lagoon" align="center">
+            <Txt variant="small" color="periwinkle" align="center">
               {swapNotice}
             </Txt>
           </Animated.View>
@@ -1245,7 +1245,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
                       ),
                     ),
                     justDone: restingSetIndex,
-                    color: theme.section[restingEntry.section as Section] ?? theme.colors.pine,
+                    color: theme.section[restingEntry.section as Section] ?? theme.colors.teal,
                   }
                 : null
             }
@@ -1338,8 +1338,8 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
 const SECTION_TONE: Record<Section, AccentName> = {
   warmup: 'gold',
-  main: 'pine',
-  cooldown: 'lagoon',
+  main: 'teal',
+  cooldown: 'periwinkle',
 };
 
 const SECTION_LABEL: Record<Section, string> = {
@@ -1550,7 +1550,7 @@ function SetNavRow({
         testID="swap-set"
         icon="swap"
         label="Swap"
-        tone="lagoon"
+        tone="periwinkle"
         accessibilityLabel="Swap this exercise for another"
         onPress={onSwap}
       />
@@ -1622,8 +1622,8 @@ function RepsExercise({
   // the set's own logged value when it has one, not the prescription.
   const [reps, setReps] = useState(repsDefault);
   const [bandUsed, setBandUsed] = useState(band);
-  const color = theme.section[entry.section as Section] ?? theme.colors.pine;
-  const tone = SECTION_TONE[entry.section as Section] ?? 'pine';
+  const color = theme.section[entry.section as Section] ?? theme.colors.teal;
+  const tone = SECTION_TONE[entry.section as Section] ?? 'teal';
   const closesExercise = setIndex === entry.sets - 1;
   return (
     <>
@@ -1665,7 +1665,7 @@ function RepsExercise({
               style={styles.repCountInput}
               keyboardType="number-pad"
               keyboardAppearance={theme.scheme}
-              selectionColor={theme.colors.pine}
+              selectionColor={theme.colors.teal}
               selectTextOnFocus
               maxFontSizeMultiplier={1.3}
               accessibilityLabel="Reps completed"
@@ -2159,8 +2159,8 @@ function TimedExercise({
             ? 'Resume the hold'
             : 'Pause the hold';
 
-  const color = theme.section[entry.section as Section] ?? theme.colors.pine;
-  const tone = SECTION_TONE[entry.section as Section] ?? 'pine';
+  const color = theme.section[entry.section as Section] ?? theme.colors.teal;
+  const tone = SECTION_TONE[entry.section as Section] ?? 'teal';
   const stopped = selfPaused || paused;
 
   // How far through the current phase the ring is drawn: the hold fills as it is held, the
@@ -2453,11 +2453,11 @@ function RestPhase({
 
   return (
     <>
-      {/* Rest is the lagoon mood: a lagoon border and ring so it is unmistakable at a glance from
+      {/* Rest is the periwinkle mood: a periwinkle border and ring so it is unmistakable at a glance from
           across a room. */}
-      <Card variant="accent" tone="lagoon" padding="md" testID="rest-hero">
+      <Card variant="accent" tone="periwinkle" padding="md" testID="rest-hero">
         <View style={styles.restBody}>
-          <Txt variant="eyebrow" color="lagoon" align="center">
+          <Txt variant="eyebrow" color="periwinkle" align="center">
             Rest
           </Txt>
           <Txt variant="h2" align="center" testID="rest-line">
@@ -2485,8 +2485,8 @@ function RestPhase({
               progress={mostMsRef.current > 0 ? remainingMs / mostMsRef.current : 0}
               size={REST_RING_SIZE}
               stroke={14}
-              gradient={theme.gradients.lagoon}
-              trackColor={withAlpha(theme.colors.lagoon, 0.18)}
+              gradient={theme.gradients.periwinkle}
+              trackColor={withAlpha(theme.colors.periwinkle, 0.18)}
               animate={false}
             >
               <Txt
@@ -2643,7 +2643,7 @@ function Disclosure({
         onPress={() => setOpen((o) => !o)}
       >
         <View style={styles.disclosureTitle}>
-          <Icon name="info" size={16} color="lagoon" style={styles.disclosureIcon} />
+          <Icon name="info" size={16} color="periwinkle" style={styles.disclosureIcon} />
           <Txt variant="eyebrow" color="text2">
             {title}
           </Txt>
@@ -2687,7 +2687,7 @@ const useStyles = makeStyles((t) =>
     pausedChip: { alignSelf: 'flex-start' },
     swapNotice: {
       alignSelf: 'center',
-      backgroundColor: t.tints.lagoon,
+      backgroundColor: t.tints.periwinkle,
       borderRadius: radius.pill,
       paddingHorizontal: space.lg,
       paddingVertical: space.sm,

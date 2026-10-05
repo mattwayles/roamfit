@@ -75,9 +75,9 @@ import { useInsets } from '../ui/useInsets';
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseDetail'>;
 
 /** Hero gradient per focus tone. Cardio's rose has no themed gradient (it is an identity color,
- *  not a CTA one), so it borrows the rose -> pineDeep pair from the theme's palette. */
+ *  not a CTA one), so it borrows the rose -> tealDeep pair from the theme's palette. */
 function heroGradient(theme: Theme, tone: AccentName): GradientColors {
-  return theme.accentGradient[tone] ?? [theme.colors.rose, theme.colors.pineDeep];
+  return theme.accentGradient[tone] ?? [theme.colors.rose, theme.colors.tealDeep];
 }
 
 interface DetailData {
@@ -236,7 +236,7 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
             value={timesCompleted}
             label={timesCompleted === 1 ? 'session completed' : 'sessions completed'}
             icon="flame"
-            tone="pine"
+            tone="teal"
           />
           <StatTile
             testID="detail-last-performed"
@@ -332,7 +332,7 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
                     key={line.label}
                     testID={`detail-gain-${line.label}`}
                     label={`${line.label} · ${line.detail}`}
-                    tone={line.improved ? 'pine' : 'neutral'}
+                    tone={line.improved ? 'teal' : 'neutral'}
                     icon={line.improved ? 'trendingUp' : undefined}
                     wrap
                   />
@@ -406,7 +406,7 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
             onPress={handleToggleDisabled}
             style={styles.toggleCard}
           >
-            <IconBadge icon="barbell" tone={enabled ? 'pine' : 'gold'} size={40} />
+            <IconBadge icon="barbell" tone={enabled ? 'teal' : 'gold'} size={40} />
             <View style={styles.toggleLabels}>
               <Txt variant="h3">Use in workouts</Txt>
               <Txt variant="caption" color="text2">

@@ -282,7 +282,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     });
   });
 
-  it('a skipped set gets its own quiet outlined square, distinct from a completed (pine-filled) one', async () => {
+  it('a skipped set gets its own quiet outlined square, distinct from a completed (teal-filled) one', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>

@@ -1,16 +1,16 @@
 /**
  * `buildTheme(scheme)` — everything a component needs to paint itself in one light: the palette,
  * tints, gradients, the semantic maps, and the depth/glow/topo/stamp rules that differ between
- * Golden Hour (dark) and Daylight (light) (docs/DESIGN.md §8). Two frozen instances are built
+ * Midnight (dark) and Daybreak (light) (docs/DESIGN.md §8). Two frozen instances are built
  * once at module load; the ThemeProvider just picks one, so `makeStyles` caches per instance.
  */
 import { DarkTheme, DefaultTheme, type Theme as NavTheme } from '@react-navigation/native';
 import type { ViewStyle } from 'react-native';
 import {
-  daylight,
-  daylightGradients,
-  goldenHour,
-  goldenHourGradients,
+  daybreak,
+  daybreakGradients,
+  midnight,
+  midnightGradients,
   vivid,
   withAlpha,
   accentNames,
@@ -27,13 +27,13 @@ export type Scheme = 'light' | 'dark';
 export interface Theme {
   scheme: Scheme;
   colors: Palette;
-  /** Golden Hour accent hexes in both themes — decoration only, never under text. */
+  /** Midnight accent hexes in both themes — decoration only, never under text. */
   vivid: Record<AccentName, string>;
-  /** Tint of every accent — chip / badge backgrounds. 15% alpha on Golden Hour; 8% on Daylight,
+  /** Tint of every accent — chip / badge backgrounds. 15% alpha on Midnight; 8% on Daybreak,
    *  where a stronger wash drags accent-text-on-tint under 4.5:1 (see theme tests). */
   tints: Record<AccentName, string>;
   gradients: Record<GradientName, GradientColors>;
-  /** Gradient for an accent color (pine, gold, lagoon, summit have one). */
+  /** Gradient for an accent color (teal, gold, periwinkle, summit have one). */
   accentGradient: Partial<Record<AccentName, GradientColors>>;
   section: { warmup: string; main: string; cooldown: string };
   focus: { upper: string; legs: string; abs: string; full: string; cardio: string };
@@ -41,18 +41,18 @@ export interface Theme {
   setState: { completed: string; skipped: string; not_reached: string };
   /** `trained` is the session's focus color, resolved via `trainedColor`. */
   dayMarker: { travel: string; quick: string };
-  /** Calendar day-cell paint for a marker's accent (Logbook + Today's week strip). Golden Hour
-   *  washes the accent itself over the night surface. Daylight's deep accents go muddy as a
+  /** Calendar day-cell paint for a marker's accent (Logbook + Today's week strip). Midnight
+   *  washes the accent itself over the night surface. Daybreak's deep accents go muddy as a
    *  wash on paper, so its fill is the vivid hue instead, outlined in the deep accent. */
   dayCell: Record<AccentName, { fill: string; border: string }>;
-  /** Resolve a `trained` day marker from a focus key (unknown keys fall back to pine). */
+  /** Resolve a `trained` day marker from a focus key (unknown keys fall back to teal). */
   trainedColor(focusKey: string | null | undefined): string;
   /** Token name of the legend color for text on a hero gradient of this accent tone. */
   onGradient(tone: AccentName): 'ink' | 'fixedPaper';
-  /** Legend color for the Home hero pill (an `ink` fill): `sun` reads on Golden Hour's near-black;
-   *  Daylight's white pill takes deep pine (sun is only 3.8:1 there). */
+  /** Legend color for the Home hero pill (an `ink` fill): `sun` reads on Midnight's near-black;
+   *  Daybreak's white pill takes deep teal (sun is only 3.8:1 there). */
   heroCta: ColorName;
-  /** Accent glow as iOS shadow props. Tamed in Daylight, where a big bloom reads as a smudge. */
+  /** Accent glow as iOS shadow props. Tamed in Daybreak, where a big bloom reads as a smudge. */
   glow(color?: string): ViewStyle;
   /** `card` lifts Card/Sheet/StatTile/TabBar. Empty on dark (shadows vanish there). */
   elevation: { card: ViewStyle };
@@ -81,8 +81,8 @@ const navFonts: NavTheme['fonts'] = {
 
 export function buildTheme(scheme: Scheme): Theme {
   const dark = scheme === 'dark';
-  const c: Palette = dark ? goldenHour : daylight;
-  const gradients = dark ? goldenHourGradients : daylightGradients;
+  const c: Palette = dark ? midnight : daybreak;
+  const gradients = dark ? midnightGradients : daybreakGradients;
 
   const tints = Object.fromEntries(
     accentNames.map((n) => [n, withAlpha(c[n], dark ? 0.15 : 0.08)]),
@@ -97,7 +97,7 @@ export function buildTheme(scheme: Scheme): Theme {
     ]),
   ) as Record<AccentName, { fill: string; border: string }>;
 
-  const focus = { upper: c.pine, legs: c.summit, abs: c.gold, full: c.lagoon, cardio: c.rose };
+  const focus = { upper: c.teal, legs: c.summit, abs: c.gold, full: c.periwinkle, cardio: c.rose };
 
   const base = dark ? DarkTheme : DefaultTheme;
   const navTheme: NavTheme = {
@@ -105,12 +105,12 @@ export function buildTheme(scheme: Scheme): Theme {
     dark,
     colors: {
       ...base.colors,
-      primary: c.pine,
+      primary: c.teal,
       background: c.bg,
       card: c.surface,
       text: c.text,
       border: c.line,
-      notification: c.pine,
+      notification: c.teal,
     },
     fonts: navFonts,
   };
@@ -122,22 +122,22 @@ export function buildTheme(scheme: Scheme): Theme {
     tints,
     gradients,
     accentGradient: {
-      pine: gradients.trail,
+      teal: gradients.trail,
       gold: gradients.golden,
-      lagoon: gradients.lagoon,
+      periwinkle: gradients.periwinkle,
       summit: gradients.summit,
     },
-    section: { warmup: c.gold, main: c.pine, cooldown: c.lagoon },
+    section: { warmup: c.gold, main: c.teal, cooldown: c.periwinkle },
     focus,
-    setState: { completed: c.pine, skipped: c.text3, not_reached: c.line },
+    setState: { completed: c.teal, skipped: c.text3, not_reached: c.line },
     dayMarker: { travel: c.sky, quick: c.gold },
     dayCell,
-    trainedColor: (focusKey) => (focus as Record<string, string>)[focusKey ?? ''] ?? c.pine,
-    // Golden Hour: summit's violet hero is the one place `ink` is only 3.9:1, so it takes paper.
-    // Daylight's fills are all deep enough for white.
+    trainedColor: (focusKey) => (focus as Record<string, string>)[focusKey ?? ''] ?? c.teal,
+    // Midnight: summit's violet hero is the one place `ink` is only 3.9:1, so it takes paper.
+    // Daybreak's fills are all deep enough for white.
     onGradient: (tone) => (dark && tone === 'summit' ? 'fixedPaper' : 'ink'),
-    heroCta: dark ? 'sun' : 'pine',
-    glow: (color = c.pine) => ({
+    heroCta: dark ? 'sun' : 'teal',
+    glow: (color = c.teal) => ({
       shadowColor: color,
       shadowOpacity: dark ? 0.45 : 0.28,
       shadowRadius: dark ? 18 : 10,
@@ -156,8 +156,8 @@ export function buildTheme(scheme: Scheme): Theme {
     // Sepia contours read on both paper and the deep hero gradients.
     topo: dark ? { color: c.text, strength: 1 } : { color: '#3B2410', strength: 1.3 },
     stamp: dark
-      ? { fill: c.sun, shadow: c.pineDeep, glow: c.pine }
-      : { fill: c.pine, shadow: vivid.gold, glow: null },
+      ? { fill: c.sun, shadow: c.tealDeep, glow: c.teal }
+      : { fill: c.teal, shadow: vivid.gold, glow: null },
     statusBar: dark ? 'light' : 'dark',
     navTheme,
     headerOptions: {
@@ -176,10 +176,10 @@ export function buildTheme(scheme: Scheme): Theme {
   } satisfies Theme);
 }
 
-/** Golden Hour (dark) — the original look and the ThemeContext default. */
-export const goldenHourTheme: Theme = buildTheme('dark');
-/** Daylight (light). */
-export const daylightTheme: Theme = buildTheme('light');
+/** Midnight (dark) — the original look and the ThemeContext default. */
+export const midnightTheme: Theme = buildTheme('dark');
+/** Daybreak (light). */
+export const daybreakTheme: Theme = buildTheme('light');
 
 export const themeFor = (scheme: Scheme): Theme =>
-  scheme === 'dark' ? goldenHourTheme : daylightTheme;
+  scheme === 'dark' ? midnightTheme : daybreakTheme;

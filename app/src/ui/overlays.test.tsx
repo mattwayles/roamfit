@@ -1,9 +1,9 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { daylight, daylightTheme, goldenHour } from '../theme';
+import { daybreak, daybreakTheme, midnight } from '../theme';
 import { Enter, Screen, Sheet, Toast, Txt } from './index';
-import { flat, inDaylight, ready, WAIT } from './test-utils';
+import { flat, inDaybreak, ready, WAIT } from './test-utils';
 
 describe('Sheet', () => {
   it('shows children and title when visible, and backdrop press closes', async () => {
@@ -88,7 +88,7 @@ describe('Screen', () => {
       </Screen>,
     );
     await ready('scr');
-    expect(flat('scr').backgroundColor).toBe(goldenHour.bg);
+    expect(flat('scr').backgroundColor).toBe(midnight.bg);
     expect(screen.getByText('Body')).toBeTruthy();
     expect(screen.getByText('Footer')).toBeTruthy();
     expect(screen.getByTestId('scr-footer')).toBeTruthy();
@@ -117,10 +117,10 @@ describe('Enter', () => {
   });
 });
 
-describe('Daylight (overlays)', () => {
+describe('Daybreak (overlays)', () => {
   it('Sheet uses the light scrim, a paper panel and the card shadow', async () => {
     await render(
-      inDaylight(
+      inDaybreak(
         <Sheet visible onClose={() => {}}>
           <Text>Body</Text>
         </Sheet>,
@@ -128,34 +128,34 @@ describe('Daylight (overlays)', () => {
     );
     await ready('sheet');
     expect(flat('sheet')).toMatchObject({
-      backgroundColor: daylight.surface,
-      borderColor: daylight.line,
-      ...daylightTheme.elevation.card,
+      backgroundColor: daybreak.surface,
+      borderColor: daybreak.line,
+      ...daybreakTheme.elevation.card,
     });
     const scrim = screen.getByTestId('sheet-backdrop').parent;
-    expect(JSON.stringify(scrim?.props.style)).toContain(daylight.backdrop);
+    expect(JSON.stringify(scrim?.props.style)).toContain(daybreak.backdrop);
   });
 
-  it('Toast is a Daylight surface3 pill', async () => {
-    await render(inDaylight(<Toast message="Strong set." testID="toast" />));
+  it('Toast is a Daybreak surface3 pill', async () => {
+    await render(inDaybreak(<Toast message="Strong set." testID="toast" />));
     await ready('toast');
     expect(flat('toast')).toMatchObject({
-      backgroundColor: daylight.surface3,
-      borderColor: daylight.lineStrong,
+      backgroundColor: daybreak.surface3,
+      borderColor: daybreak.lineStrong,
     });
   });
 
-  it('Screen paints Daylight paper', async () => {
+  it('Screen paints Daybreak paper', async () => {
     await render(
-      inDaylight(
+      inDaybreak(
         <Screen testID="scr" footer={<Txt>Footer</Txt>}>
           <Txt>Body</Txt>
         </Screen>,
       ),
     );
     await ready('scr');
-    expect(flat('scr').backgroundColor).toBe(daylight.bg);
-    expect(flat('scr-footer').backgroundColor).toBe(daylight.bg);
-    expect(flat('scr-footer').borderTopColor).toBe(daylight.line);
+    expect(flat('scr').backgroundColor).toBe(daybreak.bg);
+    expect(flat('scr-footer').backgroundColor).toBe(daybreak.bg);
+    expect(flat('scr-footer').borderTopColor).toBe(daybreak.line);
   });
 });

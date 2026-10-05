@@ -193,7 +193,7 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
           onChangeText={(query) => setFilters((prev) => ({ ...prev, query }))}
           placeholder="Search moves"
           placeholderTextColor={theme.colors.text3}
-          selectionColor={theme.colors.pine}
+          selectionColor={theme.colors.teal}
           keyboardAppearance={theme.scheme}
           autoCapitalize="none"
           autoCorrect={false}
@@ -228,10 +228,10 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
           onPress={() => setFiltersOpen(true)}
           style={[styles.filterButton, appliedCount > 0 && styles.filterButtonActive]}
         >
-          <Icon name="filter" size={16} color={appliedCount > 0 ? 'pine' : 'text2'} />
+          <Icon name="filter" size={16} color={appliedCount > 0 ? 'teal' : 'text2'} />
           <Txt
             variant="eyebrow"
-            color={appliedCount > 0 ? 'pine' : 'text2'}
+            color={appliedCount > 0 ? 'teal' : 'text2'}
             style={styles.filterLabel}
           >
             Filters
@@ -251,7 +251,7 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
             testID={`active-filter-${key}-${value}`}
             label={formatToken(value)}
             icon="close"
-            tone="pine"
+            tone="teal"
             selected
             accessibilityLabel={`Remove filter ${MULTI_SELECT_LABELS[key]}: ${formatToken(value)}`}
             onPress={() => toggleValue(key, value)}
@@ -271,14 +271,14 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
         <Chip
           testID="quick-filter-needs-video"
           label="Needs video"
-          tone={filters.video === 'needs_video' ? 'pine' : 'neutral'}
+          tone={filters.video === 'needs_video' ? 'teal' : 'neutral'}
           selected={filters.video === 'needs_video'}
           onPress={() => setVideo(filters.video === 'needs_video' ? 'all' : 'needs_video')}
         />
         <Chip
           testID="quick-filter-completed"
           label="Completed"
-          tone={filters.performed === 'performed' ? 'pine' : 'neutral'}
+          tone={filters.performed === 'performed' ? 'teal' : 'neutral'}
           selected={filters.performed === 'performed'}
           onPress={() => setPerformed(filters.performed === 'performed' ? 'all' : 'performed')}
         />
@@ -293,8 +293,8 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
           style={styles.clearInline}
           onPress={clearAll}
         >
-          <Icon name="close" size={14} color="pine" />
-          <Txt variant="eyebrow" color="pine" style={styles.clearInlineText}>
+          <Icon name="close" size={14} color="teal" />
+          <Txt variant="eyebrow" color="teal" style={styles.clearInlineText}>
             Clear filters
           </Txt>
         </PressableScale>
@@ -352,7 +352,7 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
               hitSlop={10}
               onPress={clearAll}
             >
-              <Txt variant="eyebrow" color="pine">
+              <Txt variant="eyebrow" color="teal">
                 Clear all
               </Txt>
             </PressableScale>
@@ -391,7 +391,7 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
                       key={value}
                       testID={`filter-${key}-${value}`}
                       label={formatToken(value)}
-                      tone={selected ? 'pine' : 'neutral'}
+                      tone={selected ? 'teal' : 'neutral'}
                       selected={selected}
                       onPress={() => toggleValue(key, value)}
                     />
@@ -440,7 +440,7 @@ function FilterRow<T extends string>({
               key={option.value}
               testID={`${testIdPrefix}-${option.value}`}
               label={option.label}
-              tone={selected ? 'pine' : 'neutral'}
+              tone={selected ? 'teal' : 'neutral'}
               selected={selected}
               onPress={() => onChange(option.value)}
             />
@@ -493,7 +493,7 @@ const ExerciseRow = React.memo(function ExerciseRow({
           <Chip
             testID={`exercise-card-count-${exercise.id}`}
             label={`×${state.timesCompleted}`}
-            tone="pine"
+            tone="teal"
             size="sm"
             accessibilityLabel={timesCompletedLabel(state.timesCompleted)}
           />
@@ -570,7 +570,7 @@ const useStyles = makeStyles((t) =>
       borderWidth: 1,
       borderColor: t.colors.lineStrong,
     },
-    filterButtonActive: { backgroundColor: t.tints.pine, borderColor: t.colors.pine },
+    filterButtonActive: { backgroundColor: t.tints.teal, borderColor: t.colors.teal },
     filterLabel: { marginLeft: 6 },
     badge: {
       marginLeft: 6,
@@ -578,7 +578,7 @@ const useStyles = makeStyles((t) =>
       height: 18,
       borderRadius: 9,
       paddingHorizontal: 5,
-      backgroundColor: t.colors.pine,
+      backgroundColor: t.colors.teal,
       alignItems: 'center',
       justifyContent: 'center',
     },

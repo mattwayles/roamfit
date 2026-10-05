@@ -276,7 +276,7 @@ export default function DemoMedia({
               style={[styles.mediaFrame, styles.loadPlaceholder]}
               onPress={() => setVideoLoadRequested(true)}
             >
-              <Icon name="play" size={28} color="pine" />
+              <Icon name="play" size={28} color="teal" />
               <Txt variant="h2" style={styles.loadTitle}>
                 Load video
               </Txt>
@@ -367,7 +367,7 @@ export default function DemoMedia({
                 }}
                 placeholder="Paste a YouTube link"
                 placeholderTextColor={theme.colors.text3}
-                selectionColor={theme.colors.pine}
+                selectionColor={theme.colors.teal}
                 keyboardAppearance={theme.scheme}
                 autoCapitalize="none"
                 autoCorrect={false}

@@ -17,7 +17,7 @@ import { StoreProvider } from '../state/StoreContext';
 import { ThemeProvider } from '../state/ThemeProvider';
 import { getDb } from '../db';
 import { nowUtcInstant } from '../lib/localClock';
-import { daylight, goldenHourTheme } from '../theme';
+import { daybreak, midnightTheme } from '../theme';
 import { DISCLAIMER_TEXT } from './SettingsScreen';
 import { WAIT, flat, ready } from '../ui/test-utils';
 
@@ -33,7 +33,7 @@ async function openSettings() {
   await render(
     <StoreProvider>
       <ThemeProvider>
-        <NavigationContainer theme={goldenHourTheme.navTheme}>
+        <NavigationContainer theme={midnightTheme.navTheme}>
           <RootNavigator />
         </NavigationContainer>
       </ThemeProvider>
@@ -61,21 +61,21 @@ describe('appearance', () => {
     expect(selected('appearance-light')).toBe(true);
     expect(selected('appearance-system')).toBe(false);
     expect(selected('appearance-dark')).toBe(false);
-    expect(screen.getByText(/^Daylight is built for training outdoors in full sun\./)).toBeTruthy();
+    expect(screen.getByText(/^Daybreak is built for training outdoors in full sun\./)).toBeTruthy();
   });
 
   it('pressing an option persists it and switches the live theme', async () => {
     await openSettings();
     expect(selected('appearance-system')).toBe(true);
     await fireEvent.press(screen.getByTestId('appearance-light'));
-    await waitFor(() => expect(flat('settings-screen').backgroundColor).toBe(daylight.bg), WAIT);
+    await waitFor(() => expect(flat('settings-screen').backgroundColor).toBe(daybreak.bg), WAIT);
     expect(usersRepo.getUser(getDb())!.themePreference).toBe('light');
     expect(selected('appearance-light')).toBe(true);
     expect(selected('appearance-system')).toBe(false);
 
     await fireEvent.press(screen.getByTestId('appearance-dark'));
     await waitFor(
-      () => expect(flat('settings-screen').backgroundColor).toBe(goldenHourTheme.colors.bg),
+      () => expect(flat('settings-screen').backgroundColor).toBe(midnightTheme.colors.bg),
       WAIT,
     );
     expect(usersRepo.getUser(getDb())!.themePreference).toBe('dark');

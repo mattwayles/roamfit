@@ -266,7 +266,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
   if (data === undefined) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={theme.colors.pine} />
+        <ActivityIndicator color={theme.colors.teal} />
       </View>
     );
   }
@@ -327,7 +327,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                 value={lifetime.sessions}
                 label="Sessions"
                 icon="flame"
-                tone="pine"
+                tone="teal"
               />
               <StatTile
                 testID="lifetime-sets"
@@ -369,7 +369,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                 value={lifetime.countries}
                 label="Countries"
                 icon="globe"
-                tone="lagoon"
+                tone="periwinkle"
               />
             </View>
           </View>
@@ -626,7 +626,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
         <SectionTitle
           title="Logbook"
           icon="today"
-          tone="pine"
+          tone="teal"
           right={
             <View style={styles.monthNav}>
               <IconButton
@@ -640,7 +640,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
               <Chip
                 testID="logbook-month-label"
                 label={monthLabel(viewedMonth, currentMonth)}
-                tone="pine"
+                tone="teal"
                 size="sm"
                 accessibilityLabel={`${monthLabel(viewedMonth)} — choose a month`}
                 onPress={() => setMonthPickerOpen(true)}
@@ -685,7 +685,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
           <EmptyState
             testID="logbook-empty"
             icon="today"
-            tone="pine"
+            tone="teal"
             title="Every session leaves a mark"
             body="Your first workout lights up its day here — and you can log a workout from outside the app too."
           />
@@ -779,7 +779,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
           <SectionTitle
             title="Muscle balance"
             icon="barbell"
-            tone="pine"
+            tone="teal"
             caption="Hard sets per muscle, trailing 14 days"
           />
           {muscleBalance.length > 0 ? (
@@ -810,7 +810,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
             <EmptyState
               testID="muscle-balance-empty"
               icon="barbell"
-              tone="pine"
+              tone="teal"
               title="Your balance builds as you train"
               body="Hard sets from the last two weeks show up here, muscle by muscle."
             />
@@ -923,7 +923,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                   {option.label}
                 </Txt>
                 {editingCurrent === option.marker ? (
-                  <Icon name="check" size={18} color="pine" />
+                  <Icon name="check" size={18} color="teal" />
                 ) : null}
               </PressableScale>
             ))}
@@ -1019,7 +1019,7 @@ const useStyles = makeStyles((t) =>
       marginBottom: space.sm,
       backgroundColor: t.colors.surface2,
       borderWidth: 1,
-      borderColor: t.colors.pine,
+      borderColor: t.colors.teal,
     },
     handLogged: { marginBottom: space.sm },
     markAs: { marginTop: space.sm, marginBottom: space.sm },
@@ -1034,7 +1034,7 @@ const useStyles = makeStyles((t) =>
       borderWidth: 1,
       borderColor: t.colors.line,
     },
-    markerOptionCurrent: { borderColor: t.colors.pine },
+    markerOptionCurrent: { borderColor: t.colors.teal },
     markerGlyph: { width: 32, alignItems: 'center', marginRight: space.sm },
   }),
 );

@@ -14,7 +14,7 @@ export interface PipsProps {
   filled: number | readonly boolean[];
   /** Zero-based index of the current set. */
   current?: number;
-  /** Default: the theme's `pine`. */
+  /** Default: the theme's `teal`. */
   color?: string;
   size?: number;
   style?: StyleProp<ViewStyle>;
@@ -96,7 +96,7 @@ export function Pips({
   testID = 'pips',
 }: PipsProps): React.JSX.Element {
   const theme = useTheme();
-  const color = colorProp ?? theme.colors.pine;
+  const color = colorProp ?? theme.colors.teal;
   const isFilled = (i: number) => (typeof filled === 'number' ? i < filled : filled[i] === true);
   const doneCount =
     typeof filled === 'number'

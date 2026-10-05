@@ -1,6 +1,6 @@
 /**
  * A new Passport stamp, earned this session — the completion screen's last big beat before
- * "Heck yes!". Same Golden Hour card as a level-up (`golden` gradient border, gold glow), but the
+ * "Heck yes!". Same Midnight card as a level-up (`golden` gradient border, gold glow), but the
  * star is a large stamp that arrives the way a real one does:
  *   1. the label ("YOU EARNED A NEW STAMP!") springs in, and the stamp lifts into view huge and
  *      faint, tilted, with a shadow far below it on the page (a light selection tick);

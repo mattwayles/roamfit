@@ -1,12 +1,12 @@
 /**
- * `ThemeContext` + `useTheme()` + `makeStyles()`. The default value is Golden Hour, so anything
+ * `ThemeContext` + `useTheme()` + `makeStyles()`. The default value is Midnight, so anything
  * rendered without a ThemeProvider (most existing tests) looks exactly as it always did — which
  * also means a forgotten provider fails silently dark; App.tsx has the provider, a test asserts it.
  */
 import { createContext, useContext } from 'react';
-import { goldenHourTheme, type Theme } from './buildTheme';
+import { midnightTheme, type Theme } from './buildTheme';
 
-export const ThemeContext = createContext<Theme>(goldenHourTheme);
+export const ThemeContext = createContext<Theme>(midnightTheme);
 
 export function useTheme(): Theme {
   return useContext(ThemeContext);
