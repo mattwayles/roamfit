@@ -63,9 +63,6 @@ export interface SetLogRecord {
   restExtendedCount: number;
   pauseCount: number;
   pausedDurationSec: number;
-  /** §8.1 — a `main` exercise's feedback for this one set (migration 0017). Null until answered;
-   *  a `warmup`/`cooldown` set never carries this — see `recordSectionFeedback`. */
-  difficultyFeedback: 'too_easy' | 'just_right' | 'too_hard' | null;
 }
 
 export interface SessionEntryRecord {
@@ -94,6 +91,8 @@ export interface SessionEntryRecord {
   substitutedFor: string | null;
   unplanned: boolean;
   entryStatus: 'planned' | 'removed_at_approval' | 'unplanned_added';
+  /** §8.1 — how the exercise as a whole felt, asked once after its last set (migration 0026).
+   *  Null until answered; unset reads as just_right wherever a verdict is needed. */
   difficultyFeedback: 'too_easy' | 'just_right' | 'too_hard' | null;
   demoMediaExpanded: boolean;
   setLogs: SetLogRecord[];
@@ -167,7 +166,6 @@ function rowToSetLog(row: typeof schema.setLogs.$inferSelect): SetLogRecord {
     restExtendedCount: row.restExtendedCount,
     pauseCount: row.pauseCount,
     pausedDurationSec: row.pausedDurationSec,
-    difficultyFeedback: row.difficultyFeedback,
   };
 }
 
@@ -1108,8 +1106,8 @@ export function recordSwap(
 }
 
 // ------------------------------------------------------------------------------------------
-// §8.1 explicit feedback — per exercise, applies to all its sets. Applied to the EMA
-// immediately (the rest screen is the only place these controls appear).
+// §8.1 explicit feedback — one answer per exercise, asked after its last set (rest screen) and
+// editable from the Summary. Applied to the EMA immediately.
 // ------------------------------------------------------------------------------------------
 
 /**
@@ -1141,77 +1139,6 @@ export function recordEntryFeedback(
   }
   if (Object.keys(values).length > 0) {
     db.update(schema.sessionEntries).set(values).where(eq(schema.sessionEntries.id, entryId)).run();
-  }
-}
-
-/**
- * §8.1 feedback for one set of a `main` exercise (migration 0017) — same three-state contract as
- * `recordEntryFeedback` (omitted = untouched, explicit `null` = cleared), but scoped to a single
- * (entryId, setIndex) row rather than the whole entry: a `main` exercise's sets can genuinely feel
- * different from one another, so lumping them into one shared answer would silently overwrite an
- * earlier set's opinion with a later one's. No-ops if the set hasn't actually been logged yet —
- * there is no row here to attach feedback to before that.
- */
-export function recordSetFeedback(
-  db: Db,
-  entryId: string,
-  setIndex: number,
-  feedback: { difficulty?: 'too_easy' | 'just_right' | 'too_hard' | null },
-  now: string,
-): void {
-  const entry = db
-    .select()
-    .from(schema.sessionEntries)
-    .where(eq(schema.sessionEntries.id, entryId))
-    .all()[0];
-  const log = db
-    .select()
-    .from(schema.setLogs)
-    .where(and(eq(schema.setLogs.entryId, entryId), eq(schema.setLogs.setIndex, setIndex)))
-    .all()[0];
-  if (!entry || !log) return;
-  const values: Record<string, unknown> = {};
-  if (feedback.difficulty !== undefined) {
-    values.difficultyFeedback = feedback.difficulty;
-    if (feedback.difficulty !== null) {
-      recordDifficultyFeedback(db, entry.exerciseId, feedback.difficulty, now);
-    }
-  }
-  if (Object.keys(values).length > 0) {
-    db.update(schema.setLogs)
-      .set(values)
-      .where(and(eq(schema.setLogs.entryId, entryId), eq(schema.setLogs.setIndex, setIndex)))
-      .run();
-  }
-}
-
-/**
- * §8.1 feedback for a whole stage at once — the warm-up, or the cool-down.
- *
- * Asking about six warm-up exercises one at a time, each on its own page, was more questions than
- * the answers were worth: a warm-up is done as one block and is judged as one block. So the screen
- * asks once, when the stage ends, and that single answer is written to every entry the stage owns.
- *
- * Deliberately not a new column. Storing it per entry means the exercise-level consumers keep
- * working untouched, and the summary still shows a value against each line — which is exactly what
- * "the warm-up was rough" means about the exercises that made it up. Entries removed at approval
- * are skipped: they were not part of the stage the user is answering about.
- */
-export function recordSectionFeedback(
-  db: Db,
-  sessionId: string,
-  section: 'warmup' | 'main' | 'cooldown',
-  feedback: { difficulty?: 'too_easy' | 'just_right' | 'too_hard' | null },
-  now: string,
-): void {
-  const entries = db
-    .select()
-    .from(schema.sessionEntries)
-    .where(eq(schema.sessionEntries.sessionId, sessionId))
-    .all()
-    .filter((e) => e.section === section && e.entryStatus !== 'removed_at_approval');
-  for (const entry of entries) {
-    recordEntryFeedback(db, entry.id, feedback, now);
   }
 }
 

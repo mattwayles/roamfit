@@ -35,7 +35,6 @@ function makeSetLog(overrides: Partial<SetLogRecord> = {}): SetLogRecord {
     restExtendedCount: 0,
     pauseCount: 0,
     pausedDurationSec: 0,
-    difficultyFeedback: null,
     ...overrides,
   };
 }

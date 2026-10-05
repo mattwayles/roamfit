@@ -16,13 +16,16 @@ the record of what was completed and why.
 
 ## Desired Fixes
 
-- **Set-feedback modal — device pass owed, and the nag question.** Track 26 puts "How did that set
-  feel?" in a `Sheet` over the rest page after every completed set (Settings → Training → "Ask how each
-  set felt", default on; off = the old inline control). Jest-verified only. Check on a device: the
-  sheet over the running ring, whether a modal every set is tolerable, Skip vs answer speed. Ideas not
-  built, to raise answer rate without nagging: ask only on an exercise's last set; ask only when the
-  load changed or the set missed its target; make the modal a one-tap, auto-dismissing chip row after
-  N seconds; or stop asking an exercise once its recent answers agree.
+- **Exercise-feedback modal — device pass owed.** Track 26: "How did those N sets of NAME feel?" is
+  asked once, in a `Sheet` over the rest timer after an exercise's last set (Settings → Training →
+  "Ask how each set felt", default on; off = the same question inline on that rest page). One answer
+  per exercise, stored on `session_entries.difficulty_feedback`; Summary shows one tappable chip per
+  exercise. Jest-verified only: check the sheet over the ring and the Summary chip layout on a device.
+  The toggle's label still says "each set" — reword it ("Ask how each exercise felt") if the copy
+  bothers you. Still unbuilt, if one question per exercise is too much: ask only when the load
+  changed or a set missed target, or stop asking an exercise once its recent answers agree.
+  `set_logs.difficulty_feedback` is legacy (unwritten, unread since migration 0026) — drop it with the
+  next table rebuild.
 - **New passport stamp on Completion — device pass owed.** Track 25 (`docs/handoff/STATUS-25-new-stamp.md`)
   is Jest-verified only; the feel can't be. On a device with Passport on and location allowed, finish a
   workout somewhere new: (1) the haptics read as a hand stamping the phone — lift tick, a sharp rigid hit,

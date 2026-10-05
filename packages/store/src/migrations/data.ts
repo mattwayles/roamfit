@@ -548,6 +548,30 @@ const MIGRATION_0025_FEEDBACK_PROMPT = `-- 0025_feedback_prompt.sql — "How did
 ALTER TABLE users ADD COLUMN feedback_prompt_enabled INTEGER NOT NULL DEFAULT 1;
 `;
 
+const MIGRATION_0026_ENTRY_FEEDBACK = `-- 0026_entry_feedback.sql — difficulty feedback is asked once per EXERCISE (after its last set)
+-- again, so it lives on session_entries.difficulty_feedback, not per set (undoing the shape of
+-- 0017). set_logs.difficulty_feedback stays physically but is legacy: nothing writes or reads it
+-- after this. Sessions recorded under 0017 carry their answers only there, so fold each entry's
+-- per-set answers into its own column with the same worst-case read progression always used
+-- (too_hard beats too_easy beats just_right), leaving entries that already have an answer alone.
+
+UPDATE session_entries
+SET difficulty_feedback = (
+  SELECT CASE
+    WHEN SUM(difficulty_feedback = 'too_hard') > 0 THEN 'too_hard'
+    WHEN SUM(difficulty_feedback = 'too_easy') > 0 THEN 'too_easy'
+    ELSE 'just_right'
+  END
+  FROM set_logs
+  WHERE set_logs.entry_id = session_entries.id AND set_logs.difficulty_feedback IS NOT NULL
+)
+WHERE difficulty_feedback IS NULL
+  AND EXISTS (
+    SELECT 1 FROM set_logs
+    WHERE set_logs.entry_id = session_entries.id AND set_logs.difficulty_feedback IS NOT NULL
+  );
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -580,4 +604,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0023_spotify_playlists.sql', sql: MIGRATION_0023_SPOTIFY_PLAYLISTS },
   { id: '0024_session_place.sql', sql: MIGRATION_0024_SESSION_PLACE },
   { id: '0025_feedback_prompt.sql', sql: MIGRATION_0025_FEEDBACK_PROMPT },
+  { id: '0026_entry_feedback.sql', sql: MIGRATION_0026_ENTRY_FEEDBACK },
 ];

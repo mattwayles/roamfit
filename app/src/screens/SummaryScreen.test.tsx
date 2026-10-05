@@ -480,7 +480,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     });
   });
 
-  it("shows a colored dot under a main set's own recorded feedback, and editing it from Summary updates just that set — before FINISH, not after", async () => {
+  it('shows one feedback chip per exercise, and editing it from Summary updates the exercise — before FINISH, not after', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -512,30 +512,19 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     const mainEntry = session.entries.find(
       (e) => e.section === 'main' && e.entryStatus !== 'removed_at_approval' && e.sets >= 2,
     )!;
-    // Two different sets of the same exercise, two different answers — exactly the case a single
-    // per-exercise feedback field couldn't represent.
-    sessionsRepo.logSet(
-      db,
-      {
-        entryId: mainEntry.id,
-        setIndex: 0,
-        status: 'completed',
-        restPrescribedSec: mainEntry.restSec,
-      },
-      utcInstant,
-    );
-    sessionsRepo.logSet(
-      db,
-      {
-        entryId: mainEntry.id,
-        setIndex: 1,
-        status: 'completed',
-        restPrescribedSec: mainEntry.restSec,
-      },
-      utcInstant,
-    );
-    sessionsRepo.recordSetFeedback(db, mainEntry.id, 0, { difficulty: 'too_hard' }, utcInstant);
-    sessionsRepo.recordSetFeedback(db, mainEntry.id, 1, { difficulty: 'too_easy' }, utcInstant);
+    for (const setIndex of [0, 1]) {
+      sessionsRepo.logSet(
+        db,
+        {
+          entryId: mainEntry.id,
+          setIndex,
+          status: 'completed',
+          restPrescribedSec: mainEntry.restSec,
+        },
+        utcInstant,
+      );
+    }
+    sessionsRepo.recordEntryFeedback(db, mainEntry.id, { difficulty: 'too_hard' }, utcInstant);
 
     render(
       <StoreProvider>
@@ -549,37 +538,25 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     );
 
     await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
-    // Each set's dot carries its own answer (named in its accessibility label; the labeled chips
-    // live in the edit sheet); before FINISH, so this is mid-workout editing, not a
-    // post-completion retrospective feature.
-    expect(screen.queryByTestId('finish-button')).toBeNull();
-    // Fetch the freshly-logged rows (mainEntry above predates the logSet calls).
+    expect(screen.queryByTestId('finish-button')).toBeNull(); // mid-workout editing, pre-FINISH
     const freshEntry = () =>
       sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === mainEntry.id)!;
-    const set0Log = freshEntry().setLogs.find((l) => l.setIndex === 0)!;
-    expect(screen.getByLabelText('Set 1 felt: Too hard')).toBeTruthy(); // set 0
-    expect(screen.getByLabelText('Set 2 felt: Too easy')).toBeTruthy(); // set 1
+    // One chip for the exercise, not a dot per set.
+    expect(screen.getByTestId(`summary-feedback-difficulty-${mainEntry.id}`)).toBeTruthy();
+    expect(screen.queryByLabelText(/^Set \d felt:/)).toBeNull();
 
-    // Editing set 0's chip touches only set 0.
-    await fireEvent.press(screen.getByTestId(`summary-feedback-difficulty-${set0Log.id}`));
+    await fireEvent.press(screen.getByTestId(`summary-feedback-difficulty-${mainEntry.id}`));
     await waitFor(
-      () => expect(screen.getByTestId('difficulty-just_right')).toBeTruthy(),
+      () => expect(screen.getByText('How did those 2 sets feel?')).toBeTruthy(),
       WAIT_OPTS,
     );
     await fireEvent.press(screen.getByTestId('difficulty-just_right'));
     await fireEvent.press(screen.getByTestId('feedback-edit-done'));
 
-    const updatedSet0 = freshEntry().setLogs.find((l) => l.setIndex === 0)!;
-    const updatedSet1 = freshEntry().setLogs.find((l) => l.setIndex === 1)!;
-    expect(updatedSet0.difficultyFeedback).toBe('just_right');
-    // Set 1's own answer is untouched — this is the whole point of the change.
-    expect(updatedSet1.difficultyFeedback).toBe('too_easy');
-    // The dot on screen reflects the edit immediately, without navigating away and back.
-    expect(screen.getByLabelText('Set 1 felt: Just right')).toBeTruthy();
-    expect(screen.queryByLabelText('Set 1 felt: Too hard')).toBeNull();
+    expect(freshEntry().difficultyFeedback).toBe('just_right');
   });
 
-  it('shows a hollow placeholder dot for a logged set with no feedback yet, and tapping it records one retroactively', async () => {
+  it('shows a placeholder chip for an exercise with no feedback yet, and tapping it records one retroactively', async () => {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -609,19 +586,21 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     sessionsRepo.startSession(db, sessionId, utcInstant);
     const session = sessionsRepo.getSession(db, sessionId)!;
     const mainEntry = session.entries.find(
-      (e) => e.section === 'main' && e.entryStatus !== 'removed_at_approval',
+      (e) => e.section === 'main' && e.entryStatus !== 'removed_at_approval' && e.sets >= 2,
     )!;
-    // Logged, but the rest screen was never answered — the case that had no chip at all before.
-    sessionsRepo.logSet(
-      db,
-      {
-        entryId: mainEntry.id,
-        setIndex: 0,
-        status: 'completed',
-        restPrescribedSec: mainEntry.restSec,
-      },
-      utcInstant,
-    );
+    for (const setIndex of [0, 1]) {
+      sessionsRepo.logSet(
+        db,
+        {
+          entryId: mainEntry.id,
+          setIndex,
+          status: 'completed',
+          restPrescribedSec: mainEntry.restSec,
+        },
+        utcInstant,
+      );
+    }
+    // Both sets done, but the rest screen's question was never answered.
 
     render(
       <StoreProvider>
@@ -635,85 +614,18 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     );
 
     await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.queryByTestId('finish-button')).toBeNull(); // mid-workout editing, pre-FINISH
     const freshEntry = () =>
       sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === mainEntry.id)!;
-    const set0Log = freshEntry().setLogs.find((l) => l.setIndex === 0)!;
-
-    await fireEvent.press(screen.getByTestId(`summary-feedback-placeholder-${set0Log.id}`));
+    expect(screen.queryByTestId(`summary-feedback-difficulty-${mainEntry.id}`)).toBeNull();
+    await fireEvent.press(screen.getByTestId(`summary-feedback-placeholder-${mainEntry.id}`));
     await waitFor(() => expect(screen.getByTestId('difficulty-too_easy')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('difficulty-too_easy'));
     await fireEvent.press(screen.getByTestId('feedback-edit-done'));
 
-    const updatedSet0 = freshEntry().setLogs.find((l) => l.setIndex === 0)!;
-    expect(updatedSet0.difficultyFeedback).toBe('too_easy');
-    expect(screen.getByLabelText('Set 1 felt: Too easy')).toBeTruthy();
-    expect(screen.queryByTestId(`summary-feedback-placeholder-${set0Log.id}`)).toBeNull();
-  });
-
-  it('editing a legacy whole-stage feedback chip (from a session recorded before per-set warm-up/cool-down feedback) updates every entry in the stage', async () => {
-    let db!: ReturnType<typeof useStore>['db'];
-    render(
-      <StoreProvider>
-        <Setup onReady={(d) => (db = d)} />
-      </StoreProvider>,
-    );
-    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
-
-    const clock = nowEngineClock();
-    const utcInstant = nowUtcInstant();
-    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
-      library: exerciseLibrary,
-      families: familyLibrary,
-      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
-      clock,
-      rng: createRng(seedFromString('summary-stage-feedback-edit-seed')),
-      utcInstant,
-    });
-    const sessionId = sessionsRepo.createPendingSession(db, {
-      plan,
-      utcInstant,
-      localDate: clock.today,
-      tzId: clock.tzId,
-      comebackTier,
-      recoveryWeekManual,
-    });
-    sessionsRepo.startSession(db, sessionId, utcInstant);
-    const session = sessionsRepo.getSession(db, sessionId)!;
-    const warmupEntries = session.entries.filter(
-      (e) => e.section === 'warmup' && e.entryStatus !== 'removed_at_approval',
-    );
-    expect(warmupEntries.length).toBeGreaterThanOrEqual(2);
-    sessionsRepo.recordSectionFeedback(
-      db,
-      sessionId,
-      'warmup',
-      { difficulty: 'too_easy' },
-      utcInstant,
-    );
-
-    render(
-      <StoreProvider>
-        <NavigationContainer>
-          <SummaryScreen
-            navigation={mockNavigation() as never}
-            route={{ key: 'Summary', name: 'Summary', params: { sessionId } } as never}
-          />
-        </NavigationContainer>
-      </StoreProvider>,
-    );
-
-    await waitFor(() => expect(screen.getByTestId('back-to-workout')).toBeTruthy(), WAIT_OPTS);
-    // Editing from the *first* warm-up entry's chip...
-    await fireEvent.press(screen.getByTestId(`summary-feedback-difficulty-${warmupEntries[0].id}`));
-    await waitFor(() => expect(screen.getByTestId('difficulty-too_hard')).toBeTruthy(), WAIT_OPTS);
-    await fireEvent.press(screen.getByTestId('difficulty-too_hard'));
-    await fireEvent.press(screen.getByTestId('feedback-edit-done'));
-
-    // ...updates every entry in the stage, not just the one whose chip was tapped.
-    const reloaded = sessionsRepo.getSession(db, sessionId)!;
-    for (const entry of warmupEntries) {
-      expect(reloaded.entries.find((e) => e.id === entry.id)!.difficultyFeedback).toBe('too_hard');
-    }
+    expect(freshEntry().difficultyFeedback).toBe('too_easy');
+    expect(screen.queryByTestId(`summary-feedback-placeholder-${mainEntry.id}`)).toBeNull();
+    expect(screen.getByTestId(`summary-feedback-difficulty-${mainEntry.id}`)).toBeTruthy();
   });
 
   it('mid-workout, "Back to workout" resumes at the front edge — no reviewFromSummary', async () => {

@@ -28,7 +28,8 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import { generate, sessionsRepo, usersRepo } from '@roamfit/store';
+import { generate, schema, sessionsRepo, usersRepo } from '@roamfit/store';
+import { eq } from 'drizzle-orm';
 import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
@@ -125,6 +126,12 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
     const firstRepsEntry = activeEntries.find((e) => e.section === 'main' && e.durationSec == null);
     expect(firstRepsEntry).toBeTruthy(); // a 30-min full session always has rep-based main work
 
+    // One tap finishes the exercise: feedback is asked after its last set.
+    db.update(schema.sessionEntries)
+      .set({ sets: 1 })
+      .where(eq(schema.sessionEntries.id, firstRepsEntry!.id))
+      .run();
+
     fastForwardTo(db, session, firstRepsEntry!.id);
 
     const navigation = mockNavigation();
@@ -142,6 +149,7 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
 
     // Rest auto-started.
     await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByText(/^How did (that set|those \d+ sets) of .* feel\?$/)).toBeTruthy();
     const restDisplay = () => Number(screen.getByTestId('rest-remaining').props.children);
     const initialRemaining = restDisplay();
 
@@ -155,21 +163,19 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
     // Feedback controls — unset semantics: tap sets it, tap again clears it. Scoped to the one
     // set just completed (setIndex 0 of `firstRepsEntry`), not the entry as a whole (migration
     // 0017 — a `main` exercise's feedback is per-set).
-    const setLog0 = () =>
-      sessionsRepo
-        .getSession(db, sessionId)!
-        .entries.find((e) => e.id === firstRepsEntry!.id)!
-        .setLogs.find((s) => s.setIndex === 0)!;
+    const entryFeedback = () =>
+      sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === firstRepsEntry!.id)!
+        .difficultyFeedback;
 
     await fireEvent.press(screen.getByTestId('difficulty-too_easy'));
     await waitFor(() => {
       // "selected" styling isn't queryable directly, but the underlying store call is what
       // actually matters — read it back.
-      expect(setLog0().difficultyFeedback).toBe('too_easy');
+      expect(entryFeedback()).toBe('too_easy');
     }, WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('difficulty-too_easy'));
     await waitFor(() => {
-      expect(setLog0().difficultyFeedback).toBeNull();
+      expect(entryFeedback()).toBeNull();
     }, WAIT_OPTS);
 
     // Skip zeroes the remaining time and advances on Next.

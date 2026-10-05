@@ -136,31 +136,6 @@ const squareStyle = (st: SquareStyles, status: SquareStatus): ViewStyle =>
  *  outline, not reached = a dashed outline (themed styles `sqCompleted` / `sqSkipped` / `sqNotReached`). (The dashed one uses `lineStrong`, one step brighter
  *  than the spec's `line`, so an unreached set stays findable on the `bg` night surface.) */
 
-/**
- * §8.1 feedback: per SET, for every section (migration 0017 gave `main` this first; warm-up and
- * cool-down now get it too, on their own rest timer, instead of one shared question asked at the
- * end of the stage) — a set can genuinely feel different from its siblings (a band bumped up,
- * fatigue by set 3), so the answer is scoped to one `(entryId, setIndex)` row in `set_logs`.
- *
- * `setIndex: null` only ever shows up now when editing a whole-stage answer left over from a
- * session recorded before this change — `recordSectionFeedback` still exists to let that legacy
- * chip be edited, but nothing currently active writes a new one.
- */
-function editFeedback(
-  db: ReturnType<typeof useStore>['db'],
-  sessionId: string,
-  entry: sessionsRepo.SessionEntryRecord,
-  setIndex: number | null,
-  feedback: { difficulty?: Difficulty | null },
-  now: string,
-): void {
-  if (setIndex !== null) {
-    sessionsRepo.recordSetFeedback(db, entry.id, setIndex, feedback, now);
-  } else {
-    sessionsRepo.recordSectionFeedback(db, sessionId, entry.section as Section, feedback, now);
-  }
-}
-
 /** A session's focus as the friendly label ("Full body"), falling back to the raw key. */
 function focusLabel(focus: string): string {
   return (FOCUS_LABELS as Record<string, string>)[focus] ?? focus;
@@ -205,13 +180,8 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   const [milestones, setMilestones] = useState<milestonesRepo.MilestoneRecord[]>([]);
   const [finished, setFinished] = useState(false);
   const [workoutCount, setWorkoutCount] = useState(0);
-  // Which feedback is open for editing, or null when the popup is closed. `setIndex` is null for
-  // a `warmup`/`cooldown` chip (the whole-stage answer); a `main` chip always names the one set
-  // it came from — see `editFeedback`.
-  const [editingFeedback, setEditingFeedback] = useState<{
-    entryId: string;
-    setIndex: number | null;
-  } | null>(null);
+  // The entry whose feedback is open for editing, or null when the popup is closed.
+  const [editingFeedback, setEditingFeedback] = useState<string | null>(null);
   // Whether the edit sheet is showing. `editingFeedback` is left set when it closes, so the sheet's
   // content is still there while it slides away.
   const [editorOpen, setEditorOpen] = useState(false);
@@ -560,29 +530,19 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     navigation.replace('Workout', { sessionId, jumpTo: { entryId, setIndex } });
   };
 
-  /** The entry (and, for a `main` chip, the specific set) the feedback popup is open for, and the
-   *  value it should show — read fresh off `session` on every render rather than snapshotted at
-   *  the moment the chip was tapped, so an edit is reflected immediately without closing and
-   *  reopening the popup. */
+  /** The entry the feedback popup is open for, and the value it should show — read fresh off
+   *  `session` on every render rather than snapshotted at the moment the chip was tapped, so an
+   *  edit is reflected immediately without closing and reopening the popup. */
   const editingFeedbackEntry = editingFeedback
-    ? session.entries.find((e) => e.id === editingFeedback.entryId)
+    ? session.entries.find((e) => e.id === editingFeedback)
     : null;
-  const editingFeedbackLog =
-    editingFeedbackEntry && editingFeedback && editingFeedback.setIndex !== null
-      ? editingFeedbackEntry.setLogs.find((l) => l.setIndex === editingFeedback.setIndex)
-      : null;
-  const editingFeedbackDifficulty =
-    editingFeedback?.setIndex !== null
-      ? (editingFeedbackLog?.difficultyFeedback ?? null)
-      : (editingFeedbackEntry?.difficultyFeedback ?? null);
+  const editingFeedbackDifficulty = editingFeedbackEntry?.difficultyFeedback ?? null;
 
   const handleEditDifficultyChange = (d: Difficulty | undefined) => {
-    if (!editingFeedback || !editingFeedbackEntry) return;
-    editFeedback(
+    if (!editingFeedbackEntry) return;
+    sessionsRepo.recordEntryFeedback(
       db,
-      sessionId,
-      editingFeedbackEntry,
-      editingFeedback.setIndex,
+      editingFeedbackEntry.id,
       { difficulty: d ?? null },
       nowUtcInstant(),
     );
@@ -845,10 +805,12 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
       'Workout',
       frontier ? { sessionId } : { sessionId, reviewFromSummary: true },
     );
-  const openFeedbackEditor = (entryId: string, setIndex: number | null) => {
-    setEditingFeedback({ entryId, setIndex });
+  const openFeedbackEditor = (entryId: string) => {
+    setEditingFeedback(entryId);
     setEditorOpen(true);
   };
+  const editingFeedbackSets =
+    editingFeedbackEntry?.setLogs.filter((l) => l.status === 'completed').length ?? 0;
   const editingExerciseName = editingFeedbackEntry
     ? (library.exercises.find((e) => e.id === editingFeedbackEntry.exerciseId)?.name ??
       editingFeedbackEntry.exerciseId)
@@ -956,7 +918,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                 }
                 last={i === activeEntries.length - 1}
                 onJump={(setIndex) => jumpToSet(entry.id, setIndex)}
-                onEditFeedback={(setIndex) => openFeedbackEditor(entry.id, setIndex)}
+                onEditFeedback={() => openFeedbackEditor(entry.id)}
               />
             ))}
           </Card>
@@ -995,17 +957,11 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
         testID="feedback-edit-sheet"
         visible={editorOpen && editingFeedbackEntry !== null}
         onClose={() => setEditorOpen(false)}
-        title={
-          editingFeedback?.setIndex !== null
-            ? `${editingExerciseName} — Set ${(editingFeedback?.setIndex ?? 0) + 1}`
-            : editingFeedbackEntry?.section === 'warmup'
-              ? 'Warm-up'
-              : 'Cool-down'
-        }
+        title={editingExerciseName}
       >
         <View style={styles.sheetBody}>
           <Txt variant="small" color="text2">
-            How did that set feel?
+            {`How did ${editingFeedbackSets === 1 ? 'that set' : `those ${editingFeedbackSets} sets`} feel?`}
           </Txt>
           <FeedbackControls
             difficulty={editingFeedbackDifficulty}
@@ -1044,11 +1000,10 @@ function LegendItem({ status, label }: { status: SquareStatus; label: string }):
  * tap target, because `jumpToSet` accepts any `setIndex < entry.sets` (WorkoutScreen's `jumpTo`
  * never restricted itself to sets already reached).
  *
- * Every set's feedback lives on its own `set_logs` row (migration 0017 — sets of the same exercise
- * can genuinely feel different), so the dot under a square is scoped to exactly that set, and
- * tapping it opens the editor for that one set rather than the square's own jump-to-this-set press.
- * A logged set with no answer yet shows a hollow dot instead: the rest screen only asks once, so
- * this is the way back to it (`recordSetFeedback` no-ops without a row, so unreached sets get none).
+ * Feedback is one answer for the exercise (asked after its last set), shown as a chip under the
+ * name: the answer when there is one, otherwise a quiet "How did it feel?" prompt — the way back to
+ * a question that was skipped. Either way, tapping it opens the editor. Only an exercise with at
+ * least one completed set gets a chip; there is nothing to rate before that.
  */
 function EntryRow({
   entry,
@@ -1061,7 +1016,7 @@ function EntryRow({
   name: string;
   last: boolean;
   onJump: (setIndex: number) => void;
-  onEditFeedback: (setIndex: number | null) => void;
+  onEditFeedback: () => void;
 }): React.JSX.Element {
   const theme = useTheme();
   const styles = useStyles();
@@ -1076,18 +1031,23 @@ function EntryRow({
         <Txt variant="h3" numberOfLines={2}>
           {name}
         </Txt>
-        {/* Legacy only: a whole-stage answer (`recordSectionFeedback`) from a session recorded
-            before warm-up/cool-down got their own per-set rest timer and feedback. Nothing writes
-            a new one, but a session that already has one still shows it and can still edit it. */}
-        {entry.section !== 'main' && entry.difficultyFeedback && (
-          <Chip
-            testID={`summary-feedback-difficulty-${entry.id}`}
-            size="sm"
-            label={DIFFICULTY_LABEL[entry.difficultyFeedback]}
-            tone={DIFFICULTY_CHIP_TONE[entry.difficultyFeedback]}
-            onPress={() => onEditFeedback(null)}
-          />
-        )}
+        {entry.setLogs.some((l) => l.status === 'completed') &&
+          (entry.difficultyFeedback ? (
+            <Chip
+              testID={`summary-feedback-difficulty-${entry.id}`}
+              size="sm"
+              label={DIFFICULTY_LABEL[entry.difficultyFeedback]}
+              tone={DIFFICULTY_CHIP_TONE[entry.difficultyFeedback]}
+              onPress={onEditFeedback}
+            />
+          ) : (
+            <Chip
+              testID={`summary-feedback-placeholder-${entry.id}`}
+              size="sm"
+              label="How did it feel?"
+              onPress={onEditFeedback}
+            />
+          ))}
       </View>
       <View style={styles.squares}>
         {Array.from({ length: setLineCount(entry) }, (_, setIndex) => {
@@ -1095,7 +1055,6 @@ function EntryRow({
           const status = squareStatus(log);
           const count =
             log?.status === 'completed' ? (log.repsActual ?? log.secondsActual ?? null) : null;
-          const feedback = log?.difficultyFeedback ?? null;
           return (
             <View key={log?.id ?? `${entry.id}-${setIndex}`} style={styles.setColumn}>
               <PressableScale
@@ -1124,34 +1083,6 @@ function EntryRow({
                   )
                 ) : null}
               </PressableScale>
-              <View style={styles.dotSlot}>
-                {log && (
-                  <PressableScale
-                    testID={
-                      feedback
-                        ? `summary-feedback-difficulty-${log.id}`
-                        : `summary-feedback-placeholder-${log.id}`
-                    }
-                    haptic={false}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      feedback
-                        ? `Set ${setIndex + 1} felt: ${DIFFICULTY_LABEL[feedback]}`
-                        : `Set ${setIndex + 1}: add how it felt`
-                    }
-                    hitSlop={{ top: 2, bottom: 8, left: 8, right: 8 }}
-                    onPress={() => onEditFeedback(setIndex)}
-                    style={
-                      feedback
-                        ? [
-                            styles.dot,
-                            { backgroundColor: theme.colors[DIFFICULTY_CHIP_TONE[feedback]] },
-                          ]
-                        : [styles.dot, styles.dotEmpty]
-                    }
-                  />
-                )}
-              </View>
             </View>
           );
         })}
@@ -1230,9 +1161,6 @@ const useStyles = makeStyles((t) =>
     // Tracking override on a Txt variant: the eyebrow's 1.6 spacing would crowd a 30pt square.
     squareCount: { letterSpacing: 0 },
     // Reserved even for a set with no dot, so every square in a wrapped row lines up.
-    dotSlot: { height: 16, alignItems: 'center', justifyContent: 'center' },
-    dot: { width: 8, height: 8, borderRadius: 4 },
-    dotEmpty: { borderWidth: 1.5, borderColor: t.colors.text3 },
     notes: { gap: space.md },
     notesInput: {
       ...type.body,

@@ -4,7 +4,7 @@
  * local component state, keyed remounts of the sub-view per set so each gets a fresh wall-clock
  * controller (see `useCountdown`/`wallClockTimer.ts`).
  *
- * Every mutation is a `@roamfit/store` call — `logSet`, `recordSetFeedback`, `setPinnedNote`.
+ * Every mutation is a `@roamfit/store` call — `logSet`, `recordEntryFeedback`, `setPinnedNote`.
  * Nothing here computes a prescription or decides an exercise; §10.4's hierarchy rule (hero =
  * name + "Set N of M" + the rep/hold target, nothing else at that size; body focus/pattern/
  * difficulty never shown) is honored by simply not reading those fields into the hero view. The
@@ -306,6 +306,27 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     session && restingEntryId != null
       ? (activeEntries(session).find((e) => e.id === restingEntryId) ?? null)
       : null;
+  // §8.1 — feedback is one answer per *exercise*, asked on the rest after its final set: the
+  // completed set just rested after has every sibling set logged (done or skipped). Derived from
+  // the session, not remembered, so a resumed rest and the inline fallback agree with the modal.
+  const feedbackDue =
+    phase === 'resting' &&
+    restingEntry != null &&
+    restingSetIndex != null &&
+    restingEntry.setLogs.find((l) => l.setIndex === restingSetIndex)?.status === 'completed' &&
+    Array.from({ length: restingEntry.sets }, (_, i) => i).every((i) => {
+      const log = restingEntry.setLogs.find((l) => l.setIndex === i);
+      return log != null && log.status !== 'not_reached';
+    });
+  const feedbackSetCount =
+    restingEntry?.setLogs.filter((l) => l.status === 'completed').length ?? 0;
+  const feedbackExerciseName =
+    (restingEntry && library.exercises.find((e) => e.id === restingEntry.exerciseId)?.name) ??
+    restingEntry?.exerciseId ??
+    'this exercise';
+  const feedbackQuestion = `How did ${
+    feedbackSetCount === 1 ? 'that set' : `those ${feedbackSetCount} sets`
+  } of ${feedbackExerciseName} feel?`;
   const current =
     rewoundEntry && rewoundTo && rewoundTo.setIndex < rewoundEntry.sets
       ? { entry: rewoundEntry, setIndex: rewoundTo.setIndex }
@@ -762,7 +783,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     // before reload, so the rest screen's feedback controls target the right exercise.
     setRestingEntryId(entry.id);
     setRestingSetIndex(setIndex);
-    setDifficulty(null);
+    setDifficulty(entry.difficultyFeedback ?? null);
     setFeedbackPromptOpen(status === 'completed' && feedbackAsModal);
     setPhase('resting');
     setPausedCompletion(null);
@@ -930,22 +951,14 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   };
 
   /**
-   * The rest page's feedback is about the one *set* just performed, not the exercise as a whole —
-   * a set can feel different from the one before it (a band bumped up, fatigue by set 3), so
-   * `recordSetFeedback` scopes the answer to `restingSetIndex`, not the entire entry (migration
-   * 0017). Every section (warm-up, main, cool-down) now goes through this same path.
+   * The rest page's feedback is about the *exercise* just finished, asked once after its last set;
+   * `recordEntryFeedback` writes the entry's single answer (and feeds the exercise's EMA).
    *
    * `null` here means "the user just cleared it", which is different from omitting the key — see
-   * `recordEntryFeedback`'s contract (shared by `recordSetFeedback`).
+   * `recordEntryFeedback`'s contract.
    */
   const recordFeedback = (feedback: { difficulty?: Difficulty | null }) => {
-    sessionsRepo.recordSetFeedback(
-      db,
-      restingEntryId ?? entry.id,
-      restingSetIndex ?? setIndex,
-      feedback,
-      nowUtcInstant(),
-    );
+    sessionsRepo.recordEntryFeedback(db, restingEntryId ?? entry.id, feedback, nowUtcInstant());
   };
 
   const handleDifficultyChange = (d: Difficulty | undefined) => {
@@ -1132,13 +1145,13 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             it is a real prompt the screen waits on, so no backdrop or back-gesture dismiss — but
             Skip is always there, and nothing is required. */}
         <Sheet
-          visible={feedbackPromptOpen && phase === 'resting'}
+          visible={feedbackPromptOpen && feedbackDue}
           onClose={() => {}}
           dismissable={false}
           testID="feedback-prompt"
         >
           <View style={styles.nudge}>
-            <Txt variant="h2">How did that set feel?</Txt>
+            <Txt variant="h2">{feedbackQuestion}</Txt>
             <FeedbackControls
               difficulty={null}
               onDifficultyChange={(d) => handleFeedbackPromptAnswer(d ?? null)}
@@ -1270,7 +1283,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             howTo={!isFinalRest && exercise ? exercise.setup : null}
             difficulty={difficulty}
             onDifficultyChange={handleDifficultyChange}
-            showFeedback={!feedbackAsModal}
+            feedbackQuestion={feedbackDue && !feedbackAsModal ? feedbackQuestion : null}
             onNext={handleNextAfterRest}
             onExtend={handleRestExtend}
           />
@@ -2304,7 +2317,7 @@ function RestPhase({
   howTo,
   difficulty,
   onDifficultyChange,
-  showFeedback,
+  feedbackQuestion,
   onNext,
   onExtend,
 }: {
@@ -2342,8 +2355,9 @@ function RestPhase({
   howTo: string | null;
   difficulty: Difficulty | null;
   onDifficultyChange: (d: Difficulty | undefined) => void;
-  /** False when the feedback question is asked in a modal over this page instead. */
-  showFeedback: boolean;
+  /** The inline feedback question, or null when none is due on this rest (not the exercise's last
+   *  set) or it is asked in a modal over this page instead. */
+  feedbackQuestion: string | null;
   onNext: () => void;
   /** §10.7 — "+15s taps are recorded as a fatigue signal." Called only for +15 (never −15/Skip). */
   onExtend: () => void;
@@ -2512,10 +2526,10 @@ function RestPhase({
             />
           </View>
 
-          {showFeedback && (
+          {feedbackQuestion != null && (
             <>
               <Txt variant="eyebrow" color="text2" align="center" style={styles.feelLabel}>
-                How did that set feel?
+                {feedbackQuestion}
               </Txt>
               <FeedbackControls difficulty={difficulty} onDifficultyChange={onDifficultyChange} />
             </>

@@ -85,7 +85,7 @@ async function seedSession(db: Db, opts: { logged: boolean }) {
         );
       }
     }
-    sessionsRepo.recordSetFeedback(db, featured.id, 0, { difficulty: 'too_hard' }, utcInstant);
+    sessionsRepo.recordEntryFeedback(db, featured.id, { difficulty: 'too_hard' }, utcInstant);
   }
   return { sessionId, featuredId: featured.id };
 }
@@ -170,28 +170,26 @@ describe('§5.8 Debrief presentation', () => {
     });
   });
 
-  it('marks feedback as a dot under its square; the labeled chips live in the edit sheet', async () => {
+  it('shows one feedback chip per exercise, with a quiet prompt where unanswered; editing opens the sheet', async () => {
     const { db, sessionId, featuredId } = await mount({ logged: true });
-    const entry = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === featuredId)!;
-    const answered = entry.setLogs.find((l) => l.setIndex === 0)!;
-    const unanswered = entry.setLogs.find((l) => l.setIndex === 1)!;
+    const entries = sessionsRepo.getSession(db, sessionId)!.entries;
+    const other = entries.find(
+      (e) =>
+        e.id !== featuredId &&
+        e.entryStatus !== 'removed_at_approval' &&
+        e.setLogs.some((l) => l.status === 'completed'),
+    )!;
 
-    // A small colored dot — and no text label on the page itself.
-    expect(flat(`summary-feedback-difficulty-${answered.id}`)).toMatchObject({
-      width: 8,
-      height: 8,
-      backgroundColor: goldenHour.summit,
-    });
-    expect(screen.queryByText('Too hard')).toBeNull();
-    // A logged set with no answer offers a hollow dot instead.
-    expect(flat(`summary-feedback-placeholder-${unanswered.id}`)).toMatchObject({
-      borderColor: goldenHour.text3,
-    });
+    // The answered exercise carries its answer as a labeled chip; there is no per-set dot.
+    expect(screen.getByTestId(`summary-feedback-difficulty-${featuredId}`)).toBeTruthy();
+    expect(screen.getByText('Too hard')).toBeTruthy();
+    // A performed exercise with no answer offers the prompt chip instead.
+    expect(screen.getByTestId(`summary-feedback-placeholder-${other.id}`)).toBeTruthy();
 
-    await fireEvent.press(screen.getByTestId(`summary-feedback-difficulty-${answered.id}`));
+    await fireEvent.press(screen.getByTestId(`summary-feedback-difficulty-${featuredId}`));
     await waitFor(() => expect(screen.getByTestId('feedback-edit-sheet')).toBeTruthy(), WAIT_OPTS);
-    for (const label of ['Too easy', 'Just right', 'Too hard']) {
-      expect(screen.getByText(label)).toBeTruthy();
+    for (const id of ['too_easy', 'just_right', 'too_hard']) {
+      expect(screen.getByTestId(`difficulty-${id}`)).toBeTruthy();
     }
     expect(screen.getByTestId('difficulty-too_hard')).toHaveProp(
       'accessibilityState',

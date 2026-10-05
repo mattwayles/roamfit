@@ -67,15 +67,13 @@ interface WorkingSetSummary {
    *  the most of them, heaviest winning a tie (the harder claim is the safer one to carry
    *  forward). Null when no set reported a band. */
   observedBand: BandId | null;
-  /** The worst-case answer across the entry's sets (migration 0017 moved feedback from the entry
-   *  to each set) — `too_hard` if any set said so, else `too_easy` if any did, else `just_right`.
-   *  §6.3's advance/regress rules only ever see one verdict per entry, and erring toward
-   *  the more cautious answer when sets disagreed is the safer read of "how did this one go". */
+  /** The entry's own answer to "how did those sets feel" (one per exercise); `just_right` when
+   *  unanswered. §6.3's advance/regress rules see one verdict per entry. */
   difficultyFeedback: DifficultyFeedback;
 }
 
-/** See `WorkingSetSummary.difficultyFeedback` — `too_hard` beats `too_easy` beats `just_right`,
- *  a set with no feedback at all (`null`) never overrides one that has an opinion. */
+/** Worst case across several entries of one family — `too_hard` beats `too_easy` beats
+ *  `just_right`, and an entry with no answer (`null`) never overrides one that has an opinion. */
 function worstDifficulty(feedbacks: (DifficultyFeedback | null)[]): DifficultyFeedback {
   if (feedbacks.includes('too_hard')) return 'too_hard';
   if (feedbacks.includes('too_easy')) return 'too_easy';
@@ -135,7 +133,7 @@ function summarizeEntry(entry: SessionEntryRecord): WorkingSetSummary {
     bestActual,
     bestBand,
     observedBand: dominantBand(completed.map((s) => s.bandActual)),
-    difficultyFeedback: worstDifficulty(entry.setLogs.map((s) => s.difficultyFeedback)),
+    difficultyFeedback: entry.difficultyFeedback ?? 'just_right',
   };
 }
 
@@ -269,9 +267,8 @@ export function completeSession(
         familyId: familyId as SessionPerformance['familyId'],
         allSetsMetTarget: summaries.every((s) => s.allAtOrAboveTarget),
         anySetBelowTarget: summaries.some((s) => s.anyBelowTarget),
-        // Migration 0017 — a `main` entry's feedback is per-set now, so this is the worst-case
-        // answer across every entry's every set (`summarizeEntry`/`worstDifficulty`), not
-        // `entries[0]`'s own (now-unused for `main`) column.
+        // One answer per exercise; when a family had several entries this session, the worst case
+        // among them.
         difficultyFeedback: worstDifficulty(summaries.map((s) => s.difficultyFeedback)),
         // What the user actually trained with, so the next prescription starts from the band in
         // their hand rather than the one they overrode (see `reconcileMicroToObservedBand`).

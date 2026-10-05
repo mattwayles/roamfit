@@ -121,7 +121,7 @@ function renderWorkout(sessionId: string, navigation: ReturnType<typeof mockNavi
   );
 }
 
-describe('§8.1 warm-up/cool-down feedback: every set, own rest timer and own question', () => {
+describe('§8.1 warm-up/cool-down feedback: every set rests; the exercise is asked about after its last', () => {
   it('finishing a warm-up set (last one in the stage or not) goes to an ordinary rest page with its own feedback controls', async () => {
     let db!: Db;
     render(
@@ -146,8 +146,7 @@ describe('§8.1 warm-up/cool-down feedback: every set, own rest timer and own qu
     await waitFor(() => {
       const after = sessionsRepo.getSession(db, sessionId)!;
       const entry = after.entries.find((e) => e.id === lastEntryId)!;
-      const log = entry.setLogs.find((l) => l.setIndex === entry.sets - 1);
-      expect(log?.difficultyFeedback).toBe('too_easy');
+      expect(entry.difficultyFeedback).toBe('too_easy');
     }, WAIT_OPTS);
   }, 20000);
 
@@ -183,6 +182,12 @@ describe('§8.1 warm-up/cool-down feedback: every set, own rest timer and own qu
     const session = sessionsRepo.getSession(db, sessionId)!;
     const warmup = activeEntries(session).filter((e) => e.section === 'warmup');
     expect(warmup.length).toBeGreaterThan(1);
+    // One tap must finish the first exercise (feedback is asked after an exercise's last set), so
+    // this is its final set though not the stage's.
+    db.update(schema.sessionEntries)
+      .set({ durationSec: null, repTarget: 10, unilateral: false, sets: 1 })
+      .where(eq(schema.sessionEntries.id, warmup[0].id))
+      .run();
 
     renderWorkout(sessionId, mockNavigation());
     await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
@@ -223,8 +228,7 @@ describe('§8.1 warm-up/cool-down feedback: every set, own rest timer and own qu
     await waitFor(() => {
       const after = sessionsRepo.getSession(db, sessionId)!;
       const entry = after.entries.find((e) => e.id === lastEntryId)!;
-      const log = entry.setLogs.find((l) => l.setIndex === entry.sets - 1);
-      expect(log?.difficultyFeedback).toBe('too_hard');
+      expect(entry.difficultyFeedback).toBe('too_hard');
     }, WAIT_OPTS);
 
     await fireEvent.press(screen.getByTestId('rest-next'));

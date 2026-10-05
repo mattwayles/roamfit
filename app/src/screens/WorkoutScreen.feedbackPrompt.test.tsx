@@ -6,7 +6,8 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import { generate, sessionsRepo, usersRepo } from '@roamfit/store';
+import { generate, schema, sessionsRepo, usersRepo } from '@roamfit/store';
+import { eq } from 'drizzle-orm';
 import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
@@ -64,7 +65,7 @@ function fastForwardTo(
 }
 
 describe('"How did that set feel?" modal over the rest screen, driven through WorkoutScreen', () => {
-  async function restAfterFirstRepsSet(modal: boolean) {
+  async function restAfterFirstRepsSet(modal: boolean, sets = 1) {
     let db!: ReturnType<typeof useStore>['db'];
     render(
       <StoreProvider>
@@ -99,6 +100,10 @@ describe('"How did that set feel?" modal over the rest screen, driven through Wo
       (e) =>
         e.entryStatus !== 'removed_at_approval' && e.section === 'main' && e.durationSec == null,
     )!;
+    db.update(schema.sessionEntries)
+      .set({ sets })
+      .where(eq(schema.sessionEntries.id, firstRepsEntry.id))
+      .run();
     fastForwardTo(db, session, firstRepsEntry.id);
 
     render(
@@ -113,36 +118,54 @@ describe('"How did that set feel?" modal over the rest screen, driven through Wo
     await fireEvent.press(screen.getByTestId('complete-set'));
     await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), WAIT_OPTS);
 
-    const setLog0 = () =>
-      sessionsRepo
-        .getSession(db, sessionId)!
-        .entries.find((e) => e.id === firstRepsEntry.id)!
-        .setLogs.find((l) => l.setIndex === 0)!;
-    return { setLog0 };
+    const entryFeedback = () =>
+      sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === firstRepsEntry.id)!
+        .difficultyFeedback;
+    return { entryFeedback, exerciseId: firstRepsEntry.exerciseId };
   }
 
   it('opens over the running rest timer; an answer records it and closes the modal', async () => {
-    const { setLog0 } = await restAfterFirstRepsSet(true);
+    const { entryFeedback } = await restAfterFirstRepsSet(true);
     expect(screen.getByTestId('feedback-prompt')).toBeTruthy();
     expect(screen.getByTestId('rest-remaining')).toBeTruthy();
 
     await fireEvent.press(screen.getByTestId('difficulty-too_hard'));
-    await waitFor(() => expect(setLog0().difficultyFeedback).toBe('too_hard'), WAIT_OPTS);
+    await waitFor(() => expect(entryFeedback()).toBe('too_hard'), WAIT_OPTS);
     await waitFor(() => expect(screen.queryByTestId('feedback-prompt')).toBeNull(), WAIT_OPTS);
     // The question is not asked a second time inline.
     expect(screen.queryByTestId('difficulty-segment')).toBeNull();
   });
 
   it('Skip closes it and records nothing', async () => {
-    const { setLog0 } = await restAfterFirstRepsSet(true);
+    const { entryFeedback } = await restAfterFirstRepsSet(true);
     await fireEvent.press(screen.getByTestId('feedback-prompt-skip'));
     await waitFor(() => expect(screen.queryByTestId('feedback-prompt')).toBeNull(), WAIT_OPTS);
-    expect(setLog0().difficultyFeedback).toBeNull();
+    expect(entryFeedback()).toBeNull();
   });
 
   it('with the setting off there is no modal and the question stays inline', async () => {
     await restAfterFirstRepsSet(false);
     expect(screen.queryByTestId('feedback-prompt')).toBeNull();
     expect(screen.getByTestId('difficulty-segment')).toBeTruthy();
+  });
+
+  it('asks once per exercise: nothing after a middle set, then the question names the sets and the exercise', async () => {
+    const { entryFeedback, exerciseId } = await restAfterFirstRepsSet(true, 2);
+    // Set 1 of 2: a plain rest, no modal and no inline question.
+    expect(screen.queryByTestId('feedback-prompt')).toBeNull();
+    expect(screen.queryByTestId('difficulty-segment')).toBeNull();
+
+    await fireEvent.press(screen.getByTestId('rest-skip'));
+    await fireEvent.press(screen.getByTestId('rest-next'));
+    await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId('complete-set'));
+
+    const name = exerciseLibrary.exercises.find((e) => e.id === exerciseId)!.name;
+    await waitFor(
+      () => expect(screen.getByText(`How did those 2 sets of ${name} feel?`)).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    await fireEvent.press(screen.getByTestId('difficulty-too_easy'));
+    await waitFor(() => expect(entryFeedback()).toBe('too_easy'), WAIT_OPTS);
   });
 });

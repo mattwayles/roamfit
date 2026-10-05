@@ -19,13 +19,13 @@ import {
   recordDemoMediaExpanded,
   recordEntryFeedback,
   recordRegenerateTap,
-  recordSetFeedback,
   startSession,
 } from './repositories/sessions';
 import { consecutiveRegenerateTapCount, getSignalEventsByType } from './repositories/signals';
 import { setPinnedNote } from './repositories/exerciseState';
 import { observeTzId } from './repositories/users';
 import { recordTravelDay, getStats, effectiveWeeklyDenominator } from './repositories/stats';
+import { MIGRATIONS } from './migrations/data';
 import { library, families, clockFor, rngFor, utcInstantFor } from './testFixtures';
 
 function makeSession(db: ReturnType<typeof createTestDb>['db'], localDate = '2026-03-01') {
@@ -302,54 +302,6 @@ describe('§8.1 recordEntryFeedback — three-state omit/set/clear (found via ap
   });
 });
 
-describe('§8.1 recordSetFeedback — same three-state contract, scoped to one set (migration 0017)', () => {
-  it('an explicit null clears a previously-set value on that set; omitting the key leaves it untouched; a sibling set is never touched', () => {
-    const { db, close } = createTestDb();
-    try {
-      const sessionId = makeSession(db);
-      const entry = getPendingSession(db)!.entries.find((e) => e.section === 'main')!;
-      const now = utcInstantFor('2026-03-01');
-      logSet(
-        db,
-        { entryId: entry.id, setIndex: 0, status: 'completed', restPrescribedSec: entry.restSec },
-        now,
-      );
-      logSet(
-        db,
-        { entryId: entry.id, setIndex: 1, status: 'completed', restPrescribedSec: entry.restSec },
-        now,
-      );
-
-      recordSetFeedback(db, entry.id, 0, { difficulty: 'too_easy' }, now);
-      const setLog = (i: number) =>
-        getSession(db, sessionId)!
-          .entries.find((e) => e.id === entry.id)!
-          .setLogs.find((s) => s.setIndex === i)!;
-      expect(setLog(0).difficultyFeedback).toBe('too_easy');
-      // The sibling set (set 1) is untouched — this is the whole point of moving feedback here.
-      expect(setLog(1).difficultyFeedback).toBeNull();
-
-      recordSetFeedback(db, entry.id, 0, { difficulty: null }, now);
-      expect(setLog(0).difficultyFeedback).toBeNull(); // "tap the same value again clears it"
-    } finally {
-      close();
-    }
-  });
-
-  it('is a no-op when the set has not been logged yet — there is no row to attach feedback to', () => {
-    const { db, close } = createTestDb();
-    try {
-      const sessionId = makeSession(db);
-      const entry = getPendingSession(db)!.entries.find((e) => e.section === 'main')!;
-      recordSetFeedback(db, entry.id, 0, { difficulty: 'too_hard' }, utcInstantFor('2026-03-01'));
-      const setLogs = getSession(db, sessionId)!.entries.find((e) => e.id === entry.id)!.setLogs;
-      expect(setLogs.find((s) => s.setIndex === 0)).toBeUndefined();
-    } finally {
-      close();
-    }
-  });
-});
-
 describe('§8.3/§9.3 context signals — device timezone change, travel days, days since last session', () => {
   it('a device tz change is logged as a signal event only once the tz actually differs', () => {
     const { db, close } = createTestDb();
@@ -392,6 +344,47 @@ describe('§8.3/§9.3 context signals — device timezone change, travel days, d
       expect(events).toHaveLength(1);
       expect(events[0].localDate).toBe('2026-03-01');
       expect(events[0].sessionId).toBeNull();
+    } finally {
+      close();
+    }
+  });
+});
+
+describe('migration 0026 — per-set feedback folds into the exercise', () => {
+  it('backfills each entry from its legacy set answers (worst case), leaving answered entries alone', () => {
+    const { db, raw, close } = createTestDb();
+    try {
+      makeSession(db);
+      const mains = getPendingSession(db)!.entries.filter((e) => e.section === 'main');
+      const [folded, easy, answered] = mains;
+      const now = utcInstantFor('2026-03-01');
+      for (const e of [folded, easy, answered]) {
+        for (const i of [0, 1]) {
+          logSet(
+            db,
+            { entryId: e.id, setIndex: i, status: 'completed', restPrescribedSec: e.restSec },
+            now,
+          );
+        }
+      }
+      const setFeedback = raw.prepare(
+        'UPDATE set_logs SET difficulty_feedback = ? WHERE entry_id = ? AND set_index = ?',
+      );
+      setFeedback.run('just_right', folded.id, 0);
+      setFeedback.run('too_hard', folded.id, 1);
+      setFeedback.run('too_easy', easy.id, 0);
+      setFeedback.run('too_hard', answered.id, 0);
+      recordEntryFeedback(db, answered.id, { difficulty: 'just_right' }, now);
+
+      const sql = MIGRATIONS.find((m) => m.id === '0026_entry_feedback.sql')!.sql;
+      raw.exec(sql);
+
+      const read = (id: string) =>
+        getSession(db, folded.sessionId)!.entries.find((e) => e.id === id)!.difficultyFeedback;
+      expect(read(folded.id)).toBe('too_hard');
+      expect(read(easy.id)).toBe('too_easy');
+      expect(read(answered.id)).toBe('just_right');
+      expect(read(mains[3].id)).toBeNull(); // no answers anywhere → still unanswered
     } finally {
       close();
     }

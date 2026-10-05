@@ -343,7 +343,7 @@ export default function SettingsScreen(): React.JSX.Element {
       <Enter index={2}>
         <Group
           title="Training"
-          caption="“Ask how each set felt” opens a quick Too easy / Just right / Too hard question over the rest timer after every set (Skip is always there); turn it off and the same question sits on the rest screen instead. The 3-2-1 count, the halfway chime and the end-of-rest tone. They mix with whatever else is playing rather than pausing it. Vibration cues are unaffected either way, so a silent workout still tells you when a hold or a rest is up. There is also a mute button on the workout itself, for one session at a time."
+          caption="Timer sounds: the 3-2-1 count, the halfway chime and the end-of-rest tone. They mix with whatever else is playing rather than pausing it. Vibration cues are unaffected either way, so a silent workout still tells you when a hold or a rest is up. There is also a mute button on the workout itself, for one session at a time. “Ask how each exercise felt” opens a quick Too easy / Just right / Too hard question over the rest timer after an exercise’s last set; off, the same question sits on that rest page instead."
         >
           <SwitchRow
             testID="toggle-cue-sounds"
@@ -357,7 +357,7 @@ export default function SettingsScreen(): React.JSX.Element {
             testID="toggle-feedback-prompt"
             icon="sparkles"
             tone="pine"
-            label="Ask how each set felt"
+            label="Ask how each exercise felt"
             value={user.feedbackPromptEnabled}
             onValueChange={toggleFeedbackPrompt}
           />

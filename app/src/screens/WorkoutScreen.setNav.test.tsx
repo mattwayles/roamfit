@@ -178,7 +178,6 @@ describe('stepping back and forward through an active workout', () => {
     expect(log.status).toBe('skipped');
     expect(log.repsActual).toBeNull();
     // No feedback was solicited or written for the set that was skipped past.
-    expect(log.difficultyFeedback).toBeNull();
     const afterEntry = after.entries.find((e) => e.id === firstEntry.id)!;
     expect(afterEntry.difficultyFeedback).toBeNull();
   }, 20000);
