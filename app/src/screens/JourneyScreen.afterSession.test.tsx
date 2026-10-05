@@ -125,10 +125,18 @@ describe('Journey after a completed session', () => {
       'lifetime-places',
       'lifetime-countries',
     ]);
-    // Every Journey Marker tile wears the primary; icon and label tell them apart.
-    for (const id of ['sessions', 'sets', 'levels', 'personal-bests', 'places', 'countries']) {
+    // Journey Markers alternate teal and fern in a checkerboard.
+    const tones: Record<string, string> = {
+      sessions: midnight.teal,
+      sets: midnight.fern,
+      'personal-bests': midnight.teal,
+      levels: midnight.fern,
+      places: midnight.teal,
+      countries: midnight.fern,
+    };
+    for (const [id, color] of Object.entries(tones)) {
       const value = screen.getByTestId(`lifetime-${id}-value`);
-      expect([id, StyleSheet.flatten(value.props.style).color]).toEqual([id, midnight.teal]);
+      expect([id, StyleSheet.flatten(value.props.style).color]).toEqual([id, color]);
     }
     expect(screen.getByTestId('muscle-balance')).toBeTruthy();
     expect(screen.getByTestId('calendar-heatmap')).toBeTruthy();

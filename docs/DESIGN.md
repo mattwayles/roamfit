@@ -205,9 +205,9 @@ Top to bottom:
 ### 5.2 Journey (new tab — was Home, bottom half)
 
 The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
-1. **Journey Markers** — 3×2 grid of `StatTile`s, all in the primary `teal`: Sessions (flame),
+1. **Journey Markers** — 3×2 grid of `StatTile`s in a teal/fern checkerboard (Sets completed, Levels gained and Countries are `fern`, the rest `teal`): Sessions (flame),
    Sets completed (barbell), Personal bests (trophy), Levels gained (trending-up), Places
-   (location), Countries (globe). The icon and label tell them apart, not colour. Numbers in
+   (location), Countries (globe). The icon and label say what each counts. Numbers in
    `hero`-size condensed.
 2. **Trails** (the progression board, renamed in UI copy only). One card per family:
    - Left: family name (`h2`), current exercise (`small`, text2).

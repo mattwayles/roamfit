@@ -56,8 +56,8 @@ the record of what was completed and why.
   On a device, in both themes: (1) fern is a green again — check it reads as a calm secondary, not as
   the retired pine primary; fern vs the Spotify button (`#1db954`, ~29 degrees away); the rest ring,
   cooldown rail, Full-body chip and Countries tile in fern; plum (summit) vs rose; sky vs teal
-  (Travel-day vs Main rail); the six Journey Markers tiles are all teal now (icon + label carry
-  the difference) — check the grid still scans;
+  (Travel-day vs Main rail); the six Journey Markers tiles alternate teal and fern in a checkerboard
+  — check the grid scans and the two greens-and-teals read as distinct;
   the `sun` accent is gone (it duplicated gold): the
   Midnight Completion stamp headline and Today hero pill text are gold, and the confetti, orbs and
   rays lost their pale yellow — check the celebration still feels warm enough;
