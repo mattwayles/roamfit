@@ -464,12 +464,14 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
               progress={hero.progress}
               size={64}
               stroke={7}
+              gradient={theme.gradients.sky}
               accessibilityLabel={`${hero.sessionsRemaining} ${hero.sessionsRemaining === 1 ? 'session' : 'sessions'} to your next level`}
             >
               <Txt variant="h2">{hero.sessionsRemaining}</Txt>
             </ProgressRing>
             <View style={styles.unlockText}>
-              <Txt variant="eyebrow" color="summit">
+              {/* Sky, like the Trails it points at on Journey. */}
+              <Txt variant="eyebrow" color="sky">
                 Next unlock
               </Txt>
               {/* Names the movement function ("Horizontal Push"), not an exercise. Not the one

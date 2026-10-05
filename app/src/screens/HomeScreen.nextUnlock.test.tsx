@@ -5,6 +5,7 @@
  * calendar header) and the card/strip taps that open Journey.
  */
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
@@ -12,6 +13,7 @@ import { signalsRepo, usersRepo } from '@roamfit/store';
 import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { getDb } from '../db';
+import { midnight, midnightGradients } from '../theme/palettes';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
@@ -63,6 +65,36 @@ describe('Today — Next Unlock card', () => {
     for (const exercise of exerciseLibrary.exercises) {
       expect(heroText).not.toContain(exercise.name);
     }
+  });
+
+  it('wears sky, like the Trails it points at: eyebrow and ring gradient', async () => {
+    await mountToday();
+    const eyebrow = screen.getByText('Next unlock');
+    expect(StyleSheet.flatten(eyebrow.props.style).color).toBe(midnight.sky);
+    // The ring's gradient as the native SVG layer receives it: [offset, ARGB int, offset, ...].
+    type Node = {
+      type?: string;
+      props?: Record<string, unknown>;
+      children?: (Node | string)[] | null;
+    };
+    const gradientUnder = (n: Node | string, inRing: boolean): number[] | null => {
+      if (typeof n === 'string') return null;
+      const here = inRing || n.props?.testID === 'next-unlock-ring';
+      if (here && n.type === 'RNSVGLinearGradient') return n.props?.gradient as number[];
+      for (const c of n.children ?? []) {
+        const g = gradientUnder(c, here);
+        if (g) return g;
+      }
+      return null;
+    };
+    const argb = (hex: string) => 0xff000000 | parseInt(hex.slice(1), 16) | 0;
+    const gradient = gradientUnder(screen.toJSON() as Node, false);
+    expect(gradient).toEqual([
+      0,
+      argb(midnightGradients.sky[0]),
+      1,
+      argb(midnightGradients.sky[1]),
+    ]);
   });
 
   it('opens Journey when tapped', async () => {

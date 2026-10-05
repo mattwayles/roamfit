@@ -198,7 +198,7 @@ Top to bottom:
    **In transit** (airplane, sky, "Mark today as travel"). Square-ish `Card`s, `PressableScale`.
 5. **This week** — a 7-day strip (Mon–Sun containing today) of 40pt rounded cells using the same
    markers/emojis as the Journey logbook; today has a 2px teal ring. Tap → Journey tab.
-6. **Next unlock** — `Card` with a `ProgressRing` (summit gradient, 64pt) on the left showing
+6. **Next unlock** — `Card` with a `ProgressRing` (sky gradient, 64pt, matching the Trails it opens) on the left showing
    level progress, and "HORIZONTAL PUSH" (`h2`) + "2 sessions to your next level" on the right.
    All-mastery state keeps its existing copy. Tap → Journey tab.
 
