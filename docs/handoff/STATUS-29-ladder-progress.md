@@ -3,10 +3,10 @@ Last updated: 2026-10-05
 ### Done
 - [x] 1. Engine ladderPosition + 14 tests (a01f529)
 - [x] 2. Store fields + lib/ladderSeries + marker kind (82c94d8)
+- [x] 3. Trail card UI toggle + band-aware Best set (5cacdaf)
 ### In progress
-- Increment 3 (committing): trailProgress.ts rewrite, TrailBestSetChart renamed TrailProgressChart (Progress/Best set Chip toggle, testIDs board-chart-*, board-chart-plot-*, board-chart-mode-*), ProgressChart band ticks + describeValue, Journey tests updated.
+- Increment 4 (committing): ExerciseDetailScreen toggle Progress/Best set/Total volume (testID detail-chart-progress), Progress only when buildExerciseLadder non-null.
 ### Next
-4. Exercise detail UI: Progress / Best set / Total volume (Progress only when buildExerciseLadder returns non-null; else default Best set). Use buildExerciseBestSeries + buildExerciseLadder from lib/ladderSeries.ts; families via familyLibrary on the screen (see progressionLabel).
 5. Docs: DESIGN.md, BACKLOG.md device-pass item.
 ### Decisions / gotchas
 - Problem: band step-up with fewer reps read as a decline on a reps-only chart; the engine treats it as a step forward.

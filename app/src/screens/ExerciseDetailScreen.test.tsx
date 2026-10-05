@@ -259,6 +259,20 @@ describe('the exercise detail page', () => {
       nativeEvent: { locationX: 1000 },
     });
     expect(screen.getByTestId('detail-progress-chart-readout')).toHaveTextContent(/·/);
+    // Progress leads for a laddered exercise (its sessions are placed on the ladder); an exercise
+    // off any ladder has no Progress and opens on Best set.
+    const laddered = exercise.progression_family != null;
+    if (laddered) {
+      expect(screen.getByTestId('detail-chart-progress').props.accessibilityState.selected).toBe(
+        true,
+      );
+      expect(screen.getByTestId('detail-chart-best').props.accessibilityState.selected).toBe(false);
+      await fireEvent.press(screen.getByTestId('detail-chart-best'));
+      expect(screen.getByTestId('detail-chart-best').props.accessibilityState.selected).toBe(true);
+    } else {
+      expect(screen.queryByTestId('detail-chart-progress')).toBeNull();
+      expect(screen.getByTestId('detail-chart-best').props.accessibilityState.selected).toBe(true);
+    }
     // Total volume is the same history on a second measure.
     await fireEvent.press(screen.getByTestId('detail-chart-volume'));
     expect(screen.getByTestId('detail-progress-chart')).toBeTruthy();

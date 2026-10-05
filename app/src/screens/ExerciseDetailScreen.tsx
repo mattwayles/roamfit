@@ -38,6 +38,12 @@ import { EmptyState } from '../components/EmptyState';
 import { IconBadge } from '../components/IconBadge';
 import { formatToken, primaryMuscleLabel } from '../lib/exerciseCatalog';
 import {
+  bestSetLabel,
+  buildExerciseBestSeries,
+  buildExerciseLadder,
+  steps,
+} from '../lib/ladderSeries';
+import {
   buildExerciseProgress,
   formatLocalDate,
   gainLines,
@@ -82,7 +88,7 @@ function heroGradient(theme: Theme, tone: AccentName): GradientColors {
 
 interface DetailData {
   catalog: exerciseCatalogRepo.ExerciseCatalogState;
-  history: exerciseCatalogRepo.ExerciseSessionPerformance[];
+  history: exerciseCatalogRepo.ExerciseHistoryPerformance[];
   userVideoId: string | null;
   curatedVideoId: string | null;
   videoDemoted: boolean;
@@ -101,7 +107,8 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
     [library, exerciseId],
   );
   const [data, setData] = useState<DetailData | null>(null);
-  const [chartMode, setChartMode] = useState<'best' | 'volume'>('best');
+  // null = not chosen yet: Progress when this exercise has a ladder to place sessions on, else Best set.
+  const [pickedMode, setPickedMode] = useState<'progress' | 'best' | 'volume' | null>(null);
 
   const load = useCallback(() => {
     setData({
@@ -186,7 +193,23 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
   }
 
   const progress = buildExerciseProgress(data?.history ?? [], exercise.metric);
-  const chart = chartMode === 'volume' ? progress.volumeChart : progress.chart;
+  // Progress only exists for a laddered exercise with placeable sessions (warm-ups and cool-downs
+  // have no ladder to climb); everything else keeps Best set / Total volume.
+  const ladder = buildExerciseLadder(
+    data?.history ?? [],
+    exercise,
+    families.families,
+    library.exercises,
+  );
+  const bestSeries = buildExerciseBestSeries(data?.history ?? [], exercise, progress.unit);
+  const chartMode: 'progress' | 'best' | 'volume' =
+    pickedMode === 'progress' && !ladder ? 'best' : (pickedMode ?? (ladder ? 'progress' : 'best'));
+  const chart =
+    chartMode === 'progress' && ladder
+      ? ladder.points
+      : chartMode === 'volume'
+        ? progress.volumeChart
+        : progress.chart;
   const tone = FOCUS_TONE[exercise.focus[0] ?? 'full'];
   const ink = theme.onGradient(tone);
   const timesCompleted = data?.catalog.timesCompleted ?? 0;
@@ -299,13 +322,23 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
 
               <View testID="detail-chart" style={styles.chart}>
                 <View style={styles.gains}>
+                  {ladder ? (
+                    <Chip
+                      testID="detail-chart-progress"
+                      label="Progress"
+                      size="sm"
+                      tone="summit"
+                      selected={chartMode === 'progress'}
+                      onPress={() => setPickedMode('progress')}
+                    />
+                  ) : null}
                   <Chip
                     testID="detail-chart-best"
                     label="Best set"
                     size="sm"
                     tone="summit"
                     selected={chartMode === 'best'}
-                    onPress={() => setChartMode('best')}
+                    onPress={() => setPickedMode('best')}
                   />
                   <Chip
                     testID="detail-chart-volume"
@@ -313,17 +346,42 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
                     size="sm"
                     tone="summit"
                     selected={chartMode === 'volume'}
-                    onPress={() => setChartMode('volume')}
+                    onPress={() => setPickedMode('volume')}
                   />
                 </View>
-                <ProgressChart
-                  testID="detail-progress-chart"
-                  title={chartMode === 'volume' ? 'Total volume' : 'Best set'}
-                  points={chart}
-                  formatValue={(v) => unitLabel(progress.unit, v)}
-                  integerTicks
-                  zeroBase={chartMode === 'volume'}
-                />
+                {chartMode === 'progress' && ladder ? (
+                  <ProgressChart
+                    testID="detail-progress-chart"
+                    title="Progress"
+                    points={ladder.points}
+                    markers={ladder.markers}
+                    formatValue={steps}
+                    integerTicks
+                    describeValue={(i) => ladder.labels[i] ?? null}
+                  />
+                ) : (
+                  <ProgressChart
+                    testID="detail-progress-chart"
+                    title={chartMode === 'volume' ? 'Total volume' : 'Best set'}
+                    points={chartMode === 'volume' ? chart : bestSeries.points}
+                    markers={chartMode === 'volume' ? undefined : bestSeries.markers}
+                    formatValue={(v) => unitLabel(progress.unit, v)}
+                    integerTicks
+                    zeroBase={chartMode === 'volume'}
+                    describeValue={
+                      chartMode === 'volume'
+                        ? undefined
+                        : (i) =>
+                            bestSeries.points[i]
+                              ? bestSetLabel(
+                                  progress.unit,
+                                  bestSeries.points[i].value,
+                                  bestSeries.pointBand[i] ?? null,
+                                )
+                              : null
+                    }
+                  />
+                )}
               </View>
 
               <View style={styles.gains}>
