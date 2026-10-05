@@ -353,6 +353,47 @@ export function monthLabelForLocalDate(localDate: string): string {
   return MONTH_NAMES[m - 1];
 }
 
+/** The 'YYYY-MM' month a `local_date` falls in — string slicing only (invariant 6). */
+export function monthOfLocalDate(localDate: string): string {
+  return localDate.slice(0, 7);
+}
+
+/** `ym` ('YYYY-MM') moved by `delta` months, across year boundaries ('2026-01' -1 -> '2025-12'). */
+export function shiftMonth(ym: string, delta: number): string {
+  const [y, m] = ym.split('-').map(Number);
+  const index = y * 12 + (m - 1) + delta;
+  const year = Math.floor(index / 12);
+  return `${String(year).padStart(4, '0')}-${String((index % 12) + 1).padStart(2, '0')}`;
+}
+
+/** 'September 2026', or just 'September' when `ym` is in the same year as `currentYm` (the header
+ *  shows the year only once you have paged out of this one). Omit `currentYm` to always show it. */
+export function monthLabel(ym: string, currentYm?: string): string {
+  const [y, m] = ym.split('-').map(Number);
+  const name = MONTH_NAMES[m - 1];
+  return currentYm !== undefined && currentYm.slice(0, 4) === ym.slice(0, 4)
+    ? name
+    : `${name} ${y}`;
+}
+
+/** Short month name ('Sep') for the picker's pills. */
+export function monthShortName(month: number): string {
+  return MONTH_NAMES[month - 1].slice(0, 3);
+}
+
+/** The earliest 'YYYY-MM' among the given months and/or `local_date`s (anything whose first 7
+ *  characters are a month), or null when there are none. The Logbook's ‹ stops here: the first
+ *  month with a session, a hand-set marker or a travel signal — any of them is a mark worth
+ *  paging to. */
+export function earliestMonth(sources: Iterable<string>): string | null {
+  let earliest: string | null = null;
+  for (const value of sources) {
+    const ym = value.slice(0, 7);
+    if (earliest === null || ym < earliest) earliest = ym;
+  }
+  return earliest;
+}
+
 export interface LifetimeCounters {
   sessions: number;
   totalSets: number;

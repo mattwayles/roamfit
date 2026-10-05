@@ -13,7 +13,12 @@ import {
   buildMuscleBalanceRows,
   buildPassportSummary,
   buildProgressionBoard,
+  earliestMonth,
+  monthLabel,
   monthLabelForLocalDate,
+  monthOfLocalDate,
+  monthShortName,
+  shiftMonth,
   nextUnlockHero,
   overWorkedMuscles,
   weekWindow,
@@ -485,5 +490,28 @@ describe('the Today tab\'s "This week" strip window', () => {
   it('addDaysToLocalDate works on local_date strings only', () => {
     expect(addDaysToLocalDate('2026-03-08', 1)).toBe('2026-03-09'); // a US DST change day
     expect(addDaysToLocalDate('2026-01-01', -1)).toBe('2025-12-31');
+  });
+});
+
+describe('Logbook month paging helpers (local_date strings only)', () => {
+  it('shiftMonth crosses year boundaries in both directions', () => {
+    expect(shiftMonth('2026-01', -1)).toBe('2025-12');
+    expect(shiftMonth('2025-12', 1)).toBe('2026-01');
+    expect(shiftMonth('2026-10', -12)).toBe('2025-10');
+    expect(shiftMonth('2026-03', 0)).toBe('2026-03');
+    expect(shiftMonth('2026-02', -14)).toBe('2024-12');
+  });
+
+  it('monthLabel shows the year only outside the current year', () => {
+    expect(monthLabel('2026-09', '2026-10')).toBe('September');
+    expect(monthLabel('2025-12', '2026-10')).toBe('December 2025');
+    expect(monthLabel('2026-09')).toBe('September 2026');
+    expect(monthShortName(9)).toBe('Sep');
+    expect(monthOfLocalDate('2026-09-03')).toBe('2026-09');
+  });
+
+  it('earliestMonth takes the earliest of months and dates, or null when there are none', () => {
+    expect(earliestMonth([])).toBeNull();
+    expect(earliestMonth(['2026-05', '2025-11-20', '2026-01-02'])).toBe('2025-11');
   });
 });

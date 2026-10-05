@@ -17,7 +17,7 @@
  * `useDashboardData`; the only "decisions" made here are layout and what to say about the outcome
  * of a level change.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -34,6 +34,10 @@ import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import {
   buildCalendarWeeks,
+  monthLabel,
+  monthOfLocalDate,
+  monthShortName,
+  shiftMonth,
   WEEKDAY_LABELS,
   type CalendarDay,
   type DayMarker,
@@ -42,6 +46,7 @@ import {
 import { DAY_MARKER_OPTIONS } from '../lib/dayMarkers';
 import { buildSessionHistoryView, formatFullLocalDate } from '../lib/sessionHistory';
 import { useDashboardData } from '../lib/useDashboardData';
+import { useLogbookMonth } from '../lib/useLogbookMonth';
 import { requestLocationPermission } from '../lib/geocode';
 import { makeStyles, radius, space, useTheme } from '../theme';
 import {
@@ -92,7 +97,6 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
   const theme = useTheme();
   const styles = useStyles();
   const { db, library, families } = useStore();
-  const { data, reload } = useDashboardData();
   /** ADR 0012 — one-line result of the last board level-up or level-down. Informational only:
    *  never blocks, never nags, replaced rather than stacked (invariant 4). */
   const [levelUpNotice, setLevelUpNotice] = useState<string | null>(null);
@@ -108,12 +112,21 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
   const [daySheetOpen, setDaySheetOpen] = useState(false);
   /** The tapped day's workouts, loaded on tap (a few indexed reads) rather than for every cell. */
   const [dayCards, setDayCards] = useState<DaySessionCard[]>([]);
+  /** The Logbook month being shown ('YYYY-MM'). Resets to the current month when the tab regains
+   *  focus, except when coming back from a workout opened off this month's day sheet. */
+  const [viewedMonth, setViewedMonth] = useState(() => monthOfLocalDate(nowEngineClock().today));
+  const keepMonthOnFocus = useRef(false);
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const { data, reload } = useDashboardData();
+  const pastMonthDays = useLogbookMonth(viewedMonth, data);
 
   // Reload on every focus, exactly like Today: a level change, a marker or a passport toggle made
   // anywhere must show here immediately.
   useFocusEffect(
     useCallback(() => {
       reload();
+      if (keepMonthOnFocus.current) keepMonthOnFocus.current = false;
+      else setViewedMonth(monthOfLocalDate(nowEngineClock().today));
       setConfirmingLevelUp(null);
       setConfirmingLevelDown(null);
     }, [reload]),
@@ -229,6 +242,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
 
   const openSession = (sessionId: string) => {
     setDaySheetOpen(false);
+    keepMonthOnFocus.current = true;
     navigation.navigate('SessionHistory', { sessionId });
   };
 
@@ -257,7 +271,20 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
     );
   }
 
-  const { stats, user, board, passport, calendarDays, calendarMonthLabel, muscleBalance } = data;
+  const { stats, user, board, passport, muscleBalance } = data;
+  const calendarDays = pastMonthDays ?? data.calendarDays;
+  const currentMonth = monthOfLocalDate(data.todayLocalDate);
+  const firstMonth = data.earliestMonth ?? currentMonth;
+  const atEarliest = viewedMonth <= firstMonth;
+  const atCurrent = viewedMonth >= currentMonth;
+  const pickerYears: number[] = [];
+  for (let y = Number(currentMonth.slice(0, 4)); y >= Number(firstMonth.slice(0, 4)); y -= 1) {
+    pickerYears.push(y);
+  }
+  const pickMonth = (ym: string) => {
+    setViewedMonth(ym);
+    setMonthPickerOpen(false);
+  };
   const lifetime = data.lifetimeCounters;
   const hasSessions = stats.lifetimeSessionCount > 0;
   const isZeroSession = !hasSessions;
@@ -586,7 +613,34 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
           title="Logbook"
           icon="today"
           tone="pine"
-          right={<Chip label={calendarMonthLabel} tone="pine" size="sm" />}
+          right={
+            <View style={styles.monthNav}>
+              <IconButton
+                testID="logbook-prev"
+                icon="back"
+                size="sm"
+                disabled={atEarliest}
+                accessibilityLabel="Previous month"
+                onPress={() => setViewedMonth(shiftMonth(viewedMonth, -1))}
+              />
+              <Chip
+                testID="logbook-month-label"
+                label={monthLabel(viewedMonth, currentMonth)}
+                tone="pine"
+                size="sm"
+                accessibilityLabel={`${monthLabel(viewedMonth)} — choose a month`}
+                onPress={() => setMonthPickerOpen(true)}
+              />
+              <IconButton
+                testID="logbook-next"
+                icon="chevronRight"
+                size="sm"
+                disabled={atCurrent}
+                accessibilityLabel="Next month"
+                onPress={() => setViewedMonth(shiftMonth(viewedMonth, 1))}
+              />
+            </View>
+          }
         />
         {hasSessions ? (
           <View testID="calendar-heatmap" style={styles.calendar}>
@@ -751,6 +805,53 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
       )}
 
       <Sheet
+        visible={monthPickerOpen}
+        onClose={() => setMonthPickerOpen(false)}
+        title="Go to month"
+        testID="month-picker-sheet"
+      >
+        <ScrollView style={styles.daySheetScroll} showsVerticalScrollIndicator={false}>
+          {pickerYears.map((year) => (
+            <View key={year} style={styles.pickerYear}>
+              <Txt variant="eyebrow" color="text3">
+                {year}
+              </Txt>
+              <View style={styles.pickerMonths}>
+                {Array.from({ length: 12 }, (_, i) => {
+                  const ym = `${year}-${String(i + 1).padStart(2, '0')}`;
+                  const count = data.monthCounts.get(ym) ?? 0;
+                  const future = ym > currentMonth;
+                  return (
+                    <PressableScale
+                      key={ym}
+                      testID={`month-option-${ym}`}
+                      disabled={future}
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: future, selected: ym === viewedMonth }}
+                      accessibilityLabel={`${monthLabel(ym)}${count > 0 ? `, ${count} ${count === 1 ? 'workout' : 'workouts'}` : ''}`}
+                      style={[
+                        styles.pickerPill,
+                        ym === viewedMonth && styles.markerOptionCurrent,
+                        future && styles.pickerPillFuture,
+                      ]}
+                      onPress={() => pickMonth(ym)}
+                    >
+                      <Txt variant="bodyStrong" color={future ? 'text3' : 'text'}>
+                        {monthShortName(i + 1)}
+                      </Txt>
+                      <Txt variant="caption" color="text2">
+                        {count > 0 ? String(count) : ' '}
+                      </Txt>
+                    </PressableScale>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </Sheet>
+
+      <Sheet
         visible={daySheetOpen}
         onClose={() => setDaySheetOpen(false)}
         title={editingTitle}
@@ -877,6 +978,21 @@ const useStyles = makeStyles((t) =>
     },
     muscleFill: { height: '100%' },
     muscleSets: { minWidth: 56, maxWidth: 110 },
+    monthNav: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+    pickerYear: { gap: space.sm, marginBottom: space.lg },
+    pickerMonths: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+    pickerPill: {
+      width: '23%',
+      flexGrow: 1,
+      minHeight: 52,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: radius.md,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+    },
+    pickerPillFuture: { opacity: 0.4 },
     daySheetScroll: { flexGrow: 0 },
     sessionCard: {
       flexDirection: 'row',

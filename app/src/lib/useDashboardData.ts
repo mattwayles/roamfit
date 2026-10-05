@@ -35,6 +35,7 @@ import {
   buildMuscleBalanceRows,
   buildPassportSummary,
   buildProgressionBoard,
+  earliestMonth,
   monthLabelForLocalDate,
   weekWindow,
   type CalendarDay,
@@ -58,6 +59,10 @@ export interface DashboardData {
   /** The seven real days (Sun-Sat) of today's week, month boundaries included. */
   weekDays: CalendarDay[];
   calendarMonthLabel: string;
+  /** Completed workouts per 'YYYY-MM' (months with none are absent) — the month picker's counts. */
+  monthCounts: ReadonlyMap<string, number>;
+  /** The first month with a session, hand-set marker or travel signal; null on a fresh install. */
+  earliestMonth: string | null;
   todayLocalDate: string;
   muscleBalance: MuscleBalanceRow[];
   lifetimeCounters: LifetimeCounters;
@@ -114,6 +119,12 @@ export function loadDashboardData(
     manualDayMarkers,
     weekWindow(clock.today),
   );
+  const monthCounts = sessionsRepo.countCompletedSessionsByMonth(db);
+  const earliest = earliestMonth([
+    ...monthCounts.keys(),
+    ...manualDayMarkers.keys(),
+    ...travelLocalDates,
+  ]);
   const muscleBalance = buildMuscleBalanceRows(statsRepo.hardSetsByMuscle14d(db, clock.today));
   const milestones = milestonesRepo.getAllMilestones(db);
   const lifetimeCounters = buildLifetimeCounters(
@@ -136,6 +147,8 @@ export function loadDashboardData(
     calendarDays,
     weekDays,
     calendarMonthLabel: monthLabelForLocalDate(clock.today),
+    monthCounts,
+    earliestMonth: earliest,
     todayLocalDate: clock.today,
     muscleBalance,
     lifetimeCounters,
