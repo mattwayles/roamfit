@@ -204,7 +204,7 @@ Top to bottom:
 
 ### 5.2 Journey (new tab — was Home, bottom half)
 
-The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
+The long-term story. Title `Journey Markers` in `display`, no eyebrow.
 1. **Journey Markers** — 3×2 grid of `StatTile`s in a teal/fern checkerboard (Sets completed, Levels gained and Countries are `fern`, the rest `teal`): Sessions (flame),
    Sets completed (barbell), Personal bests (trophy), Levels gained (trending-up), Places
    (location), Countries (globe). The icon and label say what each counts. Numbers in

@@ -111,6 +111,9 @@ describe('Journey after a completed session', () => {
     // "1" text depending on which exercises the difficulty-eligible pool drew this session, and
     // an unscoped query would then (correctly) fail on ambiguity rather than pin the wrong thing.
     expect(screen.getByTestId('lifetime-counters')).toBeTruthy();
+    // The page opens on its title; the old 'Your journey' eyebrow above it is gone.
+    expect(screen.getByText('Journey Markers')).toBeTruthy();
+    expect(screen.queryByText(/your journey/i)).toBeNull();
     expect(within(screen.getByTestId('lifetime-sessions')).getByText('1')).toBeTruthy();
     // Reading order: the effort counts on top, Levels gained leads the places row.
     const order = screen

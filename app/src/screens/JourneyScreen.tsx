@@ -310,9 +310,6 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
       contentStyle={styles.content}
     >
       <Enter index={next()}>
-        <Txt variant="eyebrow" color="gold">
-          Your journey
-        </Txt>
         <Txt variant="display">Journey Markers</Txt>
       </Enter>
 
