@@ -13,6 +13,9 @@ import {
   topoLoops,
 } from './index';
 import { flat, inDaybreak, ready } from './test-utils';
+import { fitsAt } from '../theme/fitText';
+import { gutter, space } from '../theme/layout';
+import { type } from '../theme/typography';
 
 describe('Card', () => {
   it('plain is a surface with a 1px line border', async () => {
@@ -190,6 +193,36 @@ describe('StatTile', () => {
     expect(screen.getByText('Sessions')).toBeTruthy();
     expect(screen.getByLabelText('Sessions: 42')).toBeTruthy();
     expect(StyleSheet.flatten(screen.getByText('42').props.style).color).toBe(midnight.gold);
+  });
+
+  it('lets the label wrap to two lines instead of truncating', async () => {
+    await render(<StatTile testID="st" value={7} label="Sets completed" />);
+    await ready('st');
+    expect(screen.getByText('Sets completed').props.numberOfLines).toBe(2);
+  });
+
+  it('every Journey Markers label fits two lines of a 3-up tile on the narrowest iPhone', () => {
+    // 375pt screen - 2 x 20 gutter - 2 x 12 gap, split three ways, less 2 x 12 padding and the 1pt
+    // border on each side: ~77.7pt of label width.
+    const width = (375 - 2 * gutter - 2 * space.md) / 3 - 2 * space.md - 2;
+    const e = type.eyebrow;
+    for (const label of [
+      'Sessions',
+      'Sets completed',
+      'Levels gained',
+      'Personal bests',
+      'Places',
+      'Countries',
+    ]) {
+      const input = {
+        text: label,
+        fontFamily: e.fontFamily,
+        fontSize: e.fontSize,
+        letterSpacing: e.letterSpacing,
+        uppercase: true,
+      };
+      expect([label, fitsAt(input, e.fontSize, width, 2)]).toEqual([label, true]);
+    }
   });
 });
 

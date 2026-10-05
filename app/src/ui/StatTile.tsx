@@ -44,7 +44,9 @@ export function StatTile({
       >
         {value}
       </Txt>
-      <Txt variant="eyebrow" color="text3" numberOfLines={1} style={styles.label}>
+      {/* Two lines, not one: in a 3-up grid a 14-letter label ("Sets completed") is wider than
+          the tile on every iPhone, and an ellipsis hides the word that says what is counted. */}
+      <Txt variant="eyebrow" color="text3" numberOfLines={2} style={styles.label}>
         {label}
       </Txt>
     </View>
