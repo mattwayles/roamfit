@@ -33,7 +33,7 @@ export interface Theme {
    *  where a stronger wash drags accent-text-on-tint under 4.5:1 (see theme tests). */
   tints: Record<AccentName, string>;
   gradients: Record<GradientName, GradientColors>;
-  /** Gradient for an accent color (teal, gold, fern, summit have one). */
+  /** Gradient for an accent color (teal, gold, fern, summit, sky have one). */
   accentGradient: Partial<Record<AccentName, GradientColors>>;
   section: { warmup: string; main: string; cooldown: string };
   focus: { upper: string; legs: string; abs: string; full: string; cardio: string };
@@ -126,6 +126,7 @@ export function buildTheme(scheme: Scheme): Theme {
       gold: gradients.golden,
       fern: gradients.fern,
       summit: gradients.summit,
+      sky: gradients.sky,
     },
     section: { warmup: c.gold, main: c.teal, cooldown: c.fern },
     focus,

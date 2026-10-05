@@ -215,15 +215,16 @@ The long-term story. Title `Journey Markers` in `display`, no eyebrow.
    `eyebrow`. Tap a day → the day-marker `Sheet` (same options).
 3. **Trails** (the progression board, renamed in UI copy only). One card per family:
    - Left: family name (`h2`), current exercise (`small`, text2).
-   - A **rung track**: N small nodes on a horizontal line, nodes below current filled summit,
+   - A **rung track**: N small nodes on a horizontal line, nodes below current filled sky,
      current node larger with glow, top node a flag icon (the summit). Label "LEVEL 3 OF 7".
      Mastery = whole track gold + "SUMMIT" chip.
-   - Right: `ProgressRing` (56pt, summit gradient) with the sessions-to-next number inside and
+   - Right: `ProgressRing` (56pt, sky gradient) with the sessions-to-next number inside and
      "to next level" caption beneath — still the loudest thing on the row.
    - An **Adjust** `quiet` button (`board-adjust-${familyId}`) expands the row to reveal the
      existing Too easy / Too hard controls and their two-step confirms, unchanged in behavior.
      Collapsed by default: the board is for looking; adjusting is occasional.
-   - Zero-session explanation and level-up notice keep their copy, styled as a summit-tinted note.
+   - Zero-session explanation and level-up notice keep their copy, styled as a sky-tinted note. The whole Trails section (header, notes, rung
+     track, rings, level line) is `sky`; plum `summit` stays on level-ups elsewhere.
 4. **Passport** — the passport finally has a purpose: **collecting stamps.** Header "PASSPORT"
    with "4 places · 2 countries" and a Share icon button. Body is a wrapping
    grid of `Stamp`s, one per place, titled "Bend, OR, USA" (city, state/province abbreviation when the geocoder

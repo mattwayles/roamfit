@@ -87,6 +87,7 @@ describe('palettes', () => {
       golden: ['#FFB938', '#FFD166'],
       fern: ['#50BF40', '#8DE481'],
       summit: ['#A45CF0', '#D59BFF'],
+      sky: ['#3D8EF5', '#8CC4FF'],
       night: ['#1C2330', '#0B0E13'],
     });
     expect(midnightTheme.tints.teal).toBe('rgba(79,184,196,0.15)');

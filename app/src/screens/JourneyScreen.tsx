@@ -463,13 +463,13 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
           <SectionTitle
             title="Trails"
             icon="flag"
-            tone="summit"
+            tone="sky"
             caption="Every movement has a ladder. Here is where you are on each."
           />
         </Enter>
         {isZeroSession && (
           <View testID="first-session-explanation" style={styles.note}>
-            <Icon name="sparkles" size={18} color="summit" style={styles.noteIcon} />
+            <Icon name="sparkles" size={18} color="sky" style={styles.noteIcon} />
             <Txt variant="small" color="text" style={styles.noteText}>
               You&apos;re starting at the bottom of each trail — tap Adjust on any of them to move a
               level if it&apos;s too easy or too hard.
@@ -479,7 +479,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
         <View testID="progression-board" style={styles.board}>
           {levelUpNotice != null && (
             <View testID="board-level-up-notice" style={styles.note}>
-              <Icon name="trendingUp" size={18} color="summit" style={styles.noteIcon} />
+              <Icon name="trendingUp" size={18} color="sky" style={styles.noteIcon} />
               <Txt variant="small" color="text" style={styles.noteText}>
                 {levelUpNotice}
               </Txt>
@@ -513,7 +513,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                           progress={progress}
                           size={56}
                           stroke={6}
-                          gradient={theme.gradients.summit}
+                          gradient={theme.gradients.sky}
                           accessibilityLabel={`${remaining} ${plural(remaining, 'session', 'sessions')} to next level`}
                         >
                           <Txt variant="h2" testID={`board-sessions-left-${entry.familyId}`}>
@@ -540,7 +540,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                   />
 
                   <View style={styles.levelRow}>
-                    <Txt variant="eyebrow" color={entry.isMastery ? 'gold' : 'summit'}>
+                    <Txt variant="eyebrow" color={entry.isMastery ? 'gold' : 'sky'}>
                       Level {entry.ordinal.n} of {entry.ordinal.of}
                     </Txt>
                     {entry.isMastery ? (
@@ -949,7 +949,7 @@ const useStyles = makeStyles((t) =>
     note: {
       flexDirection: 'row',
       alignItems: 'flex-start',
-      backgroundColor: t.tints.summit,
+      backgroundColor: t.tints.sky,
       borderRadius: radius.md,
       padding: space.md,
     },

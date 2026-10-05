@@ -1,6 +1,6 @@
 /**
  * The Trails "rung track" (DESIGN.md §5.2): one node per level on a horizontal line. Levels
- * below the current one are filled summit, the current one is larger and glows, levels above are
+ * below the current one are filled sky, the current one is larger and glows, levels above are
  * hollow, and the top node is a flag (the summit). At mastery the whole track turns gold and the
  * current node is the flag. Purely a picture of `level n of N` — the words live beside it.
  */
@@ -32,7 +32,7 @@ export function RungTrack({
   const { colors } = theme;
   const total = Math.max(1, count);
   const at = Math.min(Math.max(current, 1), total);
-  const accent = mastery ? colors.gold : colors.summit;
+  const accent = mastery ? colors.gold : colors.sky;
 
   const items: React.ReactNode[] = [];
   for (let i = 0; i < total; i += 1) {

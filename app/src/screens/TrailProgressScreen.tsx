@@ -86,7 +86,7 @@ export default function TrailProgressScreen({ route, navigation }: Props): React
         <Enter index={1}>
           <EmptyState
             icon="trendingUp"
-            tone="summit"
+            tone="sky"
             title="Your progress starts here"
             body="Finish a workout with this trail in it and the chart fills in."
           />

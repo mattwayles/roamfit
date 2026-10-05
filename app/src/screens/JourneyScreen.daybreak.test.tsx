@@ -12,7 +12,7 @@ import { inDaybreak } from '../ui/test-utils';
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
 describe('Journey in Daybreak', () => {
-  it('tints notes with the Daybreak summit, draws rung nodes in deep summit, and cards on paper', async () => {
+  it('tints notes with the Daybreak sky, draws rung nodes in deep sky, and cards on paper', async () => {
     render(
       inDaybreak(
         <StoreProvider>
@@ -29,12 +29,12 @@ describe('Journey in Daybreak', () => {
     await waitFor(() => expect(screen.getByTestId('journey-screen')).toBeTruthy(), WAIT_OPTS);
 
     const note = StyleSheet.flatten(screen.getByTestId('first-session-explanation').props.style);
-    expect(note.backgroundColor).toBe(daybreakTheme.tints.summit);
+    expect(note.backgroundColor).toBe(daybreakTheme.tints.sky);
 
     const id = familyLibrary.families[0]!.id;
     const row = StyleSheet.flatten(screen.getByTestId(`board-row-${id}`).props.style);
     expect(row.backgroundColor).toBe(daybreak.surface);
     const node = StyleSheet.flatten(screen.getByTestId(`board-track-${id}-node-0`).props.style);
-    expect(node.backgroundColor).toBe(daybreak.summit);
+    expect(node.backgroundColor).toBe(daybreak.sky);
   });
 });

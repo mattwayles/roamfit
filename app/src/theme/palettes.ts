@@ -97,7 +97,7 @@ export const vivid: Record<AccentName, string> = {
   rose: midnight.rose,
 };
 
-export type GradientName = 'trail' | 'golden' | 'fern' | 'summit' | 'night';
+export type GradientName = 'trail' | 'golden' | 'fern' | 'summit' | 'sky' | 'night';
 export type GradientColors = readonly [string, string];
 
 export const midnightGradients: Record<GradientName, GradientColors> = {
@@ -109,6 +109,8 @@ export const midnightGradients: Record<GradientName, GradientColors> = {
   fern: ['#50BF40', '#8DE481'],
   /** Level ups, progression rings. */
   summit: ['#A45CF0', '#D59BFF'],
+  /** Trails: the sessions-to-next-level rings. */
+  sky: ['#3D8EF5', '#8CC4FF'],
   /** Subtle card sheen, top -> bottom. */
   night: ['#1C2330', '#0B0E13'],
 };
@@ -119,6 +121,7 @@ export const daybreakGradients: Record<GradientName, GradientColors> = {
   golden: ['#8F5A00', '#A46D00'],
   fern: ['#1C6911', '#248217'],
   summit: ['#6A22A0', '#8E3BC4'],
+  sky: ['#164FA6', '#2669C9'],
   /** Card sheen: surface -> bg. */
   night: ['#FFFDF8', '#F6F0E4'],
 };

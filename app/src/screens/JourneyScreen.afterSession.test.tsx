@@ -144,6 +144,12 @@ describe('Journey after a completed session', () => {
     expect(screen.getByTestId('muscle-balance')).toBeTruthy();
     expect(screen.getByTestId('calendar-heatmap')).toBeTruthy();
 
+    // Trails wear sky, not plum: a row's level line is sky until Mastery turns it gold.
+    const level = within(screen.getByTestId('board-row-horizontal_push')).getByText(
+      /^Level \d+ of \d+$/,
+    );
+    expect(StyleSheet.flatten(level.props.style).color).toBe(midnight.sky);
+
     // Section order: Journey Markers, then the Logbook, then Trails.
     const tree = JSON.stringify(screen.toJSON());
     const at = (id: string) => tree.indexOf(`"testID":"${id}"`);
