@@ -316,7 +316,8 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
         <Txt variant="display">Journey Markers</Txt>
       </Enter>
 
-      {/* §14.1.8 lifetime counters — monotonic, permanent. */}
+      {/* §14.1.8 lifetime counters — monotonic, permanent. All six share the primary; the icon and
+          label tell them apart, so the row reads as one set of markers rather than six categories. */}
       <Enter index={next()} style={styles.section}>
         {hasSessions ? (
           <View testID="lifetime-counters" style={styles.tiles}>
@@ -343,7 +344,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                 value={lifetime.levelsGained}
                 label="Levels gained"
                 icon="trendingUp"
-                tone="summit"
+                tone="teal"
               />
             </View>
             <View style={styles.tileRow}>
@@ -353,7 +354,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                 value={lifetime.bestSets}
                 label="Personal bests"
                 icon="trophy"
-                tone="gold"
+                tone="teal"
               />
               <StatTile
                 testID="lifetime-places"
@@ -361,7 +362,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                 value={lifetime.places}
                 label="Places"
                 icon="location"
-                tone="sky"
+                tone="teal"
               />
               <StatTile
                 testID="lifetime-countries"
@@ -369,7 +370,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                 value={lifetime.countries}
                 label="Countries"
                 icon="globe"
-                tone="fern"
+                tone="teal"
               />
             </View>
           </View>

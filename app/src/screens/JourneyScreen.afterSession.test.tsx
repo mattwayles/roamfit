@@ -8,6 +8,7 @@
  * same data, and checks Journey reloads on focus.
  */
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
@@ -20,6 +21,7 @@ import {
 } from '@roamfit/store';
 import { createRng, seedFromString } from '@roamfit/engine';
 import RootNavigator from '../navigation/RootNavigator';
+import { midnight } from '../theme/palettes';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 
@@ -110,6 +112,11 @@ describe('Journey after a completed session', () => {
     // an unscoped query would then (correctly) fail on ambiguity rather than pin the wrong thing.
     expect(screen.getByTestId('lifetime-counters')).toBeTruthy();
     expect(within(screen.getByTestId('lifetime-sessions')).getByText('1')).toBeTruthy();
+    // Every Journey Marker tile wears the primary; icon and label tell them apart.
+    for (const id of ['sessions', 'sets', 'levels', 'personal-bests', 'places', 'countries']) {
+      const value = screen.getByTestId(`lifetime-${id}-value`);
+      expect([id, StyleSheet.flatten(value.props.style).color]).toEqual([id, midnight.teal]);
+    }
     expect(screen.getByTestId('muscle-balance')).toBeTruthy();
     expect(screen.getByTestId('calendar-heatmap')).toBeTruthy();
 
