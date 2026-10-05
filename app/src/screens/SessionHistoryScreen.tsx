@@ -15,7 +15,7 @@ import { useStore } from '../state/StoreContext';
 import { EmptyState } from '../components/EmptyState';
 import { buildSessionHistoryView } from '../lib/sessionHistory';
 import { makeStyles, space } from '../theme';
-import { Card, Chip, Enter, Icon, PressableScale, Screen, SectionHeader, Txt } from '../ui';
+import { Button, Card, Chip, Enter, Icon, PressableScale, Screen, SectionHeader, Txt } from '../ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SessionHistory'>;
 
@@ -86,32 +86,51 @@ export default function SessionHistoryScreen({ route, navigation }: Props): Reac
           <SectionHeader title={section.title} testID={`history-section-${section.section}`} />
           <Card padding="none" style={styles.rows}>
             {section.rows.map((row, r) => (
-              <PressableScale
-                key={row.entryId}
-                testID={`history-row-${row.entryId}`}
-                accessibilityRole="button"
-                accessibilityLabel={`${row.name}. ${row.setsText || row.skippedNote || ''}. Open exercise`}
-                onPress={() =>
-                  navigation.navigate('ExerciseDetail', { exerciseId: row.exerciseId })
-                }
-                style={[styles.row, r > 0 && styles.rowDivider]}
-              >
-                <View style={styles.rowText}>
-                  <Txt variant="bodyStrong">{row.name}</Txt>
-                  {row.setsText ? (
-                    <Txt testID={`history-sets-${row.entryId}`} variant="body" color="text2">
-                      {row.setsText}
-                      {row.band ? ` · ${row.band}` : ''}
-                    </Txt>
-                  ) : null}
-                  {row.skippedNote ? (
-                    <Txt testID={`history-skipped-${row.entryId}`} variant="caption" color="text3">
-                      {row.skippedNote}
-                    </Txt>
-                  ) : null}
-                </View>
-                <Icon name="chevronRight" size={18} color="text3" />
-              </PressableScale>
+              <View key={row.entryId} style={[styles.row, r > 0 && styles.rowDivider]}>
+                <PressableScale
+                  testID={`history-row-${row.entryId}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${row.name}. ${row.setsText || row.skippedNote || ''}. Open exercise`}
+                  onPress={() =>
+                    navigation.navigate('ExerciseDetail', { exerciseId: row.exerciseId })
+                  }
+                  style={styles.rowMain}
+                >
+                  <View style={styles.rowText}>
+                    <Txt variant="bodyStrong">{row.name}</Txt>
+                    {row.setsText ? (
+                      <Txt testID={`history-sets-${row.entryId}`} variant="body" color="text2">
+                        {row.setsText}
+                        {row.band ? ` · ${row.band}` : ''}
+                      </Txt>
+                    ) : null}
+                    {row.skippedNote ? (
+                      <Txt
+                        testID={`history-skipped-${row.entryId}`}
+                        variant="caption"
+                        color="text3"
+                      >
+                        {row.skippedNote}
+                      </Txt>
+                    ) : null}
+                  </View>
+                  <Icon name="chevronRight" size={18} color="text3" />
+                </PressableScale>
+                {row.familyId ? (
+                  <Button
+                    testID={`history-trail-${row.entryId}`}
+                    label="Trail"
+                    variant="quiet"
+                    size="sm"
+                    icon="chevronRight"
+                    iconRight
+                    accessibilityLabel={`${row.name} trail progress`}
+                    onPress={() =>
+                      navigation.navigate('TrailProgress', { familyId: row.familyId! })
+                    }
+                  />
+                ) : null}
+              </View>
             ))}
           </Card>
         </Enter>
@@ -129,7 +148,10 @@ const useStyles = makeStyles((t) =>
     note: { gap: space.xs },
     section: { gap: space.sm },
     rows: { overflow: 'hidden' },
-    row: {
+    row: { flexDirection: 'row', alignItems: 'center', paddingRight: space.sm },
+    rowMain: {
+      flex: 1,
+      minWidth: 0,
       flexDirection: 'row',
       alignItems: 'center',
       gap: space.md,

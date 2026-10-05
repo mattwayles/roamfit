@@ -35,6 +35,9 @@ export type RootStackParamList = {
   ExerciseDetail: { exerciseId: string };
   /** A finished workout, read-only: what was done, set by set. Reached from the Logbook day sheet. */
   SessionHistory: { sessionId: string };
+  /** One movement group's progress over time (best-set chart, rung changes, its exercises). Keyed
+   *  by the stable family id. Reached from a Trail card and from the history page. */
+  TrailProgress: { familyId: string };
 };
 
 /** Props for a screen registered on the root stack: `RootScreenProps<'Workout'>`. */

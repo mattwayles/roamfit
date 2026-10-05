@@ -9,6 +9,7 @@ import SummaryScreen from '../screens/SummaryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import SessionHistoryScreen from '../screens/SessionHistoryScreen';
+import TrailProgressScreen from '../screens/TrailProgressScreen';
 import { useTheme } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -47,6 +48,8 @@ export default function RootNavigator(): React.JSX.Element {
         component={SessionHistoryScreen}
         options={{ title: '' }}
       />
+      {/* A movement group over time, read-only. Draws its own title. */}
+      <Stack.Screen name="TrailProgress" component={TrailProgressScreen} options={{ title: '' }} />
     </Stack.Navigator>
   );
 }

@@ -487,17 +487,31 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                       correct it. Collapsed behind Adjust: looking is the common case, adjusting is
                       occasional. Nothing to offer up at the top of a ladder (§6.7 Mastery) or down
                       at the bottom. */}
-                  <Button
-                    testID={`board-adjust-${entry.familyId}`}
-                    label="Adjust"
-                    variant="quiet"
-                    size="sm"
-                    icon={open ? 'chevronUp' : 'chevronDown'}
-                    iconRight
-                    accessibilityLabel={`Adjust ${entry.familyName} level`}
-                    onPress={() => toggleAdjust(entry.familyId)}
-                    style={styles.adjust}
-                  />
+                  <View style={styles.trailActions}>
+                    <Button
+                      testID={`board-adjust-${entry.familyId}`}
+                      label="Adjust"
+                      variant="quiet"
+                      size="sm"
+                      icon={open ? 'chevronUp' : 'chevronDown'}
+                      iconRight
+                      accessibilityLabel={`Adjust ${entry.familyName} level`}
+                      onPress={() => toggleAdjust(entry.familyId)}
+                      style={styles.adjust}
+                    />
+                    <Button
+                      testID={`board-trail-progress-${entry.familyId}`}
+                      label="Progress"
+                      variant="quiet"
+                      size="sm"
+                      icon="chevronRight"
+                      iconRight
+                      accessibilityLabel={`${entry.familyName} progress over time`}
+                      onPress={() =>
+                        navigation.navigate('TrailProgress', { familyId: entry.familyId })
+                      }
+                    />
+                  </View>
 
                   {open ? (
                     <View style={styles.adjustPanel}>
@@ -950,7 +964,8 @@ const useStyles = makeStyles((t) =>
     ringBlock: { alignItems: 'center', width: 84 },
     ringCaption: { marginTop: space.xs },
     levelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    adjust: { alignSelf: 'flex-start', marginLeft: -space.sm },
+    trailActions: { flexDirection: 'row', alignItems: 'center', marginLeft: -space.sm },
+    adjust: { alignSelf: 'flex-start' },
     adjustPanel: { gap: space.sm },
     confirmBox: {
       backgroundColor: t.colors.surface2,
