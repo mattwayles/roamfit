@@ -83,9 +83,9 @@ describe('ladderPosition', () => {
         ?.position,
     ).toBe(0);
     // A skipped set on an otherwise heavier-band session keeps the band credit.
-    expect(
-      at('horizontal_push.l5', { band: 'B2', bestReps: 8, setsCompleted: 2 })?.position,
-    ).toBe(L5_FLOOR + 5);
+    expect(at('horizontal_push.l5', { band: 'B2', bestReps: 8, setsCompleted: 2 })?.position).toBe(
+      L5_FLOOR + 5,
+    );
   });
 
   it('clamps above the caps to what the ladder would credit', () => {
@@ -118,8 +118,16 @@ describe('ladderPosition', () => {
   });
 
   it('time-metric band exercise still steps band then pace (banded plank)', () => {
-    const plankL4 = at('anti_extension.l4', { bestReps: null, bestSeconds: 20, band: 'B1' }, plank)!;
-    const plankB2 = at('anti_extension.l4', { bestReps: null, bestSeconds: 20, band: 'B2' }, plank)!;
+    const plankL4 = at(
+      'anti_extension.l4',
+      { bestReps: null, bestSeconds: 20, band: 'B1' },
+      plank,
+    )!;
+    const plankB2 = at(
+      'anti_extension.l4',
+      { bestReps: null, bestSeconds: 20, band: 'B2' },
+      plank,
+    )!;
     expect(plankB2.position).toBe(plankL4.position + 26);
   });
 

@@ -114,6 +114,24 @@ describe('layoutChart', () => {
     expect(l.markers[0].label).toBe('L4');
     expect(l.markers[0].x).toBeCloseTo((l.points[0].x + l.points[1].x) / 2, 5);
   });
+
+  it('carries a marker kind through, defaulting to rung', () => {
+    const l = layoutChart(
+      [
+        { localDate: '2026-01-01', value: 1 },
+        { localDate: '2026-01-11', value: 2 },
+      ],
+      [
+        { localDate: '2026-01-04', label: 'L4' },
+        { localDate: '2026-01-06', label: 'B3', kind: 'band' },
+      ],
+      box,
+    );
+    expect(l.markers.map((m) => [m.label, m.kind])).toEqual([
+      ['L4', 'rung'],
+      ['B3', 'band'],
+    ]);
+  });
 });
 
 describe('nearestPointIndex / paths', () => {

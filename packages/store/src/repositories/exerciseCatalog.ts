@@ -161,8 +161,24 @@ function heavier(a: BandId | null, b: BandId | null): BandId | null {
 export function getExercisePerformanceHistory(
   db: Db,
   exerciseId: string,
-): ExerciseSessionPerformance[] {
-  return foldPerformance(db, entriesWhere(db, eq(schema.sessionEntries.exerciseId, exerciseId)));
+): ExerciseHistoryPerformance[] {
+  return foldPerformance(
+    db,
+    entriesWhere(db, eq(schema.sessionEntries.exerciseId, exerciseId)),
+    (entry) => ({
+      progressionFamilyId: entry.progressionFamilyId,
+      progressionLevelIdAtTime: entry.progressionLevelIdAtTime,
+    }),
+  );
+}
+
+/** One session of one exercise, with the ladder slot it ran in (null for work outside any ladder:
+ *  warm-ups, cool-downs, approval-time additions). Lets the Progress chart place the session. */
+export interface ExerciseHistoryPerformance extends ExerciseSessionPerformance {
+  /** `session_entries.progression_family_id` of the session's first entry for this exercise. */
+  progressionFamilyId: string | null;
+  /** `session_entries.progression_level_id_at_time` — a stable level id (invariant 5). */
+  progressionLevelIdAtTime: string | null;
 }
 
 /** One session's worth of a progression family's work, with which exercise ran and at which rung. */
@@ -201,6 +217,7 @@ function entriesWhere(db: Db, where: ReturnType<typeof eq>) {
       id: schema.sessionEntries.id,
       sessionId: schema.sessionEntries.sessionId,
       exerciseId: schema.sessionEntries.exerciseId,
+      progressionFamilyId: schema.sessionEntries.progressionFamilyId,
       progressionLevelIdAtTime: schema.sessionEntries.progressionLevelIdAtTime,
       orderIndex: schema.sessionEntries.orderIndex,
       band: schema.sessionEntries.band,

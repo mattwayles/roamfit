@@ -21,6 +21,9 @@ export interface SeriesPoint {
 export interface ChartMarker {
   localDate: string;
   label: string;
+  /** `rung` (default): a level change, labelled above the plot. `band`: the band changed, labelled
+   *  inside the plot so the two kinds never fight for the same space. */
+  kind?: 'rung' | 'band';
 }
 
 export interface ChartBox {
@@ -55,7 +58,7 @@ export interface ChartLayout {
   points: PlacedPoint[];
   runs: Run[];
   yTicks: Tick[];
-  markers: { x: number; label: string; localDate: string }[];
+  markers: { x: number; label: string; localDate: string; kind: 'rung' | 'band' }[];
   /** First/last dates on the axis (inclusive of markers inside the range). */
   startDate: string | null;
   endDate: string | null;
@@ -148,7 +151,12 @@ export function layoutChart(
   const placedMarkers = markers
     .map((m) => ({ m, d: dayNumber(m.localDate) }))
     .filter(({ d }) => Number.isFinite(d) && d >= minDay && d <= maxDay)
-    .map(({ m, d }) => ({ x: xOf(d), label: m.label, localDate: m.localDate }));
+    .map(({ m, d }) => ({
+      x: xOf(d),
+      label: m.label,
+      localDate: m.localDate,
+      kind: m.kind ?? ('rung' as const),
+    }));
 
   return {
     points,

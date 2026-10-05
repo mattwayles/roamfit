@@ -1,9 +1,9 @@
 ## Track: 29 — Ladder-position "Progress" chart + band-aware Best set
 Last updated: 2026-10-05
 ### Done
-- [x] 1. Engine ladderPosition + 14 tests (commit below; sha filled in next increment)
+- [x] 1. Engine ladderPosition + 14 tests (a01f529)
 ### In progress
-- Increment 2: store fields + app lib builders.
+- Increment 2 (committing store+chartGeometry+ladderSeries; trailProgress.ts/test rewrite is held for increment 3 with its component): store (done in tree: getExercisePerformanceHistory now returns progressionFamilyId/progressionLevelIdAtTime) + app lib: new app/src/lib/ladderSeries.ts (buildLadderSeries, buildBestSetSeries, rung markers), chartGeometry ChartMarker.kind ('rung'|'band'), trailProgress.ts and exerciseProgress.ts consume them. ProgressChart gets optional `describeValue(index)` for the readout ("8 reps @ B3") and draws band ticks inside the plot. Decisions: best-set segment = (exercise, band) pair in order of first appearance; Progress line is ONE colour, unbroken except gaps for unplaceable sessions; no rung markers on exercise detail.
 ### Next
 2. Store: add progressionFamilyId/progressionLevelIdAtTime to per-exercise history (+tests); app lib builders for the Progress series and band-aware best-set series (trail + exercise).
 3. Trail card UI: Progress / Best set toggle (Progress default), rename TrailBestSetChart -> TrailProgressChart.

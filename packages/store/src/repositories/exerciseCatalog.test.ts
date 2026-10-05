@@ -241,7 +241,29 @@ describe('getExercisePerformanceHistory', () => {
         band: 'B2',
         restSec: 60,
         tempoSec: 3,
+        progressionFamilyId: null,
+        progressionLevelIdAtTime: null,
       },
+    ]);
+  });
+
+  it('carries the ladder slot (family and stable level id) the session ran in', () => {
+    const { db } = createTestDb();
+    const s1 = insertSession(db, { localDate: '2026-08-01', status: 'completed' });
+    const s2 = insertSession(db, { localDate: '2026-08-08', status: 'completed' });
+    const e1 = insertEntry(db, s1, { exerciseId: EXERCISE_ID, familyId: 'fam', levelId: 'lvl-a' });
+    const e2 = insertEntry(db, s2, { exerciseId: EXERCISE_ID });
+    insertSet(db, e1, { setIndex: 0, reps: 8 });
+    insertSet(db, e2, { setIndex: 0, reps: 9 });
+
+    expect(
+      getExercisePerformanceHistory(db, EXERCISE_ID).map((p) => [
+        p.progressionFamilyId,
+        p.progressionLevelIdAtTime,
+      ]),
+    ).toEqual([
+      ['fam', 'lvl-a'],
+      [null, null],
     ]);
   });
 
