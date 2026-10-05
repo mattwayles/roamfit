@@ -77,7 +77,7 @@ describe('palettes', () => {
       teal: '#4FB8C4',
       tealDeep: '#2E8C98',
       gold: '#FFB938',
-      fern: '#FF8A5C',
+      fern: '#68CF59',
       sky: '#5AA9FF',
       summit: '#C77DFF',
       rose: '#FF5C93',
@@ -85,7 +85,7 @@ describe('palettes', () => {
     expect(midnightTheme.gradients).toEqual({
       trail: ['#3FA9B6', '#62CBD5'],
       golden: ['#FFB938', '#FFD166'],
-      fern: ['#F07040', '#FFA27A'],
+      fern: ['#50BF40', '#8DE481'],
       summit: ['#A45CF0', '#D59BFF'],
       night: ['#1C2330', '#0B0E13'],
     });
@@ -177,6 +177,14 @@ describe('accent hues stay apart', () => {
       }
     },
   );
+  it.each([
+    ['Midnight', midnight],
+    ['Daybreak', daybreak],
+  ] as const)('%s: fern sits in the middle of the gold-teal gap', (_n, p) => {
+    // That stretch of the wheel is the emptiest; fern is placed at its midpoint (within 2 degrees).
+    const mid = (hue(p.gold) + hue(p.teal)) / 2;
+    expect(Math.abs(hue(p.fern) - mid)).toBeLessThanOrEqual(2);
+  });
 });
 
 describe('buildTheme', () => {

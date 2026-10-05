@@ -50,13 +50,14 @@ the record of what was completed and why.
 - **Midnight Green recolor — device pass owed.** Track 28 (`docs/handoff/STATUS-28-midnight-green.md`)
   replaced the teal green with Midnight Green (`teal`/`tealDeep`: Midnight `#4FB8C4`/`#2E8C98`, Daybreak
   `#004C54`/`#003A40`), made the old teal `lagoon` a blue-violet `periwinkle`, then pulled it and `summit` away from `sky`
-  (track 28b: `summit` is plum `#C77DFF` / `#7E2BB0`, `periwinkle` became warm `coral` `#FF8A5C` / `#B04219`),
+  (track 28b: `summit` is plum `#C77DFF` / `#7E2BB0`; `periwinkle` became `coral`, then track 28d made it
+  `fern` `#68CF59` / `#217515`, a leaf green at hue 112.5, the exact middle of the gold-teal gap),
   and renamed the themes Midnight (dark) and Daybreak (light). Jest-verified only (contrast floors hold).
-  On a device, in both themes: (1) coral against Daybreak's brass gold (`#8F5A00`, only ~22 degrees of
-  hue) and against rose (Cardio) — Countries (coral) vs Personal bests (gold) tiles, the cooldown rail
-  (coral) vs the warm-up rail (gold), Full-body (coral) vs Abs (gold) vs Cardio (rose) chips; plum
-  (summit) vs rose; the rest ring, now warm coral; sky vs teal (Travel-day vs Main rail) and the
-  Journey tiles Levels gained (plum) / Places (sky) / Countries (coral) now read as three colors;
+  On a device, in both themes: (1) fern is a green again — check it reads as a calm secondary, not as
+  the retired pine primary; fern vs the Spotify button (`#1db954`, ~29 degrees away); the rest ring,
+  cooldown rail, Full-body chip and Countries tile in fern; plum (summit) vs rose; sky vs teal
+  (Travel-day vs Main rail); the Journey tiles Levels gained (plum) / Places (sky) / Countries (fern)
+  read as three colors;
   the `sun` accent is gone (it duplicated gold): Sets completed now shares teal with Sessions, the
   Midnight Completion stamp headline and Today hero pill text are gold, and the confetti, orbs and
   rays lost their pale yellow — check the celebration still feels warm enough;

@@ -45,3 +45,15 @@ Last updated: 2026-10-05
   pill text, stamp fill and decoration — gold covers all of it. The six-tile grid was the real
   constraint; retoning tiles beat adding a colour.
 - Contrast tests lost their sun exemptions: every accent now holds 4.5:1 everywhere they check.
+
+## Track: 28d — coral -> fern (middle of the gold-teal gap)
+Last updated: 2026-10-05
+### Done
+- [x] dec4a78 pure rename coral -> fern (values unchanged).
+- [x] fern values: Midnight #68CF59 (hue 112.4, ink 9.8:1), Daybreak #217515 (hue 112.5, white 5.8:1, bg 5.1:1,
+  own tint 4.58:1); gradients Midnight #50BF40 -> #8DE481, Daybreak #1C6911 -> #248217. Test pins fern
+  within 2 degrees of the gold-teal midpoint (Midnight 112.52, Daybreak 111.74).
+### Decisions / gotchas
+- User asked for the most isolated hue: gold 38.9 -> teal 186.2 was a 147-degree gap. With coral gone the
+  rose -> gold gap (59 degrees) opens up instead; still the second largest, nothing to fix.
+- Fern is a green ~26 degrees yellower than the retired pine primary (#4FD176, ~138). User chose it.

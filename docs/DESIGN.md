@@ -46,13 +46,13 @@ lineStrong:'#3A4558'
 text:      '#F7F3EA'
 text2:     '#B4BCC8'   // secondary
 text3:     '#7C8696'   // muted / captions / disabled
-ink:       '#170B03'   // text ON bright accent fills (teal/gold/coral). Never white on teal.
+ink:       '#170B03'   // text ON bright accent fills (teal/gold/fern). Never white on teal.
 
 // Accents
 teal:     '#4FB8C4'   // primary (Midnight Green's light complement): action, work, "go"
 tealDeep: '#2E8C98'
 gold:      '#FFB938'   // warm-up, achievements, best sets, notes
-coral:    '#FF8A5C'   // rest, recovery, cool-down, calm
+fern:     '#68CF59'   // rest, recovery, cool-down, calm; hue 112.5 = middle of the gold-teal gap
 sky:       '#5AA9FF'   // travel / in transit / passport
 summit:    '#C77DFF'   // plum: progression, levels, ladders
 rose:      '#FF5C93'   // cardio focus ONLY — never an error/negative state
@@ -61,8 +61,8 @@ rose:      '#FF5C93'   // cardio focus ONLY — never an error/negative state
 **Semantic maps** (export these; screens use the semantic name, not the accent):
 
 ```ts
-section:  { warmup: gold, main: teal, cooldown: coral }
-focus:    { upper: teal, legs: summit, abs: gold, full: coral, cardio: rose }
+section:  { warmup: gold, main: teal, cooldown: fern }
+focus:    { upper: teal, legs: summit, abs: gold, full: fern, cardio: rose }
 setState: { completed: teal, skipped: text3 (outline only), not_reached: line (dashed) }
 dayMarker:{ trained: <focus color>, travel: sky, quick: gold }
 ```
@@ -79,7 +79,7 @@ and badge backgrounds.
 ```ts
 trail: ['#3FA9B6', '#62CBD5']   // THE primary CTA + Ignition hero. 135°.
 golden:  ['#FFB938', '#FFD166']   // achievements, best sets
-coral:  ['#F07040', '#FFA27A']   // rest ring, recovery
+fern:   ['#50BF40', '#8DE481']   // rest ring, recovery
 summit:  ['#A45CF0', '#D59BFF']   // level ups, progression rings
 night:   ['#1C2330', '#0B0E13']   // subtle card sheen, top→bottom
 ```
@@ -186,7 +186,7 @@ Top to bottom:
 1. **Header row** — `ROAMFIT` wordmark (`h1`, teal) with a time-of-day greeting under it
    ("Good morning" / "Good afternoon" / "Good evening", `small`, text2). Gear `IconButton` right.
 2. **Banners** (comeback / travel-suggest / recovery week) as compact `Card`s with a leading
-   icon in a tinted circle (sky for travel, coral for recovery/comeback). Same copy & actions.
+   icon in a tinted circle (sky for travel, fern for recovery/comeback). Same copy & actions.
 3. **Hero card** (`Card variant="hero"`, trail gradient + TopoPattern, ~220pt tall):
    - No pending session: eyebrow `TODAY`, `display` "READY TO MOVE?", `small` "Pick your time,
      focus and gear — we'll build the rest." and an embedded dark pill button
@@ -207,7 +207,7 @@ Top to bottom:
 The long-term story. Eyebrow `YOUR JOURNEY`, title `h1`.
 1. **Lifetime** — 3×2 grid of `StatTile`s: Sessions (flame, teal), Minutes (time, gold),
    Levels gained (trending-up, summit), Personal bests (trophy, gold), Places (location, sky),
-   Countries (globe, coral). Numbers in `hero`-size condensed.
+   Countries (globe, fern). Numbers in `hero`-size condensed.
 2. **Trails** (the progression board, renamed in UI copy only). One card per family:
    - Left: family name (`h2`), current exercise (`small`, text2).
    - A **rung track**: N small nodes on a horizontal line, nodes below current filled summit,
@@ -279,7 +279,7 @@ Should feel like choosing your adventure.
 - **Boarding-pass header** `Card`: left column big `display` focus name; right columns `eyebrow`
   labels over `h1` values — MIN (the live estimate), LEVEL (difficulty), MOVES (exercise count).
   A dashed perforation line with half-circle notches cut into both card edges, then the §5.8
-  explanation text in `small` text2 below. Swap notice shows as a coral toast/pill.
+  explanation text in `small` text2 below. Swap notice shows as a fern toast/pill.
 - **Route timeline**: each section (Warm-up / Main / Cool-down) gets a section chip in its
   section color; its exercises hang off a 2px vertical rail in that color with a node dot per
   card. Cards keep every existing control (drag handle, swap, remove, sets/reps/duration/rest
@@ -326,13 +326,13 @@ gradient on section color track) with the `mega` countdown inside and "SEC" eyeb
 below ("Tap to start" / "Tap to finish early"). −/+ duration buttons flank the ring before it
 starts. Final 3 seconds: ring and numeral `pulse`, light haptic each second.
 
-**Rest phase** — the whole hero shifts to the **coral** mood (coral gradient border, coral
+**Rest phase** — the whole hero shifts to the **fern** mood (fern gradient border, fern
 ring) so rest is unmistakable at a glance from across a room:
 - Eyebrow `REST`, a line from the rest pool ("Shake it out.") in `h2`.
-- 220pt coral `ProgressRing` with the countdown in `mega`.
+- 220pt fern `ProgressRing` with the countdown in `mega`.
 - −15s / +15s / Skip as secondary pill buttons.
 - "How did that set feel?" + FeedbackControls as a 3-segment control (text labels kept;
-  Too easy = coral, Just right = teal, Too hard = summit when selected — no red).
+  Too easy = fern, Just right = teal, Too hard = summit when selected — no red).
 - `Button lg primary` "NEXT".
 - **Up next** `Card`: eyebrow `UP NEXT`, name `h2`, anchor + band chips, How-to and demo (open).
 
@@ -375,7 +375,7 @@ here at all.
 
 - **Background**: `bg` night base with the drifting glow orbs recolored to **teal and
   gold** (two gold orbs; big, soft, ~35–45% opacity) so the whole screen reads as a warm sunset bloom, not a
-  flat color. Optional third orb in coral at low opacity for depth.
+  flat color. Optional third orb in fern at low opacity for depth.
 - **Sunburst rays**: gold at two low opacities, still spinning.
 - **Hype headline**: keeps the stamp-in, word-by-word slam and bounce. Barlow Condensed 800,
   `display`/`hero` scale, uppercase; words in `text` with the accent word in `gold` (`stamp.fill`), and a teal
@@ -390,7 +390,7 @@ here at all.
   ("LEVEL UP" in teal / "BEST SET" in gold) on the left stamps in on the reveal; level bar
   fills with the `trail` gradient; share is an `IconButton` (share icon), not violet text.
 - **Quiet milestones**: small gold `Chip`s, wrapping.
-- **Confetti**: same physics, cannons and pops, palette → teal, tealDeep, gold, coral,
+- **Confetti**: same physics, cannons and pops, palette → teal, tealDeep, gold, fern,
   sky, rose, `text` white. No violet.
 - **"Heck yes! 💪"**: keeps its entrance and endless pulse, now `Button lg primary` (trail
   gradient, `ink` text, glow) — the pulse should also breathe the glow.
@@ -442,7 +442,7 @@ Nothing ships on the old look. Beyond the screens above, the redesign covers:
   dark pill, Spotify green is allowed *only* as the logo/brand dot; its browse sheet is vibe chips
   over Favorites / Recently played / Fresh picks sections, with a heart on every playlist row), `FeedbackControls`,
   `HighlightCard`, `AnimatedStatCounter`, `HypeHeadline`, `CelebrationBackdrop`, `ConfettiBurst`
-  (palette → teal/gold/summit/coral/sky), `OptionPicker` (restyle or delete if unused).
+  (palette → teal/gold/summit/fern/sky), `OptionPicker` (restyle or delete if unused).
 - **Keyboard accessories** (Summary "Done", Workout/Approval inputs): `surface2` bar with an
   teal "Done".
 - **Native chrome**: `app.json` `userInterfaceStyle: "dark"`, splash `backgroundColor` = `bg`,
@@ -522,7 +522,7 @@ text3: '#6B6052'   //  5.4:1 — still AA, because "muted" outdoors is "invisibl
 teal:     '#004C54'   // Midnight Green; 8.6:1 on bg; white on it 9.7:1
 tealDeep: '#003A40'
 gold:      '#8F5A00'   // brass — reads as gold on paper, unlike a yellow
-coral:    '#B04219'   // 5.8:1 white, 5.1:1 on bg, 4.7:1 on surface2
+fern:     '#217515'   // 5.8:1 white, 5.1:1 on bg, 4.6:1 on its own tint
 sky:       '#1A5FC2'
 summit:    '#7E2BB0'   // plum; 7.3:1 white, 6.5:1 on bg, 6.0:1 on surface2
 rose:      '#BF1D63'   // still cardio-only, still never an error
@@ -550,7 +550,7 @@ gradient text is large/bold):
 ```ts
 trail: ['#003F46', '#0A5C66']
 golden:  ['#8F5A00', '#A46D00']
-coral:  ['#A63C16', '#C0521F']
+fern:   ['#1C6911', '#248217']
 summit:  ['#6A22A0', '#8E3BC4']
 night:   ['#FFFDF8', '#F6F0E4']   // card sheen: surface -> bg
 ```
@@ -570,7 +570,7 @@ night:   ['#FFFDF8', '#F6F0E4']   // card sheen: surface -> bg
   `Switch` thumb is `fixedPaper` plus `elevation.card` (Daybreak `text` is ink, which would make a
   black thumb).
 - **Tints are 8% alpha in Daybreak** (15% on Midnight): at 15%, accent text on its own tint over
-  `bg` falls to 3.9–4.3:1 for teal/gold/coral/sky/rose; at 8% every accent holds ≥ 4.5:1 over
+  `bg` falls to 3.9–4.3:1 for teal/gold/fern/sky/rose; at 8% every accent holds ≥ 4.5:1 over
   `surface` and `bg`. Asserted in `themes.test.ts`. Teal's Daybreak `#004C54` holds 7.5:1 on its own 8% tint over `bg`.
 - **Calendar day cells fill with the vivid hue.** A deep accent washed over paper goes muddy (the
   Logbook read as greyed-out at 20%), so Daybreak `dayCell[tone]` = `vivid` at 40% alpha, bordered

@@ -30,7 +30,8 @@ export const midnight = {
   teal: '#4FB8C4',
   tealDeep: '#2E8C98',
   gold: '#FFB938',
-  fern: '#FF8A5C',
+  /** The exact middle of the gold-teal gap (hue 112.5), the emptiest stretch of the wheel. */
+  fern: '#68CF59',
   sky: '#5AA9FF',
   summit: '#C77DFF',
   /** Cardio focus ONLY — never an error/negative state. */
@@ -78,7 +79,7 @@ export const daybreak: Palette = {
   tealDeep: '#003A40',
   /** Brass — reads as gold on paper, unlike a yellow. */
   gold: '#8F5A00',
-  fern: '#B04219',
+  fern: '#217515',
   sky: '#1A5FC2',
   summit: '#7E2BB0',
   rose: '#BF1D63',
@@ -105,7 +106,7 @@ export const midnightGradients: Record<GradientName, GradientColors> = {
   /** Achievements, best sets. */
   golden: ['#FFB938', '#FFD166'],
   /** Rest ring, recovery. */
-  fern: ['#F07040', '#FFA27A'],
+  fern: ['#50BF40', '#8DE481'],
   /** Level ups, progression rings. */
   summit: ['#A45CF0', '#D59BFF'],
   /** Subtle card sheen, top -> bottom. */
@@ -116,7 +117,7 @@ export const midnightGradients: Record<GradientName, GradientColors> = {
 export const daybreakGradients: Record<GradientName, GradientColors> = {
   trail: ['#003F46', '#0A5C66'],
   golden: ['#8F5A00', '#A46D00'],
-  fern: ['#A63C16', '#C0521F'],
+  fern: ['#1C6911', '#248217'],
   summit: ['#6A22A0', '#8E3BC4'],
   /** Card sheen: surface -> bg. */
   night: ['#FFFDF8', '#F6F0E4'],
