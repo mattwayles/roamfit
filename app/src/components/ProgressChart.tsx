@@ -5,7 +5,9 @@
  * - y gridlines are labelled in the chart's own unit; grid and axes are recessive (`line`/`text3`).
  * - Tap near a point to read its date and value underneath (a nearest-point tap on the whole plot,
  *   so the target is the full chart height rather than a 6px dot).
- * - Optional `markers` draw dashed vertical ticks with a short label (e.g. "L4" for a level change).
+ * - Optional `markers` draw dashed vertical ticks with a short label. A `rung` marker ("L4", a level
+ *   change) is labelled above the plot; a `band` marker ("B3", the band changed) is labelled inside
+ *   the plot beside its tick, in the quieter text tone, so the two never fight for space.
  * - Optional `segments` (a `segment` index per point) colour the line per exercise / rung; the
  *   colours come from `segmentTones`, in fixed order, never cycled by rank.
  * - Width comes from `onLayout`; nothing is drawn until it is measured (a 0-wide SVG logs NaN).
@@ -48,6 +50,8 @@ export interface ProgressChartProps {
   segmentTones?: readonly AccentName[];
   /** Optional readout text for a tapped point (e.g. to name the exercise). */
   describePoint?: (index: number) => string | null;
+  /** Replaces `formatValue` in the tap readout for one point ("8 reps @ B3"); null falls back. */
+  describeValue?: (index: number) => string | null;
   height?: number;
   testID?: string;
 }
@@ -65,6 +69,7 @@ export function ProgressChart({
   zeroBase = false,
   segmentTones = SEGMENT_TONES,
   describePoint,
+  describeValue,
   height = 180,
   testID = 'progress-chart',
 }: ProgressChartProps): React.JSX.Element {
@@ -96,8 +101,9 @@ export function ProgressChart({
   const sel = selected !== null && selected < points.length ? points[selected] : null;
   const selNote = sel && selected !== null ? describePoint?.(selected) : null;
 
-  // Marker labels are skipped when they would sit on top of the previous one.
+  // Marker labels are skipped when they would sit on top of the previous one (per kind).
   let lastLabelX = -Infinity;
+  let lastBandLabelX = -Infinity;
 
   return (
     <View testID={testID} style={styles.wrap}>
@@ -135,8 +141,13 @@ export function ProgressChart({
               ))}
 
               {layout.markers.map((m, i) => {
-                const showLabel = m.x - lastLabelX >= 26;
-                if (showLabel) lastLabelX = m.x;
+                const isBand = m.kind === 'band';
+                const showLabel = isBand ? m.x - lastBandLabelX >= 22 : m.x - lastLabelX >= 26;
+                if (showLabel) {
+                  if (isBand) lastBandLabelX = m.x;
+                  else lastLabelX = m.x;
+                }
+                const nearRight = m.x > layout.plot.x1 - 24;
                 return (
                   <React.Fragment key={`${m.localDate}-${i}`}>
                     <Line
@@ -144,17 +155,17 @@ export function ProgressChart({
                       x2={m.x}
                       y1={layout.plot.y0 - 4}
                       y2={layout.plot.y1}
-                      stroke={theme.colors.lineStrong}
+                      stroke={isBand ? theme.colors.line : theme.colors.lineStrong}
                       strokeWidth={1}
                       strokeDasharray="3 3"
                     />
                     {showLabel ? (
                       <SvgText
-                        x={m.x}
-                        y={layout.plot.y0 - 7}
+                        x={isBand ? m.x + (nearRight ? -3 : 3) : m.x}
+                        y={isBand ? layout.plot.y0 + 10 : layout.plot.y0 - 7}
                         fontSize={10}
-                        textAnchor="middle"
-                        fill={theme.colors.text2}
+                        textAnchor={isBand ? (nearRight ? 'end' : 'start') : 'middle'}
+                        fill={isBand ? theme.colors.text3 : theme.colors.text2}
                       >
                         {m.label}
                       </SvgText>
@@ -227,7 +238,7 @@ export function ProgressChart({
       </View>
       <Txt testID={`${testID}-readout`} variant="caption" color={sel ? 'text2' : 'text3'}>
         {sel
-          ? `${formatLocalDate(sel.localDate)} · ${formatValue(sel.value)}${selNote ? ` · ${selNote}` : ''}`
+          ? `${formatLocalDate(sel.localDate)} · ${(selected !== null ? describeValue?.(selected) : null) ?? formatValue(sel.value)}${selNote ? ` · ${selNote}` : ''}`
           : points.length > 1
             ? 'Tap the chart to see a session'
             : ' '}

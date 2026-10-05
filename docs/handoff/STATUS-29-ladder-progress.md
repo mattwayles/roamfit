@@ -2,12 +2,11 @@
 Last updated: 2026-10-05
 ### Done
 - [x] 1. Engine ladderPosition + 14 tests (a01f529)
+- [x] 2. Store fields + lib/ladderSeries + marker kind (82c94d8)
 ### In progress
-- Increment 2 (committing store+chartGeometry+ladderSeries; trailProgress.ts/test rewrite is held for increment 3 with its component): store (done in tree: getExercisePerformanceHistory now returns progressionFamilyId/progressionLevelIdAtTime) + app lib: new app/src/lib/ladderSeries.ts (buildLadderSeries, buildBestSetSeries, rung markers), chartGeometry ChartMarker.kind ('rung'|'band'), trailProgress.ts and exerciseProgress.ts consume them. ProgressChart gets optional `describeValue(index)` for the readout ("8 reps @ B3") and draws band ticks inside the plot. Decisions: best-set segment = (exercise, band) pair in order of first appearance; Progress line is ONE colour, unbroken except gaps for unplaceable sessions; no rung markers on exercise detail.
+- Increment 3 (committing): trailProgress.ts rewrite, TrailBestSetChart renamed TrailProgressChart (Progress/Best set Chip toggle, testIDs board-chart-*, board-chart-plot-*, board-chart-mode-*), ProgressChart band ticks + describeValue, Journey tests updated.
 ### Next
-2. Store: add progressionFamilyId/progressionLevelIdAtTime to per-exercise history (+tests); app lib builders for the Progress series and band-aware best-set series (trail + exercise).
-3. Trail card UI: Progress / Best set toggle (Progress default), rename TrailBestSetChart -> TrailProgressChart.
-4. Exercise detail UI: Progress / Best set / Total volume (Progress only when placeable sessions exist).
+4. Exercise detail UI: Progress / Best set / Total volume (Progress only when buildExerciseLadder returns non-null; else default Best set). Use buildExerciseBestSeries + buildExerciseLadder from lib/ladderSeries.ts; families via familyLibrary on the screen (see progressionLabel).
 5. Docs: DESIGN.md, BACKLOG.md device-pass item.
 ### Decisions / gotchas
 - Problem: band step-up with fewer reps read as a decline on a reps-only chart; the engine treats it as a step forward.

@@ -75,4 +75,28 @@ describe.each([
     await measure();
     expect(screen.getByLabelText('Best set: no data')).toBeTruthy();
   });
+
+  it('draws band ticks with their label and lets describeValue replace the readout value', async () => {
+    await render(
+      wrap(
+        chart({
+          markers: [
+            { localDate: '2026-02-10', label: 'B3', kind: 'band' },
+            { localDate: '2026-10-01', label: 'L4', kind: 'rung' },
+          ],
+          describeValue: (i: number) => (i === 1 ? '8 reps @ B3' : null),
+        }),
+      ),
+    );
+    await ready('progress-chart-area');
+    await measure();
+    await fireEvent.press(screen.getByTestId('progress-chart-touch'), {
+      nativeEvent: { locationX: 150 },
+    });
+    expect(screen.getByTestId('progress-chart-readout')).toHaveTextContent('Feb 10 · 8 reps @ B3');
+    await fireEvent.press(screen.getByTestId('progress-chart-touch'), {
+      nativeEvent: { locationX: 1 },
+    });
+    expect(screen.getByTestId('progress-chart-readout')).toHaveTextContent('Jan 4 · 2 reps');
+  });
 });

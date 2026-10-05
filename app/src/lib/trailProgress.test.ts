@@ -10,16 +10,17 @@ const family = {
   name: 'Horizontal push',
   pattern: 'push',
   levels: [
-    { level_id: 'lv_z', exercise_ids: ['wall'], micro_exercise_id: 'wall' },
-    { level_id: 'lv_a', exercise_ids: ['knee'], micro_exercise_id: 'knee' },
-    { level_id: 'lv_m', exercise_ids: ['hold'], micro_exercise_id: 'hold' },
+    { level_id: 'lv_z', exercise_ids: ['wall'], anchor_exercise_id: 'wall' },
+    { level_id: 'lv_a', exercise_ids: ['knee'], anchor_exercise_id: 'knee' },
+    { level_id: 'lv_m', exercise_ids: ['hold'], anchor_exercise_id: 'hold' },
   ],
 } as unknown as ProgressionFamily;
 
 const exercises = [
-  { id: 'wall', name: 'Wall push-up' },
-  { id: 'knee', name: 'Knee push-up' },
-  { id: 'hold', name: 'Plank hold' },
+  { id: 'wall', name: 'Wall push-up', metric: 'reps', equipment: 'bodyweight', band: null },
+  { id: 'knee', name: 'Knee push-up', metric: 'reps', equipment: 'bodyweight', band: null },
+  { id: 'hold', name: 'Plank hold', metric: 'time', equipment: 'bodyweight', band: null },
+  { id: 'band', name: 'Banded press', metric: 'reps', equipment: 'band', band: 'B1-B2' },
 ] as unknown as Exercise[];
 
 let n = 0;
@@ -58,6 +59,10 @@ describe('buildTrailProgress', () => {
       perf({ localDate: '2026-01-15', exerciseId: 'knee', level: 'lv_a', bestReps: 6 }),
     ]);
     expect(t.points.map((p) => p.segment)).toEqual([0, 0, 1]);
+    expect(t.legend).toEqual([
+      { label: 'Wall push-up', segment: 0 },
+      { label: 'Knee push-up', segment: 1 },
+    ]);
     expect(t.pointExercise).toEqual(['Wall push-up', 'Wall push-up', 'Knee push-up']);
     expect(t.exercises.map((e) => [e.name, e.sessions, e.summary])).toEqual([
       ['Wall push-up', 2, '8 reps → 12 reps'],
@@ -73,7 +78,7 @@ describe('buildTrailProgress', () => {
       perf({ localDate: '2026-01-22', exerciseId: 'knee', level: 'lv_a', bestReps: 7 }),
     ]);
     // lv_a is the 2nd rung even though its id sorts first alphabetically.
-    expect(t.markers).toEqual([{ localDate: '2026-01-15', label: 'L2' }]);
+    expect(t.markers).toEqual([{ localDate: '2026-01-15', label: 'L2', kind: 'rung' }]);
   });
 
   it('charts the dominant unit and leaves other-unit sessions as gaps', () => {
@@ -108,5 +113,44 @@ describe('buildTrailProgress', () => {
       perf({ localDate: '2026-05-08', exerciseId: 'wall', level: 'lv_z', bestReps: 5 }),
     ]);
     expect(t.markers).toEqual([]);
+  });
+
+  it('puts a band step-up with fewer reps higher on the Progress ladder and breaks Best set there', () => {
+    const bandFamily = {
+      id: 'horizontal_push',
+      name: 'Horizontal push',
+      pattern: 'push',
+      levels: [{ level_id: 'lv_b', exercise_ids: ['band'], anchor_exercise_id: 'band' }],
+    } as unknown as ProgressionFamily;
+    const t = buildTrailProgress(bandFamily, exercises, [
+      perf({
+        localDate: '2026-04-01',
+        exerciseId: 'band',
+        level: 'lv_b',
+        bestReps: 12,
+        band: 'B1',
+        tempoSec: 3,
+        restSec: 45,
+      }),
+      perf({
+        localDate: '2026-04-08',
+        exerciseId: 'band',
+        level: 'lv_b',
+        bestReps: 8,
+        band: 'B2',
+        tempoSec: 3,
+        restSec: 45,
+      }),
+    ]);
+    // Best set drops 12 -> 8 but is a new run labelled B2 ...
+    expect(t.points.map((p) => [p.value, p.segment])).toEqual([
+      [12, 0],
+      [8, 1],
+    ]);
+    expect(t.markers).toEqual([{ localDate: '2026-04-08', label: 'B2', kind: 'band' }]);
+    expect(t.pointBand).toEqual(['B1', 'B2']);
+    // ... while Progress goes up.
+    expect(t.ladder.points.map((p) => p.value)).toEqual([4, 5]);
+    expect(t.ladder.labels[1]).toBe('Rung 1 · B2 × 8 reps · 3 sets');
   });
 });

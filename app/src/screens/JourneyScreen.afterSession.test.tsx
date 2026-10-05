@@ -150,8 +150,11 @@ describe('Journey after a completed session', () => {
     );
     expect(StyleSheet.flatten(level.props.style).color).toBe(midnight.sky);
 
-    // A trail the finished session worked now draws its best-set chart right on its card.
-    expect(screen.queryAllByTestId(/^board-best-chart-/).length).toBeGreaterThan(0);
+    // A trail the finished session worked now draws its chart right on its card, with the
+    // Progress / Best set toggle (Progress is the default).
+    expect(screen.queryAllByTestId(/^board-chart-plot-/).length).toBeGreaterThan(0);
+    expect(screen.queryAllByTestId(/^board-chart-mode-progress-/).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('Progress per session').length).toBeGreaterThan(0);
 
     // Section order: Journey Markers, then the Logbook, then Trails.
     const tree = JSON.stringify(screen.toJSON());

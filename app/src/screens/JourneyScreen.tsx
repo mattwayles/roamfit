@@ -70,7 +70,7 @@ import {
 import { DayCell } from '../components/DayCell';
 import { EmptyState } from '../components/EmptyState';
 import { RungTrack } from '../components/RungTrack';
-import { TrailBestSetChart } from '../components/TrailBestSetChart';
+import { TrailProgressChart } from '../components/TrailProgressChart';
 import { SectionTitle } from '../components/SectionTitle';
 
 type Props = TabScreenProps<'Journey'>;
@@ -569,7 +569,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
                     </Txt>
                   ) : null}
 
-                  {chart ? <TrailBestSetChart familyId={entry.familyId} progress={chart} /> : null}
+                  {chart ? <TrailProgressChart familyId={entry.familyId} progress={chart} /> : null}
 
                   {/* ADR 0012 — raise or drop the rung from the board, before generating anything.
                       The board is where a ladder position is actually shown, and a level is a

@@ -1,22 +1,26 @@
 /**
  * A movement group ("Trail") over time: the store's family performance history turned into the
- * best-set chart drawn on each Trail card on Journey. Pure, like `exerciseProgress.ts` — the caller
- * reads, this derives.
+ * two charts drawn on each Trail card on Journey. Pure, like `exerciseProgress.ts` — the caller
+ * reads, this derives (`lib/ladderSeries.ts` builds the series).
  *
- * - **Best-set series** across every rung, one point per session, `segment` = which exercise ran
- *   (so the line changes colour when the ladder moves onto a new exercise).
+ * - **Progress** (the default): each session's position on the engine's micro ladder, so a band
+ *   step-up that costs reps reads as a step forward, with rung ticks.
+ * - **Best set**: reps/seconds per session across every rung, band-aware — the line breaks and
+ *   changes colour where the band (or exercise) changes, with band ticks beside the rung ticks.
  * - **Level-change markers** where the stable `level_id` differs between consecutive sessions
  *   (ids compared, never array indices — invariant 5; the label is the engine's `levelOrdinal`).
- * - **Units**: a rung change can switch reps <-> seconds. The dominant unit is charted and the
- *   other unit's sessions are *left out*, with the line broken there (`gapBefore`) rather than
- *   mixing units on one axis or plotting a fake zero.
+ * - **Units**: a rung change can switch reps <-> seconds. The dominant unit is charted for Best
+ *   set and the other unit's sessions are *left out*, with the line broken there (`gapBefore`)
+ *   rather than mixing units on one axis or plotting a fake zero.
  */
-import { levelOrdinal } from '@roamfit/engine';
 import type { Exercise, ProgressionFamily } from '@roamfit/data';
 import type { exerciseCatalogRepo } from '@roamfit/store';
+import type { BandId } from '@roamfit/engine';
 import type { ChartMarker, SeriesPoint } from './chartGeometry';
 import { unitLabel } from './exerciseProgress';
 import type { ProgressUnit } from './exerciseProgress';
+import { buildBestSetSeries, buildLadderSeries } from './ladderSeries';
+import type { SeriesSession } from './ladderSeries';
 
 type FamilyPerformance = exerciseCatalogRepo.FamilySessionPerformance;
 
@@ -26,30 +30,34 @@ export interface TrailExerciseRow {
   sessions: number;
   /** "8 reps → 12 reps", "12 reps", or "Logged" when no set carried a number. */
   summary: string;
-  /** Segment index this exercise has on the chart (its colour). */
-  segment: number;
 }
 
 export interface TrailProgress {
   sessions: number;
   firstDate: string | null;
   latestDate: string | null;
-  /** The charted unit; null when no session carried a measured set. */
+  /** The Best set chart's unit; null when no session carried a measured set. */
   unit: ProgressUnit | null;
-  /** Best set per session in `unit`, oldest first. */
+  /** Best set per session in `unit`, oldest first; `segment` = (exercise, band) colour. */
   points: SeriesPoint[];
   /** Exercise name for each entry of `points` (same order). */
   pointExercise: string[];
+  /** Band for each entry of `points` (null for bodyweight work). */
+  pointBand: (BandId | null)[];
+  /** Rung ticks plus band ticks for the Best set chart. */
   markers: ChartMarker[];
-  /** One per exercise that has run on this trail, in order of first appearance (the legend). */
+  /** One per segment colour on the Best set chart (the legend). */
+  legend: { label: string; segment: number }[];
+  /** Ladder-position series for the Progress chart; empty when no session could be placed. */
+  ladder: {
+    points: SeriesPoint[];
+    labels: string[];
+    pointExercise: string[];
+    markers: ChartMarker[];
+  };
+  /** One per exercise that has run on this trail, in order of first appearance. */
   exercises: TrailExerciseRow[];
 }
-
-const rungOf = (family: ProgressionFamily, levelId: string | null): number | null => {
-  if (!levelId) return null;
-  const { n } = levelOrdinal(family, levelId);
-  return n >= 1 ? n : null;
-};
 
 /** The unit most of the sessions were logged in; reps win a tie (the common case). */
 export function dominantUnit(history: readonly FamilyPerformance[]): ProgressUnit | null {
@@ -66,74 +74,59 @@ export function buildTrailProgress(
 ): TrailProgress {
   const nameOf = (id: string) => exercises.find((e) => e.id === id)?.name ?? id;
   const unit = dominantUnit(history);
-  const valueOf = (p: FamilyPerformance) =>
-    unit === 'reps' ? p.bestReps : unit === 'seconds' ? p.bestSeconds : null;
-
-  // Segment index per exercise, in order of first appearance, so a colour belongs to the exercise.
-  const segmentOf = new Map<string, number>();
-  for (const p of history)
-    if (!segmentOf.has(p.exerciseId)) segmentOf.set(p.exerciseId, segmentOf.size);
-
-  const points: SeriesPoint[] = [];
-  const pointExercise: string[] = [];
-  let skipped = false;
-  for (const p of history) {
-    const v = valueOf(p);
-    if (v === null) {
-      if (points.length > 0) skipped = true;
-      continue;
-    }
-    points.push({
-      localDate: p.localDate,
-      value: v,
-      segment: segmentOf.get(p.exerciseId) ?? 0,
-      gapBefore: skipped,
-    });
-    pointExercise.push(nameOf(p.exerciseId));
-    skipped = false;
-  }
-
-  const markers: ChartMarker[] = [];
-  let prevLevel: string | null = null;
-  for (const p of history) {
-    const level = p.progressionLevelIdAtTime;
-    if (level && prevLevel && level !== prevLevel) {
-      const n = rungOf(family, level);
-      if (n !== null) markers.push({ localDate: p.localDate, label: `L${n}` });
-    }
-    if (level) prevLevel = level;
-  }
+  const sessions: SeriesSession[] = history.map((p) => ({
+    localDate: p.localDate,
+    exerciseId: p.exerciseId,
+    exerciseName: nameOf(p.exerciseId),
+    levelId: p.progressionLevelIdAtTime,
+    bestReps: p.bestReps,
+    bestSeconds: p.bestSeconds,
+    band: p.band,
+    tempoSec: p.tempoSec,
+    restSec: p.restSec,
+    setsCompleted: p.setsCompleted,
+  }));
+  const best = buildBestSetSeries(sessions, unit, family);
+  const ladder = buildLadderSeries(family, exercises, sessions);
 
   const rows: TrailExerciseRow[] = [];
-  for (const [exerciseId, segment] of segmentOf) {
-    const mine = history.filter((p) => p.exerciseId === exerciseId);
+  const seen = new Set<string>();
+  for (const p of history) {
+    if (seen.has(p.exerciseId)) continue;
+    seen.add(p.exerciseId);
+    const mine = history.filter((q) => q.exerciseId === p.exerciseId);
     const exUnit = dominantUnit(mine);
     const vals = mine
-      .map((p) => (exUnit === 'reps' ? p.bestReps : exUnit === 'seconds' ? p.bestSeconds : null))
+      .map((q) => (exUnit === 'reps' ? q.bestReps : exUnit === 'seconds' ? q.bestSeconds : null))
       .filter((v): v is number => v !== null);
     let summary = 'Logged';
     if (exUnit && vals.length > 0) {
       const first = vals[0];
-      const best = Math.max(...vals);
+      const top = Math.max(...vals);
       summary =
-        best > first
-          ? `${unitLabel(exUnit, first)} → ${unitLabel(exUnit, best)}`
-          : unitLabel(exUnit, best);
+        top > first
+          ? `${unitLabel(exUnit, first)} → ${unitLabel(exUnit, top)}`
+          : unitLabel(exUnit, top);
     }
-    rows.push({ exerciseId, name: nameOf(exerciseId), sessions: mine.length, summary, segment });
+    rows.push({
+      exerciseId: p.exerciseId,
+      name: nameOf(p.exerciseId),
+      sessions: mine.length,
+      summary,
+    });
   }
-
-  const firstDate = history[0]?.localDate ?? null;
-  const latestDate = history.length > 0 ? history[history.length - 1].localDate : null;
 
   return {
     sessions: history.length,
-    firstDate,
-    latestDate,
+    firstDate: history[0]?.localDate ?? null,
+    latestDate: history.length > 0 ? history[history.length - 1].localDate : null,
     unit,
-    points,
-    pointExercise,
-    markers,
+    points: best.points,
+    pointExercise: best.pointExercise,
+    pointBand: best.pointBand,
+    markers: best.markers,
+    legend: best.legend,
+    ladder,
     exercises: rows,
   };
 }
