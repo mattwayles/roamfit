@@ -220,9 +220,19 @@ The long-term story. Title `Journey Markers` in `display`, no eyebrow.
      Mastery = whole track gold + "SUMMIT" chip.
    - Right: `ProgressRing` (56pt, sky gradient) with the sessions-to-next number inside and
      "to next level" caption beneath — still the loudest thing on the row.
-   - **Best set per session**: once the trail has a measured session, a 140pt `ProgressChart` sits
-     under the level line — one line across every rung, coloured per exercise with a legend when
-     more than one has run, dashed ticks where the ladder moved up. There is no separate trail page.
+   - **Chart** (`TrailProgressChart`): once the trail has a measured session, a 140pt
+     `ProgressChart` sits under the level line with a small **Progress / Best set** `Chip` toggle
+     (sky, `board-chart-mode-*`); Progress is the default. There is no separate trail page.
+     - **Progress**: each session's position on the engine's micro ladder (`ladderPosition`:
+       cumulative steps, reps -> band -> tempo -> rest -> sets -> next rung), so a heavier band
+       with fewer reps reads as a step forward. One colour, one line, dashed rung ticks ("L3");
+       tap readout "Rung 3 · B3 × 8 reps · 3 sets" (bodyweight: no band; timed: seconds).
+       Unplaceable sessions are a gap, never a zero. It may dip if a session was performed lower
+       and is drawn without any decline styling.
+     - **Best set**: reps or seconds. The line breaks and changes colour wherever the band (or
+       exercise) changes, with a legend per colour, a dashed tick labelled with the band ("B3",
+       quieter text, drawn inside the plot) beside the rung ticks, and a readout "8 reps @ B3".
+     - The toggle is hidden (Best set only) when no session can be placed on the ladder.
    - An **Adjust** `quiet` button (`board-adjust-${familyId}`) expands the row to reveal the
      existing Too easy / Too hard controls and their two-step confirms, unchanged in behavior.
      Collapsed by default: the board is for looking; adjusting is occasional.
@@ -254,8 +264,11 @@ The long-term story. Title `Journey Markers` in `display`, no eyebrow.
   `display`, subtitle and aliases beneath.
 - Two `StatTile`s: Times completed, Last performed.
 - Pinned note (gold-tinted sticky-note card).
-- Sections as `Card`s with an icon + eyebrow header: How to, Demo, Progress (chart bars use the
-  trail gradient, gain lines use `Chip`s), Details.
+- Sections as `Card`s with an icon + eyebrow header: How to, Demo, Progress (chart toggle
+  **Progress / Best set / Total volume**, gain lines use `Chip`s), Details. Progress (ladder
+  position, as on the Trail cards) leads only for an exercise on a progression family with
+  placeable sessions; warm-ups and cool-downs have no ladder, so they hide it and open on Best set.
+  Best set is band-aware here too (new colour and a band tick at each band change, "8 reps @ B3").
 - **Details** as a 2-column spec grid of small `surface2` tiles (eyebrow label, `bodyStrong`
   value) instead of a long label/value list. Library id stays last, `caption`.
 - Enable/disable as a `Switch` row at the bottom with its existing explanatory subtext.

@@ -24,10 +24,19 @@ the record of what was completed and why.
   was not run — `dataviz`'s validator was not run on the five accent tones), and the Best set /
   Total volume toggle; (2) the Logbook day sheet's height with 2 sessions and 8 markers (does it
   scroll or clip?); (3) the month picker's pill touch targets (12 per year row) and ‹ › paging
-  speed through many months, including a multi-year jump; (4) the best-set chart on each Trail card
+  speed through many months, including a multi-year jump; (4) the chart on each Trail card
   (eight 140pt charts make Trails a long scroll — check it still reads as a ladder, and that a tap on a
   chart doesn't fight the page scroll), including a family that crossed a reps/seconds rung (the line
-  should break, not plot a zero); the history row "Trail ›" now just opens Journey. Then the same in airplane mode.
+  should break, not plot a zero); the history row "Trail ›" now just opens Journey; (5) the new
+  **Progress** chart (Track 29, `docs/handoff/STATUS-29-ladder-progress.md`, Jest-verified only) on a
+  real band step-up: it should read as progress (the point rises) where Best set shows reps drop
+  and a new colour with a band tick; check the Progress / Best set toggle on Trail cards and the
+  three-way toggle on Exercise detail (Progress hidden for warm-ups), the in-plot band labels
+  ("B3") not colliding with rung labels or dots at phone width, and the "Rung 3 · B3 × 8 reps ·
+  3 sets" readout. Left out on purpose: no rung ticks on Exercise detail; Progress counts a
+  band sibling at a bodyweight-anchored rung by reps/pace only (mirrors the frozen-band bug
+  above); a session's tempo/rest are the prescribed values, not measured. Then the same in
+  airplane mode.
 - **Exercise-feedback modal — device pass owed.** Track 26: "How did those N sets of NAME feel?" is
   asked once, in a `Sheet` over the rest timer after an exercise's last set (Settings → Training →
   "Ask how each set felt", default on; off = the same question inline on that rest page). One answer
