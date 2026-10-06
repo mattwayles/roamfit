@@ -223,16 +223,23 @@ The long-term story. Title `Journey Markers` in `display`, no eyebrow.
    - **Chart** (`TrailProgressChart`): once the trail has a measured session, a 140pt
      `ProgressChart` sits under the level line with a small **Progress / Best set** `Chip` toggle
      (sky, `board-chart-mode-*`); Progress is the default. There is no separate trail page.
-     - **Progress**: each session's position on the engine's micro ladder (`ladderPosition`:
-       cumulative steps, reps -> band -> tempo -> rest -> sets -> next rung), so a heavier band
-       with fewer reps reads as a step forward. One colour, one line, dashed rung ticks ("L3");
-       tap readout "Rung 3 · B3 × 8 reps · 3 sets" (bodyweight: no band; timed: seconds).
-       Unplaceable sessions are a gap, never a zero. It may dip if a session was performed lower
-       and is drawn without any decline styling.
-     - **Best set**: reps or seconds. The line breaks and changes colour wherever the band (or
-       exercise) changes, with a legend per colour, a dashed tick labelled with the band ("B3",
-       quieter text, drawn inside the plot) beside the rung ticks, and a readout "8 reps @ B3".
-     - The toggle is hidden (Best set only) when no session can be placed on the ladder.
+     - **One graph per level.** Two levels never share a line: moving up a rung means a harder
+       exercise and fewer reps, which read as a regression even with a tick marking it. A pager
+       row above the plot titles the page "Level 2 · Pull-up" (`h3`, anchor exercise) over
+       "4 sessions · Jan 4 – Feb 1" (`caption`, `text3`), with plain `sm` ‹ › `IconButton`s
+       (`board-level-prev/next-*`, disabled — `text3` — at either end, hidden when only one level
+       has sessions). Pages are the levels with sessions, easiest → hardest; the card opens on
+       the level of the latest session. The chosen mode carries across pages.
+     - **Progress**: steps up this level (`ladderPosition().stepsInRung`: reps -> band -> tempo
+       -> rest -> sets), zero-based, so a heavier band with fewer reps reads as a step forward.
+       One colour, one line; tap readout "Rung 3 · B3 × 8 reps · 3 sets" (bodyweight: no band;
+       timed: seconds). Unplaceable sessions are a gap, never a zero. It may dip if a session was
+       performed lower and is drawn without any decline styling.
+     - **Best set**: reps or seconds at this level. The line breaks and changes colour wherever
+       the band (or sibling exercise) changes, with a legend per colour, a dashed tick labelled
+       with the band ("B3", quieter text, drawn inside the plot), and a readout "8 reps @ B3".
+     - The toggle is hidden (Best set only) on a level where no session can be placed on the
+       ladder; a level with no counted sets says so in a `caption` instead of an empty plot.
    - An **Adjust** `quiet` button (`board-adjust-${familyId}`) expands the row to reveal the
      existing Too easy / Too hard controls and their two-step confirms, unchanged in behavior.
      Collapsed by default: the board is for looking; adjusting is occasional.

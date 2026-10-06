@@ -88,10 +88,15 @@ export function steps(n: number): string {
   return `${n} ${n === 1 ? 'step' : 'steps'}`;
 }
 
+/**
+ * `withinRung` plots each session's steps up its own rung (`stepsInRung`, 0 at the rung's floor)
+ * instead of the cumulative ladder position — for a graph that shows one level only.
+ */
 export function buildLadderSeries(
   family: ProgressionFamily,
   library: readonly Exercise[],
   sessions: readonly SeriesSession[],
+  { withinRung = false }: { withinRung?: boolean } = {},
 ): LadderSeries {
   const out: LadderSeries = {
     points: [],
@@ -118,7 +123,11 @@ export function buildLadderSeries(
     const anchor = exerciseForLevel(family, placed.levelId, library);
     const unit: ProgressUnit = anchor?.metric === 'time' ? 'seconds' : 'reps';
     const value = (unit === 'seconds' ? s.bestSeconds : s.bestReps) ?? 0;
-    out.points.push({ localDate: s.localDate, value: placed.position, gapBefore: skipped });
+    out.points.push({
+      localDate: s.localDate,
+      value: withinRung ? placed.stepsInRung : placed.position,
+      gapBefore: skipped,
+    });
     out.labels.push(ladderLabel(placed.rung, s.band, unit, value, s.setsCompleted));
     out.pointExercise.push(s.exerciseName);
     skipped = false;

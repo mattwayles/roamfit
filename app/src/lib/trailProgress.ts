@@ -1,26 +1,32 @@
 /**
  * A movement group ("Trail") over time: the store's family performance history turned into the
- * two charts drawn on each Trail card on Journey. Pure, like `exerciseProgress.ts` — the caller
- * reads, this derives (`lib/ladderSeries.ts` builds the series).
+ * charts drawn on each Trail card on Journey. Pure, like `exerciseProgress.ts` — the caller reads,
+ * this derives (`lib/ladderSeries.ts` builds the series).
  *
- * - **Progress** (the default): each session's position on the engine's micro ladder, so a band
- *   step-up that costs reps reads as a step forward, with rung ticks.
- * - **Best set**: reps/seconds per session across every rung, band-aware — the line breaks and
- *   changes colour where the band (or exercise) changes, with band ticks beside the rung ticks.
- * - **Level-change markers** where the stable `level_id` differs between consecutive sessions
- *   (ids compared, never array indices — invariant 5; the label is the engine's `levelOrdinal`).
- * - **Units**: a rung change can switch reps <-> seconds. The dominant unit is charted for Best
- *   set and the other unit's sessions are *left out*, with the line broken there (`gapBefore`)
- *   rather than mixing units on one axis or plotting a fake zero.
+ * - **One graph per level.** Moving up a rung means a harder exercise, so the best set falls even
+ *   though the user progressed; on a shared line that read as a regression whatever tick marked
+ *   it. So each level the user has trained gets its own page (`levels`), in ladder order, and the
+ *   card opens on the level of the latest session (`currentLevel`) with arrows to the others.
+ * - **Progress** (the default per page): steps up this rung (`stepsInRung`), so a band step-up
+ *   that costs reps reads as a step forward.
+ * - **Best set**: reps/seconds per session at this level, band-aware — the line breaks and changes
+ *   colour where the band (or sibling exercise) changes, with band ticks.
+ * - Pages are keyed by the stable `level_id` (invariant 5; the "Level 3" number is the engine's
+ *   `levelOrdinal`). A level-down and back again puts both stints on one page, with the honest
+ *   time gap between them.
+ * - A session that predates level tracking (null level id) joins the page of the one level whose
+ *   `exercise_ids` holds its exercise; if that is ambiguous it is left off the charts (it is still
+ *   counted in the exercise rows).
+ * - **Units**: a level's members share one metric, so a page has one unit. Should one page mix
+ *   them anyway, its dominant unit is charted and the rest are gaps, never a fake zero.
  */
+import { levelOrdinal } from '@roamfit/engine';
 import type { Exercise, ProgressionFamily } from '@roamfit/data';
 import type { exerciseCatalogRepo } from '@roamfit/store';
-import type { BandId } from '@roamfit/engine';
-import type { ChartMarker, SeriesPoint } from './chartGeometry';
 import { unitLabel } from './exerciseProgress';
 import type { ProgressUnit } from './exerciseProgress';
 import { buildBestSetSeries, buildLadderSeries } from './ladderSeries';
-import type { SeriesSession } from './ladderSeries';
+import type { BestSetSeries, LadderSeries, SeriesSession } from './ladderSeries';
 
 type FamilyPerformance = exerciseCatalogRepo.FamilySessionPerformance;
 
@@ -32,29 +38,33 @@ export interface TrailExerciseRow {
   summary: string;
 }
 
+/** One level's own graph. */
+export interface TrailLevelPage {
+  levelId: string;
+  /** The engine's ordinal: "Level `n` of `of`". */
+  n: number;
+  of: number;
+  /** The level's anchor exercise, naming the page. */
+  name: string;
+  sessions: number;
+  firstDate: string;
+  latestDate: string;
+  /** The Best set chart's unit; null when no session at this level carried a measured set. */
+  unit: ProgressUnit | null;
+  /** Steps up this rung per session; empty when no session could be placed. */
+  ladder: LadderSeries;
+  /** Best set per session at this level, band-aware (band ticks only — one level, no rungs). */
+  best: BestSetSeries;
+}
+
 export interface TrailProgress {
   sessions: number;
   firstDate: string | null;
   latestDate: string | null;
-  /** The Best set chart's unit; null when no session carried a measured set. */
-  unit: ProgressUnit | null;
-  /** Best set per session in `unit`, oldest first; `segment` = (exercise, band) colour. */
-  points: SeriesPoint[];
-  /** Exercise name for each entry of `points` (same order). */
-  pointExercise: string[];
-  /** Band for each entry of `points` (null for bodyweight work). */
-  pointBand: (BandId | null)[];
-  /** Rung ticks plus band ticks for the Best set chart. */
-  markers: ChartMarker[];
-  /** One per segment colour on the Best set chart (the legend). */
-  legend: { label: string; segment: number }[];
-  /** Ladder-position series for the Progress chart; empty when no session could be placed. */
-  ladder: {
-    points: SeriesPoint[];
-    labels: string[];
-    pointExercise: string[];
-    markers: ChartMarker[];
-  };
+  /** One page per level with sessions, easiest → hardest. */
+  levels: TrailLevelPage[];
+  /** Index into `levels` of the latest session's level (the page the card opens on); -1 if none. */
+  currentLevel: number;
   /** One per exercise that has run on this trail, in order of first appearance. */
   exercises: TrailExerciseRow[];
 }
@@ -73,21 +83,57 @@ export function buildTrailProgress(
   history: readonly FamilyPerformance[],
 ): TrailProgress {
   const nameOf = (id: string) => exercises.find((e) => e.id === id)?.name ?? id;
-  const unit = dominantUnit(history);
-  const sessions: SeriesSession[] = history.map((p) => ({
-    localDate: p.localDate,
-    exerciseId: p.exerciseId,
-    exerciseName: nameOf(p.exerciseId),
-    levelId: p.progressionLevelIdAtTime,
-    bestReps: p.bestReps,
-    bestSeconds: p.bestSeconds,
-    band: p.band,
-    tempoSec: p.tempoSec,
-    restSec: p.restSec,
-    setsCompleted: p.setsCompleted,
-  }));
-  const best = buildBestSetSeries(sessions, unit, family);
-  const ladder = buildLadderSeries(family, exercises, sessions);
+  const levelOf = (p: FamilyPerformance): string | null => {
+    if (p.progressionLevelIdAtTime) {
+      return family.levels.some((l) => l.level_id === p.progressionLevelIdAtTime)
+        ? p.progressionLevelIdAtTime
+        : null;
+    }
+    const holders = family.levels.filter((l) => l.exercise_ids.includes(p.exerciseId));
+    return holders.length === 1 ? holders[0].level_id : null;
+  };
+  const byLevel = new Map<string, FamilyPerformance[]>();
+  let latestLevel: string | null = null;
+  for (const p of history) {
+    const levelId = levelOf(p);
+    if (!levelId) continue;
+    const list = byLevel.get(levelId) ?? [];
+    list.push(p);
+    byLevel.set(levelId, list);
+    latestLevel = levelId;
+  }
+
+  const levels: TrailLevelPage[] = [];
+  for (const level of family.levels) {
+    const mine = byLevel.get(level.level_id);
+    if (!mine) continue;
+    const unit = dominantUnit(mine);
+    const sessions: SeriesSession[] = mine.map((p) => ({
+      localDate: p.localDate,
+      exerciseId: p.exerciseId,
+      exerciseName: nameOf(p.exerciseId),
+      levelId: level.level_id,
+      bestReps: p.bestReps,
+      bestSeconds: p.bestSeconds,
+      band: p.band,
+      tempoSec: p.tempoSec,
+      restSec: p.restSec,
+      setsCompleted: p.setsCompleted,
+    }));
+    const { n, of } = levelOrdinal(family, level.level_id);
+    levels.push({
+      levelId: level.level_id,
+      n,
+      of,
+      name: nameOf(level.anchor_exercise_id),
+      sessions: mine.length,
+      firstDate: mine[0].localDate,
+      latestDate: mine[mine.length - 1].localDate,
+      unit,
+      ladder: buildLadderSeries(family, exercises, sessions, { withinRung: true }),
+      best: buildBestSetSeries(sessions, unit),
+    });
+  }
 
   const rows: TrailExerciseRow[] = [];
   const seen = new Set<string>();
@@ -120,13 +166,8 @@ export function buildTrailProgress(
     sessions: history.length,
     firstDate: history[0]?.localDate ?? null,
     latestDate: history.length > 0 ? history[history.length - 1].localDate : null,
-    unit,
-    points: best.points,
-    pointExercise: best.pointExercise,
-    pointBand: best.pointBand,
-    markers: best.markers,
-    legend: best.legend,
-    ladder,
+    levels,
+    currentLevel: levels.findIndex((l) => l.levelId === latestLevel),
     exercises: rows,
   };
 }

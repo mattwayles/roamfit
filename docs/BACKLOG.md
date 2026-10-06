@@ -33,7 +33,9 @@ the record of what was completed and why.
   and a new colour with a band tick; check the Progress / Best set toggle on Trail cards and the
   three-way toggle on Exercise detail (Progress hidden for warm-ups), the in-plot band labels
   ("B3") not colliding with rung labels or dots at phone width, and the "Rung 3 · B3 × 8 reps ·
-  3 sets" readout. Left out on purpose: no rung ticks on Exercise detail; Progress counts a
+  3 sets" readout; (6) the per-level pager (Track 30, `docs/handoff/STATUS-30-per-level-charts.md`):
+  ‹ › hit targets beside the toggle, the "Level 2 · <long exercise name>" title truncating rather
+  than wrapping, and that opening on the current level after a level-up feels right. Left out on purpose: no rung ticks on Exercise detail; Progress counts a
   band sibling at a bodyweight-anchored rung by reps/pace only (mirrors the frozen-band bug
   above); a session's tempo/rest are the prescribed values, not measured. Then the same in
   airplane mode.
