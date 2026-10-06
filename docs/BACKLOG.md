@@ -143,7 +143,10 @@ the record of what was completed and why.
      `surface`/`bg`?
   8. Cards' shadow on paper (`elevation.card`), the Switch thumb, Toast and tab bar lift.
   9. Band-chip labels on mid-tone swatches: BandChip's pre-existing 0.45 luminance threshold may pick
-     the wrong legend on a few mid-tone bands; swatches are mode-invariant, so check each.
+     the wrong legend on a few mid-tone bands; swatches are mode-invariant, so check each. The
+     workout hero and rest "Up next" now show the band as a large filled swatch (`BandChip
+     size="lg"`): check it reads at arm's length, the B3 near-black swatch stands off the card in
+     Midnight, and a long custom label (e.g. "Thin orange") still fits beside the anchor badge.
   10. Logbook and Today week-strip day cells (`dayCell`: vivid at 40%, deep border): every marker
      reads as its own color next to the others, not washed out; tune the alpha if not.
 - **WorkoutScreen tests flake under a full `npm run check` (~1 run in 10).** A different

@@ -19,6 +19,8 @@
  * Two variants: `compact` (default, mid-workout) is a small chip-plus-caret. `field` (the approval
  * card) is sized and styled to match that card's Sets/Reps/Rest boxes — a "Band" caption above a
  * fixed-size box — so the band control reads as one of that row's fields rather than a stray chip.
+ * `chipSize="lg"` makes the compact trigger the band-coloured swatch (`BandChip size="lg"`), which
+ * is what the workout screen uses so the band is unmissable mid-set.
  */
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -38,6 +40,7 @@ export default function BandPicker({
    *  band". Carried by the trigger, since the chip itself only says which band it is. */
   accessibilityLabel,
   variant = 'compact',
+  chipSize = 'sm',
   /** Open state is uncontrolled by default (this component owns it, as it always used to).
    *  Pass both to let a caller observe/drive it instead — the approval card does, so the whole
    *  entry card can raise its own stacking order while the dropdown is open and painting over
@@ -51,6 +54,8 @@ export default function BandPicker({
   testID?: string;
   accessibilityLabel: string;
   variant?: 'compact' | 'field';
+  /** Compact variant only: which `BandChip` size the trigger shows. */
+  chipSize?: 'sm' | 'lg';
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }): React.JSX.Element {
@@ -92,10 +97,10 @@ export default function BandPicker({
           </>
         ) : (
           <>
-            <BandChip band={band} tensions={tensions} />
+            <BandChip band={band} tensions={tensions} size={chipSize} />
             <Icon
               name={open ? 'chevronUp' : 'chevronDown'}
-              size={18}
+              size={chipSize === 'lg' ? 22 : 18}
               color="text2"
               style={styles.caret}
             />

@@ -1497,6 +1497,7 @@ function ExerciseHeader({
             band={bandUsed}
             tensions={bandTensions}
             accessibilityLabel="Band used for this set"
+            chipSize="lg"
             onChange={onPickBand}
           />
         )}
@@ -2566,7 +2567,7 @@ function RestPhase({
             <AnchorBadge anchor={nextAnchor} anchorAlt={nextAnchorAlt} testID="rest-next-anchor" />
             {nextBand != null && (
               <View testID="rest-next-band">
-                <BandChip band={nextBand} tensions={bandTensions} />
+                <BandChip band={nextBand} tensions={bandTensions} size="lg" />
               </View>
             )}
           </View>

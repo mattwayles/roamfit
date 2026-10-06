@@ -44,6 +44,19 @@ describe('BandChip', () => {
     expect(screen.getByText('Thin orange')).toBeTruthy();
   });
 
+  it('size lg fills the whole chip with the band’s colour, label in ink that reads on it', async () => {
+    render(<BandChip band="B1" tensions={DEFAULT_BAND_TENSIONS} size="lg" />);
+    await waitFor(() => expect(screen.getByTestId('band-chip-B1')).toBeTruthy(), WAIT_OPTS);
+    expect(
+      StyleSheet.flatten(screen.getByTestId('band-chip-B1').props.style)?.backgroundColor,
+    ).toBe(DEFAULT_BAND_TENSIONS.B1.color);
+    // No dot: the chip itself is the band.
+    expect(screen.queryByTestId('band-chip-B1-dot')).toBeNull();
+    // Yellow takes dark ink; the label is still there, never colour alone.
+    expect(StyleSheet.flatten(screen.getByText('B1').props.style)?.color).toBe(midnight.fixedInk);
+    expect(screen.getByLabelText('Band B1')).toBeTruthy();
+  });
+
   it('keeps the label inside the chip — colour alone would exclude anyone who cannot tell two of the user’s bands apart', async () => {
     render(<BandChip band="B3" tensions={DEFAULT_BAND_TENSIONS} />);
     await waitFor(() => expect(screen.getByText('B3')).toBeTruthy(), WAIT_OPTS);

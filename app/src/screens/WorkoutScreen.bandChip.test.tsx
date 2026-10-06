@@ -6,6 +6,7 @@
  * and the flow returns straight to the exercise view with no re-approval/regeneration step.
  */
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
@@ -168,6 +169,11 @@ describe('band chip on the active workout screen', () => {
     // The colour is the user's, read from their row — not a palette the screen invented.
     const stored = usersRepo.ensureUser(db, nowUtcInstant()).bandTensions;
     expect(stored[banded!.band!].color).toBe(DEFAULT_BAND_TENSIONS[banded!.band!].color);
+    // Mid-set the chip is the large swatch: the whole chip wears the band's colour, not a dot.
+    expect(
+      StyleSheet.flatten(screen.getByTestId(`band-chip-${banded!.band}`).props.style)
+        ?.backgroundColor,
+    ).toBe(stored[banded!.band!].color);
     // ...and the label is still there, so the chip never depends on colour alone.
     expect(screen.getByLabelText(`Band ${stored[banded!.band!].label}`)).toBeTruthy();
   });

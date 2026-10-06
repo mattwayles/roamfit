@@ -12,6 +12,11 @@
  * The label stays inside the chip. Colour alone would fail anyone who cannot distinguish two of
  * the user's bands — including the case where they have set two of them to similar colours — so
  * this is colour *plus* text, never colour instead of text.
+ *
+ * `size="lg"` is the active-workout form. Mid-set, at arm's length, a 14pt dot on a dark pill is
+ * too quiet to answer "which band do I grab?" at a glance — so there the whole chip *is* the band:
+ * filled with its colour, the label large on top in whichever ink reads on that fill. A hairline
+ * ring still keeps a near-black or near-white band visible against the card behind it.
  */
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -63,16 +68,37 @@ export function neutralBandColor(theme: Theme): string {
 export default function BandChip({
   band,
   tensions,
+  size = 'sm',
 }: {
   band: BandId;
   /** The user's own band settings. */
   tensions: Record<BandId, BandTension>;
+  /** `sm`: neutral pill with a colour dot. `lg`: a swatch filled with the band's own colour. */
+  size?: 'sm' | 'lg';
 }): React.JSX.Element {
   const styles = useStyles();
   const theme = useTheme();
   const tension = tensions[band];
   const dot = tension?.color ?? neutralBandColor(theme);
   const label = tension?.label ?? band;
+  if (size === 'lg') {
+    const tone = textToneOn(dot);
+    return (
+      <View
+        testID={`band-chip-${band}`}
+        accessible
+        accessibilityLabel={`Band ${label}`}
+        style={[styles.swatch, { backgroundColor: dot }]}
+      >
+        <Txt variant="caption" color={tone} upper style={styles.swatchCaption}>
+          Band
+        </Txt>
+        <Txt variant="h2" color={tone} numberOfLines={1} style={styles.swatchLabel}>
+          {label}
+        </Txt>
+      </View>
+    );
+  }
   return (
     <View
       testID={`band-chip-${band}`}
@@ -111,5 +137,19 @@ const useStyles = makeStyles((t) =>
       borderWidth: 1,
       borderColor: t.colors.lineStrong,
     },
+    swatch: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      minHeight: 48,
+      minWidth: 96,
+      borderRadius: radius.md,
+      paddingHorizontal: space.md,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: t.colors.lineStrong,
+    },
+    swatchCaption: { marginRight: 8, opacity: 0.85 },
+    swatchLabel: { flexShrink: 1 },
   }),
 );

@@ -328,7 +328,9 @@ empty. Every playlist row: tap plays, heart toggles favorite, chevron previews t
 - Level badge as a summit `Chip` ("LVL 3 · HORIZONTAL PUSH") top-left.
 - Exercise name in `display`, up to 2 lines, `adjustsFontSizeToFit`.
 - Set row: `Pips` for the sets + "SET 2 OF 4" eyebrow; existing prev/next set chevrons.
-- Anchor badge + band picker as a row of chips.
+- Anchor badge + band picker as a row of chips. The band is the large swatch (`BandChip size="lg"`):
+  the whole chip filled with the band's own colour, "BAND" caption + `h2` label in `textToneOn` ink,
+  so which band to grab reads at arm's length. Approval and Summary keep the small dot chip.
 - **The rep counter is the centerpiece**: `mega` numeral, with 64pt circular −/+ buttons on each
   side, "REPS" eyebrow above and "target 12" caption below. Tapping the numeral still edits it.
 - **COMPLETE**: `Button lg primary`, full width, 72pt tall, check icon, label "COMPLETE SET".
@@ -352,7 +354,7 @@ ring) so rest is unmistakable at a glance from across a room:
 - "How did that set feel?" + FeedbackControls as a 3-segment control (text labels kept;
   Too easy = fern, Just right = teal, Too hard = summit when selected — no red).
 - `Button lg primary` "NEXT".
-- **Up next** `Card`: eyebrow `UP NEXT`, name `h2`, anchor + band chips, How-to and demo (open).
+- **Up next** `Card`: eyebrow `UP NEXT`, name `h2`, anchor chip + the large band swatch, How-to and demo (open).
 
 **Paused**: the hero dims to 55% and a `Chip` "PAUSED" pulses gently next to the clock; the
 paused-completion nudge becomes a `Sheet`.
