@@ -2,7 +2,7 @@
  * §14.1.6 manual day-marker overrides for the calendar heatmap — per user x local_date
  * (invariant 7's per-user-state shape, keyed by date rather than exercise/family). Lets a day be
  * re-tagged by hand: a workout done outside RoamFit, or a travel day that went unlogged at the
- * time. Last-write-wins per day — this corrects what the calendar shows, it is not a history of
+ * time, or a planned rest day. Last-write-wins per day — this corrects what the calendar shows, it is not a history of
  * edits — and never touches `sessions` or `signal_events`: the marker is display-only.
  */
 import { eq, and } from 'drizzle-orm';
@@ -12,7 +12,8 @@ import { schema } from '../db';
 
 const USER_ID = 'local';
 
-export type DayMarker = 'none' | 'travel' | 'quick' | Focus;
+/** 'rest' is a planned rest day — manual-only, never derived from a session or signal. */
+export type DayMarker = 'none' | 'travel' | 'rest' | 'quick' | Focus;
 
 export function setManualDayMarker(
   db: Db,

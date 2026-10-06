@@ -176,7 +176,7 @@ describe('Journey after a completed session', () => {
 
     await fireEvent.press(screen.getByTestId(`calendar-day-${today}`));
     await waitFor(() => expect(screen.getByTestId('day-marker-sheet')).toBeTruthy(), WAIT_OPTS);
-    for (const marker of ['none', 'travel', 'quick', 'full', 'upper', 'abs', 'legs', 'cardio']) {
+    for (const marker of ['none', 'travel', 'rest', 'quick', 'full', 'upper', 'abs', 'legs', 'cardio']) {
       expect(screen.getByTestId(`day-marker-option-${marker}`)).toBeTruthy();
     }
 

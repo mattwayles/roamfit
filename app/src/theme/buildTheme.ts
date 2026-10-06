@@ -40,7 +40,7 @@ export interface Theme {
   /** `skipped` is an outline only, `not_reached` a dashed `line` outline. */
   setState: { completed: string; skipped: string; not_reached: string };
   /** `trained` is the session's focus color, resolved via `trainedColor`. */
-  dayMarker: { travel: string; quick: string };
+  dayMarker: { travel: string; rest: string; quick: string };
   /** Calendar day-cell paint for a marker's accent (Logbook + Today's week strip). Midnight
    *  washes the accent itself over the night surface. Daybreak's deep accents go muddy as a
    *  wash on paper, so its fill is the vivid hue instead, outlined in the deep accent. */
@@ -131,7 +131,7 @@ export function buildTheme(scheme: Scheme): Theme {
     section: { warmup: c.gold, main: c.teal, cooldown: c.fern },
     focus,
     setState: { completed: c.teal, skipped: c.text3, not_reached: c.line },
-    dayMarker: { travel: c.sky, quick: c.gold },
+    dayMarker: { travel: c.sky, rest: c.sky, quick: c.gold },
     dayCell,
     trainedColor: (focusKey) => (focus as Record<string, string>)[focusKey ?? ''] ?? c.teal,
     // Ink everywhere: Midnight's bright fills (plum included, >= 4.9:1 over its whole gradient)

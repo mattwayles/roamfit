@@ -22,7 +22,7 @@ the record of what was completed and why.
   the whole plot, so check nearest-point taps feel right on a long history, y/date labels and the
   dashed level ticks read at phone width, the per-exercise colours separate (a colour-blind check
   was not run — `dataviz`'s validator was not run on the five accent tones), and the Best set /
-  Total volume toggle; (2) the Logbook day sheet's height with 2 sessions and 8 markers (does it
+  Total volume toggle; (2) the Logbook day sheet's height with 2 sessions and 9 markers (does it
   scroll or clip?); (3) the month picker's pill touch targets (12 per year row) and ‹ › paging
   speed through many months, including a multi-year jump; (4) the chart on each Trail card
   (eight 140pt charts make Trails a long scroll — check it still reads as a ladder, and that a tap on a

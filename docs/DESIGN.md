@@ -210,7 +210,7 @@ The long-term story. Title `Journey Markers` in `display`, no eyebrow.
    (location), Countries (globe). The icon and label say what each counts. Numbers in
    `hero`-size condensed.
 2. **Logbook** — the month calendar. Rounded 40pt cells on `surface`, focus-colored cell tint
-   for trained days with the existing emoji markers, travel days sky-tinted, today with a teal
+   for trained days with the existing emoji markers, travel and planned rest days (🛌) sky-tinted, today with a teal
    ring, untrained days plain `surface` (neutral, never empty-looking-bad). Weekday header in
    `eyebrow`. Tap a day → the day-marker `Sheet` (same options).
 3. **Trails** (the progression board, renamed in UI copy only). One card per family:

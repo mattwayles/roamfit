@@ -3,7 +3,7 @@
  * Logbook so the two can never disagree (DESIGN.md §5.1/§5.2). Emoji stay as the marker glyphs
  * (a deliberate carry-over, not a stray icon); the tint is a color *token name* the component
  * resolves through the theme (so it follows Daybreak / Midnight): trained = the session's focus
- * color, travel = sky, quick = gold, untrained = no tint at all (neutral, never
+ * color, travel and a planned rest day = sky, quick = gold, untrained = no tint at all (neutral, never
  * empty-looking-bad — invariant 4).
  */
 import type { Focus } from '@roamfit/data';
@@ -23,12 +23,16 @@ export const FOCUS_EMOJI: Record<Focus, string> = {
 };
 export const QUICK_EMOJI = '⏱️';
 export const TRAVEL_EMOJI = '✈️';
+/** A planned rest day — a deliberate choice, so it shares travel's calm sky tint rather than
+ *  reading as a missed day (invariant 4). */
+export const REST_EMOJI = '🛌';
 
 /** Options offered by the day-marker sheet, in the order they're listed. `emoji` is '' for
  *  'none', which the sheet renders as a blank untrained square rather than a symbol. */
 export const DAY_MARKER_OPTIONS: { marker: DayMarker; label: string; emoji: string }[] = [
   { marker: 'none', label: 'No workout', emoji: '' },
   { marker: 'travel', label: 'Travel day', emoji: TRAVEL_EMOJI },
+  { marker: 'rest', label: 'Rest day', emoji: REST_EMOJI },
   { marker: 'quick', label: 'Quick workout', emoji: QUICK_EMOJI },
   { marker: 'full', label: 'Full-body workout', emoji: FOCUS_EMOJI.full },
   { marker: 'upper', label: 'Upper-body workout', emoji: FOCUS_EMOJI.upper },
@@ -41,6 +45,7 @@ export const DAY_MARKER_OPTIONS: { marker: DayMarker; label: string; emoji: stri
 export function markerEmoji(marker: DayMarker): string {
   if (marker === 'none') return '';
   if (marker === 'travel') return TRAVEL_EMOJI;
+  if (marker === 'rest') return REST_EMOJI;
   if (marker === 'quick') return QUICK_EMOJI;
   return FOCUS_EMOJI[marker];
 }
@@ -49,7 +54,7 @@ export function markerEmoji(marker: DayMarker): string {
  *  untrained day. Mirrors the theme's `focus` / `dayMarker` semantic maps by name. */
 export function markerTone(marker: DayMarker): AccentName | null {
   if (marker === 'none') return null;
-  if (marker === 'travel') return 'sky';
+  if (marker === 'travel' || marker === 'rest') return 'sky';
   if (marker === 'quick') return 'gold';
   return FOCUS_TONE[marker];
 }

@@ -171,7 +171,7 @@ export const manualDayMarkers = sqliteTable(
   {
     userId: text('user_id').notNull().default('local'),
     localDate: text('local_date').notNull(),
-    /** 'none' | 'travel' | 'quick' | Focus ('full' | 'upper' | 'abs' | 'legs') — plain TEXT, no
+    /** 'none' | 'travel' | 'rest' | 'quick' | Focus ('full' | 'upper' | 'abs' | 'legs') — plain TEXT, no
      *  CHECK constraint, so the value set can grow without a migration. */
     marker: text('marker').notNull(),
     updatedAt: text('updated_at').notNull(),
