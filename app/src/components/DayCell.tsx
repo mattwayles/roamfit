@@ -1,6 +1,6 @@
 /**
- * One calendar day, shared by Today's "This week" strip (fixed 40pt) and Journey's Logbook
- * (fills its grid column). Tint and glyph come from `lib/dayMarkers` so the two surfaces always
+ * One calendar day, shared by Today's "This week" strip and Journey's Logbook (both
+ * fill their grid column with a 6pt gutter, so they size alike). Tint and glyph come from `lib/dayMarkers` so the two surfaces always
  * agree; an untrained day is a plain `surface` cell (neutral, never empty-looking-bad — invariant
  * 4) and today gets a 2px teal ring rather than a color, so it never reads as a workout state.
  */
@@ -9,7 +9,7 @@ import { StyleSheet, View } from 'react-native';
 import { makeStyles, radius, useTheme } from '../theme';
 import { PressableScale, Txt } from '../ui';
 import type { CalendarDay } from '../lib/dashboard';
-import { markerEmoji, markerLabel, markerTone } from '../lib/dayMarkers';
+import { markerEmoji, markerIsNeutral, markerLabel, markerTone } from '../lib/dayMarkers';
 
 export interface DayCellProps {
   day: CalendarDay | null;
@@ -35,7 +35,11 @@ export function DayCell({
   if (day === null) return <View style={box} />;
 
   const tone = markerTone(day.marker);
-  const tint = tone ? theme.dayCell[tone] : null;
+  const tint = markerIsNeutral(day.marker)
+    ? theme.dayCellNeutral
+    : tone
+      ? theme.dayCell[tone]
+      : null;
   const emoji = markerEmoji(day.marker);
   return (
     <PressableScale

@@ -3,7 +3,7 @@
  * Logbook so the two can never disagree (DESIGN.md §5.1/§5.2). Emoji stay as the marker glyphs
  * (a deliberate carry-over, not a stray icon); the tint is a color *token name* the component
  * resolves through the theme (so it follows Daybreak / Midnight): trained = the session's focus
- * color, travel and a planned rest day = sky, quick = gold, untrained = no tint at all (neutral, never
+ * color, travel and a planned rest day = light gray, quick = gold, untrained = no tint at all (neutral, never
  * empty-looking-bad — invariant 4).
  */
 import type { Focus } from '@roamfit/data';
@@ -23,7 +23,7 @@ export const FOCUS_EMOJI: Record<Focus, string> = {
 };
 export const QUICK_EMOJI = '⏱️';
 export const TRAVEL_EMOJI = '✈️';
-/** A planned rest day — a deliberate choice, so it shares travel's calm sky tint rather than
+/** A planned rest day — a deliberate choice, so it shares travel's calm light-gray tint rather than
  *  reading as a missed day (invariant 4). */
 export const REST_EMOJI = '🛌';
 
@@ -50,11 +50,16 @@ export function markerEmoji(marker: DayMarker): string {
   return FOCUS_EMOJI[marker];
 }
 
+/** Travel and rest days wash their cell light gray (`theme.dayCellNeutral`) rather than an accent. */
+export function markerIsNeutral(marker: DayMarker): boolean {
+  return marker === 'travel' || marker === 'rest';
+}
+
 /** The accent a marker tints its cell with (resolve via `useTheme().colors[tone]`), or null for an
- *  untrained day. Mirrors the theme's `focus` / `dayMarker` semantic maps by name. */
+ *  untrained day or a neutral (gray) travel/rest day. Mirrors the theme's `focus` / `dayMarker` semantic maps by name. */
 export function markerTone(marker: DayMarker): AccentName | null {
   if (marker === 'none') return null;
-  if (marker === 'travel' || marker === 'rest') return 'sky';
+  if (marker === 'travel' || marker === 'rest') return null;
   if (marker === 'quick') return 'gold';
   return FOCUS_TONE[marker];
 }

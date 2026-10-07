@@ -243,8 +243,8 @@ describe('buildTheme', () => {
     expect(daybreakTheme.trainedColor('legs')).toBe(daybreak.summit);
     expect(daybreakTheme.trainedColor(undefined)).toBe(daybreak.teal);
     expect(midnightTheme.setState.skipped).toBe(midnight.text3);
-    expect(daybreakTheme.dayMarker.travel).toBe(daybreak.sky);
-    expect(daybreakTheme.dayMarker.rest).toBe(daybreak.sky);
+    expect(daybreakTheme.dayMarker.travel).toBe(daybreakTheme.dayCellNeutral.border);
+    expect(daybreakTheme.dayMarker.rest).toBe(daybreakTheme.dayCellNeutral.border);
     expect(daybreakTheme.accentGradient.teal).toBe(daybreakTheme.gradients.trail);
     expect(midnightTheme.gradients).toEqual(midnightGradients);
   });

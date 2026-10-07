@@ -41,6 +41,8 @@ export interface Theme {
   setState: { completed: string; skipped: string; not_reached: string };
   /** `trained` is the session's focus color, resolved via `trainedColor`. */
   dayMarker: { travel: string; rest: string; quick: string };
+  /** Light-gray cell wash for travel and rest days (not an accent, so not in `dayCell`). */
+  dayCellNeutral: { fill: string; border: string };
   /** Calendar day-cell paint for a marker's accent (Logbook + Today's week strip). Midnight
    *  washes the accent itself over the night surface. Daybreak's deep accents go muddy as a
    *  wash on paper, so its fill is the vivid hue instead, outlined in the deep accent. */
@@ -97,6 +99,10 @@ export function buildTheme(scheme: Scheme): Theme {
     ]),
   ) as Record<AccentName, { fill: string; border: string }>;
 
+  const dayCellNeutral = dark
+    ? { fill: withAlpha('#B8BEC8', 0.18), border: withAlpha('#B8BEC8', 0.45) }
+    : { fill: '#E4E5E9', border: '#B4B7C0' };
+
   const focus = { upper: c.teal, legs: c.summit, abs: c.gold, full: c.fern, cardio: c.rose };
 
   const base = dark ? DarkTheme : DefaultTheme;
@@ -131,8 +137,9 @@ export function buildTheme(scheme: Scheme): Theme {
     section: { warmup: c.gold, main: c.teal, cooldown: c.fern },
     focus,
     setState: { completed: c.teal, skipped: c.text3, not_reached: c.line },
-    dayMarker: { travel: c.sky, rest: c.sky, quick: c.gold },
+    dayMarker: { travel: dayCellNeutral.border, rest: dayCellNeutral.border, quick: c.gold },
     dayCell,
+    dayCellNeutral,
     trainedColor: (focusKey) => (focus as Record<string, string>)[focusKey ?? ''] ?? c.teal,
     // Ink everywhere: Midnight's bright fills (plum included, >= 4.9:1 over its whole gradient)
     // take near-black, Daybreak's deep fills take white. Paper would be 1.9:1 on plum's light end.
