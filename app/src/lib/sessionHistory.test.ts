@@ -221,7 +221,6 @@ describe('buildSessionHistoryView', () => {
       EXERCISES,
     );
     expect(v.stats.map((s) => s.label)).toEqual(['1 exercise', '2 sets', '14 reps', 'Top band B2']);
-    expect(v.sections[0].rows[0].familyId).toBe('fam');
   });
 
   it('shows the retrospective note when one exists and falls back to the id for an unknown exercise', () => {

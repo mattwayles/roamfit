@@ -65,8 +65,6 @@ export interface HistoryExerciseRow {
   skippedSets: number;
   /** Neutral one-liner for sets not done ("1 set skipped", "Not reached"); null when all done. */
   skippedNote: string | null;
-  /** The progression family this entry belongs to, for the Trail link (null off a ladder). */
-  familyId: string | null;
 }
 
 export interface HistorySection {
@@ -151,7 +149,6 @@ function buildRow(
     completedSets: done.length,
     skippedSets: skipped,
     skippedNote,
-    familyId: entry.progressionFamilyId,
   };
 }
 

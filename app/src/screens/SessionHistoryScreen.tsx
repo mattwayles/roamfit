@@ -15,7 +15,7 @@ import { useStore } from '../state/StoreContext';
 import { EmptyState } from '../components/EmptyState';
 import { buildSessionHistoryView } from '../lib/sessionHistory';
 import { makeStyles, space } from '../theme';
-import { Button, Card, Chip, Enter, Icon, PressableScale, Screen, SectionHeader, Txt } from '../ui';
+import { Card, Chip, Enter, Icon, PressableScale, Screen, SectionHeader, Txt } from '../ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SessionHistory'>;
 
@@ -116,19 +116,6 @@ export default function SessionHistoryScreen({ route, navigation }: Props): Reac
                   </View>
                   <Icon name="chevronRight" size={18} color="text3" />
                 </PressableScale>
-                {row.familyId ? (
-                  <Button
-                    testID={`history-trail-${row.entryId}`}
-                    label="Trail"
-                    variant="quiet"
-                    size="sm"
-                    icon="chevronRight"
-                    iconRight
-                    accessibilityLabel={`See ${row.name}'s trail on Journey`}
-                    // The trail's best-set chart lives on its card in Journey's Trails section.
-                    onPress={() => navigation.navigate('Tabs', { screen: 'Journey' })}
-                  />
-                ) : null}
               </View>
             ))}
           </Card>
