@@ -2962,7 +2962,8 @@
       "id": "leg-raise",
       "name": "Banded Leg Raise",
       "aliases": [
-        "Leg Raise"
+        "Leg Raise",
+        "Leg Lift"
       ],
       "focus": [
         "abs"
@@ -3277,7 +3278,8 @@
       "name": "Banded Hollow Hold",
       "aliases": [
         "Hollow Hold",
-        "hollow body"
+        "hollow body",
+        "Hollow Rock Hold"
       ],
       "focus": [
         "abs"
@@ -5027,7 +5029,8 @@
       "id": "bw-leg-raise",
       "name": "Lying Leg Raise",
       "aliases": [
-        "leg raise"
+        "leg raise",
+        "Leg Lift"
       ],
       "focus": [
         "abs"
@@ -5357,7 +5360,8 @@
       "id": "bw-hollow-hold",
       "name": "Hollow Body Hold",
       "aliases": [
-        "hollow hold"
+        "hollow hold",
+        "Hollow Rock Hold"
       ],
       "focus": [
         "abs"
@@ -9334,6 +9338,841 @@
       ],
       "setup": "Jump higher than usual and whip the rope around twice under your feet per jump. High skill, high output \u2014 go back to single turns if you lose rhythm.",
       "video_search": "https://www.youtube.com/results?search_query=Jump+Rope+Double+Unders+proper+form+tutorial"
+    },
+    {
+      "id": "bw-alternating-crunch",
+      "name": "Alternating Crunch",
+      "aliases": [
+        "alternating crunches"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "lower_back_flexion"
+      ],
+      "setup": "On your back, knees bent, hands at your ears. Crunch up and across toward one knee, lower, then the other side. Keep the elbows wide and the neck long.",
+      "video_search": "https://www.youtube.com/results?search_query=Alternating+Crunch+proper+form+tutorial"
+    },
+    {
+      "id": "bw-corkscrew",
+      "name": "Corkscrew",
+      "aliases": [],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs",
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "lower_back_flexion",
+        "core_pressure"
+      ],
+      "setup": "On your back, legs straight up. Circle both legs together in a small corkscrew, letting the hips roll slightly off the floor, then reverse direction. Keep the shoulders down and move from the abs.",
+      "video_search": "https://www.youtube.com/results?search_query=Corkscrew+proper+form+tutorial"
+    },
+    {
+      "id": "bw-elevated-crunch",
+      "name": "Elevated Crunch",
+      "aliases": [
+        "feet elevated crunch"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "abs"
+      ],
+      "secondary": [
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "lower_back_flexion"
+      ],
+      "setup": "On your back, calves resting on a chair or bench with the hips and knees at about 90 deg, hands at your ears. Curl the shoulder blades off the ground, then lower slowly.",
+      "video_search": "https://www.youtube.com/results?search_query=Elevated+Crunch+proper+form+tutorial"
+    },
+    {
+      "id": "bw-goalie",
+      "name": "Goalie",
+      "aliases": [],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs",
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "lower_back_flexion",
+        "core_pressure"
+      ],
+      "setup": "Sit in a V with knees bent and feet hovering, torso leaned back. Hold your hands out like a goalie and sweep them to one side then the other, rotating the ribs with them. Keep the chest tall.",
+      "video_search": "https://www.youtube.com/results?search_query=Goalie+proper+form+tutorial"
+    },
+    {
+      "id": "bw-jackknife",
+      "name": "Jackknife",
+      "aliases": [
+        "jack knife"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "abs"
+      ],
+      "secondary": [
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "core_pressure",
+        "lower_back_flexion"
+      ],
+      "setup": "Lie flat, arms overhead, legs straight. Fold up, bringing the hands and straight legs together over the hips, then lower with control. Bend the knees to make it easier.",
+      "video_search": "https://www.youtube.com/results?search_query=Jackknife+proper+form+tutorial"
+    },
+    {
+      "id": "bw-oblique-v-up",
+      "name": "Oblique V-Up",
+      "aliases": [
+        "oblique v up"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs",
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "core_pressure",
+        "lower_back_flexion"
+      ],
+      "setup": "Lie on your back, arms overhead, legs angled slightly to one side. Fold up and reach the hands toward the opposite foot, lowering with control. Finish all reps on one side, then switch.",
+      "video_search": "https://www.youtube.com/results?search_query=Oblique+V-Up+proper+form+tutorial"
+    },
+    {
+      "id": "bw-pendulum",
+      "name": "Pendulum",
+      "aliases": [],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "anti_rotation",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs",
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "lower_back_flexion",
+        "core_pressure"
+      ],
+      "setup": "On your back, arms out to the sides, legs straight up. Lower both legs toward one side without letting the opposite shoulder lift, then swing them over the top to the other side.",
+      "video_search": "https://www.youtube.com/results?search_query=Pendulum+proper+form+tutorial"
+    },
+    {
+      "id": "bw-plank-knee-to-elbow",
+      "name": "Plank Knee to Elbow",
+      "aliases": [
+        "plank knee to elbow",
+        "knee to elbow plank"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "anti_rotation",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs",
+        "front_delts",
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "wrist_extension"
+      ],
+      "setup": "High plank, hands under shoulders. Drive one knee out and up toward the same-side elbow, return, and alternate. Keep the hips level.",
+      "video_search": "https://www.youtube.com/results?search_query=Plank+Knee+to+Elbow+proper+form+tutorial"
+    },
+    {
+      "id": "bw-pulse-up",
+      "name": "Pulse Up",
+      "aliases": [
+        "pulse ups",
+        "leg pulse up"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "abs"
+      ],
+      "secondary": [
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "lower_back_flexion",
+        "core_pressure"
+      ],
+      "setup": "On your back, legs straight up toward the ceiling, hands by your sides. Pulse the feet toward the ceiling by lifting the hips a few centimeters, lower under control, and repeat.",
+      "video_search": "https://www.youtube.com/results?search_query=Pulse+Up+proper+form+tutorial"
+    },
+    {
+      "id": "bw-push-through",
+      "name": "Push Through",
+      "aliases": [
+        "push-through"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "abs"
+      ],
+      "secondary": [
+        "hip_flexors",
+        "front_delts"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "lower_back_flexion"
+      ],
+      "setup": "On your back, knees in tabletop, hands at your chest. Crunch up and push the hands forward past the knees as the legs extend, then draw everything back in.",
+      "video_search": "https://www.youtube.com/results?search_query=Push+Through+proper+form+tutorial"
+    },
+    {
+      "id": "bw-scissors",
+      "name": "Scissors",
+      "aliases": [
+        "scissor kick",
+        "scissor kicks"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "abs"
+      ],
+      "secondary": [
+        "hip_flexors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "lower_back_flexion",
+        "hip"
+      ],
+      "setup": "On your back, shoulders lifted, lower back pressed down. Cross straight legs over each other in a scissor motion, alternating the top leg.",
+      "video_search": "https://www.youtube.com/results?search_query=Scissors+proper+form+tutorial"
+    },
+    {
+      "id": "bw-side-crunch",
+      "name": "Side Crunch",
+      "aliases": [
+        "side crunches"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "lateral_flexion",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "lower_back_flexion"
+      ],
+      "setup": "Lie on your side, knees bent, top hand behind your head. Lift the ribs toward the hip, pause, and lower. Finish all reps on one side, then switch.",
+      "video_search": "https://www.youtube.com/results?search_query=Side+Crunch+proper+form+tutorial"
+    },
+    {
+      "id": "bw-side-lift",
+      "name": "Side Lift",
+      "aliases": [
+        "side leg lift"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "lateral_flexion",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs",
+        "abductors"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "hip"
+      ],
+      "setup": "Lie on your side, legs stacked and straight. Lift both legs together off the floor, keeping the hips stacked, and lower slowly. Finish all reps on one side, then switch.",
+      "video_search": "https://www.youtube.com/results?search_query=Side+Lift+proper+form+tutorial"
+    },
+    {
+      "id": "bw-twist",
+      "name": "Twist",
+      "aliases": [
+        "lying twist",
+        "knee drop twist"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "anti_rotation",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "lower_back_flexion"
+      ],
+      "setup": "On your back, arms out to the sides, knees bent over the hips. Lower both knees to one side without lifting the opposite shoulder, then bring them over to the other side.",
+      "video_search": "https://www.youtube.com/results?search_query=Twist+proper+form+tutorial"
+    },
+    {
+      "id": "banded-bicycle-crunch",
+      "name": "Banded Bicycle Crunch",
+      "aliases": [
+        "band bicycle crunch"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs",
+        "hip_flexors"
+      ],
+      "equipment": "band",
+      "band": "B1",
+      "anchor": "self-low",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "lower_back_flexion"
+      ],
+      "setup": "On your back, loop band around both feet, ends held at your ears. Rotate one elbow toward the opposite knee while the other leg extends against the band.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Bicycle+Crunch+proper+form+tutorial"
+    },
+    {
+      "id": "banded-jackknife",
+      "name": "Banded Jackknife",
+      "aliases": [
+        "band jackknife"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "abs"
+      ],
+      "secondary": [
+        "hip_flexors"
+      ],
+      "equipment": "band",
+      "band": "B1",
+      "anchor": "self-low",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "core_pressure",
+        "lower_back_flexion"
+      ],
+      "setup": "Lie flat, band around both feet, ends held overhead. Fold up so the hands and straight legs meet over the hips, then lower with control.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Jackknife+proper+form+tutorial"
+    },
+    {
+      "id": "banded-oblique-v-up",
+      "name": "Banded Oblique V-Up",
+      "aliases": [
+        "band oblique v up"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs",
+        "hip_flexors"
+      ],
+      "equipment": "band",
+      "band": "B1",
+      "anchor": "self-low",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "core_pressure",
+        "lower_back_flexion"
+      ],
+      "setup": "Lie on your back with legs angled slightly to one side, band around both feet, ends in one hand overhead. Fold up and reach toward the opposite foot, lowering with control. Finish one side, then switch.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Oblique+V-Up+proper+form+tutorial"
+    },
+    {
+      "id": "banded-scissors",
+      "name": "Banded Scissors",
+      "aliases": [
+        "band scissors"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "abs"
+      ],
+      "secondary": [
+        "hip_flexors"
+      ],
+      "equipment": "band",
+      "band": "B1",
+      "anchor": "self-low",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "lower_back_flexion",
+        "hip"
+      ],
+      "setup": "On your back, shoulders lifted, loop band around both feet. Cross straight legs over each other against the band, alternating the top leg.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Scissors+proper+form+tutorial"
+    },
+    {
+      "id": "banded-pulse-up",
+      "name": "Banded Pulse Up",
+      "aliases": [
+        "band pulse up"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "flexion",
+      "primary": [
+        "abs"
+      ],
+      "secondary": [
+        "hip_flexors"
+      ],
+      "equipment": "band",
+      "band": "B1",
+      "anchor": "self-low",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "lower_back_flexion",
+        "core_pressure"
+      ],
+      "setup": "On your back, legs straight up, loop band around both feet with ends held overhead. Pulse the feet toward the ceiling by lifting the hips slightly, lower under control, repeat.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Pulse+Up+proper+form+tutorial"
+    },
+    {
+      "id": "banded-plank-knee-to-elbow",
+      "name": "Banded Plank Knee to Elbow",
+      "aliases": [
+        "band plank knee to elbow"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "anti_rotation",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs",
+        "front_delts",
+        "hip_flexors"
+      ],
+      "equipment": "band",
+      "band": "B1",
+      "anchor": "self-low",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "wrist_extension"
+      ],
+      "setup": "High plank with a loop band around both feet. Drive one knee out and up toward the same-side elbow against the band, return, alternate. Keep the hips level.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Plank+Knee+to+Elbow+proper+form+tutorial"
+    },
+    {
+      "id": "banded-twist",
+      "name": "Banded Twist",
+      "aliases": [
+        "band twist",
+        "standing band twist"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "anti_rotation",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs"
+      ],
+      "equipment": "band",
+      "band": "B1-B2",
+      "anchor": "anchor-mid",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [],
+      "setup": "Anchor at mid height, stand side-on holding the band at your chest with both hands. Rotate the torso away from the anchor against the band, keep the hips square, then return slowly. Finish one side, then switch.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Twist+proper+form+tutorial"
+    },
+    {
+      "id": "banded-side-lift",
+      "name": "Banded Side Lift",
+      "aliases": [
+        "band side lift"
+      ],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "lateral_flexion",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abs",
+        "abductors"
+      ],
+      "equipment": "band",
+      "band": "B1",
+      "anchor": "self-low",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "hip"
+      ],
+      "setup": "Lie on your side, loop band around both ankles, legs stacked and straight. Lift both legs together against the band, keeping the hips stacked, and lower slowly. Finish one side, then switch.",
+      "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Side+Lift+proper+form+tutorial"
     }
   ]
 }
