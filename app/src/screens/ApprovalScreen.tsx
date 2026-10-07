@@ -419,6 +419,16 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
       sessionsRepo.recordRegenerateTap(db, sessionId, nowUtcInstant());
       const clock = nowEngineClock();
       const utcInstant = nowUtcInstant();
+      // The add-on choice isn't stored on the session; a strength session whose MAIN section holds
+      // cardio moves is one that asked for it, so carry it into the regenerated plan.
+      const cardioAddOn =
+        session.focus !== 'cardio' &&
+        session.entries.some(
+          (e) =>
+            e.section === 'main' &&
+            e.entryStatus !== 'removed_at_approval' &&
+            library.exercises.some((x) => x.id === e.exerciseId && isCardioExercise(x)),
+        );
       const { plan, comebackTier, recoveryWeekManual } = generate(db, {
         library,
         families,
@@ -426,6 +436,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
           focus: session.focus,
           difficulty: session.difficulty,
           targetMinutes: session.targetMinutes,
+          cardioAddOn,
         },
         clock,
         rng: createRng(seedFromString(utcInstant)),
