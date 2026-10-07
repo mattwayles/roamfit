@@ -39,3 +39,14 @@ export const WARMUP_COOLDOWN_ROTATION_SESSIONS = 1;
  *  larger than novelty (400) so the preference is a real, visible thumb on the scale rather than
  *  a tie-break. */
 export const DIFFICULTY_PREFERENCE_BONUS = 500;
+
+/** Lesser-worked-muscle emphasis. The window matches what Today's "Recommended Focus" reads. */
+export const LIGHT_MUSCLE_WINDOW_DAYS = 7;
+/** A muscle must be the primary mover of at least this many strength exercises to be recommended
+ *  or targeted — otherwise rarely-trainable muscles (traps) would win every week at zero. */
+export const MIN_CANDIDATE_MUSCLE_EXERCISES = 3;
+/** The week's single lightest muscle: strong enough to beat novelty + difficulty preference
+ *  (900) together, still below the recency tier gap (1000) so cooldowns keep dominating. */
+export const TARGET_MUSCLE_BONUS = 950;
+/** Softer, graded preference (× deficit 0..1) for any other below-average muscle. */
+export const LIGHT_MUSCLE_BONUS = 600;

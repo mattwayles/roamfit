@@ -21,11 +21,13 @@ import {
   buildFocusTemplate,
   buildQuickSessionTemplate,
   accessoryRotationOffset,
+  emphasizeMuscle,
   expandOptionalSlots,
 } from './template/focusTemplate';
 import type { TemplateSlot } from './template/focusTemplate';
 import { cardioAddOnCount, cardioAddOnSlots, interleaveEvenly } from './template/cardioAddOn';
 import { selectMain } from './selection/mainSelection';
+import { lightestMuscles, muscleDeficits, musclesForFocus } from './selection/lightMuscle';
 import type { SelectedMain } from './selection/mainSelection';
 import { selectWarmupCooldown, selectWarmupCooldownGroup } from './selection/warmupCooldown';
 import { recentHardMuscles } from './selection/volume';
@@ -200,10 +202,34 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
         library: allExercises,
         history: userState.history,
       });
+  // Lesser-worked muscles: rank this focus's trainable muscles by the prior week's volume. The
+  // lightest one gets a guaranteed slot in the template and a preference in selection below.
+  // Quick Session stays deliberately minimal and cardio is not a muscle focus.
+  const lightRanked =
+    isQuick || focus === 'cardio'
+      ? []
+      : lightestMuscles(
+          userState.history,
+          allExercises,
+          clock.today,
+          musclesForFocus(focus, allExercises),
+        );
+  const targetMuscle = lightRanked[0]?.muscle ?? null;
+  const lightMuscles = { target: targetMuscle, deficits: muscleDeficits(lightRanked) };
+  const emphasizedTemplate =
+    targetMuscle === null
+      ? baseTemplate
+      : emphasizeMuscle(
+          baseTemplate,
+          focus,
+          targetMuscle,
+          allExercises,
+          new Set(Object.keys(LADDERED_PATTERN_TO_FAMILY) as Pattern[]),
+        );
   const template = isQuick
     ? baseTemplate
     : expandOptionalSlots(
-        baseTemplate,
+        emphasizedTemplate,
         focus,
         mainExerciseCount[1],
         accessoryRotationOffset(userState.history, focus),
@@ -242,6 +268,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
           focus,
           equipmentPreference,
           requestedDifficulty: difficulty,
+          lightMuscles,
         })
       : { picks: [], patternGaps: [] };
 

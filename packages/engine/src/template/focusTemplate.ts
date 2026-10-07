@@ -239,6 +239,52 @@ export function accessoryRotationOffset(
   return history.filter((s) => s.focus === focus).length;
 }
 
+/**
+ * Make sure a session can actually train `muscle` (the week's lightest). The base templates are
+ * fixed pattern lists, and the patterns that reach some muscles are accessory-only — biceps lives
+ * solely in `elbow_flexion`, which a full-body template never asks for and an upper template only
+ * reaches on some lengths. So: if a slot already offers one of the muscle's accessory patterns,
+ * it is promoted to the front of the optional slots (time-fit trims from the tail, so it is the
+ * last to go); otherwise a new optional slot for the muscle's most common accessory pattern is
+ * inserted there. Muscles reached only by laddered patterns (chest, quads, lats …) are left
+ * alone — their ladder slot is already in every template that trains them.
+ *
+ * Selection (`selectMain`) still decides *which* exercise fills the slot; this only guarantees
+ * the slot exists.
+ */
+export function emphasizeMuscle(
+  base: FocusTemplateResult,
+  focus: Focus,
+  muscle: string,
+  library: readonly Exercise[],
+  ladderedPatterns: ReadonlySet<Pattern>,
+): FocusTemplateResult {
+  const freq = new Map<Pattern, number>();
+  for (const e of library) {
+    if (e.pattern === 'conditioning' || ladderedPatterns.has(e.pattern)) continue;
+    if (e.primary.includes(muscle)) freq.set(e.pattern, (freq.get(e.pattern) ?? 0) + 1);
+  }
+  if (freq.size === 0) return base;
+  const reaching = [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([p]) => p);
+
+  const required = base.slots.filter((s) => s.required);
+  const optional = base.slots.filter((s) => !s.required);
+  const existing = [...required, ...optional].find((s) => s.patterns.some((p) => freq.has(p)));
+  if (existing?.required) return base; // already guaranteed a place
+  const slot: TemplateSlot = existing
+    ? { ...existing, patterns: existing.patterns.filter((p) => freq.has(p)) }
+    : {
+        id: `${focus}.muscle.${muscle}`,
+        patterns: [reaching[0]],
+        // A full-body template is all required slots, so an optional one would be the first thing
+        // time-fit trims — exactly the short sessions where the lightest muscle still deserves a
+        // place. Every other focus has optional accessory slots this one outranks.
+        required: focus === 'full',
+      };
+  const rest = optional.filter((s) => s !== existing);
+  return { slots: [...required, slot, ...rest], leadPattern: base.leadPattern };
+}
+
 export interface BuildTemplateInput {
   focus: Focus;
   targetMinutes: number;

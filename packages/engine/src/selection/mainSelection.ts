@@ -41,7 +41,9 @@ import { overWorkedMuscles, recentHardMuscles } from './volume';
 import {
   BAND_MIN_RATIO,
   DIFFICULTY_PREFERENCE_BONUS,
+  LIGHT_MUSCLE_BONUS,
   PREFERRED_MIN_RATIO,
+  TARGET_MUSCLE_BONUS,
   RECOVERY_WINDOW_DAYS,
 } from './constants';
 
@@ -121,6 +123,11 @@ interface ScoreState {
   recoveryUsed: boolean;
   noveltyUsed: boolean;
   preferredDifficulty: Difficulty | null;
+  /** The week's lightest muscle for this focus; its bonus lapses once a pick trains it. */
+  targetMuscle: string | null;
+  targetCovered: boolean;
+  /** 0..1 below-average-ness per muscle (see `muscleDeficits`). */
+  muscleDeficits: ReadonlyMap<string, number>;
 }
 
 function score(c: Candidate, st: ScoreState, rng: Rng): number {
@@ -136,6 +143,19 @@ function score(c: Candidate, st: ScoreState, rng: Rng): number {
   ) {
     s -= 50;
   }
+  // Lesser-worked muscles: lean on the week's lightest muscle until something trains it, and give
+  // a graded nudge to any other muscle sitting below the mean. Only reorders already-eligible
+  // candidates — OVER-WORKED / BLOCKED / recovery above and below are untouched.
+  if (
+    st.targetMuscle !== null &&
+    !st.targetCovered &&
+    c.exercise.primary.includes(st.targetMuscle)
+  ) {
+    s += TARGET_MUSCLE_BONUS;
+  }
+  let deficit = 0;
+  for (const m of c.exercise.primary) deficit = Math.max(deficit, st.muscleDeficits.get(m) ?? 0);
+  s += LIGHT_MUSCLE_BONUS * deficit;
   const touchesRecovery = overlaps(c.exercise.primary, st.recoveryMuscles);
   if (touchesRecovery) {
     s -= st.recoveryUsed ? 3000 : 30; // one is tolerated, a second is heavily discouraged
@@ -181,6 +201,8 @@ export interface SelectMainInput {
   focus: Focus;
   equipmentPreference: EquipmentPreference;
   requestedDifficulty: Difficulty;
+  /** Lesser-worked-muscle emphasis; omitted = no preference (every pre-existing caller). */
+  lightMuscles?: { target: string | null; deficits: ReadonlyMap<string, number> };
 }
 
 export function selectMain(input: SelectMainInput): MainSelectionResult {
@@ -215,6 +237,9 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
     recoveryUsed: false,
     noveltyUsed: false,
     preferredDifficulty: preferredDifficulty(input.requestedDifficulty),
+    targetMuscle: input.lightMuscles?.target ?? null,
+    targetCovered: false,
+    muscleDeficits: input.lightMuscles?.deficits ?? new Map(),
   };
 
   for (const slot of slots) {
@@ -246,6 +271,8 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
           usedIds.add(chosen.exercise.id);
           usedExercises.push(chosen.exercise);
           if (chosen.isNovel) st.noveltyUsed = true;
+          if (st.targetMuscle && chosen.exercise.primary.includes(st.targetMuscle))
+            st.targetCovered = true;
           if (overlaps(chosen.exercise.primary, recoveryMuscles)) st.recoveryUsed = true;
           picks.push({
             slotId: slot.id,
@@ -270,6 +297,8 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
     usedIds.add(chosen.exercise.id);
     usedExercises.push(chosen.exercise);
     if (chosen.isNovel) st.noveltyUsed = true;
+    if (st.targetMuscle && chosen.exercise.primary.includes(st.targetMuscle))
+      st.targetCovered = true;
     const touchesRecovery = overlaps(chosen.exercise.primary, recoveryMuscles);
     if (touchesRecovery) st.recoveryUsed = true;
     picks.push({
@@ -296,6 +325,11 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
   return { picks, patternGaps };
 }
 
+/** The pick that trains the week's lightest muscle — the aggregate passes must not swap it out. */
+function holdsTarget(pick: SelectedMain, st: ScoreState): boolean {
+  return st.targetMuscle !== null && pick.exercise.primary.includes(st.targetMuscle);
+}
+
 /** Swap helpers below replace one pick's exercise for another of the same slot's patterns — the
  *  replacement must not be a movement twin (see `isMovementTwin`) of any *other* already-used
  *  exercise. The pick's own current exercise is excluded from that check since it's the one
@@ -316,6 +350,7 @@ function applyNoveltyPass(
 ): void {
   if (st.noveltyUsed || picks.length === 0) return;
   for (const pick of picks) {
+    if (holdsTarget(pick, st)) continue;
     const others = otherUsedExercises(usedExercises, pick.exercise.id);
     const alt = candidates.find(
       (c) =>
@@ -362,8 +397,10 @@ function applyAggregatePass(
 
   let guard = picks.length; // at most one swap attempt per pick
   while (!meetsTarget() && guard-- > 0) {
-    const victim = picks.find((p) =>
-      kind === 'preferred' ? p.candidate.tier !== 'preferred' : p.exercise.equipment !== 'band',
+    const victim = picks.find(
+      (p) =>
+        !holdsTarget(p, st) &&
+        (kind === 'preferred' ? p.candidate.tier !== 'preferred' : p.exercise.equipment !== 'band'),
     );
     if (!victim) break;
     const others = otherUsedExercises(usedExercises, victim.exercise.id);

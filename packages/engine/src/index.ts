@@ -105,3 +105,6 @@ export type {
   CoachVoiceLlmOutput,
   DistillationLlmOutput,
 } from './llm/validate';
+
+export { recommendFocus, lightestMuscles } from './selection/lightMuscle';
+export type { FocusRecommendation } from './selection/lightMuscle';
