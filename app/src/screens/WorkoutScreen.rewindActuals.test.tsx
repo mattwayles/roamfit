@@ -228,4 +228,56 @@ describe('◂◂ onto an already-logged set restores what was recorded', () => {
       WAIT_OPTS,
     );
   }, 20000);
+
+  it('band: changing it on a logged set saves to that set without completing it again', async () => {
+    const db = await freshDb();
+    const { sessionId, entryId } = await setUpEntry(db, 'rewind-band-edit-seed', {
+      sets: 2,
+      band: 'B2',
+      repTarget: 12,
+    });
+
+    sessionsRepo.logSet(
+      db,
+      {
+        entryId,
+        setIndex: 0,
+        status: 'completed',
+        repsPrescribed: 12,
+        repsActual: 9,
+        bandActual: 'B4',
+        restPrescribedSec: 45,
+      },
+      nowUtcInstant(),
+    );
+    const loggedSet = () =>
+      sessionsRepo
+        .getSession(db, sessionId)!
+        .entries.find((e) => e.id === entryId)!
+        .setLogs.find((s) => s.setIndex === 0)!;
+
+    renderWorkout(sessionId);
+    await waitFor(() => expect(screen.getByTestId('rep-count')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('rewind-set'));
+    await waitFor(() => expect(screen.getByTestId('rep-count').props.value).toBe('9'), WAIT_OPTS);
+
+    fireEvent.press(screen.getByTestId('band-picker'));
+    await waitFor(
+      () => expect(screen.getByTestId('band-picker-option-B1')).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    fireEvent.press(screen.getByTestId('band-picker-option-B1'));
+
+    // Saved on the spot — no second COMPLETE — and nothing else on the row was touched.
+    await waitFor(() => expect(loggedSet().bandActual).toBe('B1'), WAIT_OPTS);
+    expect(loggedSet().repsActual).toBe(9);
+    expect(loggedSet().status).toBe('completed');
+
+    // The selection survives leaving the set and coming back to it.
+    fireEvent.press(screen.getByTestId('skip-set'));
+    await waitFor(() => expect(screen.getByTestId('rep-count').props.value).toBe('12'), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('rewind-set'));
+    await waitFor(() => expect(screen.getByTestId('rep-count').props.value).toBe('9'), WAIT_OPTS);
+    expect(screen.getByTestId('band-chip-B1')).toBeTruthy();
+  }, 20000);
 });

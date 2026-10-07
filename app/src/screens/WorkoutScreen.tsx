@@ -628,6 +628,21 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   };
 
   /**
+   * The band picker on the hero. For a set that has not run yet, the pick is held until the set
+   * ends and `logCurrentSet` records it. For a set that is already logged (stepped back onto with
+   * Undo, or reached from a Summary/Progress bookmark) the pick is a correction to that record and
+   * is saved straight away — the user should not have to complete the set a second time just to
+   * fix which band it was done on, and doing so would overwrite its reps and timing too.
+   */
+  const handleBandChange = (band: BandId) => {
+    bandUsedRef.current = band;
+    if (loggedSetForThisSet) {
+      sessionsRepo.updateSetLogBand(db, entry.id, setIndex, band);
+      reload();
+    }
+  };
+
+  /**
    * Moving around the workout without training a set: Undo steps back a set, Skip/Next steps forward.
    *
    * Stepping back is pure navigation — nothing is logged and nothing already logged is deleted,
@@ -1189,7 +1204,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               anchorAlt={exercise?.anchor_alt ?? null}
               band={bandForSet}
               bandTensions={bandTensions}
-              onBandChange={(b) => (bandUsedRef.current = b)}
+              onBandChange={handleBandChange}
               paused={paused}
               setIndex={setIndex}
               onComplete={(actualSeconds, pauseInfo) =>
@@ -1211,7 +1226,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               anchorAlt={exercise?.anchor_alt ?? null}
               band={bandForSet}
               bandTensions={bandTensions}
-              onBandChange={(b) => (bandUsedRef.current = b)}
+              onBandChange={handleBandChange}
               paused={paused}
               setIndex={setIndex}
               onComplete={(reps) => finishSetAndRest('completed', reps)}

@@ -1235,6 +1235,23 @@ export function logSet(db: Db, input: LogSetInput, now: string): void {
   }
 }
 
+/** Corrects the band on a set that is already logged, touching nothing else on the row. Changing
+ *  the band on a set the user stepped back onto is a correction of the record, not a redo of the
+ *  set — it must not require completing the set again (which would also overwrite its reps,
+ *  timing and rest). A no-op when the set has no log yet: an unrun set's band is recorded when it
+ *  ends, by `logSet`. */
+export function updateSetLogBand(
+  db: Db,
+  entryId: string,
+  setIndex: number,
+  band: BandId | null,
+): void {
+  db.update(schema.setLogs)
+    .set({ bandActual: band })
+    .where(and(eq(schema.setLogs.entryId, entryId), eq(schema.setLogs.setIndex, setIndex)))
+    .run();
+}
+
 // ------------------------------------------------------------------------------------------
 // History projection for the engine's `UserState.history` (§5.2 variety/recovery/volume rules).
 // ------------------------------------------------------------------------------------------
