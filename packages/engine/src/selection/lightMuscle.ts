@@ -9,8 +9,13 @@
  */
 import type { Exercise, Focus } from '@roamfit/data';
 import type { LocalDate, SessionHistoryRecord } from '../types';
+import { daysBetween } from '../dates';
 import { trailingVolume } from './volume';
-import { LIGHT_MUSCLE_WINDOW_DAYS, MIN_CANDIDATE_MUSCLE_EXERCISES } from './constants';
+import {
+  LIGHT_MUSCLE_WINDOW_DAYS,
+  MIN_CANDIDATE_MUSCLE_EXERCISES,
+  RECOVERY_WINDOW_DAYS,
+} from './constants';
 
 /** The user-selectable focuses a muscle can point at — cardio is not a muscle group. */
 type MuscleFocus = Exclude<Focus, 'cardio'>;
@@ -101,20 +106,39 @@ export interface FocusRecommendation {
   sets: number;
 }
 
-/** Today's "Recommended Focus": the lightest muscle of the week, and the focus that trains it. */
+/** Focuses trained in the last `RECENT_FOCUS_DAYS` days (today and yesterday): the same 48h window
+ *  the engine already uses for recovery. Abandoned and skipped sessions trained nothing. */
+function recentFocuses(history: readonly SessionHistoryRecord[], today: LocalDate): Set<Focus> {
+  const out = new Set<Focus>();
+  for (const s of history) {
+    if (s.status === 'discarded' || s.status === 'skipped') continue;
+    const age = daysBetween(s.localDate, today);
+    if (age >= 0 && age < RECOVERY_WINDOW_DAYS) out.add(s.focus);
+  }
+  return out;
+}
+
+/** Today's "Recommended Focus": the focus that trains the week's lightest muscle — skipping any
+ *  focus the user trained in the last 48h, so a day that was just done is never the answer (a
+ *  lightly-hit biceps after an upper day should not say "Upper" again; the next-lightest muscle
+ *  that points elsewhere wins). Null when nothing qualifies. */
 export function recommendFocus(
   history: readonly SessionHistoryRecord[],
   library: readonly Exercise[],
   today: LocalDate,
 ): FocusRecommendation | null {
-  const lightest = lightestMuscles(
+  const ranked = lightestMuscles(
     history,
     library,
     today,
     new Set(candidateMuscles(library).keys()),
-  )[0];
-  if (!lightest) return null;
-  return { ...lightest, focus: focusForMuscle(lightest.muscle, library) };
+  );
+  const recent = recentFocuses(history, today);
+  for (const r of ranked) {
+    const focus = focusForMuscle(r.muscle, library);
+    if (!recent.has(focus)) return { ...r, focus };
+  }
+  return null;
 }
 
 /** 0..1 — how far a muscle sits below the mean of `ranked` (the muscles this session can train).

@@ -102,6 +102,19 @@ describe('recommendFocus', () => {
     }
   });
 
+  it('never recommends a focus trained today or yesterday, even when its muscle is lightest', () => {
+    // Biceps is the lightest muscle, but an upper session was just done: move on to the next one.
+    const week = weekWithout('biceps');
+    const justDidUpper = [...week, { ...week[0], focus: 'upper' as const, localDate: TODAY }];
+    const rec = recommendFocus(justDidUpper, library, TODAY);
+    expect(rec).not.toBeNull();
+    expect(rec!.focus).not.toBe('upper');
+    expect(rec!.muscle).not.toBe('biceps');
+    // Two days on the recovery window has passed, so upper is on the table again.
+    const twoDaysOn = [...week, { ...week[0], focus: 'upper' as const, localDate: '2026-08-28' }];
+    expect(recommendFocus(twoDaysOn, library, TODAY)?.focus).toBe('upper');
+  });
+
   it('ignores abandoned sessions (ADR 0011)', () => {
     const week = weekWithout('biceps').map((s) => ({ ...s, status: 'discarded' as const }));
     expect(recommendFocus(week, library, TODAY)).toBeNull();
