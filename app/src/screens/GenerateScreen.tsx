@@ -16,17 +16,18 @@
  * fabricating one here would put a selection decision in the UI layer, which this wave's
  * ground rule forbids. Flagged in STATUS-4-loop.md as a follow-up once such a query exists.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { Anchor, Focus } from '@roamfit/data';
-import { createRng, seedFromString } from '@roamfit/engine';
+import { createRng, recommendFocus, seedFromString } from '@roamfit/engine';
 import type { Difficulty } from '@roamfit/engine';
 import { generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { getNetworkStatus } from '../lib/networkStatus';
+import { formatToken } from '../lib/exerciseCatalog';
 import { DIFFICULTY_LABELS, FOCUS_LABELS, FOCUS_TONE } from '../lib/focusLabels';
 import { IconBadge } from '../components/IconBadge';
 import { gutter, makeStyles, radius, space, useTheme, withAlpha, type AccentName } from '../theme';
@@ -119,8 +120,21 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
   const theme = useTheme();
   const styles = useStyles();
   const { db, library, families } = useStore();
+  // The focus that trains the prior week's lightest muscle (engine `recommendFocus`, the same
+  // ranking generation leans on). Its tile starts selected, but it is still just a default the
+  // user can change — the engine picks the exercises (invariant 2) — and it is phrased as an opportunity, never a gap or a miss (invariant 4).
+  // Null until a week has data.
+  const recommended = useMemo(
+    () =>
+      recommendFocus(
+        sessionsRepo.getHistoryForGeneration(db),
+        library.exercises,
+        nowEngineClock().today,
+      ),
+    [db, library],
+  );
   const [minutes, setMinutes] = useState(30);
-  const [focus, setFocus] = useState<Focus>('full');
+  const [focus, setFocus] = useState<Focus>(recommended?.focus ?? 'full');
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [anchors, setAnchors] = useState<Anchor[]>([]);
   // Collapsed by default: anchors are sticky user state (§5.3), set once and rarely revisited, so
@@ -260,6 +274,34 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
           What are we training?
         </Txt>
       </Enter>
+
+      {recommended && (
+        <Enter index={1}>
+          <Card
+            testID="focus-muscle"
+            padding="md"
+            style={[
+              styles.recommended,
+              {
+                backgroundColor: withAlpha(theme.focus[recommended.focus], 0.22),
+                borderColor: theme.focus[recommended.focus],
+              },
+            ]}
+          >
+            <View style={styles.recommendedText}>
+              <Txt variant="eyebrow" color={FOCUS_TONE[recommended.focus]}>
+                Recommended Focus
+              </Txt>
+              <Txt variant="h2">{FOCUS_LABELS[recommended.focus]}</Txt>
+              <Txt variant="small" color="text2">
+                {recommended.sets === 0
+                  ? `${formatToken(recommended.muscle)} is fresh and ready — not trained in the last 7 days`
+                  : `${formatToken(recommended.muscle)} has had the lightest week`}
+              </Txt>
+            </View>
+          </Card>
+        </Enter>
+      )}
 
       {/* Focus: the big decision, so it gets the big tiles. Cardio is full-width and last (the
           newest, least-habitual choice — see FOCUS_OPTIONS). */}
@@ -542,6 +584,8 @@ function ToggleRow({
 
 const useStyles = makeStyles((t) =>
   StyleSheet.create({
+    recommended: { flexDirection: 'row', alignItems: 'center', borderWidth: 1 },
+    recommendedText: { flex: 1, gap: 2 },
     content: { paddingTop: space.sm, gap: space.xxl },
     titleBlock: { gap: space.xs },
     section: { gap: space.md },
