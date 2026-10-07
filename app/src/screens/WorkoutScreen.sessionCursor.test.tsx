@@ -37,7 +37,7 @@ function Setup({ onReady }: { onReady: (db: Db) => void }) {
 
 async function freshDb(): Promise<Db> {
   let db!: Db;
-  render(
+  await render(
     <StoreProvider>
       <Setup onReady={(d) => (db = d)} />
     </StoreProvider>,
@@ -72,7 +72,7 @@ it('arriving via a Summary bookmark persists the selection as the session cursor
   const second = active[1]!;
 
   const navigation = mockNavigation();
-  render(
+  await render(
     <StoreProvider>
       <WorkoutScreen
         navigation={navigation as never}
@@ -100,26 +100,37 @@ it('training the front-edge set through to completion drops the cursor back to n
   const db = await freshDb();
   const clock = nowEngineClock();
   const utcInstant = nowUtcInstant();
-  const { plan, comebackTier, recoveryWeekManual } = generate(db, {
-    library: exerciseLibrary,
-    families: familyLibrary,
-    request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
-    clock,
-    rng: createRng(seedFromString('cursor-clear-seed')),
-    utcInstant,
-  });
-  const sessionId = sessionsRepo.createPendingSession(db, {
-    plan,
-    utcInstant,
-    localDate: clock.today,
-    tzId: clock.tzId,
-    comebackTier,
-    recoveryWeekManual,
-  });
+  // The front-edge set must be a rep exercise (a timed one shows a timer, not COMPLETE SET), so
+  // take the first seed whose generated session opens on one.
+  let sessionId = '';
+  for (let attempt = 0; attempt < 20 && !sessionId; attempt += 1) {
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'full', difficulty: 'medium', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString(`cursor-clear-seed-${attempt}`)),
+      utcInstant,
+    });
+    const id = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    const first = sessionsRepo
+      .getSession(db, id)!
+      .entries.find((e) => e.entryStatus !== 'removed_at_approval')!;
+    if (first.repTarget != null) sessionId = id;
+    else sessionsRepo.discardSession(db, id, {}, utcInstant);
+  }
+  expect(sessionId).not.toBe('');
   sessionsRepo.startSession(db, sessionId, utcInstant);
 
   const navigation = mockNavigation();
-  render(
+  await render(
     <StoreProvider>
       <WorkoutScreen
         navigation={navigation as never}
@@ -129,7 +140,7 @@ it('training the front-edge set through to completion drops the cursor back to n
   );
 
   await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
-  fireEvent.press(screen.getByTestId('complete-set'));
+  await fireEvent.press(screen.getByTestId('complete-set'));
 
   await waitFor(() => {
     const s = sessionsRepo.getSession(db, sessionId)!;

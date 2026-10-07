@@ -7,14 +7,13 @@
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import type { AnchorClass, Pattern } from '@roamfit/data';
+import type { AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import {
   alternativesForSlot,
   buildSwapReplacementEntry,
   createRng,
   seedFromString,
-  type ProgressionFamilyId,
   type SessionEntry,
 } from '@roamfit/engine';
 import { exerciseStateRepo, generate, sessionsRepo, usersRepo } from '@roamfit/store';
@@ -67,7 +66,7 @@ function toEngineEntry(entry: sessionsRepo.SessionEntryRecord): SessionEntry {
 describe('§10.6 swap remounts the set hero for the swapped-in exercise', () => {
   it('bodyweight -> banded: the band picker appears and the rep counter resets to the new target', async () => {
     let db!: ReturnType<typeof useStore>['db'];
-    render(
+    await render(
       <StoreProvider>
         <Setup onReady={(d) => (db = d)} />
       </StoreProvider>,
@@ -126,12 +125,12 @@ describe('§10.6 swap remounts the set hero for the swapped-in exercise', () => 
       nowUtcInstant(),
     );
     sessionsRepo.startSession(db, sessionId, nowUtcInstant());
-    const seededEntry = sessionsRepo.getSession(db, sessionId)!.entries.find(
-      (e) => e.id === first.id,
-    )!;
+    const seededEntry = sessionsRepo
+      .getSession(db, sessionId)!
+      .entries.find((e) => e.id === first.id)!;
     expect(seededEntry.band).toBeNull();
 
-    render(
+    await render(
       <StoreProvider>
         <WorkoutScreen
           navigation={mockNavigation() as never}
@@ -143,12 +142,12 @@ describe('§10.6 swap remounts the set hero for the swapped-in exercise', () => 
     expect(screen.queryByLabelText('Band used for this set')).toBeNull();
 
     // Dial the counter away from the prescription, the way a user mid-set would.
-    fireEvent.press(screen.getByTestId('rep-plus'));
-    fireEvent.press(screen.getByTestId('rep-plus'));
-    fireEvent.press(screen.getByTestId('rep-plus'));
+    await fireEvent.press(screen.getByTestId('rep-plus'));
+    await fireEvent.press(screen.getByTestId('rep-plus'));
+    await fireEvent.press(screen.getByTestId('rep-plus'));
     expect(screen.getByTestId('rep-count').props.value).toBe(String(seededEntry.repTarget! + 3));
 
-    fireEvent.press(screen.getByTestId('swap-set'));
+    await fireEvent.press(screen.getByTestId('swap-set'));
 
     const after = sessionsRepo.getSession(db, sessionId)!.entries.find((e) => e.id === first.id)!;
     expect(after.exerciseId).not.toBe(bodyweight!.id);
