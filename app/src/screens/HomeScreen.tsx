@@ -442,8 +442,8 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
                   size={40}
                   isToday={day.localDate === todayLocalDate}
                   testID={`week-day-${day.localDate}`}
-                  accessibilityLabel={`${markerLabel(day.marker)} — open Journey`}
-                  onPress={() => navigation.navigate('Journey')}
+                  accessibilityLabel={`${markerLabel(day.marker)} — open Logbook`}
+                  onPress={() => navigation.navigate('Journey', { focusLogbook: true })}
                 />
               </View>
             ))}

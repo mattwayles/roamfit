@@ -10,8 +10,9 @@ import type { SessionPosition } from '../lib/sessionProgress';
 export type TabParamList = {
   Home: undefined;
   /** The long-term story: lifetime totals, Trails (progression), Logbook, Passport, balance. */
-  /** `focusFamilyId` — scroll to that family's Trail card (Today's Next Unlock card sets it). */
-  Journey: { focusFamilyId?: string } | undefined;
+  /** `focusFamilyId` — scroll to that family's Trail card (Today's Next Unlock card sets it);
+   *  `focusLogbook` — scroll to the Logbook (Today's "This week" strip sets it). */
+  Journey: { focusFamilyId?: string; focusLogbook?: boolean } | undefined;
   /** The exercise library, browsable — read-only apart from assigning a demo video. */
   Exercises: undefined;
 };

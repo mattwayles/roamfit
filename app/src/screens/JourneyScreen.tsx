@@ -142,6 +142,18 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
     scrollRef.current?.scrollTo({ y: Math.max(0, trailsY.current + y - space.md), animated: true });
     navigation.setParams({ focusFamilyId: undefined });
   }, [focusFamilyId, layoutTick, navigation]);
+  // Today's "This week" strip opens Journey scrolled to the Logbook.
+  const logbookY = useRef<number | null>(null);
+  const focusLogbook = route.params?.focusLogbook;
+  useEffect(() => {
+    if (!focusLogbook || logbookY.current === null) return;
+    scrollRef.current?.scrollTo({ y: Math.max(0, logbookY.current - space.md), animated: true });
+    navigation.setParams({ focusLogbook: undefined });
+  }, [focusLogbook, layoutTick, navigation]);
+  const onLogbookLayout = (e: LayoutChangeEvent) => {
+    logbookY.current = e.nativeEvent.layout.y;
+    setLayoutTick((n) => n + 1);
+  };
   const onTrailsLayout = (e: LayoutChangeEvent) => {
     trailsY.current = e.nativeEvent.layout.y;
     setLayoutTick((n) => n + 1);
@@ -431,75 +443,77 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
           cell gets a ring, not a color, so it never reads as a workout state. Every marker is
           hand-editable (tap opens the sheet below) so a workout logged outside RoamFit, or a
           travel day missed at the time, can still be reflected here. */}
-      <Enter index={next()} style={styles.section}>
-        <SectionTitle
-          title="Logbook"
-          icon="today"
-          tone="teal"
-          right={
-            <View style={styles.monthNav}>
-              <IconButton
-                testID="logbook-prev"
-                icon="back"
-                size="sm"
-                disabled={atEarliest}
-                accessibilityLabel="Previous month"
-                onPress={() => setViewedMonth(shiftMonth(viewedMonth, -1))}
-              />
-              <Chip
-                testID="logbook-month-label"
-                label={monthLabel(viewedMonth, currentMonth)}
-                tone="teal"
-                size="sm"
-                accessibilityLabel={`${monthLabel(viewedMonth)} — choose a month`}
-                onPress={() => setMonthPickerOpen(true)}
-              />
-              <IconButton
-                testID="logbook-next"
-                icon="chevronRight"
-                size="sm"
-                disabled={atCurrent}
-                accessibilityLabel="Next month"
-                onPress={() => setViewedMonth(shiftMonth(viewedMonth, 1))}
-              />
-            </View>
-          }
-        />
-        {hasSessions ? (
-          <View testID="calendar-heatmap" style={styles.calendar}>
-            <View style={styles.weekdayRow}>
-              {WEEKDAY_LABELS.map((label, i) => (
-                <Txt key={i} variant="eyebrow" color="text3" align="center" style={styles.flex}>
-                  {label}
-                </Txt>
-              ))}
-            </View>
-            {calendarWeeks.map((week, weekIndex) => (
-              <View key={weekIndex} style={styles.calendarRow}>
-                {week.map((day, dayIndex) => (
-                  <DayCell
-                    key={day?.localDate ?? `blank-${weekIndex}-${dayIndex}`}
-                    day={day}
-                    isToday={day?.localDate === data.todayLocalDate}
-                    testID={day ? `calendar-day-${day.localDate}` : undefined}
-                    onPress={() => {
-                      if (day) openDay(day);
-                    }}
-                  />
-                ))}
-              </View>
-            ))}
-          </View>
-        ) : (
-          <EmptyState
-            testID="logbook-empty"
+      <View onLayout={onLogbookLayout}>
+        <Enter index={next()} style={styles.section}>
+          <SectionTitle
+            title="Logbook"
             icon="today"
             tone="teal"
-            title="Every session leaves a mark"
-            body="Your first workout lights up its day here — and you can log a workout from outside the app too."
+            right={
+              <View style={styles.monthNav}>
+                <IconButton
+                  testID="logbook-prev"
+                  icon="back"
+                  size="sm"
+                  disabled={atEarliest}
+                  accessibilityLabel="Previous month"
+                  onPress={() => setViewedMonth(shiftMonth(viewedMonth, -1))}
+                />
+                <Chip
+                  testID="logbook-month-label"
+                  label={monthLabel(viewedMonth, currentMonth)}
+                  tone="teal"
+                  size="sm"
+                  accessibilityLabel={`${monthLabel(viewedMonth)} — choose a month`}
+                  onPress={() => setMonthPickerOpen(true)}
+                />
+                <IconButton
+                  testID="logbook-next"
+                  icon="chevronRight"
+                  size="sm"
+                  disabled={atCurrent}
+                  accessibilityLabel="Next month"
+                  onPress={() => setViewedMonth(shiftMonth(viewedMonth, 1))}
+                />
+              </View>
+            }
           />
-        )}
-      </Enter>
+          {hasSessions ? (
+            <View testID="calendar-heatmap" style={styles.calendar}>
+              <View style={styles.weekdayRow}>
+                {WEEKDAY_LABELS.map((label, i) => (
+                  <Txt key={i} variant="eyebrow" color="text3" align="center" style={styles.flex}>
+                    {label}
+                  </Txt>
+                ))}
+              </View>
+              {calendarWeeks.map((week, weekIndex) => (
+                <View key={weekIndex} style={styles.calendarRow}>
+                  {week.map((day, dayIndex) => (
+                    <DayCell
+                      key={day?.localDate ?? `blank-${weekIndex}-${dayIndex}`}
+                      day={day}
+                      isToday={day?.localDate === data.todayLocalDate}
+                      testID={day ? `calendar-day-${day.localDate}` : undefined}
+                      onPress={() => {
+                        if (day) openDay(day);
+                      }}
+                    />
+                  ))}
+                </View>
+              ))}
+            </View>
+          ) : (
+            <EmptyState
+              testID="logbook-empty"
+              icon="today"
+              tone="teal"
+              title="Every session leaves a mark"
+              body="Your first workout lights up its day here — and you can log a workout from outside the app too."
+            />
+          )}
+        </Enter>
+      </View>
 
       {/* Trails — the progression board (renamed in UI copy only; testIDs keep `board`). */}
       <View style={styles.section} onLayout={onTrailsLayout}>

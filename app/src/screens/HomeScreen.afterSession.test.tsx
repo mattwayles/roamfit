@@ -96,7 +96,7 @@ describe('Today after a completed session', () => {
     const today = nowEngineClock().today;
     const strip = screen.getByTestId('week-strip');
     const cell = within(strip).getByTestId(`week-day-${today}`);
-    expect(cell.props.accessibilityLabel).toBe('Full-body workout — open Journey');
+    expect(cell.props.accessibilityLabel).toBe('Full-body workout — open Logbook');
     expect(screen.queryByTestId('lifetime-counters')).toBeNull();
     expect(screen.queryByTestId('calendar-heatmap')).toBeNull();
     expect(screen.queryByTestId('muscle-balance')).toBeNull();
