@@ -456,7 +456,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           <Card
             testID="next-unlock-hero"
             padding="md"
-            onPress={() => navigation.navigate('Journey')}
+            onPress={() => navigation.navigate('Journey', { focusFamilyId: hero.familyId })}
             style={styles.unlock}
           >
             <ProgressRing

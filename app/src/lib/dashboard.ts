@@ -85,6 +85,8 @@ export function buildProgressionBoard(
 }
 
 export interface NextUnlockHero {
+  /** Which Trail card on Journey this hero points at. */
+  familyId: ProgressionFamilyId;
   /** The movement function — "Horizontal Push". Deliberately the only name carried.
    *
    *  Not the exercise being unlocked (ADR 0014: that is the reveal), and not the exercise being
@@ -111,6 +113,7 @@ export function nextUnlockHero(board: FamilyBoardEntry[]): NextUnlockHero | null
   const remaining = closest.sessionsToNextLevel as number;
   const total = closest.sessionsInLevel ?? 0;
   return {
+    familyId: closest.familyId,
     familyName: closest.familyName,
     sessionsRemaining: remaining,
     progress: total > 0 ? Math.min(1, Math.max(0, (total - remaining) / total)) : 0,

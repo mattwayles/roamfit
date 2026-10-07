@@ -16,6 +16,11 @@ the record of what was completed and why.
 
 ## Desired Fixes
 
+- **Next Unlock → Journey scroll — device pass owed.** Tapping the Next Unlock card on Today now opens
+  Journey scrolled to that family's Trail card (`focusFamilyId` route param; offsets come from
+  `onLayout`, tested in Jest with synthetic layouts only). On a device check the card lands just under
+  the top edge with the chart's height settled (cards are taller once their charts mount), that it
+  works both from a cold Journey and with Journey already open, and that Reduce Motion is fine.
 - **History / past months / progress graphs — device pass owed.** Track 27
   (`docs/handoff/STATUS-27-history-progress.md`) is Jest-verified only. On a device, in Midnight
   and Daybreak: (1) `ProgressChart` (Exercise detail and the best-set chart on each Journey Trail card): the tap-to-read target is

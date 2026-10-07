@@ -17,8 +17,15 @@
  * `useDashboardData`; the only "decisions" made here are layout and what to say about the outcome
  * of a level change.
  */
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  ScrollView,
+  Share,
+  StyleSheet,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   exerciseCatalogRepo,
@@ -96,7 +103,7 @@ interface DaySessionCard {
   summary: string;
 }
 
-export default function JourneyScreen({ navigation }: Props): React.JSX.Element {
+export default function JourneyScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme();
   const styles = useStyles();
   const { db, library, families } = useStore();
@@ -121,6 +128,28 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
   const keepMonthOnFocus = useRef(false);
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const { data, reload } = useDashboardData();
+  // Today's Next Unlock card opens Journey scrolled to that family's Trail card. Card offsets are
+  // collected from layout (section y + card y within it); the scroll waits until the card has one.
+  const scrollRef = useRef<ScrollView>(null);
+  const trailsY = useRef<number | null>(null);
+  const cardY = useRef(new Map<string, number>());
+  const [layoutTick, setLayoutTick] = useState(0);
+  const focusFamilyId = route.params?.focusFamilyId;
+  useEffect(() => {
+    if (!focusFamilyId || trailsY.current === null) return;
+    const y = cardY.current.get(focusFamilyId);
+    if (y === undefined) return;
+    scrollRef.current?.scrollTo({ y: Math.max(0, trailsY.current + y - space.md), animated: true });
+    navigation.setParams({ focusFamilyId: undefined });
+  }, [focusFamilyId, layoutTick, navigation]);
+  const onTrailsLayout = (e: LayoutChangeEvent) => {
+    trailsY.current = e.nativeEvent.layout.y;
+    setLayoutTick((n) => n + 1);
+  };
+  const onCardLayout = (familyId: string) => (e: LayoutChangeEvent) => {
+    cardY.current.set(familyId, e.nativeEvent.layout.y);
+    setLayoutTick((n) => n + 1);
+  };
   const pastMonthDays = useLogbookMonth(viewedMonth, data);
   // Each Trail card's best-set chart. Recomputed whenever the dashboard reloads (every focus and
   // every level change), so a finished workout shows on its trail the next time Journey opens.
@@ -318,6 +347,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
   return (
     <Screen
       scroll
+      scrollRef={scrollRef}
       edges={['top', 'left', 'right']}
       safeBottom={false}
       testID="journey-screen"
@@ -472,7 +502,7 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
       </Enter>
 
       {/* Trails — the progression board (renamed in UI copy only; testIDs keep `board`). */}
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={onTrailsLayout}>
         <Enter index={next()}>
           <SectionTitle
             title="Trails"
@@ -507,187 +537,191 @@ export default function JourneyScreen({ navigation }: Props): React.JSX.Element 
             const progress =
               total !== null && total > 0 && remaining !== null ? (total - remaining) / total : 0;
             return (
-              <Enter key={entry.familyId} index={Math.min(4 + index, MAX_STAGGER)}>
-                <Card testID={`board-row-${entry.familyId}`} padding="md" style={styles.trail}>
-                  {/* Two columns: identity on the left, status on the right. How close you are is
+              <View key={entry.familyId} onLayout={onCardLayout(entry.familyId)}>
+                <Enter index={Math.min(4 + index, MAX_STAGGER)}>
+                  <Card testID={`board-row-${entry.familyId}`} padding="md" style={styles.trail}>
+                    {/* Two columns: identity on the left, status on the right. How close you are is
                       the ring, the loudest thing on the row. */}
-                  <View style={styles.trailTop}>
-                    <View style={styles.trailIdentity}>
-                      <Txt variant="h2">{entry.familyName}</Txt>
-                      <Txt variant="small" color="text2">
-                        {entry.exerciseName}
-                      </Txt>
-                    </View>
-                    {/* ADR 0014 — how close you are, made the loudest thing on the row. The next
-                        exercise is deliberately not named: the unlock is the reward, and printing
-                        it here spends that for nothing. */}
-                    {!entry.isMastery && remaining !== null ? (
-                      <View style={styles.ringBlock}>
-                        <ProgressRing
-                          testID={`board-progress-${entry.familyId}`}
-                          progress={progress}
-                          size={56}
-                          stroke={6}
-                          gradient={theme.gradients.sky}
-                          accessibilityLabel={`${remaining} ${plural(remaining, 'session', 'sessions')} to next level`}
-                        >
-                          <Txt variant="h2" testID={`board-sessions-left-${entry.familyId}`}>
-                            {remaining}
-                          </Txt>
-                        </ProgressRing>
-                        <Txt
-                          variant="caption"
-                          color="text3"
-                          align="center"
-                          style={styles.ringCaption}
-                        >
-                          {plural(remaining, 'session', 'sessions')} to next level
+                    <View style={styles.trailTop}>
+                      <View style={styles.trailIdentity}>
+                        <Txt variant="h2">{entry.familyName}</Txt>
+                        <Txt variant="small" color="text2">
+                          {entry.exerciseName}
                         </Txt>
                       </View>
-                    ) : null}
-                  </View>
+                      {/* ADR 0014 — how close you are, made the loudest thing on the row. The next
+                        exercise is deliberately not named: the unlock is the reward, and printing
+                        it here spends that for nothing. */}
+                      {!entry.isMastery && remaining !== null ? (
+                        <View style={styles.ringBlock}>
+                          <ProgressRing
+                            testID={`board-progress-${entry.familyId}`}
+                            progress={progress}
+                            size={56}
+                            stroke={6}
+                            gradient={theme.gradients.sky}
+                            accessibilityLabel={`${remaining} ${plural(remaining, 'session', 'sessions')} to next level`}
+                          >
+                            <Txt variant="h2" testID={`board-sessions-left-${entry.familyId}`}>
+                              {remaining}
+                            </Txt>
+                          </ProgressRing>
+                          <Txt
+                            variant="caption"
+                            color="text3"
+                            align="center"
+                            style={styles.ringCaption}
+                          >
+                            {plural(remaining, 'session', 'sessions')} to next level
+                          </Txt>
+                        </View>
+                      ) : null}
+                    </View>
 
-                  <RungTrack
-                    testID={`board-track-${entry.familyId}`}
-                    count={entry.ordinal.of}
-                    current={entry.ordinal.n}
-                    mastery={entry.isMastery}
-                  />
+                    <RungTrack
+                      testID={`board-track-${entry.familyId}`}
+                      count={entry.ordinal.of}
+                      current={entry.ordinal.n}
+                      mastery={entry.isMastery}
+                    />
 
-                  <View style={styles.levelRow}>
-                    <Txt variant="eyebrow" color={entry.isMastery ? 'gold' : 'sky'}>
-                      Level {entry.ordinal.n} of {entry.ordinal.of}
-                    </Txt>
+                    <View style={styles.levelRow}>
+                      <Txt variant="eyebrow" color={entry.isMastery ? 'gold' : 'sky'}>
+                        Level {entry.ordinal.n} of {entry.ordinal.of}
+                      </Txt>
+                      {entry.isMastery ? (
+                        <Chip label="Summit" tone="gold" icon="flag" size="sm" />
+                      ) : null}
+                    </View>
+
                     {entry.isMastery ? (
-                      <Chip label="Summit" tone="gold" icon="flag" size="sm" />
+                      <Txt variant="caption" color="text2">
+                        At the top of this ladder — micro-progression keeps running.
+                      </Txt>
                     ) : null}
-                  </View>
 
-                  {entry.isMastery ? (
-                    <Txt variant="caption" color="text2">
-                      At the top of this ladder — micro-progression keeps running.
-                    </Txt>
-                  ) : null}
+                    {chart ? (
+                      <TrailProgressChart familyId={entry.familyId} progress={chart} />
+                    ) : null}
 
-                  {chart ? <TrailProgressChart familyId={entry.familyId} progress={chart} /> : null}
-
-                  {/* ADR 0012 — raise or drop the rung from the board, before generating anything.
+                    {/* ADR 0012 — raise or drop the rung from the board, before generating anything.
                       The board is where a ladder position is actually shown, and a level is a
                       property of the user rather than of any one session, so this is the place to
                       correct it. Collapsed behind Adjust: looking is the common case, adjusting is
                       occasional. Nothing to offer up at the top of a ladder (§6.7 Mastery) or down
                       at the bottom. */}
-                  <Button
-                    testID={`board-adjust-${entry.familyId}`}
-                    label="Adjust"
-                    variant="quiet"
-                    size="sm"
-                    icon={open ? 'chevronUp' : 'chevronDown'}
-                    iconRight
-                    accessibilityLabel={`Adjust ${entry.familyName} level`}
-                    onPress={() => toggleAdjust(entry.familyId)}
-                    style={styles.adjust}
-                  />
+                    <Button
+                      testID={`board-adjust-${entry.familyId}`}
+                      label="Adjust"
+                      variant="quiet"
+                      size="sm"
+                      icon={open ? 'chevronUp' : 'chevronDown'}
+                      iconRight
+                      accessibilityLabel={`Adjust ${entry.familyName} level`}
+                      onPress={() => toggleAdjust(entry.familyId)}
+                      style={styles.adjust}
+                    />
 
-                  {open ? (
-                    <View style={styles.adjustPanel}>
-                      {!entry.isMastery &&
-                        confirmingLevelDown !== entry.familyId &&
-                        (confirmingLevelUp === entry.familyId ? (
-                          /* Two-step confirm, same shape as `AbandonSessionButton`'s. Warranted
+                    {open ? (
+                      <View style={styles.adjustPanel}>
+                        {!entry.isMastery &&
+                          confirmingLevelDown !== entry.familyId &&
+                          (confirmingLevelUp === entry.familyId ? (
+                            /* Two-step confirm, same shape as `AbandonSessionButton`'s. Warranted
                              because a level change resets this level's micro-progression to the
                              new rung's floor. Row-scoped, so only the row you tapped is ever in
                              this state. */
-                          <View
-                            style={styles.confirmBox}
-                            testID={`board-level-up-confirm-${entry.familyId}`}
-                          >
-                            <Txt variant="small" color="text2">
-                              Move {entry.familyName} up a level? The next rung is harder, and your
-                              progress toward this unlock starts over.
-                            </Txt>
-                            <View style={styles.confirmButtons}>
-                              <Button
-                                testID={`board-level-up-cancel-${entry.familyId}`}
-                                label="Not yet"
-                                variant="secondary"
-                                size="sm"
-                                style={styles.flex}
-                                onPress={() => setConfirmingLevelUp(null)}
-                              />
-                              <Button
-                                testID={`board-level-up-confirm-yes-${entry.familyId}`}
-                                label="Level up"
-                                variant="primary"
-                                size="sm"
-                                style={styles.flex}
-                                onPress={() => handleLevelUp(entry)}
-                              />
+                            <View
+                              style={styles.confirmBox}
+                              testID={`board-level-up-confirm-${entry.familyId}`}
+                            >
+                              <Txt variant="small" color="text2">
+                                Move {entry.familyName} up a level? The next rung is harder, and
+                                your progress toward this unlock starts over.
+                              </Txt>
+                              <View style={styles.confirmButtons}>
+                                <Button
+                                  testID={`board-level-up-cancel-${entry.familyId}`}
+                                  label="Not yet"
+                                  variant="secondary"
+                                  size="sm"
+                                  style={styles.flex}
+                                  onPress={() => setConfirmingLevelUp(null)}
+                                />
+                                <Button
+                                  testID={`board-level-up-confirm-yes-${entry.familyId}`}
+                                  label="Level up"
+                                  variant="primary"
+                                  size="sm"
+                                  style={styles.flex}
+                                  onPress={() => handleLevelUp(entry)}
+                                />
+                              </View>
                             </View>
-                          </View>
-                        ) : (
-                          <Button
-                            testID={`board-level-up-${entry.familyId}`}
-                            label="Too easy — level up"
-                            variant="secondary"
-                            size="md"
-                            icon="trendingUp"
-                            fullWidth
-                            accessibilityLabel={`${entry.exerciseName} is too easy — move up a level`}
-                            onPress={() => setConfirmingLevelUp(entry.familyId)}
-                          />
-                        ))}
+                          ) : (
+                            <Button
+                              testID={`board-level-up-${entry.familyId}`}
+                              label="Too easy — level up"
+                              variant="secondary"
+                              size="md"
+                              icon="trendingUp"
+                              fullWidth
+                              accessibilityLabel={`${entry.exerciseName} is too easy — move up a level`}
+                              onPress={() => setConfirmingLevelUp(entry.familyId)}
+                            />
+                          ))}
 
-                      {/* Symmetric "too hard" control — same two-step confirm shape, opposite
+                        {/* Symmetric "too hard" control — same two-step confirm shape, opposite
                           direction. Never a punishing framing (invariant 4): dropping a rung is
                           exactly as neutral a correction as raising one, just phrased for the
                           other direction. */}
-                      {!entry.isBaseLevel &&
-                        confirmingLevelUp !== entry.familyId &&
-                        (confirmingLevelDown === entry.familyId ? (
-                          <View
-                            style={styles.confirmBox}
-                            testID={`board-level-down-confirm-${entry.familyId}`}
-                          >
-                            <Txt variant="small" color="text2">
-                              Move {entry.familyName} down a level? The prior rung is easier, and
-                              your progress toward this unlock starts over.
-                            </Txt>
-                            <View style={styles.confirmButtons}>
-                              <Button
-                                testID={`board-level-down-cancel-${entry.familyId}`}
-                                label="Not yet"
-                                variant="secondary"
-                                size="sm"
-                                style={styles.flex}
-                                onPress={() => setConfirmingLevelDown(null)}
-                              />
-                              <Button
-                                testID={`board-level-down-confirm-yes-${entry.familyId}`}
-                                label="Level down"
-                                variant="primary"
-                                size="sm"
-                                style={styles.flex}
-                                onPress={() => handleLevelDown(entry)}
-                              />
+                        {!entry.isBaseLevel &&
+                          confirmingLevelUp !== entry.familyId &&
+                          (confirmingLevelDown === entry.familyId ? (
+                            <View
+                              style={styles.confirmBox}
+                              testID={`board-level-down-confirm-${entry.familyId}`}
+                            >
+                              <Txt variant="small" color="text2">
+                                Move {entry.familyName} down a level? The prior rung is easier, and
+                                your progress toward this unlock starts over.
+                              </Txt>
+                              <View style={styles.confirmButtons}>
+                                <Button
+                                  testID={`board-level-down-cancel-${entry.familyId}`}
+                                  label="Not yet"
+                                  variant="secondary"
+                                  size="sm"
+                                  style={styles.flex}
+                                  onPress={() => setConfirmingLevelDown(null)}
+                                />
+                                <Button
+                                  testID={`board-level-down-confirm-yes-${entry.familyId}`}
+                                  label="Level down"
+                                  variant="primary"
+                                  size="sm"
+                                  style={styles.flex}
+                                  onPress={() => handleLevelDown(entry)}
+                                />
+                              </View>
                             </View>
-                          </View>
-                        ) : (
-                          <Button
-                            testID={`board-level-down-${entry.familyId}`}
-                            label="Too hard — level down"
-                            variant="secondary"
-                            size="md"
-                            icon="arrowLeft"
-                            fullWidth
-                            accessibilityLabel={`${entry.exerciseName} is too hard — move down a level`}
-                            onPress={() => setConfirmingLevelDown(entry.familyId)}
-                          />
-                        ))}
-                    </View>
-                  ) : null}
-                </Card>
-              </Enter>
+                          ) : (
+                            <Button
+                              testID={`board-level-down-${entry.familyId}`}
+                              label="Too hard — level down"
+                              variant="secondary"
+                              size="md"
+                              icon="arrowLeft"
+                              fullWidth
+                              accessibilityLabel={`${entry.exerciseName} is too hard — move down a level`}
+                              onPress={() => setConfirmingLevelDown(entry.familyId)}
+                            />
+                          ))}
+                      </View>
+                    ) : null}
+                  </Card>
+                </Enter>
+              </View>
             );
           })}
         </View>

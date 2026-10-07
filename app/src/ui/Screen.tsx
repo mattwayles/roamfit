@@ -36,6 +36,8 @@ export interface ScreenProps {
   contentStyle?: StyleProp<ViewStyle>;
   style?: StyleProp<ViewStyle>;
   refreshControl?: React.ReactElement<RefreshControlProps>;
+  /** Ref to the scroll view (when `scroll`), for a screen that scrolls itself to a section. */
+  scrollRef?: React.Ref<ScrollView>;
   testID?: string;
   children?: React.ReactNode;
 }
@@ -51,6 +53,7 @@ export function Screen({
   contentStyle,
   style,
   refreshControl,
+  scrollRef,
   testID,
   children,
 }: ScreenProps): React.JSX.Element {
@@ -69,6 +72,7 @@ export function Screen({
     <View testID={testID} style={[styles.root, { paddingTop: has('top') ? insets.top : 0 }, style]}>
       {scroll ? (
         <ScrollView
+          ref={scrollRef}
           style={styles.flex}
           scrollEnabled={scrollEnabled}
           automaticallyAdjustKeyboardInsets={adjustForKeyboard}

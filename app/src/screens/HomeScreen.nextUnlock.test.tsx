@@ -5,7 +5,7 @@
  * calendar header) and the card/strip taps that open Journey.
  */
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
@@ -104,6 +104,37 @@ describe('Today — Next Unlock card', () => {
     expect(screen.getByTestId('tab-Journey').props.accessibilityState).toMatchObject({
       selected: true,
     });
+  });
+});
+
+describe('Today — Next Unlock card → Journey', () => {
+  it('scrolls Journey to the Trail card of the family the hero names', async () => {
+    const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo').mockImplementation(() => {});
+    await mountToday();
+    const heroText = textOf('next-unlock-hero');
+    await fireEvent.press(screen.getByTestId('next-unlock-hero'));
+    await waitFor(() => expect(screen.getByTestId('journey-screen')).toBeTruthy(), WAIT_OPTS);
+
+    const family = familyLibrary.families.find((f) => heroText.includes(f.name));
+    const card = await screen.findByTestId(`board-row-${family!.id}`, {}, WAIT_OPTS);
+    // Jest has no layout pass: report the offsets the device would (section y 1000, card y 300).
+    const layout = (y: number) => ({
+      nativeEvent: { layout: { x: 0, y, width: 300, height: 200 } },
+    });
+    const withLayout = (from: typeof card) => {
+      let n = from.parent;
+      while (n && typeof n.props.onLayout !== 'function') n = n.parent;
+      return n!;
+    };
+    const wrapper = withLayout(card); // the per-card onLayout wrapper
+    const section = withLayout(wrapper); // the Trails section
+    await fireEvent(section, 'layout', layout(1000));
+    await fireEvent(wrapper, 'layout', layout(300));
+
+    await waitFor(() => expect(scrollTo).toHaveBeenCalled(), WAIT_OPTS);
+    expect(scrollTo.mock.calls[0][0]).toMatchObject({ y: expect.any(Number) });
+    expect((scrollTo.mock.calls[0][0] as { y: number }).y).toBeGreaterThan(1000);
+    scrollTo.mockRestore();
   });
 });
 
