@@ -434,12 +434,11 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           <View testID="week-strip" style={styles.weekRow}>
             {week.map((day, i) => (
               <View key={day.localDate} style={styles.weekDay}>
-                <Txt variant="caption" color="text3">
+                <Txt variant="caption" color="text3" align="center">
                   {WEEKDAY_LABELS[i]}
                 </Txt>
                 <DayCell
                   day={day}
-                  size={40}
                   isToday={day.localDate === todayLocalDate}
                   testID={`week-day-${day.localDate}`}
                   accessibilityLabel={`${markerLabel(day.marker)} — open Logbook`}
@@ -678,8 +677,9 @@ const useStyles = makeStyles((t) =>
     tileDisabled: { opacity: 0.5 },
     tileSpinner: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
     weekBlock: { gap: space.md },
-    weekRow: { flexDirection: 'row', justifyContent: 'space-between' },
-    weekDay: { alignItems: 'center', gap: space.xs },
+    // Same 6pt gutter and flexed columns as the Logbook grid, so the cells match its size.
+    weekRow: { flexDirection: 'row', gap: 6 },
+    weekDay: { flex: 1, gap: space.xs },
     unlock: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
     unlockText: { flex: 1, gap: 2 },
   }),
