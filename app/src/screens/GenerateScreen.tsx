@@ -27,7 +27,6 @@ import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { getNetworkStatus } from '../lib/networkStatus';
-import { formatToken } from '../lib/exerciseCatalog';
 import { DIFFICULTY_LABELS, FOCUS_LABELS, FOCUS_TONE } from '../lib/focusLabels';
 import { IconBadge } from '../components/IconBadge';
 import { gutter, makeStyles, radius, space, useTheme, withAlpha, type AccentName } from '../theme';
@@ -120,10 +119,10 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
   const theme = useTheme();
   const styles = useStyles();
   const { db, library, families } = useStore();
-  // The focus that trains the prior week's lightest muscle (engine `recommendFocus`, the same
-  // ranking generation leans on). Its tile starts selected, but it is still just a default the
-  // user can change — the engine picks the exercises (invariant 2) — and it is phrased as an opportunity, never a gap or a miss (invariant 4).
-  // Null until a week has data.
+  // The training area (upper / core / legs / cardio) with the lowest total volume over the last 7
+  // days, or full body when there was no strength work (engine `recommendFocus`). Its tile starts
+  // selected, but it is only a default the user can change — the engine picks the exercises
+  // (invariant 2) — and it is phrased as an opportunity, never a gap or a miss (invariant 4).
   const recommended = useMemo(
     () =>
       recommendFocus(
@@ -134,7 +133,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
     [db, library],
   );
   const [minutes, setMinutes] = useState(30);
-  const [focus, setFocus] = useState<Focus>(recommended?.focus ?? 'full');
+  const [focus, setFocus] = useState<Focus>(recommended.focus);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [anchors, setAnchors] = useState<Anchor[]>([]);
   // Collapsed by default: anchors are sticky user state (§5.3), set once and rarely revisited, so
@@ -275,33 +274,33 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
         </Txt>
       </Enter>
 
-      {recommended && (
-        <Enter index={1}>
-          <Card
-            testID="focus-muscle"
-            padding="md"
-            style={[
-              styles.recommended,
-              {
-                backgroundColor: withAlpha(theme.focus[recommended.focus], 0.22),
-                borderColor: theme.focus[recommended.focus],
-              },
-            ]}
-          >
-            <View style={styles.recommendedText}>
-              <Txt variant="eyebrow" color={FOCUS_TONE[recommended.focus]}>
-                Recommended Focus
-              </Txt>
-              <Txt variant="h2">{FOCUS_LABELS[recommended.focus]}</Txt>
-              <Txt variant="small" color="text2">
-                {recommended.sets === 0
-                  ? `${formatToken(recommended.muscle)} is fresh and ready — not trained in the last 7 days`
-                  : `${formatToken(recommended.muscle)} has had the lightest week`}
-              </Txt>
-            </View>
-          </Card>
-        </Enter>
-      )}
+      <Enter index={1}>
+        <Card
+          testID="focus-muscle"
+          padding="md"
+          style={[
+            styles.recommended,
+            {
+              backgroundColor: withAlpha(theme.focus[recommended.focus], 0.22),
+              borderColor: theme.focus[recommended.focus],
+            },
+          ]}
+        >
+          <View style={styles.recommendedText}>
+            <Txt variant="eyebrow" color={FOCUS_TONE[recommended.focus]}>
+              Recommended Focus
+            </Txt>
+            <Txt variant="h2">{FOCUS_LABELS[recommended.focus]}</Txt>
+            <Txt variant="small" color="text2">
+              {recommended.reason === 'no_strength_data'
+                ? 'No strength workouts in the last 7 days — a full-body session is a great place to start'
+                : recommended.sets === 0
+                  ? 'Nothing in the last 7 days — fresh and ready'
+                  : 'The lightest area over the last 7 days'}
+            </Txt>
+          </View>
+        </Card>
+      </Enter>
 
       {/* Focus: the big decision, so it gets the big tiles. Cardio is full-width and last (the
           newest, least-habitual choice — see FOCUS_OPTIONS). */}

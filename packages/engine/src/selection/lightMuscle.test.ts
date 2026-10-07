@@ -8,10 +8,11 @@ import { DEFAULT_ANCHORS_AVAILABLE } from '../filters/hardFilters';
 import type { ProgressionState, SessionHistoryRecord, UserState } from '../types';
 import {
   candidateMuscles,
-  focusForMuscle,
+  areaForMuscle,
   lightestMuscles,
   musclesForFocus,
   recommendFocus,
+  weeklyAreaVolume,
 } from './lightMuscle';
 
 const library = exerciseLibrary.exercises;
@@ -86,38 +87,76 @@ function generate(focus: Focus, history: SessionHistoryRecord[], seed: number, m
 
 const primaryOf = (id: string) => library.find((e) => e.id === id)!.primary;
 
+/** One completed session whose main work is `sets` sets of each given exercise. */
+function session(ids: string[], sets: number, localDate = YESTERDAY): SessionHistoryRecord {
+  return {
+    localDate,
+    focus: 'full',
+    difficulty: 'medium',
+    status: 'completed',
+    entries: ids.map((exerciseId) => ({ exerciseId, role: 'main', difficulty: 'medium', sets })),
+  };
+}
+const UPPER = 'standing-chest-press';
+const CORE = 'bw-flutter-kick';
+const LEGS = 'bw-squat';
+const CARDIO = library.find((e) => e.pattern === 'conditioning')!.id;
+
 describe('recommendFocus', () => {
-  it('is null with no training in the last 7 days', () => {
-    expect(recommendFocus([], library, TODAY)).toBeNull();
+  it('areaForMuscle maps muscles onto upper / abs / legs', () => {
+    expect(areaForMuscle('biceps', library)).toBe('upper');
+    expect(areaForMuscle('obliques', library)).toBe('abs');
+    expect(areaForMuscle('glutes', library)).toBe('legs');
   });
 
-  it('names the lightest muscle and the focus that trains it', () => {
-    const rec = recommendFocus(weekWithout('biceps'), library, TODAY);
-    expect(rec).toEqual({ muscle: 'biceps', sets: 0, focus: 'upper' });
+  it('is full body with no history at all', () => {
+    expect(recommendFocus([], library, TODAY)).toEqual({
+      focus: 'full',
+      sets: 0,
+      reason: 'no_strength_data',
+    });
   });
 
-  it('only ever recommends a user-selectable strength focus', () => {
-    for (const muscle of candidateMuscles(library).keys()) {
-      expect(['upper', 'abs', 'legs', 'full']).toContain(focusForMuscle(muscle, library));
-    }
+  it('is full body when the week held only cardio, or only abandoned strength', () => {
+    expect(recommendFocus([session([CARDIO], 3)], library, TODAY).focus).toBe('full');
+    const abandoned = { ...session([UPPER, LEGS], 3), status: 'discarded' as const };
+    expect(recommendFocus([abandoned], library, TODAY).reason).toBe('no_strength_data');
   });
 
-  it('never recommends a focus trained today or yesterday, even when its muscle is lightest', () => {
-    // Biceps is the lightest muscle, but an upper session was just done: move on to the next one.
-    const week = weekWithout('biceps');
-    const justDidUpper = [...week, { ...week[0], focus: 'upper' as const, localDate: TODAY }];
-    const rec = recommendFocus(justDidUpper, library, TODAY);
-    expect(rec).not.toBeNull();
-    expect(rec!.focus).not.toBe('upper');
-    expect(rec!.muscle).not.toBe('biceps');
-    // Two days on the recovery window has passed, so upper is on the table again.
-    const twoDaysOn = [...week, { ...week[0], focus: 'upper' as const, localDate: '2026-08-28' }];
-    expect(recommendFocus(twoDaysOn, library, TODAY)?.focus).toBe('upper');
+  it('ignores training older than the 7-day window', () => {
+    const old = session([UPPER, CORE, LEGS, CARDIO], 3, '2026-08-10');
+    expect(recommendFocus([old], library, TODAY).reason).toBe('no_strength_data');
   });
 
-  it('ignores abandoned sessions (ADR 0011)', () => {
-    const week = weekWithout('biceps').map((s) => ({ ...s, status: 'discarded' as const }));
-    expect(recommendFocus(week, library, TODAY)).toBeNull();
+  it('recommends the area with the lowest total volume, cardio included', () => {
+    const cardio = session([CARDIO], 20); // plenty, so cardio is never the lightest here
+    const upper = session([UPPER], 3);
+    const core = session([CORE], 3);
+    const legs = session([LEGS], 3);
+    const rec = (...week: SessionHistoryRecord[]) => recommendFocus(week, library, TODAY);
+    expect(rec(upper, upper, core, core, cardio)).toMatchObject({
+      focus: 'legs',
+      reason: 'lightest',
+    });
+    expect(rec(legs, legs, core, core, cardio).focus).toBe('upper');
+    expect(rec(upper, upper, legs, legs, cardio).focus).toBe('abs');
+    expect(rec(upper, upper, core, core, legs, legs)).toMatchObject({ focus: 'cardio', sets: 0 });
+  });
+
+  it('sums every muscle in an area, so one light muscle does not decide it', () => {
+    // Heavy upper work (biceps untouched) vs a single set of legs: legs is the lighter area.
+    const week = [
+      session([UPPER, 'banded-lat-pull-hold', 'overhead-press'], 4),
+      session([LEGS, CORE, CARDIO], 4),
+    ];
+    const volume = weeklyAreaVolume(week, library, TODAY);
+    expect(volume.upper).toBeGreaterThan(volume.legs);
+    expect(recommendFocus(week, library, TODAY).focus).not.toBe('upper');
+  });
+
+  it('counts a cardio exercise to cardio only, not to the muscles it moves', () => {
+    const volume = weeklyAreaVolume([session([CARDIO], 3)], library, TODAY);
+    expect(volume).toEqual({ upper: 0, abs: 0, legs: 0, cardio: 3 });
   });
 });
 

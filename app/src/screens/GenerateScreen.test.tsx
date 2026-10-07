@@ -7,7 +7,7 @@
  * through `usersRepo`.
  */
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { exerciseLibrary, isCardioExercise } from '@roamfit/data';
 import { sessionsRepo, usersRepo } from '@roamfit/store';
 import { DEFAULT_ANCHORS_AVAILABLE } from '@roamfit/engine';
@@ -130,9 +130,11 @@ describe('§10.2 Generate screen', () => {
     await waitFor(() => expect(screen.getByTestId('focus-picker')).toBeTruthy(), WAIT_OPTS);
     expect(screen.getByTestId('difficulty-picker')).toBeTruthy();
     // Every label is legible without opening anything, each focus with its flavor line.
-    expect(screen.getByText('Full body')).toBeTruthy();
+    // Scoped to the picker: the Recommended Focus card above it may repeat a focus name.
+    const picker = within(screen.getByTestId('focus-picker'));
+    expect(picker.getByText('Full body')).toBeTruthy();
     expect(screen.getByText('Medium')).toBeTruthy();
-    expect(screen.getByText('Core')).toBeTruthy();
+    expect(picker.getByText('Core')).toBeTruthy();
     expect(screen.getByText('Anti-everything core')).toBeTruthy();
     expect(screen.queryByText('abs')).toBeNull();
 

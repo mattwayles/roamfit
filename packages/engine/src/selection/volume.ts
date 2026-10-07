@@ -11,7 +11,7 @@ import {
   LOW_VOLUME_THRESHOLD_SETS,
 } from './constants';
 
-const SECONDARY_CREDIT = 0.5;
+export const SECONDARY_CREDIT = 0.5;
 
 export function trailingVolume(
   history: readonly SessionHistoryRecord[],

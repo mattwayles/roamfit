@@ -1,7 +1,7 @@
 /**
  * The "Recommended Focus" card on Generate, just under the "What are we training?" header. Drives
- * the real store: a fresh install has no week to balance (no card); after one completed session
- * the card names one of the selectable focus groups.
+ * the real store: a fresh install has no strength data, so it recommends Full body; after one
+ * completed session it names the lightest area (any selectable focus group).
  */
 import React from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react-native';
@@ -76,10 +76,11 @@ function screenEl() {
 }
 
 describe('Generate: Recommended Focus card', () => {
-  it('is absent on a fresh install, then names a selectable focus after a completed session', async () => {
+  it('recommends full body on a fresh install, then names a selectable focus after a session', async () => {
     const first = await render(<StoreProvider>{screenEl()}</StoreProvider>);
     await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.queryByTestId('focus-muscle')).toBeNull();
+    const fresh = screen.getByTestId('focus-muscle');
+    expect(within(fresh).getByText('Full body')).toBeTruthy();
     await first.unmount();
 
     await render(
@@ -89,10 +90,10 @@ describe('Generate: Recommended Focus card', () => {
     );
     const card = await waitFor(() => screen.getByTestId('focus-muscle'), WAIT_OPTS);
     expect(within(card).getByText('Recommended Focus')).toBeTruthy();
-    expect(within(card).getByText(/^(Upper|Core|Legs|Full body)$/)).toBeTruthy();
+    expect(within(card).getByText(/^(Upper|Core|Legs|Cardio Only)$/)).toBeTruthy();
 
     // The matching focus tile starts selected, and only that one.
-    const label = within(card).getByText(/^(Upper|Core|Legs|Full body)$/).props.children;
+    const label = within(card).getByText(/^(Upper|Core|Legs|Cardio Only)$/).props.children;
     const selected = screen
       .getAllByRole('radio')
       .filter((n) => n.props.accessibilityState?.selected);

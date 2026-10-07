@@ -13,5 +13,5 @@ Last updated: 2026-10-06
 - Muscle -> focus: >=60% of its tagged exercises in one of upper/abs/legs, else `full`. Cardio is never recommended (not a muscle group).
 - Muscles reached only by laddered patterns (chest, quads, lats, hamstrings...) are not given extra slots; their ladder slot already trains them.
 - `full` gets the muscle slot as *required* (all its slots are required, so optional would be trimmed first). Sessions under ~25 min fit 2-3 exercises, all ladder slots: no room, so no guarantee there.
-- `recommendFocus` skips any focus trained in the last 48h (today/yesterday): the lightest muscle alone recommended "Upper" right after an upper day when one upper muscle (e.g. biceps) was still lightest.
+- `recommendFocus` totals the last 7 days into upper / core / legs / cardio (muscle credit summed into its area; conditioning exercises count to cardio only) and recommends the lowest total, ties in that order. Full body when there is no strength work in the window (cardio alone does not count), incl. a fresh install, so the card is always shown. Replaced the earlier 48h focus-skip rule.
 - Quick Session and Cardio are untouched.
