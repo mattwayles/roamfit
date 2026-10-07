@@ -621,6 +621,8 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       return;
     }
     sessionsRepo.recordSwap(db, entry.id, best.replacement, setIndex, nowUtcInstant());
+    // A band picked for the exercise just swapped out says nothing about the one swapped in.
+    bandUsedRef.current = null;
     setSwapNotice(`Swapped to ${best.exercise.name}.`);
     reload();
   };
@@ -1173,10 +1175,12 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             the rest of the rest screen previews — same split as the feedback controls below. */}
         <PinnedNote note={noteExState?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
 
+        {/* Keyed on the exercise as well as the slot: a swap rewrites the same entry row in place,
+            so without it the hero kept the swapped-out exercise's band and rep count. */}
         {phase === 'exercise' ? (
           entry.durationSec != null ? (
             <TimedExercise
-              key={`${entry.id}-${setIndex}`}
+              key={`${entry.id}-${entry.exerciseId}-${setIndex}`}
               entry={entry}
               durationDefault={secondsForSet}
               exerciseName={exercise?.name ?? entry.exerciseId}
@@ -1198,7 +1202,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
             />
           ) : (
             <RepsExercise
-              key={`${entry.id}-${setIndex}`}
+              key={`${entry.id}-${entry.exerciseId}-${setIndex}`}
               entry={entry}
               repsDefault={repsForSet}
               exerciseName={exercise?.name ?? entry.exerciseId}
@@ -1219,7 +1223,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           )
         ) : (
           <RestPhase
-            key={`rest-${entry.id}-${setIndex}`}
+            key={`rest-${entry.id}-${entry.exerciseId}-${setIndex}`}
             restSec={restSecRemaining}
             // `isFinalRest` means this is the last set of the whole plan — `entry`/`exercise` here
             // are only the just-finished one (see the `current` fallback above), not a real
@@ -1618,7 +1622,7 @@ function RepsExercise({
 }): React.JSX.Element {
   const styles = useStyles();
   const theme = useTheme();
-  // Remounted per set (the caller keys on entry+setIndex), so both of these reset to the incoming
+  // Remounted per set (the caller keys on entry+exercise+setIndex), so both of these reset to the incoming
   // default each set without any explicit clearing — which is exactly why the default has to be
   // the set's own logged value when it has one, not the prescription.
   const [reps, setReps] = useState(repsDefault);
@@ -1803,7 +1807,7 @@ function TimedExercise({
    *  reconciles the two by `addMs`-ing the difference onto each side's controller the moment it
    *  starts, which is also why this is read (not re-derived) after that point. */
   const [durationSec, setDurationSec] = useState(originalDurationSec);
-  // Remounted per set (the caller keys on entry+setIndex), so this resets to the incoming default
+  // Remounted per set (the caller keys on entry+exercise+setIndex), so this resets to the incoming default
   // each set without any explicit clearing.
   const [bandUsed, setBandUsed] = useState(band);
   // Mirrors of the phase, kept in React state purely so the component re-renders when the phase
@@ -1857,8 +1861,8 @@ function TimedExercise({
 
   // §10.5 audio+haptic cue bookkeeping — one ref per cue moment so each fires exactly once (or
   // once per second, for the 3-2-1 counts) no matter how many times the phase engine below runs.
-  // Fresh on every mount because this whole component remounts per set (`key={entry.id-setIndex}`
-  // on the parent). `lastOutCueSecondRef`/`startCueFiredRef` are explicitly reset on the
+  // Fresh on every mount because this whole component remounts per set
+  // (`key={entry.id-exerciseId-setIndex}` on the parent). `lastOutCueSecondRef`/`startCueFiredRef` are explicitly reset on the
   // side1->side2 transition so the second side's own start/count-out cues aren't suppressed by
   // side 1's.
   const lastGetReadyCueSecondRef = useRef<number | null>(null);
@@ -2454,7 +2458,7 @@ function RestPhase({
 
   return (
     <>
-      {/* Rest is the fern mood: a fern border and ring so it is unmistakable at a glance from
+      {/* Rest is the fern mood: a fern border and a sky ring so it is unmistakable at a glance from
           across a room. */}
       <Card variant="accent" tone="fern" padding="md" testID="rest-hero">
         <View style={styles.restBody}>
@@ -2486,8 +2490,8 @@ function RestPhase({
               progress={mostMsRef.current > 0 ? remainingMs / mostMsRef.current : 0}
               size={REST_RING_SIZE}
               stroke={14}
-              gradient={theme.gradients.fern}
-              trackColor={withAlpha(theme.colors.fern, 0.18)}
+              gradient={theme.gradients.sky}
+              trackColor={withAlpha(theme.colors.sky, 0.18)}
               animate={false}
             >
               <Txt
