@@ -50,3 +50,14 @@ export const MIN_CANDIDATE_MUSCLE_EXERCISES = 3;
 export const TARGET_MUSCLE_BONUS = 950;
 /** Softer, graded preference (× deficit 0..1) for any other below-average muscle. */
 export const LIGHT_MUSCLE_BONUS = 600;
+
+/** Recommended Focus set weighting: a logged set counts reps / 10 (holds: per-side seconds / 30),
+ *  the middles of the ladder's 8-12 rep and 20-45s ranges, so a typical set still counts about 1. */
+export const REFERENCE_SET_REPS = 10;
+export const REFERENCE_SET_HOLD_SEC = 30;
+/** × this per band step above the bottom of the exercise's authored range (÷ per step below it).
+ *  Relative to the exercise, not absolute band load: a B1 lateral raise and a B4 squat are both
+ *  normal sets for their muscles. */
+export const SET_WEIGHT_PER_BAND_STEP = 1.25;
+/** One set never counts for more than this, so a mis-typed 100 reps can't decide a week. */
+export const MAX_SET_WEIGHT = 3;

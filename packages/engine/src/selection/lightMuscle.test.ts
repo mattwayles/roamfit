@@ -5,7 +5,7 @@ import { createRng } from '../rng';
 import { baseStartLevel } from '../progression/ladder';
 import { defaultMicroForExercise } from '../progression/micro';
 import { DEFAULT_ANCHORS_AVAILABLE } from '../filters/hardFilters';
-import type { ProgressionState, SessionHistoryRecord, UserState } from '../types';
+import type { LoggedSet, ProgressionState, SessionHistoryRecord, UserState } from '../types';
 import {
   candidateMuscles,
   areaForMuscle,
@@ -13,6 +13,7 @@ import {
   musclesForFocus,
   recommendFocus,
   weeklyAreaVolume,
+  weightedSetCredit,
 } from './lightMuscle';
 
 const library = exerciseLibrary.exercises;
@@ -157,6 +158,82 @@ describe('recommendFocus', () => {
   it('counts a cardio exercise to cardio only, not to the muscles it moves', () => {
     const volume = weeklyAreaVolume([session([CARDIO], 3)], library, TODAY);
     expect(volume).toEqual({ upper: 0, abs: 0, legs: 0, cardio: 3 });
+  });
+});
+
+describe('Recommended Focus weights logged sets by reps and band', () => {
+  const exercise = (id: string) => library.find((e) => e.id === id)!;
+  const set = (
+    reps: number | null,
+    band: LoggedSet['band'] = null,
+    seconds: number | null = null,
+  ) => ({ reps, seconds, band }) as LoggedSet;
+  /** One completed session of `id`, planned at `planned` sets, with these sets actually logged. */
+  const logged = (id: string, planned: number, sets: LoggedSet[]): SessionHistoryRecord => ({
+    ...session([id], planned),
+    entries: [
+      { exerciseId: id, role: 'main', difficulty: 'medium', sets: planned, loggedSets: sets },
+    ],
+  });
+  const times = (n: number, s: LoggedSet) => Array.from({ length: n }, () => s);
+
+  it('a typical set (10 reps at the bottom of its band range) counts 1', () => {
+    expect(exercise(UPPER).band).toBe('B2-B3');
+    expect(weightedSetCredit(set(10, 'B2'), exercise(UPPER))).toBe(1);
+    expect(weightedSetCredit(set(10), exercise(LEGS))).toBe(1); // bodyweight: reps only
+  });
+
+  it('scales with reps, and holds with per-side seconds against 30s', () => {
+    expect(weightedSetCredit(set(15), exercise(LEGS))).toBeCloseTo(1.5);
+    expect(weightedSetCredit(set(5), exercise(LEGS))).toBeCloseTo(0.5);
+    expect(weightedSetCredit(set(null, 'B1', 45), exercise('banded-lat-pull-hold'))).toBeCloseTo(
+      1.5,
+    );
+  });
+
+  it('scales by 1.25 per band step from the bottom of the exercise’s own range', () => {
+    expect(weightedSetCredit(set(10, 'B3'), exercise(UPPER))).toBeCloseTo(1.25);
+    expect(weightedSetCredit(set(10, 'B5'), exercise(UPPER))).toBeCloseTo(1.25 ** 3);
+    expect(weightedSetCredit(set(10, 'B1'), exercise(UPPER))).toBeCloseTo(0.8);
+  });
+
+  it('caps one set at 3, so a mis-typed rep count cannot decide the week', () => {
+    expect(weightedSetCredit(set(100, 'B5'), exercise(UPPER))).toBe(3);
+  });
+
+  it('a planned set that was never done counts nothing', () => {
+    expect(weeklyAreaVolume([logged(LEGS, 4, [])], library, TODAY).legs).toBe(0);
+    const half = weeklyAreaVolume([logged(LEGS, 4, times(2, set(10)))], library, TODAY);
+    const planned = weeklyAreaVolume([session([LEGS], 2)], library, TODAY);
+    expect(half.legs).toBeCloseTo(planned.legs);
+  });
+
+  it('heavier, longer sets count more than the same number of light short ones', () => {
+    const heavy = weeklyAreaVolume([logged(UPPER, 3, times(3, set(12, 'B3')))], library, TODAY);
+    const planned = weeklyAreaVolume([session([UPPER], 3)], library, TODAY);
+    expect(heavy.upper).toBeCloseTo(planned.upper * 1.2 * 1.25);
+  });
+
+  it('cardio counts its completed sets, unweighted', () => {
+    const volume = weeklyAreaVolume(
+      [logged(CARDIO, 4, times(2, set(null, null, 40)))],
+      library,
+      TODAY,
+    );
+    expect(volume.cardio).toBe(2);
+  });
+
+  it('a short, light session no longer counts like a long one with the same set count', () => {
+    const upper = logged(UPPER, 3, times(3, set(10, 'B2')));
+    const core = logged(CORE, 3, times(3, set(10)));
+    const cardio = session([CARDIO], 20);
+    const legsFull = logged(LEGS, 3, times(3, set(10)));
+    const legsShort = logged(LEGS, 3, times(3, set(3)));
+    const rec = (...week: SessionHistoryRecord[]) => recommendFocus(week, library, TODAY).focus;
+    // Planned-set counting would score both legs weeks the same.
+    const rest = [upper, upper, core, core, cardio];
+    expect(rec(...rest, legsFull, legsFull, legsFull)).not.toBe('legs');
+    expect(rec(...rest, legsShort, legsShort, legsShort)).toBe('legs');
   });
 });
 

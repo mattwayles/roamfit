@@ -8,10 +8,19 @@
  * recovery: it only reorders what selection was already allowed to pick (invariant 2/3).
  */
 import type { Exercise, Focus } from '@roamfit/data';
-import type { LocalDate, SessionHistoryRecord } from '../types';
+import type { LocalDate, LoggedSet, SessionHistoryEntry, SessionHistoryRecord } from '../types';
+import { BAND_ORDER } from '../types';
 import { daysBetween } from '../dates';
+import { parseBandRange } from '../progression/tiers';
 import { SECONDARY_CREDIT, trailingVolume } from './volume';
-import { LIGHT_MUSCLE_WINDOW_DAYS, MIN_CANDIDATE_MUSCLE_EXERCISES } from './constants';
+import {
+  LIGHT_MUSCLE_WINDOW_DAYS,
+  MAX_SET_WEIGHT,
+  MIN_CANDIDATE_MUSCLE_EXERCISES,
+  REFERENCE_SET_HOLD_SEC,
+  REFERENCE_SET_REPS,
+  SET_WEIGHT_PER_BAND_STEP,
+} from './constants';
 
 /** The training areas a week's volume is totalled into: the three muscle-group focuses plus cardio.
  *  Order is the tie-break when two areas are equally light. */
@@ -88,17 +97,42 @@ export function lightestMuscles(
     );
 }
 
+/** How much one logged strength set counts toward the Recommended Focus: reps (or per-side hold
+ *  seconds) against a typical set, times the band against the bottom of the exercise's authored
+ *  range. A set with neither reps nor seconds logged counts 1 on the rep side. */
+export function weightedSetCredit(set: LoggedSet, exercise: Exercise): number {
+  const work =
+    set.reps != null
+      ? set.reps / REFERENCE_SET_REPS
+      : set.seconds != null
+        ? set.seconds / REFERENCE_SET_HOLD_SEC
+        : 1;
+  const range = parseBandRange(exercise.band);
+  const steps = set.band && range ? BAND_ORDER.indexOf(set.band) - BAND_ORDER.indexOf(range[0]) : 0;
+  return Math.min(MAX_SET_WEIGHT, Math.max(0, work) * SET_WEIGHT_PER_BAND_STEP ** steps);
+}
+
+/** An entry's contribution in set units: weighted logged sets when the caller supplied them (a
+ *  conditioning set counts 1 — it has no reps or band to weigh), else its planned set count. */
+function entryWork(entry: SessionHistoryEntry, exercise: Exercise): number {
+  if (!entry.loggedSets) return entry.sets ?? 1;
+  if (exercise.pattern === 'conditioning') return entry.loggedSets.length;
+  return entry.loggedSets.reduce((a, s) => a + weightedSetCredit(s, exercise), 0);
+}
+
 export interface FocusRecommendation {
   focus: Focus;
-  /** Credited sets in the recommended area over the last 7 days (0 for the full-body fallback). */
+  /** Weighted sets in the recommended area over the last 7 days (0 for the full-body fallback). */
   sets: number;
   /** `lightest`: the area with the least volume. `no_strength_data`: no strength work in the last
    *  7 days, so full body is the place to start. */
   reason: 'lightest' | 'no_strength_data';
 }
 
-/** Credited sets per training area over the last 7 days. A muscle's credit (primary 1/set,
- *  secondary 0.5) goes to its area; a conditioning exercise counts its sets to cardio only (its
+/** Credited sets per training area over the last 7 days. Each completed set is weighted by its
+ *  logged reps and band (`weightedSetCredit`), so a 15-minute session no longer counts like a long
+ *  one and a planned set that was never done counts nothing. A muscle's credit (primary 1×,
+ *  secondary 0.5×) goes to its area; a conditioning exercise counts its sets to cardio only (its
  *  muscles are not strength work). Abandoned and skipped sessions trained nothing (ADR 0011). */
 export function weeklyAreaVolume(
   history: readonly SessionHistoryRecord[],
@@ -116,7 +150,7 @@ export function weeklyAreaVolume(
       if (entry.role !== 'main') continue;
       const ex = byId.get(entry.exerciseId);
       if (!ex) continue;
-      const sets = entry.sets ?? 1;
+      const sets = entryWork(entry, ex);
       if (ex.pattern === 'conditioning') {
         out.cardio += sets;
         continue;

@@ -135,6 +135,19 @@ export interface SessionHistoryEntry {
    *  volume the same way the prototype's `muscle_sets` does (primary=1 credit/set, secondary=0.5).
    *  Defaults to 1 if a caller can't supply it (e.g. warmup/cooldown, or legacy data). */
   sets?: number;
+  /** The sets the user actually completed, in order (skipped / not-reached sets are absent). Read
+   *  only by the Recommended Focus (`weeklyAreaVolume`), which weights each set by what was done.
+   *  Omitted by a caller that has no set logs — that entry then counts its planned `sets`. */
+  loggedSets?: LoggedSet[];
+}
+
+/** One completed set as logged. `seconds` is per side (a unilateral hold's logged total halved). */
+export interface LoggedSet {
+  reps: number | null;
+  seconds: number | null;
+  /** The band the set was done on (a reported correction, else the prescribed one); null for
+   *  bodyweight. */
+  band: BandId | null;
 }
 
 export interface SessionHistoryRecord {
