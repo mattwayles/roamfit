@@ -6,6 +6,7 @@
  */
 import { eq, and, isNotNull } from 'drizzle-orm';
 import type {
+  AccessoryProgressionState,
   BandId,
   DifficultyFeedback,
   ExerciseState as EngineExerciseState,
@@ -48,6 +49,20 @@ function rowToState(row: typeof schema.exerciseState.$inferSelect): EngineExerci
           }
         : null,
     workingBand: (row.workingBand as BandId | null) ?? null,
+    accessoryMicro:
+      row.microRepTarget != null &&
+      row.microTempoSec != null &&
+      row.microRestSec != null &&
+      row.microSets != null
+        ? {
+            repTarget: row.microRepTarget,
+            band: (row.workingBand as BandId | null) ?? null,
+            tempoSec: row.microTempoSec,
+            restSec: row.microRestSec,
+            sets: row.microSets,
+          }
+        : null,
+    accessoryMisses: row.microConsecutiveMisses,
     difficultyEma: row.difficultyEma,
     skipCount: row.skipCount,
     swapAwayCount: row.swapAwayCount,
@@ -159,6 +174,35 @@ export function recordExercisePerformed(
     .run();
 
   return { improvedBestSet };
+}
+
+/** Stores an accessory's ladder position after completion (`applyAccessorySessionResult`). The
+ *  band goes to `working_band` — one column, so the band the ladder decided and the band an Add
+ *  exercise or a later generation reads can never disagree. */
+export function recordAccessoryProgression(
+  db: Db,
+  exerciseId: string,
+  state: AccessoryProgressionState,
+  now: string,
+): void {
+  ensureRow(db, exerciseId, now);
+  db.update(schema.exerciseState)
+    .set({
+      workingBand: state.micro.band,
+      microRepTarget: state.micro.repTarget,
+      microTempoSec: state.micro.tempoSec,
+      microRestSec: state.micro.restSec,
+      microSets: state.micro.sets,
+      microConsecutiveMisses: state.consecutiveMisses,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(schema.exerciseState.userId, USER_ID),
+        eq(schema.exerciseState.exerciseId, exerciseId),
+      ),
+    )
+    .run();
 }
 
 export function recordDifficultyFeedback(

@@ -23,6 +23,7 @@ import {
   getAllProgressionStates,
 } from './repositories/progressionState';
 import { getHistoryForGeneration } from './repositories/sessions';
+import { seedAccessoryProgressionFromHistory } from './completion';
 
 export function buildUserState(
   db: Db,
@@ -75,6 +76,9 @@ export interface GenerateResult {
  *  detection) — generation is the one moment we're guaranteed to see the device's live clock. */
 export function generate(db: Db, input: GenerateInput): GenerateResult {
   observeTzId(db, input.clock.tzId, input.utcInstant, input.clock.today);
+  // Accessories trained before they had a ladder get put on it from their history first, so this
+  // very generation already prescribes from it.
+  seedAccessoryProgressionFromHistory(db, input.library, input.utcInstant);
 
   let userState = buildUserState(db, input.library, input.families, input.clock);
 

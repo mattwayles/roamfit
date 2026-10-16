@@ -597,6 +597,20 @@ SET working_band = (
 );
 `;
 
+const MIGRATION_0028_ACCESSORY_MICRO = `-- 0028_accessory_micro.sql — an accessory (a main exercise with no progression family) now climbs
+-- the same micro-progression ladder a family does, tracked per exercise. Its band is the existing
+-- working_band (0027); these hold the rest of the ladder position. NULL micro_rep_target = not on
+-- the ladder yet: the exercise is prescribed off the day's difficulty table until it first
+-- completes as an accessory. Exercises already trained as accessories are seeded from history in
+-- TypeScript (seedAccessoryProgressionFromHistory), since the seed applies engine rules.
+
+ALTER TABLE exercise_state ADD COLUMN micro_rep_target INTEGER;
+ALTER TABLE exercise_state ADD COLUMN micro_tempo_sec INTEGER;
+ALTER TABLE exercise_state ADD COLUMN micro_rest_sec INTEGER;
+ALTER TABLE exercise_state ADD COLUMN micro_sets INTEGER;
+ALTER TABLE exercise_state ADD COLUMN micro_consecutive_misses INTEGER NOT NULL DEFAULT 0;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -631,4 +645,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0025_feedback_prompt.sql', sql: MIGRATION_0025_FEEDBACK_PROMPT },
   { id: '0026_entry_feedback.sql', sql: MIGRATION_0026_ENTRY_FEEDBACK },
   { id: '0027_working_band.sql', sql: MIGRATION_0027_WORKING_BAND },
+  { id: '0028_accessory_micro.sql', sql: MIGRATION_0028_ACCESSORY_MICRO },
 ];

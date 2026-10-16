@@ -286,7 +286,7 @@ describe('an accessory remembers the band the user finished on', () => {
     }
   });
 
-  it('following the plan stores the prescribed band', () => {
+  it('following the plan stores the prescribed band (family and cardio work — an accessory’s is its ladder’s)', () => {
     const { db, close } = createTestDb();
     try {
       const sessionId = makeSession(db);
@@ -312,6 +312,7 @@ describe('an accessory remembers the band the user finished on', () => {
       const states = getAllExerciseStates(db);
       for (const entry of session.entries) {
         if (entry.section !== 'main') continue;
+        if (!entry.progressionFamilyId && entry.pattern !== 'conditioning') continue;
         expect(states[entry.exerciseId].workingBand).toBe(entry.band);
       }
     } finally {

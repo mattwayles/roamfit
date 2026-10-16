@@ -9,9 +9,12 @@
 import type { Exercise, ExerciseLibrary, FamilyLibrary } from '@roamfit/data';
 import {
   addDays,
+  applyAccessorySessionResult,
   applySessionResult,
   BAND_ORDER,
+  progressesAsAccessory,
   REPEAT_SKIP_THRESHOLD,
+  seedAccessoryMicro,
   shouldSuppressForRepeatedSkip,
   SUPPRESSION_DAYS,
 } from '@roamfit/engine';
@@ -23,14 +26,16 @@ import type {
 } from '@roamfit/engine';
 import type { Db } from './db';
 import { schema } from './db';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { activeElapsedSec, getSession, sessionEndInstant } from './repositories/sessions';
 import type { SessionEntryRecord, SessionRecord } from './repositories/sessions';
 import { getAllProgressionStates, upsertProgressionState } from './repositories/progressionState';
 import { getUser, ensureUser, markHasEverCompletedSession } from './repositories/users';
 import {
+  getAllExerciseStates,
   getExerciseState,
   incrementSkipCount,
+  recordAccessoryProgression,
   recordExercisePerformed,
   setSuppressedUntil,
 } from './repositories/exerciseState';
@@ -72,6 +77,9 @@ interface WorkingSetSummary {
    *  `observedBand` this is not a tally: moving up a band on set 3 of 3 is the user saying where
    *  they belong, and a majority vote of the two lighter sets before it would throw that away. */
   finalBand: BandId | null;
+  /** Every completed set was done on `finalBand` — the accessory ladder keeps a rep target met on a
+   *  heavier band only when the whole entry was done on it. */
+  finalBandHeldThroughout: boolean;
   /** The entry's own answer to "how did those sets feel" (one per exercise); `just_right` when
    *  unanswered. §6.3's advance/regress rules see one verdict per entry. */
   difficultyFeedback: DifficultyFeedback;
@@ -129,6 +137,9 @@ function summarizeEntry(entry: SessionEntryRecord): WorkingSetSummary {
     }
   }
 
+  const last = [...completed].sort((a, b) => b.setIndex - a.setIndex)[0];
+  const finalBand = last ? (last.bandActual ?? entry.band) : null;
+
   return {
     completedCount: completed.length,
     anyCompleted: completed.length > 0,
@@ -138,12 +149,114 @@ function summarizeEntry(entry: SessionEntryRecord): WorkingSetSummary {
     bestActual,
     bestBand,
     observedBand: dominantBand(completed.map((s) => s.bandActual)),
-    finalBand: (() => {
-      const last = [...completed].sort((a, b) => b.setIndex - a.setIndex)[0];
-      return last ? (last.bandActual ?? entry.band) : null;
-    })(),
+    finalBand,
+    finalBandHeldThroughout: completed.every((s) => (s.bandActual ?? entry.band) === finalBand),
     difficultyFeedback: entry.difficultyFeedback ?? 'just_right',
   };
+}
+
+/** Whether this entry climbs its exercise's own accessory ladder at completion: main work with no
+ *  progression family, and not cardio (see `progression/accessory.ts`). */
+function runsAsAccessory(entry: SessionEntryRecord, exercise: Exercise | undefined): boolean {
+  return (
+    !!exercise &&
+    entry.section === 'main' &&
+    !entry.progressionFamilyId &&
+    progressesAsAccessory(exercise)
+  );
+}
+
+/**
+ * Apply one accessory entry's session to its exercise's ladder and store the result.
+ *
+ * An exercise not on the ladder yet starts from this entry's own prescription (`seedFrom`
+ * chooses the band: `'remembered'` takes the stored working band where there is one, so a
+ * recovery-day drop is not mistaken for where the user belongs; `'prescribed'` takes the entry's,
+ * for history recorded before working bands existed).
+ *
+ * The band the user finished on only counts as a change when it differs from what *this session*
+ * prescribed. Following a recovery-dropped band is following the plan, not choosing lighter.
+ */
+function progressAccessoryEntry(
+  db: Db,
+  entry: SessionEntryRecord,
+  exercise: Exercise,
+  summary: WorkingSetSummary,
+  now: string,
+  seedFrom: 'remembered' | 'prescribed',
+): void {
+  const stored = getExerciseState(db, entry.exerciseId);
+  const micro =
+    stored?.accessoryMicro ??
+    seedAccessoryMicro(exercise, {
+      repTarget: entry.repTarget,
+      durationSec: entry.durationSec,
+      tempoSec: entry.tempoSec,
+      restSec: entry.restSec,
+      sets: entry.sets,
+      band: (seedFrom === 'remembered' ? stored?.workingBand : null) ?? entry.band,
+    });
+  const changedBand = summary.finalBand !== entry.band;
+  const result = applyAccessorySessionResult(
+    { micro, consecutiveMisses: stored?.accessoryMisses ?? 0 },
+    exercise,
+    {
+      allSetsMetTarget: summary.allAtOrAboveTarget,
+      anySetBelowTarget: summary.anyBelowTarget,
+      difficultyFeedback: summary.difficultyFeedback,
+      finalBand: changedBand ? summary.finalBand : undefined,
+      finalBandHeldThroughout: summary.finalBandHeldThroughout,
+    },
+  );
+  recordAccessoryProgression(db, entry.exerciseId, result.state, now);
+}
+
+/**
+ * Put every exercise already trained as an accessory onto its ladder, from its most recent
+ * completed accessory session — the one-time catch-up for history recorded before accessories had
+ * a ladder (migration 0028). Replays that session's verdict, so a "just right, every set met" from
+ * before the update still earns its step. Idempotent: an exercise with a ladder position is
+ * skipped, so after the first run this is one query. Called by `generate` before it reads state.
+ */
+export function seedAccessoryProgressionFromHistory(
+  db: Db,
+  library: ExerciseLibrary,
+  now: string,
+): void {
+  const states = getAllExerciseStates(db);
+  const rows = db
+    .select({
+      exerciseId: schema.sessionEntries.exerciseId,
+      sessionId: schema.sessionEntries.sessionId,
+      entryId: schema.sessionEntries.id,
+    })
+    .from(schema.sessionEntries)
+    .innerJoin(schema.sessions, eq(schema.sessions.id, schema.sessionEntries.sessionId))
+    .where(
+      and(
+        eq(schema.sessions.status, 'completed'),
+        eq(schema.sessionEntries.section, 'main'),
+        isNull(schema.sessionEntries.progressionFamilyId),
+      ),
+    )
+    .orderBy(desc(schema.sessions.completedAt))
+    .all();
+
+  const settled = new Set<string>();
+  for (const row of rows) {
+    if (settled.has(row.exerciseId)) continue;
+    const exercise = library.exercises.find((e) => e.id === row.exerciseId);
+    if (states[row.exerciseId]?.accessoryMicro || !exercise || !progressesAsAccessory(exercise)) {
+      settled.add(row.exerciseId);
+      continue;
+    }
+    const entry = getSession(db, row.sessionId)?.entries.find((e) => e.id === row.entryId);
+    if (!entry || entry.entryStatus === 'removed_at_approval') continue;
+    const summary = summarizeEntry(entry);
+    if (!summary.anyCompleted) continue; // nothing performed here — try an older session
+    settled.add(row.exerciseId);
+    progressAccessoryEntry(db, entry, exercise, summary, now, 'prescribed');
+  }
 }
 
 function muscleCreditsForEntry(
@@ -221,11 +334,18 @@ export function completeSession(
                     band: summary.bestBand,
                   }
                 : undefined,
-            // Main work only: a warm-up/cool-down band is deliberately below working load.
-            workingBand: entry.section === 'main' ? summary.finalBand : undefined,
+            // Main work only: a warm-up/cool-down band is deliberately below working load. An
+            // accessory's band is the ladder's call, written by `progressAccessoryEntry` below.
+            workingBand:
+              entry.section === 'main' && !runsAsAccessory(entry, exercise)
+                ? summary.finalBand
+                : undefined,
           },
           now,
         );
+        if (runsAsAccessory(entry, exercise)) {
+          progressAccessoryEntry(txDb, entry, exercise!, summary, now, 'remembered');
+        }
         if (improvedBestSet) {
           milestoneTypes.push('best_set_pr');
           addMilestone(

@@ -8,13 +8,17 @@ Last updated: 2026-10-16
 - [x] engine: `progression/accessory.ts` — `seedAccessoryMicro`, `applyAccessorySessionResult`,
   `progressesAsAccessory`; `ExerciseState.accessoryMicro`/`accessoryMisses`;
   `prescribeAccessory({ micro })`; pipeline wiring; tests (see git log)
+- [x] engine: an accessory switched to a heavier band for every set with every set met keeps its
+  rep target (dabe62e)
+- [x] store: migration 0028 (`micro_*` columns), `rowToState` → `accessoryMicro`/`accessoryMisses`,
+  `recordAccessoryProgression`, completion runs `progressAccessoryEntry` for accessory entries,
+  `seedAccessoryProgressionFromHistory` called at the top of `generate()`; tests
+  (`accessoryProgression.test.ts`)
 ### In progress
-3. store: migration 0028 adds `exercise_state.micro_rep_target/micro_tempo_sec/micro_rest_sec/
-   micro_sets/micro_consecutive_misses` (band stays `working_band`); `rowToState`; completion runs
-   accessory progression for main, non-family, non-cardio entries; `generate()` first seeds any
-   accessory whose last completed session predates this (replays that session's verdict); tests.
+4. app: Approval Add exercise passes `micro: state.accessoryMicro`; BACKLOG (replace the track-33
+   "accessories have band memory but no progression" item); status done.
 ### Next
-4. app: Approval Add exercise passes the micro; BACKLOG; status done.
+- nothing after step 4.
 ### Decisions / gotchas
 - "Accessory" = a main entry with no `progressionFamilyId`. Cardio (`pattern: 'conditioning'`) is
   excluded: it is prescribed as intervals off the day's difficulty (`CARDIO_INTERVAL_TABLE`), and a
@@ -35,3 +39,9 @@ Last updated: 2026-10-16
   the family path, which still resets.
 - Accessory events are not pushed into `progressionEvents` (those are family-keyed and drive
   level-up milestones); no new UI.
+- The finished-on band counts as a change only when it differs from what THIS session prescribed
+  (`progressAccessoryEntry`), so following a 48h recovery band drop is not adopted as the user's
+  band. A first-ever seed at completion takes the remembered working band for the same reason;
+  the history seed takes the entry's band (no working bands existed then).
+- History seeding lives in `completion.ts` (it shares `summarizeEntry`) and runs in `generate()`
+  every time; idempotent, one query once everything is seeded.

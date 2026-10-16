@@ -109,6 +109,14 @@ export const exerciseState = sqliteTable(
      *  `prescribeAccessory` starts an exercise with no progression family on. NULL = never
      *  trained as main work, or bodyweight. */
     workingBand: text('working_band'),
+    /** Migration 0028 — the rest of an accessory's own micro-progression position (its band is
+     *  `workingBand`); see `progression/accessory.ts`. NULL `microRepTarget` = not on the ladder
+     *  yet. Unused for an exercise only ever trained inside a progression family. */
+    microRepTarget: integer('micro_rep_target'),
+    microTempoSec: integer('micro_tempo_sec'),
+    microRestSec: integer('micro_rest_sec'),
+    microSets: integer('micro_sets'),
+    microConsecutiveMisses: integer('micro_consecutive_misses').notNull().default(0),
     /** -1..+1, too_hard..too_easy. EMA over explicit difficulty feedback (§8.1). */
     difficultyEma: real('difficulty_ema').notNull().default(0),
     skipCount: integer('skip_count').notNull().default(0),
