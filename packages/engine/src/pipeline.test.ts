@@ -620,4 +620,43 @@ describe('Track 14 — cardio focus, ~40-exercise fixture library', () => {
       expect(seenJumpRope).toBe(true);
     });
   });
+  it('a strength accessory with a ladder position is prescribed from it, not the difficulty table', () => {
+    const micro = { repTarget: 9, band: 'B4' as const, tempoSec: 4, restSec: 30, sets: 4 };
+    const exerciseStates: UserState['exerciseStates'] = {};
+    for (const e of library) {
+      exerciseStates[e.id] = {
+        exerciseId: e.id,
+        lastPerformedAt: null,
+        sessionsPerformed: 0,
+        bestSet: null,
+        workingBand: e.equipment === 'band' ? 'B4' : null,
+        accessoryMicro: { ...micro, band: e.equipment === 'band' ? 'B4' : null },
+        difficultyEma: 0,
+        skipCount: 0,
+        swapAwayCount: 0,
+        removeAtApprovalCount: 0,
+        pinnedNote: null,
+        suppressedUntil: null,
+        disabledAt: null,
+      };
+    }
+    let accessories = 0;
+    for (const focus of ['upper', 'legs', 'abs', 'full'] as const) {
+      const plan = generateSession({
+        library: exerciseLibrary,
+        families: familyLibrary,
+        userState: coldStartUserState({ exerciseStates }),
+        request: { focus, difficulty: 'hard', targetMinutes: 60 },
+        clock: { today: TODAY, tzId: 'UTC' },
+        rng: createRng(7),
+      });
+      for (const entry of plan.main) {
+        if (entry.progressionFamilyId || entry.pattern === 'conditioning') continue;
+        accessories += 1;
+        expect(entry).toMatchObject({ tempoSec: 4, restSec: 30, sets: 4 });
+        expect(entry.repTarget ?? entry.durationSec).toBe(9);
+      }
+    }
+    expect(accessories).toBeGreaterThan(0);
+  });
 });

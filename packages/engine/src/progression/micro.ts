@@ -23,7 +23,7 @@ import { bandStepsFor, parseBandRange, spendTier, tierCapFor, tierOf } from './t
 
 export { parseBandRange };
 
-function rangeForExercise(exercise: Exercise): { low: number; high: number } {
+export function rangeForExercise(exercise: Exercise): { low: number; high: number } {
   return exercise.metric === 'time'
     ? { low: PROGRESSION_TIME_LOW_SEC, high: PROGRESSION_TIME_HIGH_SEC }
     : { low: PROGRESSION_REP_LOW, high: PROGRESSION_REP_HIGH };

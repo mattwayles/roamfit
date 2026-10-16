@@ -5,16 +5,15 @@ Last updated: 2026-10-16
   (`PROGRESSION_TIME_STEP_SEC`, used by `microAdvance`/`microRegress`, clamped to the range so an
   existing off-grid target like 23s goes 23→28→…→45). 20→45s is 5 sessions, like 8→12 reps.
   ladderPosition expectations updated (it replays microAdvance, so it follows automatically).
+- [x] engine: `progression/accessory.ts` — `seedAccessoryMicro`, `applyAccessorySessionResult`,
+  `progressesAsAccessory`; `ExerciseState.accessoryMicro`/`accessoryMisses`;
+  `prescribeAccessory({ micro })`; pipeline wiring; tests (see git log)
 ### In progress
-2. engine: `progression/accessory.ts` — `seedAccessoryMicro` (from an entry's prescription) and
-   `applyAccessorySessionResult` (same verdict rules as `applySessionResult`, same
-   `microAdvance`/`microRegress`); `ExerciseState.accessoryMicro`/`accessoryMisses`;
-   `prescribeAccessory({ micro })` prescribes straight from it; pipeline wiring; tests.
-### Next
 3. store: migration 0028 adds `exercise_state.micro_rep_target/micro_tempo_sec/micro_rest_sec/
    micro_sets/micro_consecutive_misses` (band stays `working_band`); `rowToState`; completion runs
    accessory progression for main, non-family, non-cardio entries; `generate()` first seeds any
    accessory whose last completed session predates this (replays that session's verdict); tests.
+### Next
 4. app: Approval Add exercise passes the micro; BACKLOG; status done.
 ### Decisions / gotchas
 - "Accessory" = a main entry with no `progressionFamilyId`. Cardio (`pattern: 'conditioning'`) is

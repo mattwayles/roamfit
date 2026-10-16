@@ -13,9 +13,10 @@
 import type { Exercise, ProgressionFamilyId, Role } from '@roamfit/data';
 import { isCardioExercise } from '@roamfit/data';
 import { BAND_ORDER } from '../types';
-import type { BandId, Difficulty, SessionEntry } from '../types';
+import type { BandId, Difficulty, ProgressionMicroState, SessionEntry } from '../types';
 import { difficultyCapForExercise } from '../filters/hardFilters';
 import { projectMicroToExercise } from '../progression/tiers';
+import { progressesAsAccessory } from '../progression/accessory';
 import {
   CARDIO_INTERVAL_TABLE,
   CORE_REST_SEC,
@@ -124,6 +125,10 @@ export interface PrescribeAccessoryInput {
   /** `ExerciseState.workingBand` — the band the user last finished this exercise's working sets
    *  on. Omit (or null) for "never trained here", which falls back to the lightest authored band. */
   workingBand?: BandId | null;
+  /** `ExerciseState.accessoryMicro` — the exercise's own accessory ladder position. When present
+   *  (and the exercise is not cardio) it IS the prescription, exactly as `ProgressionState.micro` is
+   *  for a laddered exercise; the difficulty table only covers an accessory's first outing. */
+  micro?: ProgressionMicroState | null;
 }
 
 /**
@@ -151,8 +156,38 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
   // §13.1's cap and the 48h recovery band-drop are decided above, once, before either table is
   // consulted — cardio is subject to both exactly like any other main exercise; only which table
   // supplies sets/duration-or-reps/rest/tempo differs below.
-  const startingBand = accessoryBand(exercise, input.workingBand);
+  const startingBand = accessoryBand(exercise, input.micro?.band ?? input.workingBand);
   const band = recoveryTreatment ? dropOneBand(startingBand) : startingBand;
+
+  if (input.micro && progressesAsAccessory(exercise)) {
+    const { micro } = input;
+    const isTimedLadder = exercise.metric === 'time';
+    const sets = scaleSets(micro.sets, input.setsMultiplier);
+    return {
+      exerciseId: exercise.id,
+      role: 'main',
+      band,
+      sets,
+      repTarget: isTimedLadder ? undefined : micro.repTarget,
+      durationSec: isTimedLadder ? micro.repTarget : undefined,
+      restSec: micro.restSec,
+      tempoSec: micro.tempoSec,
+      difficulty,
+      progressionFamilyId: null,
+      progressionLevelIdAtTime: null,
+      pattern: exercise.pattern,
+      anchorClass: exercise.anchor_class,
+      unilateral: exercise.unilateral,
+      estimatedSec: estimateEntrySec({
+        sets,
+        repTarget: isTimedLadder ? null : micro.repTarget,
+        durationSec: isTimedLadder ? micro.repTarget : null,
+        restSec: micro.restSec,
+        tempoSec: micro.tempoSec,
+        unilateral: exercise.unilateral,
+      }),
+    };
+  }
 
   // Track 14 — a cardio exercise (`pattern: 'conditioning'`) is prescribed from
   // CARDIO_INTERVAL_TABLE instead of the strength DIFFICULTY_TABLE: the difficulty dial should

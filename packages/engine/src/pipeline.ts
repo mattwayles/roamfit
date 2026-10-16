@@ -380,6 +380,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
           bandRelaxedForPatternGap: pick.bandRelaxedForPatternGap,
           setsMultiplier: multiplier,
           workingBand: userState.exerciseStates[pick.exercise.id]?.workingBand,
+          micro: userState.exerciseStates[pick.exercise.id]?.accessoryMicro,
         }),
       );
     }

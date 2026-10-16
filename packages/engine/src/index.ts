@@ -44,6 +44,16 @@ export { shouldSuppressForRepeatedSkip } from './selection/candidates';
 export { applySessionResult, levelUpForTooEasy, levelDownForTooHard } from './progression/rules';
 export type { ProgressionEvent, ApplySessionResult } from './progression/rules';
 export type { SessionPerformance } from './progression/rules.types';
+export {
+  applyAccessorySessionResult,
+  progressesAsAccessory,
+  seedAccessoryMicro,
+} from './progression/accessory';
+export type {
+  AccessoryPerformance,
+  AccessoryProgressionEvent,
+  AccessoryProgressionState,
+} from './progression/accessory';
 export { assessComeback, applyComebackToProgressionStates } from './progression/comeback';
 export type { ComebackAssessment, ComebackTier } from './progression/comeback';
 export { COMEBACK_VOLUME_MULTIPLIER, COMEBACK_WEEK_GAP_DAYS } from './progression/constants';

@@ -80,6 +80,14 @@ export interface ExerciseState {
    *  no progression family starts from the band in the user's hand rather than resetting to the
    *  lightest authored band every session. Absent/null: never trained, or bodyweight. */
   workingBand?: BandId | null;
+  /** This exercise's own micro-progression state for when it runs as an accessory (no
+   *  progression family) — see `progression/accessory.ts`. Its `band` is `workingBand`. Absent/null
+   *  until the exercise first completes as an accessory; `prescribeAccessory` then falls back to
+   *  the day's difficulty table. */
+  accessoryMicro?: ProgressionMicroState | null;
+  /** Consecutive sessions below target on the accessory ladder (`ProgressionState`'s
+   *  `consecutiveMisses`, per exercise). */
+  accessoryMisses?: number;
   /** -1..+1, too_hard .. too_easy. */
   difficultyEma: number;
   skipCount: number;
