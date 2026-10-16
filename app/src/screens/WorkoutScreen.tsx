@@ -899,6 +899,13 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     setPhase('exercise');
     sessionsRepo.setRestingCursor(db, sessionId, null, nowUtcInstant());
     reload();
+    // Leaving the last set's rest is the user finishing the workout, so go to Summary here rather
+    // than leaving it to the auto-navigate effect: that effect deliberately sits out when the
+    // screen was opened with `reviewFromSummary` or a `jumpTo` bookmark (Summary/Progress round
+    // trip), and with no frontier and no rest page left it would strand the screen on the
+    // spinner forever.
+    const after = sessionsRepo.getSession(db, sessionId);
+    if (after && !findCurrent(after)) navigation.replace('Summary', { sessionId });
   };
 
   const handlePinnedNoteChange = (note: string) => {

@@ -26,6 +26,13 @@ Last updated: 2026-09-29
 - [x] `npm run check` green (app 75/444, engine 25/1202, data 1/12, store 26/179,
   functions 9/34, engine-purity OK).
 
+- [x] **Second cause of the same spin (recurrence report, 2026-10-16)**: the auto-navigate-to-Summary
+  effect sits out when the screen was opened with `reviewFromSummary` or a valid `jumpTo` (a
+  Summary/Progress round trip). After the final rest's Next there is no frontier and no rest page, so
+  `current` is null and the spinner shows forever; an app restart has no route params, which is why
+  it "fixed" it. `handleNextAfterRest` now navigates to Summary itself when nothing is left to log.
+  Test added to `WorkoutScreen.restNextHang.test.tsx` (fails without the fix).
+
 ### In progress
 - Nothing — both the persisted-rest-page feature and the hang fix are complete and tested.
 

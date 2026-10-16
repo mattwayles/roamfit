@@ -146,3 +146,38 @@ describe('final rest "Next" survives a hung background-notification cleanup', ()
     );
   }, 20000);
 });
+
+describe('final rest "Next" from a Summary round trip', () => {
+  it('still reaches Summary when the screen was opened with reviewFromSummary', async () => {
+    let db!: Db;
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const sessionId = await sessionAtVeryLastSet(db, 'rest-next-review-seed');
+
+    const navigation = mockNavigation();
+    render(
+      <StoreProvider>
+        <WorkoutScreen
+          navigation={navigation as never}
+          route={{ key: 'Workout', name: 'Workout', params: { sessionId, reviewFromSummary: true } } as never}
+        />
+      </StoreProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId('complete-set'));
+    await waitFor(() => expect(screen.getByTestId('rest-circle')).toBeTruthy(), WAIT_OPTS);
+
+    await fireEvent.press(screen.getByTestId('rest-next'));
+
+    await waitFor(
+      () => expect(navigation.replace).toHaveBeenCalledWith('Summary', { sessionId }),
+      WAIT_OPTS,
+    );
+  }, 20000);
+});
