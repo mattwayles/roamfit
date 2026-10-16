@@ -43,6 +43,15 @@ original build of this feature.
   `npm run check` green throughout (app 76/470, engine 26/1213, data 1/12, store 26/179,
   functions 9/34, engine-purity OK).
 
+### Follow-up 2026-10-16 — still reconnecting after backgrounding
+- Hypothesis (device-unverified): on foreground `isConnected()` is stale-true, so the resume no-ops,
+  then the native `disconnected` arrives and nothing retries. `useSpotifyPlayer` now also resumes
+  silently on a connected → disconnected edge while `AppState` is active (edge only, so a failed
+  resume's own `disconnected` can't loop); silent retries extended to 500/1500/3000ms.
+- Not changed: silent resume still never calls `authorizeAndPlay`. If Spotify itself is suspended,
+  `connect()` cannot attach and only the tap (which wakes Spotify) works. If the device pass still
+  shows Connect, that is the cause and the decision is whether to allow wake on foreground.
+
 ### In progress
 - Nothing.
 

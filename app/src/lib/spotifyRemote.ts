@@ -266,7 +266,7 @@ async function freshAccessToken(
  *  Spotify's App Remote server is often not accepting connections yet (it was suspended while
  *  another app was in front), so the first attempt fails and a second one a moment later succeeds —
  *  which is what the manual button was doing for the user. */
-const SILENT_RETRY_DELAYS_MS = [500, 1500];
+const SILENT_RETRY_DELAYS_MS = [500, 1500, 3000];
 
 /** How many silent `connect()` calls are in flight — while non-zero, the native `connectionError`
  *  event is expected noise (the failure is handled by retrying, or by quietly staying disconnected)
@@ -699,6 +699,8 @@ export function useSpotifyPlayer(): SpotifyPlayer {
   // silent reattach attempt whose failure the native side reports as `disconnected`; letting that
   // through flipped the button back to "Connect Spotify" for the seconds before Spotify opened.
   const userConnectInFlight = useRef(false);
+  // The last connection state the native side reported, to spot a connected → disconnected drop.
+  const lastNativeState = useRef<SpotifyConnectionState | null>(null);
 
   useEffect(() => {
     const mod = loadModule();
@@ -708,7 +710,18 @@ export function useSpotifyPlayer(): SpotifyPlayer {
     // remounts on every workout, and a connection established during an earlier one is still live.
     setConnectionState(mod.AppRemote.isConnected() ? 'connected' : 'disconnected');
 
+    lastNativeState.current = mod.AppRemote.isConnected() ? 'connected' : 'disconnected';
+
     const connection = mod.AppRemote.addListener('connectionStateChange', ({ state }) => {
+      const dropped = state === 'disconnected' && lastNativeState.current === 'connected';
+      lastNativeState.current = state;
+      // iOS often reports the drop *after* the app is already back in front, by which time the
+      // foreground resume has seen a stale `isConnected()` and done nothing. A drop while active is
+      // therefore its own resume trigger. Only a connected → disconnected edge counts: a failed
+      // resume also reports `disconnected`, and reacting to that would loop.
+      if (dropped && !userConnectInFlight.current && AppState.currentState === 'active') {
+        void resumeSpotifySession({ allowWake: false });
+      }
       if (state === 'disconnected' && userConnectInFlight.current) return;
       setConnectionState(state);
       // A dropped connection leaves whatever was last playing on screen, which would be a lie the

@@ -54,6 +54,7 @@ let mockAppStateChangeHandler: ((state: string) => void) | null = null;
 jest.mock('react-native/Libraries/AppState/AppState', () => ({
   __esModule: true,
   default: {
+    currentState: 'active',
     addEventListener: jest.fn((event: string, handler: (state: string) => void) => {
       if (event === 'change') mockAppStateChangeHandler = handler;
       return {
@@ -881,6 +882,35 @@ describe('useSpotifyPlayer', () => {
     await act(async () => mockAppStateChangeHandler?.('active'));
 
     await waitFor(() => expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(2));
+  });
+
+  it('resumes when the drop is reported after the app is already foregrounded (stale isConnected)', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+    mockModule.AppRemote.isConnected.mockReturnValue(true);
+    const { result } = await renderHook(() => useSpotifyPlayer());
+    await act(async () => {});
+    expect(mockModule.AppRemote.connect).not.toHaveBeenCalled();
+
+    // Foreground saw `isConnected() === true` and no-op'd; the native drop arrives afterwards.
+    mockModule.AppRemote.isConnected.mockReturnValue(false);
+    await act(async () => emit('connectionStateChange', { state: 'disconnected' }));
+
+    await waitFor(() => expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(1));
+    expect(mockModule.AppRemote.authorizeAndPlay).not.toHaveBeenCalled();
+    expect(result.current.lastError).toBeNull();
+  });
+
+  it('does not loop when a failed resume reports disconnected again', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+    const { result } = await renderHook(() => useSpotifyPlayer());
+    await waitFor(() => expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(1));
+
+    await act(async () => emit('connectionStateChange', { state: 'disconnected' }));
+    await act(async () => emit('connectionStateChange', { state: 'disconnected' }));
+    await act(async () => {});
+
+    expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(1);
+    expect(result.current.connectionState).toBe('disconnected');
   });
 
   it('does not attempt a foreground resume while already connected', async () => {
