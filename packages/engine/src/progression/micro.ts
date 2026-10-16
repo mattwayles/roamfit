@@ -17,6 +17,7 @@ import {
   PROGRESSION_REP_LOW,
   PROGRESSION_TIME_HIGH_SEC,
   PROGRESSION_TIME_LOW_SEC,
+  PROGRESSION_TIME_STEP_SEC,
 } from './constants';
 import { bandStepsFor, parseBandRange, spendTier, tierCapFor, tierOf } from './tiers';
 
@@ -26,6 +27,11 @@ function rangeForExercise(exercise: Exercise): { low: number; high: number } {
   return exercise.metric === 'time'
     ? { low: PROGRESSION_TIME_LOW_SEC, high: PROGRESSION_TIME_HIGH_SEC }
     : { low: PROGRESSION_REP_LOW, high: PROGRESSION_REP_HIGH };
+}
+
+/** How far one micro-step moves `repTarget`: a rep, or `PROGRESSION_TIME_STEP_SEC` of hold. */
+function repStepFor(exercise: Exercise): number {
+  return exercise.metric === 'time' ? PROGRESSION_TIME_STEP_SEC : 1;
 }
 
 /** The starting micro-state for a freshly-entered level — the §5.4 `normal` baseline, at the
@@ -94,12 +100,15 @@ function advancePace(micro: ProgressionMicroState): MicroStepResult {
   return { micro, levelChange: 'up' };
 }
 
-/** One micro-progression step forward, per §6.2's order: reps → band+1 (reps reset, band
+/** One micro-progression step forward, per §6.2's order: reps (or hold +5s) → band+1 (reps reset, band
  *  exercises only) → tempo+1s → rest−15s → sets+1 → next level. */
 export function microAdvance(micro: ProgressionMicroState, exercise: Exercise): MicroStepResult {
   const { high, low } = rangeForExercise(exercise);
   if (micro.repTarget < high) {
-    return { micro: { ...micro, repTarget: micro.repTarget + 1 }, levelChange: null };
+    // Clamped, so a target left off the step grid (a hold stored before the step was 5s) still
+    // lands exactly on the top of the range rather than overshooting it.
+    const repTarget = Math.min(high, micro.repTarget + repStepFor(exercise));
+    return { micro: { ...micro, repTarget }, levelChange: null };
   }
   if (exercise.equipment === 'band') {
     const range = parseBandRange(exercise.band);
@@ -138,7 +147,8 @@ export function microRegress(micro: ProgressionMicroState, exercise: Exercise): 
     }
   }
   if (micro.repTarget > low) {
-    return { micro: { ...micro, repTarget: micro.repTarget - 1 }, levelChange: null };
+    const repTarget = Math.max(low, micro.repTarget - repStepFor(exercise));
+    return { micro: { ...micro, repTarget }, levelChange: null };
   }
   return { micro, levelChange: 'down' };
 }

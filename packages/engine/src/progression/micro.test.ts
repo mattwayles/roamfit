@@ -140,6 +140,37 @@ describe('§6.2 micro-progression', () => {
     const micro = defaultMicroForExercise(timed);
     expect(micro.repTarget).toBe(20); // PROGRESSION_TIME_LOW_SEC
   });
+
+  it('a timed hold climbs 5s per qualifying session — 20→45s is 5 sessions, not 25', () => {
+    const timed = { ...bodyweightPush, metric: 'time' as const, default_seconds: 30 };
+    let micro = defaultMicroForExercise(timed);
+    const targets: number[] = [];
+    for (let i = 0; i < 5; i++) {
+      micro = microAdvance(micro, timed).micro;
+      targets.push(micro.repTarget);
+    }
+    expect(targets).toEqual([25, 30, 35, 40, 45]);
+    // The next step is past the hold range: a pace knob, not more seconds.
+    const next = microAdvance(micro, timed).micro;
+    expect(next.repTarget).toBe(45);
+    expect(next.tempoSec).toBe(micro.tempoSec + 1);
+  });
+
+  it('an off-grid hold (stored under the old 1s step) lands exactly on the range ends', () => {
+    const timed = { ...bodyweightPush, metric: 'time' as const, default_seconds: 30 };
+    const base = defaultMicroForExercise(timed);
+    expect(microAdvance({ ...base, repTarget: 43 }, timed).micro.repTarget).toBe(45);
+    expect(microRegress({ ...base, repTarget: 22 }, timed).micro.repTarget).toBe(20);
+  });
+
+  it('a timed band exercise reaches its band step after 5 qualifying sessions', () => {
+    const hold = library.find((e) => e.id === 'banded-plank')!; // time, "B1-B2"
+    let micro = defaultMicroForExercise(hold);
+    for (let i = 0; i < 5; i++) micro = microAdvance(micro, hold).micro;
+    expect(micro).toMatchObject({ repTarget: 45, band: 'B1' });
+    micro = microAdvance(micro, hold).micro;
+    expect(micro).toMatchObject({ repTarget: 20, band: 'B2' });
+  });
 });
 
 describe('§6.2 reconcileMicroToObservedBand — the band the user actually used', () => {

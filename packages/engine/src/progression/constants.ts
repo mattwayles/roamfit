@@ -27,6 +27,10 @@ export const PROGRESSION_REP_HIGH = 12;
 
 export const PROGRESSION_TIME_LOW_SEC = 20;
 export const PROGRESSION_TIME_HIGH_SEC = 45;
+/** One qualifying session's worth of hold time. Was 1s, which made 20→45s a 25-session climb
+ *  before a timed exercise ever reached its band step — against 4 sessions for 8→12 reps. 5s makes
+ *  the hold range 5 steps (20, 25, … 45), the same pace as a rep range. */
+export const PROGRESSION_TIME_STEP_SEC = 5;
 
 export const DEFAULT_TEMPO_SEC = 3;
 export const DEFAULT_REST_SEC = 45;

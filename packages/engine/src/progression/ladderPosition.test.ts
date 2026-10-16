@@ -111,8 +111,9 @@ describe('ladderPosition', () => {
   });
 
   it('places a time-metric exercise on seconds', () => {
+    // One 5s hold step above the 20s floor.
     const hold = at('vertical_pull.l1', { bestReps: null, bestSeconds: 25 }, hang)!;
-    expect(hold.position).toBe(5);
+    expect(hold.position).toBe(1);
     // Reps are not seconds: a reps-only entry on a timed anchor cannot be placed.
     expect(at('vertical_pull.l1', { bestReps: 12, bestSeconds: null }, hang)).toBeNull();
   });
@@ -128,7 +129,8 @@ describe('ladderPosition', () => {
       { bestReps: null, bestSeconds: 20, band: 'B2' },
       plank,
     )!;
-    expect(plankB2.position).toBe(plankL4.position + 26);
+    // 20→45s is 5 hold steps (5s each), then the band step.
+    expect(plankB2.position).toBe(plankL4.position + 6);
   });
 
   it('the mastery rung is open-ended: credited within it, nothing above', () => {
