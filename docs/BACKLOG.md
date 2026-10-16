@@ -230,17 +230,22 @@ the record of what was completed and why.
   `prescription/difficultyTable.ts`). A true circuit — rounds of back-to-back stations on a
   work/rest timer — needs a new `SessionFormat`, circuit-aware time fit, and a Workout-screen mode.
   Deferred when the Cardio focus landed (track 14) to keep that change inside the existing loop.
-- **Accessory ladder — device pass owed, and two loose ends.** Track 34
-  (`docs/handoff/STATUS-34-accessory-micro-progression.md`, Jest-verified only): every main exercise
-  with no progression family (cardio excluded) now climbs the family micro-ladder per exercise, and
-  timed holds climb 5s a session. On a device: finish an accessory at target rated "just right" and
-  check the next prescription is one step harder; the first generation after updating should
-  already reflect your last accessory sessions (seeded from history). Loose ends, not built: (1)
-  nothing on Summary/Journey says an accessory moved (`AccessoryProgressionEvent`s are computed and
-  dropped); (2) a timed exercise still spends a tier on "tempo +1s", which a hold can't show — at
-  the top of a hold range one qualifying session changes nothing visible; (3) the family path still
-  resets reps to the bottom on a heavier band even when every set met target on it (the accessory
-  path no longer does), and still reads a followed recovery-day band drop as the user going lighter.
+- **Per-exercise band ladder — device pass owed, and loose ends.** Tracks 34-35
+  (`docs/handoff/STATUS-34-accessory-micro-progression.md`, `STATUS-35-band-to-b5.md`, Jest-verified
+  only). Every main exercise with no progression family (cardio excluded), and every band exercise
+  drawn from a rung below its family's current one, climbs its own ladder: reps, then the next band,
+  all the way to B5, then tempo/rest/sets. The current rung keeps its authored-range cap (reaching
+  it unlocks the next rung). Timed holds climb 5s a session. On a device: finish an accessory at
+  target rated "just right" and check the next prescription is one step harder; get a passed-rung
+  band exercise drawn and check it starts on the band above its range. Loose ends, not built:
+  (1) nothing on Summary/Journey says an exercise's own ladder moved (`AccessoryProgressionEvent`s
+  are computed and dropped); (2) a timed exercise still spends a tier on "tempo +1s", which a hold
+  can't show; (3) the family path still resets reps to the bottom on a heavier band even when every
+  set met target on it, and still reads a followed recovery-day band drop as the user going lighter;
+  (4) on an easy or hard day `isDifficultyEligible` keeps passed-rung exercises tagged outside that
+  day's tier out of the draw — with bands now climbing to B5, an "easy"-tagged exercise at B4 is no
+  longer easy, so that tag may want to stop gating passed rungs; (5) bodyweight passed-rung
+  exercises still take the family's projected tier.
 - **No quad stretch in the library**, so a Cardio cool-down can't target quads. Add one (and give
   it the `cardio` focus) if cardio cool-downs feel lopsided.
 

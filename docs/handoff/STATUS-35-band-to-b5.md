@@ -5,13 +5,14 @@ Last updated: 2026-10-16
   (B1-B5): reps → next band → … → B5 before any pace knob; band_up/band_down events removed;
   `isPassedRungBandExercise`, `seedPassedRungMicro`; `prescribeLaddered({ ownMicro })`; pipeline
   passes it for passed-rung band exercises; tests
+- [x] store: completion runs the own-ladder update for passed-rung entries and leaves them out of
+  the family verdict (`climbsOwnLadder`); store tests updated to the open-range rule (12 met on B4
+  now steps to B5) — they were red after the engine commit 999badb, which ran only engine tests;
+  passed-rung store test added. BACKLOG item rewritten.
 ### In progress
-3. store: completion runs the own-ladder update (`progressAccessoryEntry`, seedFrom 'prescribed')
-   for passed-rung entries (exercise's own rung index < entry.progressionLevelIdAtTime's) and leaves
-   them OUT of the family verdict; they also stop writing working_band via recordExercisePerformed
-   (the ladder writes it); tests in `accessoryProgression.test.ts`.
+- nothing — track complete. Jest-verified only.
 ### Next
-- app: none expected (Approval Add exercise uses prescribeAccessory, already open-range). BACKLOG.
+- see BACKLOG "Per-exercise band ladder — device pass owed, and loose ends".
 ### Decisions / gotchas
 - User's rule (2026-10-16): the CURRENT rung keeps its authored range cap — reaching it (then
   pace, unchanged) unlocks the next rung. Passed rungs stay eligible and keep climbing bands to B5.

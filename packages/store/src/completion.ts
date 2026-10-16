@@ -12,6 +12,7 @@ import {
   applyAccessorySessionResult,
   applySessionResult,
   BAND_ORDER,
+  isPassedRungBandExercise,
   progressesAsAccessory,
   REPEAT_SKIP_THRESHOLD,
   seedAccessoryMicro,
@@ -155,14 +156,22 @@ function summarizeEntry(entry: SessionEntryRecord): WorkingSetSummary {
   };
 }
 
-/** Whether this entry climbs its exercise's own accessory ladder at completion: main work with no
- *  progression family, and not cardio (see `progression/accessory.ts`). */
-function runsAsAccessory(entry: SessionEntryRecord, exercise: Exercise | undefined): boolean {
+/** Whether this entry climbs its exercise's own ladder at completion (`progression/accessory.ts`):
+ *  main work with no progression family (not cardio), or a band exercise drawn from a rung below its
+ *  family's current one. A passed-rung entry still carries its family id (charts read it) but is
+ *  judged against its own ladder, not the current rung's. */
+function climbsOwnLadder(
+  entry: SessionEntryRecord,
+  exercise: Exercise | undefined,
+  families: FamilyLibrary,
+): boolean {
+  if (!exercise || entry.section !== 'main') return false;
+  if (!entry.progressionFamilyId) return progressesAsAccessory(exercise);
+  const family = families.families.find((f) => f.id === entry.progressionFamilyId);
   return (
-    !!exercise &&
-    entry.section === 'main' &&
-    !entry.progressionFamilyId &&
-    progressesAsAccessory(exercise)
+    !!family &&
+    !!entry.progressionLevelIdAtTime &&
+    isPassedRungBandExercise(exercise, family, entry.progressionLevelIdAtTime)
   );
 }
 
@@ -337,13 +346,13 @@ export function completeSession(
             // Main work only: a warm-up/cool-down band is deliberately below working load. An
             // accessory's band is the ladder's call, written by `progressAccessoryEntry` below.
             workingBand:
-              entry.section === 'main' && !runsAsAccessory(entry, exercise)
+              entry.section === 'main' && !climbsOwnLadder(entry, exercise, input.families)
                 ? summary.finalBand
                 : undefined,
           },
           now,
         );
-        if (runsAsAccessory(entry, exercise)) {
+        if (climbsOwnLadder(entry, exercise, input.families)) {
           progressAccessoryEntry(txDb, entry, exercise!, summary, now, 'remembered');
         }
         if (improvedBestSet) {
@@ -382,7 +391,9 @@ export function completeSession(
 
       muscleVolume.push(...muscleCreditsForEntry(entry, exercise, summary.completedCount));
 
-      if (entry.progressionFamilyId) {
+      // A passed-rung entry's performance is about its own ladder; it says nothing about whether the
+      // user has met the current rung, so it stays out of the family's verdict.
+      if (entry.progressionFamilyId && !climbsOwnLadder(entry, exercise, input.families)) {
         const list = byFamily.get(entry.progressionFamilyId) ?? [];
         list.push(entry);
         byFamily.set(entry.progressionFamilyId, list);

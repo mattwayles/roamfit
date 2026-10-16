@@ -265,12 +265,12 @@ describe('an accessory remembers the band the user finished on', () => {
     return accessory;
   }
 
-  it('every set moved up: the stored working band is the band used', () => {
+  it('every set moved up and met: the ladder carries on from the band used (12 met on B4 → B5)', () => {
     const { db, close } = createTestDb();
     try {
       const accessory = runSessionMovingAccessoryUp(db, '2026-03-01', 'B4', 'B4');
       expect(accessory.band).not.toBe('B4');
-      expect(getAllExerciseStates(db)[accessory.exerciseId].workingBand).toBe('B4');
+      expect(getAllExerciseStates(db)[accessory.exerciseId].workingBand).toBe('B5');
     } finally {
       close();
     }
@@ -324,6 +324,7 @@ describe('an accessory remembers the band the user finished on', () => {
     const { db, raw, close } = createTestDb();
     try {
       const accessory = runSessionMovingAccessoryUp(db, '2026-03-01', 'B4', 'B4');
+      const before = getAllExerciseStates(db)[accessory.exerciseId].workingBand;
       // A later session that only warms the same exercise up, on B1.
       const sessionId = makeSession(db, '2026-03-03');
       startSession(db, sessionId, utcInstantFor('2026-03-03', 9));
@@ -343,7 +344,7 @@ describe('an accessory remembers the band the user finished on', () => {
         utcInstantFor('2026-03-03', 9, 1),
       );
       completeSession(db, { sessionId, library, families }, utcInstantFor('2026-03-03', 10));
-      expect(getAllExerciseStates(db)[accessory.exerciseId].workingBand).toBe('B4');
+      expect(getAllExerciseStates(db)[accessory.exerciseId].workingBand).toBe(before);
     } finally {
       close();
     }

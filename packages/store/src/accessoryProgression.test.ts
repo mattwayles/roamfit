@@ -2,7 +2,7 @@
  * Track 34 — an accessory (main work with no progression family) climbs its own micro-progression
  * ladder: completion moves it, `exercise_state` stores it, and the next prescription reads it.
  */
-import { prescribeAccessory } from '@roamfit/engine';
+import { defaultMicroForExercise, prescribeAccessory } from '@roamfit/engine';
 import type { BandId } from '@roamfit/engine';
 import { createTestDb } from './testHarness';
 import { generate } from './generation';
@@ -15,6 +15,7 @@ import {
 } from './repositories/sessions';
 import type { SessionEntryRecord } from './repositories/sessions';
 import { getAllExerciseStates } from './repositories/exerciseState';
+import { getAllProgressionStates, upsertProgressionState } from './repositories/progressionState';
 import { completeSession, seedAccessoryProgressionFromHistory } from './completion';
 import {
   library,
@@ -124,12 +125,14 @@ describe('accessory micro-progression, through the store', () => {
     }
   });
 
-  it('the user’s report: every set moved up a band and met → the next prescription is on that band, at least as many reps', () => {
+  it('the user’s report: every set moved up a band, 12 met, just right → the next band up next time', () => {
     const { db, close } = createTestDb();
     try {
       const accessory = runSession(db, '2026-03-01', { band: 'B4' });
       const state = getAllExerciseStates(db)[accessory.exerciseId];
-      expect(state.workingBand).toBe('B4');
+      // 12 reps on B4 was shown and 12 is the top of the rep range: the step is B5, whatever the
+      // exercise's authored range says.
+      expect(state.workingBand).toBe('B5');
       const next = prescribeAccessory({
         exercise: exerciseOf(accessory),
         requestedDifficulty: 'medium',
@@ -137,10 +140,8 @@ describe('accessory micro-progression, through the store', () => {
         workingBand: state.workingBand,
         micro: state.accessoryMicro,
       });
-      expect(next.band).toBe('B4');
-      expect((next.repTarget ?? next.durationSec)!).toBeGreaterThanOrEqual(
-        Math.min(accessory.repTarget ?? accessory.durationSec!, 12),
-      );
+      expect(next.band).toBe('B5');
+      expect(next.repTarget ?? next.durationSec).toBe(accessory.durationSec != null ? 20 : 8);
     } finally {
       close();
     }
@@ -173,11 +174,12 @@ describe('accessory micro-progression, through the store', () => {
     const { db, raw, close } = createTestDb();
     try {
       const accessory = runSession(db, '2026-03-01', { band: 'B3' });
-      expect(getAllExerciseStates(db)[accessory.exerciseId].workingBand).toBe('B3');
+      const before = getAllExerciseStates(db)[accessory.exerciseId].workingBand;
+      expect(before).toBe('B4'); // 12 met on B3 → B4
       // Next time the exercise comes up on a recovery day: prescribed one band lighter, followed.
       const r = programAccessory(db, raw, '2026-03-03', accessory.exerciseId, 'B2');
       performOnly(db, r.sessionId, r.entry, '2026-03-03');
-      expect(getAllExerciseStates(db)[accessory.exerciseId].workingBand).not.toBe('B2');
+      expect(getAllExerciseStates(db)[accessory.exerciseId].workingBand).toBe(before);
     } finally {
       close();
     }
@@ -301,3 +303,47 @@ function performOnly(
   }
   completeSession(db, { sessionId, library, families }, utcInstantFor(localDate, 10));
 }
+
+describe('a passed-rung band exercise, through the store', () => {
+  /** vertical_pull parked at l4, and one main entry rewritten to Straight-Arm Pulldown (l2, authored
+   *  B1-B2) as the engine programs a passed-rung draw: family id kept, its own ladder's
+   *  prescription (first draw: B3 x 8). */
+  function passedRungSession(db: Db, raw: ReturnType<typeof createTestDb>['raw']) {
+    const sessionId = makeSession(db, '2026-03-01');
+    const before = getAllProgressionStates(db).vertical_pull;
+    const l4 = library.exercises.find((e) => e.id === 'lat-pulldown')!;
+    upsertProgressionState(
+      db,
+      { ...before, levelId: 'vertical_pull.l4', micro: defaultMicroForExercise(l4) },
+      utcInstantFor('2026-03-01'),
+    );
+    startSession(db, sessionId, utcInstantFor('2026-03-01', 9));
+    const slot = getPendingSession(db)!.entries.find((e) => e.section === 'main')!;
+    raw
+      .prepare(
+        `UPDATE session_entries SET exercise_id = 'straight-arm-pulldown', band = 'B3', sets = 3,
+           rep_target = 8, duration_sec = NULL, rest_sec = 45, tempo_sec = 3,
+           progression_family_id = 'vertical_pull', progression_level_id_at_time = 'vertical_pull.l4'
+         WHERE id = ?`,
+      )
+      .run(slot.id);
+    const entry = getPendingSession(db)!.entries.find((e) => e.id === slot.id)!;
+    return { sessionId, entry };
+  }
+
+  it('climbs its own ladder from B3 and leaves the current rung’s state alone', () => {
+    const { db, raw, close } = createTestDb();
+    try {
+      const { sessionId, entry } = passedRungSession(db, raw);
+      const familyBefore = getAllProgressionStates(db).vertical_pull;
+      performOnly(db, sessionId, entry, '2026-03-01');
+      const own = getAllExerciseStates(db)['straight-arm-pulldown'];
+      expect(own.accessoryMicro).toMatchObject({ band: 'B3', repTarget: 9 });
+      expect(own.workingBand).toBe('B3');
+      // Meeting a passed exercise's target says nothing about the current rung.
+      expect(getAllProgressionStates(db).vertical_pull).toEqual(familyBefore);
+    } finally {
+      close();
+    }
+  });
+});
