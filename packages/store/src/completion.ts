@@ -67,6 +67,11 @@ interface WorkingSetSummary {
    *  the most of them, heaviest winning a tie (the harder claim is the safer one to carry
    *  forward). Null when no set reported a band. */
   observedBand: BandId | null;
+  /** The band the entry's last completed set was done on (reported, else prescribed) — where the
+   *  user ended up, which is what the next prescription of an accessory starts from. Unlike
+   *  `observedBand` this is not a tally: moving up a band on set 3 of 3 is the user saying where
+   *  they belong, and a majority vote of the two lighter sets before it would throw that away. */
+  finalBand: BandId | null;
   /** The entry's own answer to "how did those sets feel" (one per exercise); `just_right` when
    *  unanswered. §6.3's advance/regress rules see one verdict per entry. */
   difficultyFeedback: DifficultyFeedback;
@@ -133,6 +138,10 @@ function summarizeEntry(entry: SessionEntryRecord): WorkingSetSummary {
     bestActual,
     bestBand,
     observedBand: dominantBand(completed.map((s) => s.bandActual)),
+    finalBand: (() => {
+      const last = [...completed].sort((a, b) => b.setIndex - a.setIndex)[0];
+      return last ? (last.bandActual ?? entry.band) : null;
+    })(),
     difficultyFeedback: entry.difficultyFeedback ?? 'just_right',
   };
 }
@@ -212,6 +221,8 @@ export function completeSession(
                     band: summary.bestBand,
                   }
                 : undefined,
+            // Main work only: a warm-up/cool-down band is deliberately below working load.
+            workingBand: entry.section === 'main' ? summary.finalBand : undefined,
           },
           now,
         );

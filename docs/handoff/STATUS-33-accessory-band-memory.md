@@ -1,8 +1,15 @@
 ## Track: 33 — accessory band memory
 Last updated: 2026-10-16
 ### Done
-- (nothing committed yet)
+- [x] engine: `ExerciseState.workingBand`, `prescribeAccessory({ workingBand })`, pipeline wiring,
+  tests (cf1265a)
 ### In progress
+- store: migration `0027_working_band.sql` (+ data.ts copy) adds `exercise_state.working_band` and
+  backfills it from each exercise's most recent completed main entry's final completed set;
+  `schema.ts` column; `rowToState` maps it; `recordExercisePerformed` takes `workingBand`;
+  `completion.ts` passes the final completed set's band for main entries.
+
+### Background
 - Root cause found: exercises with no `progression_family` (72 of 137 band exercises, e.g.
   `single-arm-curl`) are prescribed by `prescribeAccessory`, which always takes the lightest
   authored band. Nothing remembers the band the user actually trained with for them — progression

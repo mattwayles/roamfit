@@ -47,6 +47,7 @@ function rowToState(row: typeof schema.exerciseState.$inferSelect): EngineExerci
             at: row.bestSetAt,
           }
         : null,
+    workingBand: (row.workingBand as BandId | null) ?? null,
     difficultyEma: row.difficultyEma,
     skipCount: row.skipCount,
     swapAwayCount: row.swapAwayCount,
@@ -100,13 +101,16 @@ function ensureRow(db: Db, exerciseId: string, now: string): void {
 
 /** Called at completion for every exercise that actually ran (§4.4's counters describe usage,
  *  not planning). `bestPerformance` is the best single-set result actually logged this session
- *  for this exercise, if any — reps/seconds, whichever the exercise's metric uses. */
+ *  for this exercise, if any — reps/seconds, whichever the exercise's metric uses. `workingBand`
+ *  is the band its final main working set was done on; omitted (warm-up/cool-down, bodyweight)
+ *  leaves the stored one alone. */
 export function recordExercisePerformed(
   db: Db,
   exerciseId: string,
   input: {
     localDate: string;
     bestPerformance?: { reps?: number; seconds?: number; band?: BandId | null };
+    workingBand?: BandId | null;
   },
   now: string,
 ): { improvedBestSet: boolean } {
@@ -143,6 +147,7 @@ export function recordExercisePerformed(
       bestSetSeconds,
       bestSetBand,
       bestSetAt,
+      ...(input.workingBand ? { workingBand: input.workingBand } : {}),
       updatedAt: now,
     })
     .where(

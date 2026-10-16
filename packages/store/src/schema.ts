@@ -104,6 +104,11 @@ export const exerciseState = sqliteTable(
     bestSetSeconds: integer('best_set_seconds'),
     bestSetBand: text('best_set_band'),
     bestSetAt: text('best_set_at'),
+    /** Migration 0027 — the band the user finished their last main working sets of this exercise
+     *  on (the final completed set's reported band, else the prescribed one). What
+     *  `prescribeAccessory` starts an exercise with no progression family on. NULL = never
+     *  trained as main work, or bodyweight. */
+    workingBand: text('working_band'),
     /** -1..+1, too_hard..too_easy. EMA over explicit difficulty feedback (§8.1). */
     difficultyEma: real('difficulty_ema').notNull().default(0),
     skipCount: integer('skip_count').notNull().default(0),

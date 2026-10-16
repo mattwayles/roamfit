@@ -19,6 +19,7 @@ import { getSignalEventsByType } from './repositories/signals';
 import { getAllProgressionStates } from './repositories/progressionState';
 import { getAllExerciseStates } from './repositories/exerciseState';
 import { completeSession } from './completion';
+import { MIGRATIONS } from './migrations/data';
 import {
   library,
   singleExerciseFamilies as families,
@@ -221,3 +222,154 @@ describe('the recorded band informs the next session', () => {
     }
   });
 });
+
+describe('an accessory remembers the band the user finished on', () => {
+  /** The user's report: Single-Arm Curl (no progression family) prescribed B1, moved up mid-workout,
+   *  rated just right — and handed B1 again next time. Runs every set at target; the first
+   *  band-carrying accessory entry finishes on `finalBand` (earlier sets at `earlierBand`). */
+  function runSessionMovingAccessoryUp(
+    db: Db,
+    localDate: string,
+    earlierBand: 'B4' | null,
+    finalBand: 'B4',
+  ) {
+    const sessionId = makeSession(db, localDate);
+    startSession(db, sessionId, utcInstantFor(localDate, 9));
+    const session = getPendingSession(db)!;
+    const accessory = session.entries.find(
+      (e) => e.section === 'main' && e.band != null && e.progressionFamilyId == null,
+    );
+    if (!accessory) throw new Error('fixture: expected a banded accessory in the session');
+    for (const entry of session.entries) {
+      for (let i = 0; i < entry.sets; i++) {
+        const isAccessory = entry.id === accessory.id;
+        logSet(
+          db,
+          {
+            entryId: entry.id,
+            setIndex: i,
+            status: 'completed',
+            repsPrescribed: entry.repTarget ?? undefined,
+            secondsPrescribed: entry.durationSec ?? undefined,
+            repsActual: entry.repTarget ?? undefined,
+            secondsActual: entry.durationSec ?? undefined,
+            bandActual: isAccessory ? (i === entry.sets - 1 ? finalBand : earlierBand) : null,
+            restPrescribedSec: entry.restSec,
+            restTakenSec: entry.restSec,
+          },
+          utcInstantFor(localDate, 9, i * 2),
+        );
+      }
+    }
+    completeSession(db, { sessionId, library, families }, utcInstantFor(localDate, 10));
+    return accessory;
+  }
+
+  it('every set moved up: the stored working band is the band used', () => {
+    const { db, close } = createTestDb();
+    try {
+      const accessory = runSessionMovingAccessoryUp(db, '2026-03-01', 'B4', 'B4');
+      expect(accessory.band).not.toBe('B4');
+      expect(getAllExerciseStates(db)[accessory.exerciseId].workingBand).toBe('B4');
+    } finally {
+      close();
+    }
+  });
+
+  it('only the final set moved up: still the band finished on, not a majority vote', () => {
+    const { db, close } = createTestDb();
+    try {
+      const accessory = runSessionMovingAccessoryUp(db, '2026-03-01', null, 'B4');
+      expect(getAllExerciseStates(db)[accessory.exerciseId].workingBand).toBe('B4');
+    } finally {
+      close();
+    }
+  });
+
+  it('following the plan stores the prescribed band', () => {
+    const { db, close } = createTestDb();
+    try {
+      const sessionId = makeSession(db);
+      startSession(db, sessionId, utcInstantFor('2026-03-01', 9));
+      const session = getPendingSession(db)!;
+      for (const entry of session.entries) {
+        for (let i = 0; i < entry.sets; i++) {
+          logSet(
+            db,
+            {
+              entryId: entry.id,
+              setIndex: i,
+              status: 'completed',
+              repsActual: entry.repTarget ?? undefined,
+              secondsActual: entry.durationSec ?? undefined,
+              restPrescribedSec: entry.restSec,
+            },
+            utcInstantFor('2026-03-01', 9, i * 2),
+          );
+        }
+      }
+      completeSession(db, { sessionId, library, families }, utcInstantFor('2026-03-01', 10));
+      const states = getAllExerciseStates(db);
+      for (const entry of session.entries) {
+        if (entry.section !== 'main') continue;
+        expect(states[entry.exerciseId].workingBand).toBe(entry.band);
+      }
+    } finally {
+      close();
+    }
+  });
+
+  it('a warm-up never overwrites the working band with its lighter warm-up band', () => {
+    const { db, raw, close } = createTestDb();
+    try {
+      const accessory = runSessionMovingAccessoryUp(db, '2026-03-01', 'B4', 'B4');
+      // A later session that only warms the same exercise up, on B1.
+      const sessionId = makeSession(db, '2026-03-03');
+      startSession(db, sessionId, utcInstantFor('2026-03-03', 9));
+      const warmup = getPendingSession(db)!.entries.find((e) => e.section === 'warmup')!;
+      raw
+        .prepare("UPDATE session_entries SET exercise_id = ?, band = 'B1' WHERE id = ?")
+        .run(accessory.exerciseId, warmup.id);
+      logSet(
+        db,
+        {
+          entryId: warmup.id,
+          setIndex: 0,
+          status: 'completed',
+          repsActual: 12,
+          restPrescribedSec: 30,
+        },
+        utcInstantFor('2026-03-03', 9, 1),
+      );
+      completeSession(db, { sessionId, library, families }, utcInstantFor('2026-03-03', 10));
+      expect(getAllExerciseStates(db)[accessory.exerciseId].workingBand).toBe('B4');
+    } finally {
+      close();
+    }
+  });
+
+  it('migration 0027 backfills the working band from history already logged', () => {
+    const { db, raw, close } = createTestDb();
+    try {
+      const accessory = runSessionMovingAccessoryUp(db, '2026-03-01', null, 'B4');
+      raw.exec('UPDATE exercise_state SET working_band = NULL');
+      const migration = MIGRATIONS.find((m) => m.id === '0027_working_band.sql')!;
+      raw.exec(migration.sql.replace(/ALTER TABLE[^;]*;/, ''));
+      const states = getAllExerciseStates(db);
+      expect(states[accessory.exerciseId].workingBand).toBe('B4');
+      // Every other main exercise backfills to the band it was prescribed.
+      const session = getSession(db, getSessionIdFor(raw))!;
+      for (const entry of session.entries) {
+        if (entry.section !== 'main' || entry.id === accessory.id) continue;
+        expect(states[entry.exerciseId].workingBand).toBe(entry.band);
+      }
+    } finally {
+      close();
+    }
+  });
+});
+
+function getSessionIdFor(raw: ReturnType<typeof createTestDb>['raw']): string {
+  return (raw.prepare("SELECT id FROM sessions WHERE status = 'completed'").get() as { id: string })
+    .id;
+}
