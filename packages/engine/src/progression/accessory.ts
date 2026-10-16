@@ -1,30 +1,31 @@
 /**
- * Micro-progression for accessories — main exercises with no progression family.
+ * A per-exercise micro-progression ladder, for every band/bodyweight exercise whose load is not
+ * governed by a family's current rung:
  *
- * A family exercise climbs §6.2's ladder (reps → band → tempo → rest → sets → next level) through
- * `applySessionResult`. An accessory used to have nothing: it was prescribed off the day's
- * difficulty table every session, so a user who met every set and said "just right" was handed
- * the identical prescription next time, forever. This gives it the same ladder, per exercise
- * (stored on `ExerciseState`, not per family), with the same advance/regress verdicts and the same
- * `microAdvance`/`microRegress` steps.
+ * - **Accessories** — main exercises with no progression family. They used to be prescribed off
+ *   the day's difficulty table every session, so meeting every set changed nothing, forever.
+ * - **Passed-rung exercises** — a band exercise from a rung *below* its family's current one,
+ *   drawn for variety. Unlocking the next rung doesn't retire it, but the family's state is
+ *   tracked against the current rung, and projecting that onto this exercise capped it at its
+ *   authored range: once passed, it could never get heavier again.
  *
- * What differs is only what a family gets from its *levels*:
- * - Past the top of the micro ladder a family moves to the next rung's exercise. An accessory has
- *   no next rung, so its "next level" is itself one band heavier, from a fresh micro-state (bottom
- *   of the rep/hold range, default pace) — a new band is a new level of load. Bodyweight, or
- *   already on the heaviest band, holds at the top (the §6.7 mastery treatment).
- * - Below the bottom, a family drops a rung; an accessory drops one band, reps at the top of the
- *   range (the same pairing `microRegress` uses for a band step down). At B1 or bodyweight it holds.
+ * Both climb the same §6.2 ladder a family does, with the same verdicts (`applySessionResult`'s
+ * rules) and the same `microAdvance`/`microRegress` steps, stored per exercise on `ExerciseState`.
+ * The one difference: the band runs over the **whole band set (B1-B5)**, not the exercise's
+ * authored range. An authored range's top is where a family's *current rung* hands over to the
+ * next, harder exercise; an exercise that has no next exercise — or whose next one is already
+ * unlocked — keeps climbing bands to the heaviest. So: reps → next band → … → B5, then tempo →
+ * rest → sets, then it holds (the §6.7 mastery treatment). At B1 with nothing left to give back,
+ * repeated misses hold rather than drop further.
  *
- * Cardio is not an accessory here: it is prescribed as intervals off the day's difficulty
+ * Cardio is excluded: it is prescribed as intervals off the day's difficulty
  * (`CARDIO_INTERVAL_TABLE`), and a strength ladder with its 45s rests would undo that.
  */
-import type { Exercise } from '@roamfit/data';
+import type { Exercise, ProgressionFamily } from '@roamfit/data';
 import { isCardioExercise } from '@roamfit/data';
 import { BAND_ORDER } from '../types';
 import type { BandId, DifficultyFeedback, ProgressionMicroState } from '../types';
 import {
-  defaultMicroForExercise,
   isAtBottomMicroStep,
   microAdvance,
   microRegress,
@@ -35,7 +36,6 @@ import {
   BODYWEIGHT_REST_FLOOR_SEC,
   BODYWEIGHT_SETS_CAP,
   BODYWEIGHT_TEMPO_CAP_SEC,
-  CONSECUTIVE_BOTTOM_REGRESSIONS_TO_DROP_LEVEL,
   DEFAULT_REST_SEC,
   DEFAULT_SETS,
   DEFAULT_TEMPO_SEC,
@@ -63,8 +63,6 @@ export type AccessoryProgressionEvent =
   | { kind: 'hold' }
   | { kind: 'micro_advance' }
   | { kind: 'micro_regress' }
-  | { kind: 'band_up'; band: BandId }
-  | { kind: 'band_down'; band: BandId }
   | { kind: 'mastery_pr_check' };
 
 export interface ApplyAccessoryResult {
@@ -78,6 +76,54 @@ export function progressesAsAccessory(exercise: Exercise): boolean {
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+
+const LIGHTEST_BAND = BAND_ORDER[0];
+const HEAVIEST_BAND = BAND_ORDER[BAND_ORDER.length - 1];
+
+/** The exercise as this ladder sees it: a band exercise's range opened to the whole band set, so
+ *  `microAdvance`/`microRegress`/`isAtBottomMicroStep` step bands B1-B5. */
+function onOpenBandRange(exercise: Exercise): Exercise {
+  return exercise.equipment === 'band'
+    ? { ...exercise, band: `${LIGHTEST_BAND}-${HEAVIEST_BAND}` }
+    : exercise;
+}
+
+/**
+ * A band exercise from a rung below `currentLevelId` in its own family — already passed, so it
+ * climbs its own ladder (see the module doc) rather than the family's projected tier. Bodyweight
+ * passed-rung exercises keep the projection: this is about band headroom.
+ */
+export function isPassedRungBandExercise(
+  exercise: Exercise,
+  family: ProgressionFamily,
+  currentLevelId: string,
+): boolean {
+  if (exercise.equipment !== 'band' || exercise.progression_family !== family.id) return false;
+  const own = family.levels.findIndex((l) => l.exercise_ids.includes(exercise.id));
+  const current = family.levels.findIndex((l) => l.level_id === currentLevelId);
+  return own >= 0 && current >= 0 && own < current;
+}
+
+/**
+ * Where a passed-rung exercise starts its own ladder the first time it is drawn: the bottom of the
+ * next band above its authored range (B5 at most), default pace — it was mastered at the top of
+ * that range on the way past. A heavier band the user has already finished it on wins.
+ */
+export function seedPassedRungMicro(
+  exercise: Exercise,
+  workingBand: BandId | null | undefined,
+): ProgressionMicroState {
+  const top = parseBandRange(exercise.band)?.[1] ?? LIGHTEST_BAND;
+  const nextIdx = Math.min(BAND_ORDER.indexOf(top) + 1, BAND_ORDER.length - 1);
+  const idx = Math.max(nextIdx, workingBand ? BAND_ORDER.indexOf(workingBand) : -1);
+  return {
+    repTarget: rangeForExercise(exercise).low,
+    band: BAND_ORDER[idx],
+    tempoSec: DEFAULT_TEMPO_SEC,
+    restSec: DEFAULT_REST_SEC,
+    sets: DEFAULT_SETS,
+  };
+}
 
 /**
  * The ladder position an accessory starts from, read off the prescription it was first trained
@@ -113,9 +159,8 @@ export function seedAccessoryMicro(
 
 /**
  * Adopt the band the user finished on before judging the session — the accessory form of
- * `reconcileMicroToObservedBand`, but with no clamp to the authored range: an accessory's
- * remembered band is whatever the user picked up (track 33), and the range only says where its
- * in-ladder band steps stop.
+ * `reconcileMicroToObservedBand`, but with no clamp to the authored range: this ladder's band
+ * runs B1-B5, and the band the user picked up is a position on it.
  *
  * The rep target moves with the band as the family rule does (heavier → bottom of the range,
  * lighter → top) with one exception: a heavier band held for every set, with every set meeting the
@@ -140,12 +185,14 @@ function adoptFinalBand(
   return { ...micro, band: finalBand, repTarget: heavier ? low : high };
 }
 
-/** §6.3's verdict rules, applied to one accessory. Mirrors `applySessionResult` step for step. */
+/** §6.3's verdict rules, applied to one exercise's own ladder. Mirrors `applySessionResult` step
+ *  for step, over the open band range. */
 export function applyAccessorySessionResult(
   input: AccessoryProgressionState,
   exercise: Exercise,
   perf: AccessoryPerformance,
 ): ApplyAccessoryResult {
+  const ladder = onOpenBandRange(exercise);
   const micro = adoptFinalBand(input.micro, exercise, perf);
   const misses = input.consecutiveMisses;
 
@@ -154,47 +201,22 @@ export function applyAccessorySessionResult(
     perf.anySetBelowTarget && (misses >= 1 || perf.difficultyFeedback === 'too_hard');
 
   if (shouldAdvance) {
-    const step = microAdvance(micro, exercise);
-    if (step.levelChange !== 'up') {
-      return {
-        state: { micro: step.micro, consecutiveMisses: 0 },
-        event: { kind: 'micro_advance' },
-      };
-    }
-    const idx = micro.band ? BAND_ORDER.indexOf(micro.band) : -1;
-    if (exercise.equipment === 'band' && idx >= 0 && idx < BAND_ORDER.length - 1) {
-      const band = BAND_ORDER[idx + 1];
-      return {
-        state: { micro: { ...defaultMicroForExercise(exercise), band }, consecutiveMisses: 0 },
-        event: { kind: 'band_up', band },
-      };
-    }
+    const step = microAdvance(micro, ladder);
+    // Past the top only on the heaviest band with every pace knob spent: nothing heavier exists.
     return {
       state: { micro: step.micro, consecutiveMisses: 0 },
-      event: { kind: 'mastery_pr_check' },
+      event: { kind: step.levelChange === 'up' ? 'mastery_pr_check' : 'micro_advance' },
     };
   }
 
   if (shouldRegress) {
-    const step = microRegress(micro, exercise);
-    // `microRegress` reports `down` at the bottom of the reps when the band is already below the
-    // authored range — nothing left to give back inside the ladder, same as the bottom proper.
-    if (isAtBottomMicroStep(micro, exercise) || step.levelChange === 'down') {
-      const idx = micro.band ? BAND_ORDER.indexOf(micro.band) : -1;
-      if (misses + 1 >= CONSECUTIVE_BOTTOM_REGRESSIONS_TO_DROP_LEVEL && idx > 0) {
-        const band = BAND_ORDER[idx - 1];
-        return {
-          state: {
-            micro: { ...micro, band, repTarget: rangeForExercise(exercise).high },
-            consecutiveMisses: 0,
-          },
-          event: { kind: 'band_down', band },
-        };
-      }
+    // At B1 (or bodyweight) with every knob at its floor there is nothing left to give back, and
+    // no lower rung to drop to: hold.
+    if (isAtBottomMicroStep(micro, ladder)) {
       return { state: { micro, consecutiveMisses: misses + 1 }, event: { kind: 'hold' } };
     }
     return {
-      state: { micro: step.micro, consecutiveMisses: misses + 1 },
+      state: { micro: microRegress(micro, ladder).micro, consecutiveMisses: misses + 1 },
       event: { kind: 'micro_regress' },
     };
   }

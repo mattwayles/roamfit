@@ -46,8 +46,10 @@ export type { ProgressionEvent, ApplySessionResult } from './progression/rules';
 export type { SessionPerformance } from './progression/rules.types';
 export {
   applyAccessorySessionResult,
+  isPassedRungBandExercise,
   progressesAsAccessory,
   seedAccessoryMicro,
+  seedPassedRungMicro,
 } from './progression/accessory';
 export type {
   AccessoryPerformance,

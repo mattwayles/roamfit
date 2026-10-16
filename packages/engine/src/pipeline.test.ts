@@ -659,4 +659,46 @@ describe('Track 14 — cardio focus, ~40-exercise fixture library', () => {
     }
     expect(accessories).toBeGreaterThan(0);
   });
+  // A rung below the current one stays eligible after it is passed — and when drawn, its band
+  // keeps climbing past its authored range instead of being capped there.
+  it('a passed-rung band exercise is prescribed past its authored range', () => {
+    const base = coldStartUserState({ hasEverCompletedSession: true });
+    const vp = families.find((f) => f.id === 'vertical_pull')!;
+    const l4Anchor = library.find((e) => e.id === 'lat-pulldown')!;
+    const userState = coldStartUserState({
+      hasEverCompletedSession: true,
+      progressionStates: {
+        ...base.progressionStates,
+        vertical_pull: {
+          ...base.progressionStates.vertical_pull,
+          levelId: 'vertical_pull.l4',
+          micro: defaultMicroForExercise(l4Anchor),
+        },
+      },
+    });
+    const lowerRungIds = new Set(vp.levels.slice(0, 3).flatMap((l) => l.exercise_ids));
+    let passed = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const plan = generateSession({
+        library: exerciseLibrary,
+        families: familyLibrary,
+        userState,
+        request: { focus: 'upper', difficulty: 'medium', targetMinutes: 45 },
+        clock: { today: TODAY, tzId: 'UTC' },
+        rng: createRng(seed),
+      });
+      for (const entry of plan.main) {
+        if (entry.progressionFamilyId !== 'vertical_pull' || !lowerRungIds.has(entry.exerciseId)) {
+          continue;
+        }
+        if (entry.band === null) continue; // bodyweight hang — unchanged
+        passed += 1;
+        // Every band exercise on l1-l3 is authored B1-B2: drawn now, it starts at B3.
+        expect(entry.band).toBe('B3');
+        expect(entry.repTarget ?? entry.durationSec).toBe(entry.durationSec ? 20 : 8);
+        expect(entry.progressionLevelIdAtTime).toBe('vertical_pull.l4');
+      }
+    }
+    expect(passed).toBeGreaterThan(0);
+  });
 });

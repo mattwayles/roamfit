@@ -35,6 +35,7 @@ import { RECOVERY_WINDOW_DAYS } from './selection/constants';
 import { resolveLadderSlot } from './progression/resolveSlot';
 import type { ResolvedLadderSlot } from './progression/resolveSlot';
 import { exerciseForLevel, levelOrdinal } from './progression/ladder';
+import { isPassedRungBandExercise, seedPassedRungMicro } from './progression/accessory';
 import { assessComeback, applyComebackToProgressionStates } from './progression/comeback';
 import {
   estimateEntrySec,
@@ -361,6 +362,17 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
           familyId,
           levelId: resolved.state.levelId,
           micro: resolved.state.micro,
+          ownMicro: isPassedRungBandExercise(
+            resolved.exercise,
+            resolved.family,
+            resolved.state.levelId,
+          )
+            ? (userState.exerciseStates[resolved.exercise.id]?.accessoryMicro ??
+              seedPassedRungMicro(
+                resolved.exercise,
+                userState.exerciseStates[resolved.exercise.id]?.workingBand,
+              ))
+            : undefined,
           requestedDifficulty: difficulty,
           recoveryTreatment: touchesRecovery,
           setsMultiplier: multiplier,

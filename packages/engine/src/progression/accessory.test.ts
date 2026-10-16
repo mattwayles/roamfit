@@ -1,8 +1,10 @@
-import { exerciseLibrary } from '@roamfit/data';
+import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import {
   applyAccessorySessionResult,
+  isPassedRungBandExercise,
   progressesAsAccessory,
   seedAccessoryMicro,
+  seedPassedRungMicro,
 } from './accessory';
 import type { AccessoryPerformance, AccessoryProgressionState } from './accessory';
 import { prescribeAccessory } from '../prescription/prescribe';
@@ -77,16 +79,16 @@ describe('accessory micro-progression', () => {
     });
   });
 
-  it('the user’s report: 3x12 prescribed at B1, all done at B2, just right → harder next time', () => {
+  it('the user’s report: 3x12 prescribed at B1, all done at B2, just right → B3 next time', () => {
     const seeded = seedAccessoryMicro(curl, MEDIUM_CURL);
     const result = applyAccessorySessionResult(state(seeded), curl, {
       ...MET,
       finalBand: 'B2',
       finalBandHeldThroughout: true,
     });
-    // 12 reps on B2 was shown, so it stays; B2 is the top of the curl's range, so the step up is
-    // the next knob — a slower tempo — not fewer reps.
-    expect(result.state.micro).toMatchObject({ band: 'B2', repTarget: 12, tempoSec: 4 });
+    // 12 reps on B2 was shown, so it stays; 12 is the top of the rep range, so the step is the
+    // next band — B3, even though the curl is authored B1-B2. Bands run to B5 here.
+    expect(result.state.micro).toMatchObject({ band: 'B3', repTarget: 8, tempoSec: 3 });
     expect(result.event).toEqual({ kind: 'micro_advance' });
   });
 
@@ -116,7 +118,7 @@ describe('accessory micro-progression', () => {
     expect(result.state.micro).toMatchObject({ band: 'B2', repTarget: 9 });
   });
 
-  it('climbs the family ladder: reps → band (in range) → tempo → rest → sets', () => {
+  it('climbs the family ladder: reps, then a band step', () => {
     let s = state(seedAccessoryMicro(curl, { ...MEDIUM_CURL, repTarget: 8 }));
     const seen: string[] = [];
     for (let i = 0; i < 8; i++) {
@@ -136,34 +138,19 @@ describe('accessory micro-progression', () => {
     ]);
   });
 
-  it('past the top of the ladder, the next level is the next band, from a fresh micro-state', () => {
-    const top: ProgressionMicroState = {
-      repTarget: 12,
-      band: 'B2',
-      tempoSec: 4,
-      restSec: 30,
-      sets: 4,
-    };
-    const result = applyAccessorySessionResult(state(top), curl, MET);
-    expect(result.event).toEqual({ kind: 'band_up', band: 'B3' });
-    expect(result.state.micro).toEqual({
-      repTarget: 8,
-      band: 'B3',
-      tempoSec: 3,
-      restSec: 45,
-      sets: 3,
-    });
-  });
-
-  it('above the authored range the band step is spent; it climbs pace, then the next band', () => {
-    let s = state({ repTarget: 12, band: 'B3', tempoSec: 3, restSec: 45, sets: 3 });
+  it('the authored range is no ceiling: reps → next band, all the way to B5, before any pace knob', () => {
+    let s = state({ repTarget: 12, band: 'B2', tempoSec: 3, restSec: 45, sets: 3 });
+    const bands: string[] = [];
+    for (let i = 0; i < 20; i++) {
+      s = applyAccessorySessionResult(s, curl, MET).state;
+      if (s.micro.repTarget === 8) bands.push(s.micro.band!);
+      expect(s.micro).toMatchObject({ tempoSec: 3, restSec: 45, sets: 3 });
+      if (s.micro.band === 'B5' && s.micro.repTarget === 12) break;
+    }
+    expect(bands).toEqual(['B3', 'B4', 'B5']);
+    // Only at B5 x 12 does the pace start to move.
     s = applyAccessorySessionResult(s, curl, MET).state;
-    expect(s.micro).toMatchObject({ band: 'B3', tempoSec: 4 });
-    s = applyAccessorySessionResult(s, curl, MET).state;
-    s = applyAccessorySessionResult(s, curl, MET).state;
-    expect(s.micro).toMatchObject({ band: 'B3', restSec: 30, sets: 4 });
-    const result = applyAccessorySessionResult(s, curl, MET);
-    expect(result.event).toEqual({ kind: 'band_up', band: 'B4' });
+    expect(s.micro).toMatchObject({ band: 'B5', repTarget: 12, tempoSec: 4 });
   });
 
   it('on the heaviest band, or bodyweight, the top is mastery: it holds', () => {
@@ -207,21 +194,26 @@ describe('accessory micro-progression', () => {
     expect(second.state.micro.repTarget).toBe(9);
   });
 
-  it('two misses at the bottom drop a band, reps at the top of the range', () => {
+  it('regress steps a band down past the authored bottom, and holds at B1', () => {
     const bicep = library.find((e) => e.id === 'bicep-curl')!; // "B2-B3"
-    const bottom: ProgressionMicroState = {
+    const atAuthoredBottom: ProgressionMicroState = {
       repTarget: 8,
       band: 'B2',
       tempoSec: 3,
       restSec: 45,
       sets: 3,
     };
-    const first = applyAccessorySessionResult(state(bottom, 1), bicep, MISSED);
-    expect(first.event).toEqual({ kind: 'band_down', band: 'B1' });
-    expect(first.state.micro).toMatchObject({ band: 'B1', repTarget: 12 });
-    // At B1 there is nowhere lighter: it holds.
-    const floor = applyAccessorySessionResult(state({ ...bottom, band: 'B1' }, 1), curl, MISSED);
+    const dropped = applyAccessorySessionResult(state(atAuthoredBottom, 1), bicep, MISSED);
+    expect(dropped.event).toEqual({ kind: 'micro_regress' });
+    expect(dropped.state.micro).toMatchObject({ band: 'B1', repTarget: 12 });
+    // At B1 x 8 there is nothing lighter: it holds, counting the miss.
+    const floor = applyAccessorySessionResult(
+      state({ ...atAuthoredBottom, band: 'B1' }, 1),
+      bicep,
+      MISSED,
+    );
     expect(floor.event).toEqual({ kind: 'hold' });
+    expect(floor.state.consecutiveMisses).toBe(2);
   });
 
   it('just right without every set met holds where it is', () => {
@@ -287,5 +279,35 @@ describe('prescribeAccessory with a ladder position', () => {
     });
     expect(entry.restSec).not.toBe(30);
     expect(entry.durationSec).toBe(40);
+  });
+});
+
+describe('passed-rung band exercises keep climbing past their authored range', () => {
+  const vp = familyLibrary.families.find((f) => f.id === 'vertical_pull')!;
+  const pulldown = library.find((e) => e.id === 'straight-arm-pulldown')!; // l2, "B1-B2"
+  const latPulldown = library.find((e) => e.id === 'lat-pulldown')!; // l4, "B2-B3"
+  const deadHang = library.find((e) => e.id === 'bw-dead-hang')!; // l1, bodyweight
+
+  it('a band exercise below the current rung is passed; at or above it, or bodyweight, is not', () => {
+    expect(isPassedRungBandExercise(pulldown, vp, 'vertical_pull.l4')).toBe(true);
+    expect(isPassedRungBandExercise(pulldown, vp, 'vertical_pull.l2')).toBe(false);
+    expect(isPassedRungBandExercise(latPulldown, vp, 'vertical_pull.l4')).toBe(false);
+    expect(isPassedRungBandExercise(deadHang, vp, 'vertical_pull.l4')).toBe(false);
+  });
+
+  it('first drawn: the bottom of the next band above its authored top', () => {
+    expect(seedPassedRungMicro(pulldown, null)).toEqual({
+      repTarget: 8,
+      band: 'B3',
+      tempoSec: 3,
+      restSec: 45,
+      sets: 3,
+    });
+    // A heavier band the user already finished it on wins; a lighter one doesn't pull it down.
+    expect(seedPassedRungMicro(pulldown, 'B4').band).toBe('B4');
+    expect(seedPassedRungMicro(pulldown, 'B1').band).toBe('B3');
+    // Never past B5.
+    const b5Top = library.find((e) => e.equipment === 'band' && e.band?.endsWith('B5'))!;
+    expect(seedPassedRungMicro(b5Top, null).band).toBe('B5');
   });
 });

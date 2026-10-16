@@ -56,6 +56,9 @@ export interface PrescribeLadderedInput {
   substitutedFor?: string;
   /** §9.4/§9.9 comeback/Recovery Week volume cut (~0.8), applied to sets. 1 = no cut. */
   setsMultiplier?: number;
+  /** A passed-rung band exercise's own ladder position (`isPassedRungBandExercise`) — used in
+   *  place of the family's projected micro-state, which would cap it at its authored range. */
+  ownMicro?: ProgressionMicroState;
 }
 
 function scaleSets(sets: number, multiplier: number | undefined): number {
@@ -72,7 +75,8 @@ export function prescribeLaddered(input: PrescribeLadderedInput): SessionEntry {
   );
   // The stored state is the anchor's prescription; this is the same ladder position spent on the
   // knobs *this* exercise actually has (band size for a band sibling, tempo/rest/sets otherwise).
-  const micro = projectMicroToExercise(input.micro, input.anchorExercise, exercise);
+  const micro =
+    input.ownMicro ?? projectMicroToExercise(input.micro, input.anchorExercise, exercise);
   const band = recoveryTreatment ? dropOneBand(micro.band) : micro.band;
   const isTimed = exercise.metric === 'time';
   const sets = scaleSets(micro.sets, input.setsMultiplier);
