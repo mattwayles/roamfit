@@ -15,8 +15,8 @@
  * Not implemented in this pass: "Regenerate with a note" needs the online LLM-intake path (§7.1),
  * out of scope for the offline-first loop this wave proves out.
  */
-import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -140,6 +140,28 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
    *  never nags, and is replaced rather than stacked (invariant 4). */
   /** One-line result of the last swap. Informational, never blocking. */
   const [swapNotice, setSwapNotice] = useState<string | null>(null);
+  /** The notice is a momentary confirmation: it shows for 3s, fades, then clears itself. Keyed on
+   *  the message text so a fresh swap restarts the clock. */
+  const swapNoticeOpacity = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (swapNotice == null) return;
+    swapNoticeOpacity.setValue(1);
+    let fade: Animated.CompositeAnimation | null = null;
+    const timer = setTimeout(() => {
+      fade = Animated.timing(swapNoticeOpacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      });
+      fade.start(({ finished }) => {
+        if (finished) setSwapNotice(null);
+      });
+    }, 3000);
+    return () => {
+      clearTimeout(timer);
+      fade?.stop();
+    };
+  }, [swapNotice, swapNoticeOpacity]);
   /** §1140 — band colours are user data, so they are read from the user row rather than being a
    *  palette this screen invents. `ensureUser` always returns a complete set. */
   const bandTensions = usersRepo.ensureUser(db, nowUtcInstant()).bandTensions;
@@ -517,12 +539,16 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
           explanation={session.explanation}
         />
         {swapNotice != null && (
-          <View testID="swap-notice" accessibilityRole="alert" style={styles.swapNotice}>
+          <Animated.View
+            testID="swap-notice"
+            accessibilityRole="alert"
+            style={[styles.swapNotice, { opacity: swapNoticeOpacity }]}
+          >
             <Icon name="swap" size={16} color="fern" />
             <Txt variant="small" color="fern" style={styles.swapNoticeText}>
               {swapNotice}
             </Txt>
-          </View>
+          </Animated.View>
         )}
       </Enter>
 

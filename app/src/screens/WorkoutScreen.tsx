@@ -2497,16 +2497,15 @@ function RestPhase({
             </View>
           )}
 
-          {/* Rest counts itself down and nothing here is pressable, so it should not look like the
-              set timer, which is. */}
+          {/* Same countdown ring colors as the set timer, so the two read as one clock. */}
           <Animated.View style={{ transform: [{ scale: pulse }] }}>
             <ProgressRing
               testID="rest-circle"
               progress={mostMsRef.current > 0 ? remainingMs / mostMsRef.current : 0}
               size={REST_RING_SIZE}
               stroke={14}
-              gradient={theme.gradients.sky}
-              trackColor={withAlpha(theme.colors.sky, 0.18)}
+              gradient={theme.gradients.trail}
+              trackColor={withAlpha(theme.colors.teal, 0.18)}
               animate={false}
             >
               <Txt
