@@ -379,6 +379,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
           recoveryTreatment: pick.recoveryTreatment,
           bandRelaxedForPatternGap: pick.bandRelaxedForPatternGap,
           setsMultiplier: multiplier,
+          workingBand: userState.exerciseStates[pick.exercise.id]?.workingBand,
         }),
       );
     }
@@ -432,6 +433,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
         recoveryTreatment: pick.recoveryTreatment,
         bandRelaxedForPatternGap: pick.bandRelaxedForPatternGap,
         setsMultiplier,
+        workingBand: userState.exerciseStates[pick.exercise.id]?.workingBand,
       }),
     );
   }

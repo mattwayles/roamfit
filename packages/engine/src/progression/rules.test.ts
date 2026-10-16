@@ -3,6 +3,7 @@ import { applySessionResult, levelUpForTooEasy, levelDownForTooHard } from './ru
 import { findFamily } from './ladder';
 import { defaultMicroForExercise, microStepsToNextLevel } from './micro';
 import { PROGRESSION_REP_LOW } from './constants';
+import { projectMicroToExercise } from './tiers';
 import type { ProgressionState } from '../types';
 import type { SessionPerformance } from './rules.types';
 
@@ -314,5 +315,35 @@ describe('levelDownForTooHard', () => {
     expect(
       levelDownForTooHard(stateAt('horizontal_push.l1'), horizontalPush, library),
     ).toBeUndefined();
+  });
+});
+
+// The family-path twin of the accessory band memory: Banded Lat Pull Hold (B1-B2, 30s) sits at
+// vertical_pull.l1 whose anchor is the bodyweight Dead Hang. A B3 logged on it, rated just right,
+// must come back heavier than B1 — at the top of its authored range, B2.
+describe('a heavier band logged at a bodyweight-anchored rung is carried forward', () => {
+  it('Banded Lat Pull Hold logged at B3 is prescribed B2 next time, not B1', () => {
+    const vp = findFamily(familyLibrary.families, 'vertical_pull')!;
+    const level = vp.levels.find((l) => l.level_id === 'vertical_pull.l1')!;
+    const anchor = library.find((e) => e.id === level.anchor_exercise_id)!;
+    expect(anchor.equipment).toBe('bodyweight');
+    const hold = library.find((e) => e.id === 'banded-lat-pull-hold')!;
+    const start: ProgressionState = {
+      familyId: 'vertical_pull',
+      levelId: level.level_id,
+      micro: defaultMicroForExercise(anchor),
+      consecutiveHits: 0,
+      consecutiveMisses: 0,
+      lastLevelChangeAt: null,
+    };
+    const result = applySessionResult(start, vp, library, {
+      familyId: 'vertical_pull',
+      allSetsMetTarget: true,
+      anySetBelowTarget: false,
+      difficultyFeedback: 'just_right',
+      observedBand: 'B3',
+      programmedExerciseId: hold.id,
+    });
+    expect(projectMicroToExercise(result.state.micro, anchor, hold).band).toBe('B2');
   });
 });

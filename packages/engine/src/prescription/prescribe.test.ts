@@ -76,6 +76,82 @@ describe('§5.4 prescription', () => {
     expect(hard).toMatchObject({ sets: 4, repTarget: 12, restSec: 60, tempoSec: 4 });
   });
 
+  describe('an accessory starts from the band the user last finished on', () => {
+    const curl = library.find((e) => e.id === 'single-arm-curl')!; // band, "B1-B2", no family
+
+    it('never trained: the lightest authored band', () => {
+      expect(curl.progression_family).toBeNull();
+      const entry = prescribeAccessory({
+        exercise: curl,
+        requestedDifficulty: 'medium',
+        recoveryTreatment: false,
+      });
+      expect(entry.band).toBe('B1');
+    });
+
+    it('moved up to B2 last time: B2, not back to B1', () => {
+      const entry = prescribeAccessory({
+        exercise: curl,
+        requestedDifficulty: 'medium',
+        recoveryTreatment: false,
+        workingBand: 'B2',
+      });
+      expect(entry.band).toBe('B2');
+    });
+
+    it('is not clamped to the authored range — B3 on a B1-B2 record stays B3', () => {
+      const entry = prescribeAccessory({
+        exercise: curl,
+        requestedDifficulty: 'medium',
+        recoveryTreatment: false,
+        workingBand: 'B3',
+      });
+      expect(entry.band).toBe('B3');
+    });
+
+    it('a lighter band than authored is respected too', () => {
+      const bicep = library.find((e) => e.id === 'bicep-curl')!; // "B2-B3"
+      const entry = prescribeAccessory({
+        exercise: bicep,
+        requestedDifficulty: 'medium',
+        recoveryTreatment: false,
+        workingBand: 'B1',
+      });
+      expect(entry.band).toBe('B1');
+    });
+
+    it('48h recovery drops one band below the remembered band', () => {
+      const entry = prescribeAccessory({
+        exercise: curl,
+        requestedDifficulty: 'medium',
+        recoveryTreatment: true,
+        workingBand: 'B3',
+      });
+      expect(entry.band).toBe('B2');
+    });
+
+    it('a timed band accessory keeps its hold length and takes the remembered band', () => {
+      const hold = library.find((e) => e.id === 'wall-sit-abduction')!; // time, 30s, "B1-B2"
+      const entry = prescribeAccessory({
+        exercise: hold,
+        requestedDifficulty: 'medium',
+        recoveryTreatment: false,
+        workingBand: 'B3',
+      });
+      expect(entry).toMatchObject({ band: 'B3', durationSec: 30 });
+    });
+
+    it('a bodyweight exercise ignores a stray working band', () => {
+      const entry = prescribeAccessory({
+        exercise: bwPush,
+        requestedDifficulty: 'medium',
+        recoveryTreatment: false,
+        workingBand: 'B2',
+      });
+      expect(entry.band).toBeNull();
+    });
+  });
+
   it('a core exercise rests 45s at every difficulty; other patterns keep the table rest', () => {
     const core = library.find((e) => isCorePattern(e.pattern) && e.equipment === 'bodyweight')!;
     for (const difficulty of ['easy', 'medium', 'hard'] as const) {

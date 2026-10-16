@@ -121,6 +121,25 @@ export interface PrescribeAccessoryInput {
   bandRelaxedForPatternGap?: boolean;
   /** §9.4/§9.9 comeback/Recovery Week volume cut (~0.8), applied to sets. 1 = no cut. */
   setsMultiplier?: number;
+  /** `ExerciseState.workingBand` — the band the user last finished this exercise's working sets
+   *  on. Omit (or null) for "never trained here", which falls back to the lightest authored band. */
+  workingBand?: BandId | null;
+}
+
+/**
+ * The band to start an accessory on: the one the user last finished on, else the lightest the
+ * record is authored for.
+ *
+ * An accessory has no progression family, so nothing else carries a band forward — without this,
+ * a user who moves Single-Arm Curl from B1 to B2 mid-workout and rates it "just right" was handed
+ * B1 again next time, every time. Deliberately not clamped to the authored range: the range is a
+ * starting suggestion, and a band the user picked up, finished on and rated is better evidence of
+ * where they belong than the library's guess. The family path still clamps, because there the
+ * range also decides when a *level* is exhausted.
+ */
+function accessoryBand(exercise: Exercise, workingBand: BandId | null | undefined): BandId | null {
+  if (exercise.equipment !== 'band') return null;
+  return workingBand ?? parseFirstBand(exercise.band);
 }
 
 export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry {
@@ -132,13 +151,8 @@ export function prescribeAccessory(input: PrescribeAccessoryInput): SessionEntry
   // §13.1's cap and the 48h recovery band-drop are decided above, once, before either table is
   // consulted — cardio is subject to both exactly like any other main exercise; only which table
   // supplies sets/duration-or-reps/rest/tempo differs below.
-  const suggestedBand = parseFirstBand(exercise.band);
-  const band =
-    exercise.equipment === 'band'
-      ? recoveryTreatment
-        ? dropOneBand(suggestedBand)
-        : suggestedBand
-      : null;
+  const startingBand = accessoryBand(exercise, input.workingBand);
+  const band = recoveryTreatment ? dropOneBand(startingBand) : startingBand;
 
   // Track 14 — a cardio exercise (`pattern: 'conditioning'`) is prescribed from
   // CARDIO_INTERVAL_TABLE instead of the strength DIFFICULTY_TABLE: the difficulty dial should

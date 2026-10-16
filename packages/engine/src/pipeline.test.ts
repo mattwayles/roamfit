@@ -340,6 +340,51 @@ describe('generateSession — pipeline wiring', () => {
     // accessory slots at most, none of them a finisher (there is no such slot type left to add).
     expect(plan.main.length).toBeLessThanOrEqual(8);
   });
+
+  // The user moved Single-Arm Curl from B1 to B2 mid-workout, rated it "just right", and was handed
+  // B1 again next time: an exercise with no progression family had no memory of its band at all.
+  it('a band accessory is prescribed at its stored working band, not the lightest authored one', () => {
+    const exerciseStates: UserState['exerciseStates'] = {};
+    for (const e of library) {
+      if (e.equipment !== 'band') continue;
+      exerciseStates[e.id] = {
+        exerciseId: e.id,
+        lastPerformedAt: null,
+        sessionsPerformed: 0,
+        bestSet: null,
+        workingBand: 'B4',
+        difficultyEma: 0,
+        skipCount: 0,
+        swapAwayCount: 0,
+        removeAtApprovalCount: 0,
+        pinnedNote: null,
+        suppressedUntil: null,
+        disabledAt: null,
+      };
+    }
+    let accessoryBandEntries = 0;
+    for (const focus of ['upper', 'legs', 'abs', 'full', 'cardio'] as const) {
+      const plan = generateSession({
+        library: exerciseLibrary,
+        families: familyLibrary,
+        userState: coldStartUserState({ exerciseStates }),
+        request: {
+          focus,
+          difficulty: 'medium',
+          targetMinutes: 45,
+          cardioAddOn: focus !== 'cardio',
+        },
+        clock: { today: TODAY, tzId: 'UTC' },
+        rng: createRng(5),
+      });
+      for (const entry of plan.main) {
+        if (entry.progressionFamilyId || entry.band === null) continue;
+        accessoryBandEntries += 1;
+        expect(entry.band).toBe('B4');
+      }
+    }
+    expect(accessoryBandEntries).toBeGreaterThan(0);
+  });
 });
 
 /**

@@ -75,6 +75,11 @@ export interface ExerciseState {
   lastPerformedAt: LocalDate | null;
   sessionsPerformed: number;
   bestSet: { reps?: number; seconds?: number; band?: BandId; at: LocalDate } | null;
+  /** The band the user finished their last main working sets of this exercise on — what they
+   *  actually picked up, not what was prescribed. Read by `prescribeAccessory` so an exercise with
+   *  no progression family starts from the band in the user's hand rather than resetting to the
+   *  lightest authored band every session. Absent/null: never trained, or bodyweight. */
+  workingBand?: BandId | null;
   /** -1..+1, too_hard .. too_easy. */
   difficultyEma: number;
   skipCount: number;
