@@ -179,19 +179,6 @@ the record of what was completed and why.
 - **Show the app version in Settings' footer.** `expo-constants` is hoisted in by `expo` but not declared in
   `app/package.json`; add it (`npx expo install expo-constants`) and read `Constants.expoConfig?.version`.
 - **Ladder rungs with no sibling exercises**, so they repeat every session at that level: `horizontal_push` l7–l9, `horizontal_pull` l4–l8, `anti_extension` l4 and l6. All are high rungs nobody currently occupies — fill them when someone gets there.
-- **A band exercise at a bodyweight-anchored rung has a frozen band.** Progression state is tracked
-against the level's *anchor* (`currentExercise` in `progression/rules.ts` resolves
-`anchor_exercise_id`), so when the anchor is bodyweight, `microAdvance` runs the bodyweight ladder
-(reps → tempo → rest → sets) and never touches the band. `micro.band` stays `null`,
-`clampBandToExercise` pins the prescription at the sibling's lightest band, and
-`reconcileMicroToObservedBand` discards a heavier band the user logged — so the top of the
-authored range is unreachable. 14 band exercises sit at such a rung; 9 lose a real band step,
-including `standing-chest-press` and `floor-press` (B2-B3, frozen at B2), `single-arm-chest-press`,
-`squat-jump`, `glute-bridge` (B2-B3, frozen at B2), and `chest-fly`, `close-grip-push-up`,
-`banded-lat-pull-hold`, `overhead-march` (B1-B2, frozen at B1). The other 5 are single-band
-records, so they lose nothing. Fix is to run the micro ladder against the exercise actually
-programmed rather than the rung's anchor — but that makes micro-state shape depend on which
-sibling got drawn, which is exactly what anchoring avoids, so it needs a design pass first.
 
 ---
 
@@ -243,6 +230,11 @@ sibling got drawn, which is exactly what anchoring avoids, so it needs a design 
   `prescription/difficultyTable.ts`). A true circuit — rounds of back-to-back stations on a
   work/rest timer — needs a new `SessionFormat`, circuit-aware time fit, and a Workout-screen mode.
   Deferred when the Cardio focus landed (track 14) to keep that change inside the existing loop.
+- **Accessories have band memory but no progression.** Track 33: an exercise with no progression
+  family now starts on the band the user last finished it on (`exercise_state.working_band`), but
+  nothing ever moves it on its own — a "too easy" rating changes nothing, and reps/hold length still
+  come from the day's difficulty table. Not built: let `too_easy` step the remembered band up one
+  (and `too_hard` down one), or give accessories a light rep → band ladder of their own.
 - **No quad stretch in the library**, so a Cardio cool-down can't target quads. Add one (and give
   it the `cardio` focus) if cardio cool-downs feel lopsided.
 

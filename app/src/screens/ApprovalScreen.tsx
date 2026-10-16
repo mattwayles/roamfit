@@ -423,6 +423,8 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
             exercise,
             requestedDifficulty: session.difficulty,
             recoveryTreatment: false,
+            // The band the user last finished it on, as the generator would — not its lightest.
+            workingBand: exerciseStateRepo.getExerciseState(db, exercise.id)?.workingBand,
           })
         : prescribeWarmupCooldown(exercise, section);
     sessionsRepo.addEntryAtApproval(db, sessionId, section, prescription, nowUtcInstant());
