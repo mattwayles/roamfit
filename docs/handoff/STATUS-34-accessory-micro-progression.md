@@ -29,6 +29,9 @@ Last updated: 2026-10-16
   drops one band with reps at the top of the range; at B1 / bodyweight it holds.
 - Band: the stored accessory band is NOT clamped to the authored range (track 33's call). The
   user's final-set band overrides the stored band before the verdict, with the family rule's rep
-  reset (heavier → bottom of range, lighter → top).
+  reset (heavier → bottom of range, lighter → top) EXCEPT a heavier band held on every set with
+  every set meeting target keeps the rep target (`finalBandHeldThroughout`) — otherwise the user's
+  3x12-on-B2 came back as 3x9 on B2, easier than what they just did. Deliberate divergence from
+  the family path, which still resets.
 - Accessory events are not pushed into `progressionEvents` (those are family-keyed and drive
   level-up milestones); no new UI.

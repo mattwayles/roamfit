@@ -54,6 +54,9 @@ export interface AccessoryPerformance {
   difficultyFeedback: DifficultyFeedback;
   /** The band the entry's final completed set was done on (reported, else prescribed). */
   finalBand?: BandId | null;
+  /** Every completed set was done on `finalBand` — so meeting the target was done at that band,
+   *  not partly on a lighter one before switching. */
+  finalBandHeldThroughout?: boolean;
 }
 
 export type AccessoryProgressionEvent =
@@ -110,20 +113,30 @@ export function seedAccessoryMicro(
 
 /**
  * Adopt the band the user finished on before judging the session — the accessory form of
- * `reconcileMicroToObservedBand`, with the same rep reset (heavier → bottom of the range, lighter →
- * top) but no clamp to the authored range: an accessory's remembered band is whatever the user
- * picked up (track 33), and the range only says where its in-ladder band steps stop.
+ * `reconcileMicroToObservedBand`, but with no clamp to the authored range: an accessory's
+ * remembered band is whatever the user picked up (track 33), and the range only says where its
+ * in-ladder band steps stop.
+ *
+ * The rep target moves with the band as the family rule does (heavier → bottom of the range,
+ * lighter → top) with one exception: a heavier band held for every set, with every set meeting the
+ * target, keeps the target. The user has just shown that load *at* that count, and resetting it to
+ * the bottom would hand them an easier prescription than the one they finished — 3x12 done on B2
+ * coming back as 3x9 on B2, exactly the "nothing got harder" this ladder exists to fix.
  */
 function adoptFinalBand(
   micro: ProgressionMicroState,
   exercise: Exercise,
-  finalBand: BandId | null | undefined,
+  perf: AccessoryPerformance,
 ): ProgressionMicroState {
+  const { finalBand } = perf;
   if (exercise.equipment !== 'band' || !finalBand) return micro;
   const current = micro.band ?? parseBandRange(exercise.band)?.[0] ?? null;
   if (!current || finalBand === current) return { ...micro, band: current };
   const { low, high } = rangeForExercise(exercise);
   const heavier = BAND_ORDER.indexOf(finalBand) > BAND_ORDER.indexOf(current);
+  if (heavier && perf.allSetsMetTarget && perf.finalBandHeldThroughout) {
+    return { ...micro, band: finalBand };
+  }
   return { ...micro, band: finalBand, repTarget: heavier ? low : high };
 }
 
@@ -133,7 +146,7 @@ export function applyAccessorySessionResult(
   exercise: Exercise,
   perf: AccessoryPerformance,
 ): ApplyAccessoryResult {
-  const micro = adoptFinalBand(input.micro, exercise, perf.finalBand);
+  const micro = adoptFinalBand(input.micro, exercise, perf);
   const misses = input.consecutiveMisses;
 
   const shouldAdvance = perf.allSetsMetTarget && perf.difficultyFeedback !== 'too_hard';

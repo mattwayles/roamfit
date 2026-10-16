@@ -77,13 +77,43 @@ describe('accessory micro-progression', () => {
     });
   });
 
-  it('the user’s report: 3x12 prescribed at B1, done at B2, just right → B2 at 9 reps next', () => {
+  it('the user’s report: 3x12 prescribed at B1, all done at B2, just right → harder next time', () => {
     const seeded = seedAccessoryMicro(curl, MEDIUM_CURL);
-    const result = applyAccessorySessionResult(state(seeded), curl, { ...MET, finalBand: 'B2' });
-    // Adopting the heavier band resets reps to the bottom of the range (the family rule), and the
-    // session met target, so it advances one step from there.
-    expect(result.state.micro).toMatchObject({ band: 'B2', repTarget: 9 });
+    const result = applyAccessorySessionResult(state(seeded), curl, {
+      ...MET,
+      finalBand: 'B2',
+      finalBandHeldThroughout: true,
+    });
+    // 12 reps on B2 was shown, so it stays; B2 is the top of the curl's range, so the step up is
+    // the next knob — a slower tempo — not fewer reps.
+    expect(result.state.micro).toMatchObject({ band: 'B2', repTarget: 12, tempoSec: 4 });
     expect(result.event).toEqual({ kind: 'micro_advance' });
+  });
+
+  it('a 30s hold done at B3 on a B1-B2 record comes back at B3 and 35s', () => {
+    const seeded = seedAccessoryMicro(hold, {
+      durationSec: 30,
+      tempoSec: 3,
+      restSec: 75,
+      sets: 3,
+      band: 'B1',
+    });
+    const result = applyAccessorySessionResult(state(seeded), hold, {
+      ...MET,
+      finalBand: 'B3',
+      finalBandHeldThroughout: true,
+    });
+    expect(result.state.micro).toMatchObject({ band: 'B3', repTarget: 35 });
+  });
+
+  it('moving up only partway through resets reps to the bottom at the new band (family rule)', () => {
+    const seeded = seedAccessoryMicro(curl, MEDIUM_CURL);
+    const result = applyAccessorySessionResult(state(seeded), curl, {
+      ...MET,
+      finalBand: 'B2',
+      finalBandHeldThroughout: false,
+    });
+    expect(result.state.micro).toMatchObject({ band: 'B2', repTarget: 9 });
   });
 
   it('climbs the family ladder: reps → band (in range) → tempo → rest → sets', () => {
