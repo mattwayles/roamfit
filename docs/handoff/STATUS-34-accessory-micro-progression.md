@@ -14,11 +14,12 @@ Last updated: 2026-10-16
   `recordAccessoryProgression`, completion runs `progressAccessoryEntry` for accessory entries,
   `seedAccessoryProgressionFromHistory` called at the top of `generate()`; tests
   (`accessoryProgression.test.ts`)
+- [x] app: Approval Add exercise passes `micro: state.accessoryMicro`; test. BACKLOG: replaced the
+  track-33 parked item with a device-pass + loose-ends item.
 ### In progress
-4. app: Approval Add exercise passes `micro: state.accessoryMicro`; BACKLOG (replace the track-33
-   "accessories have band memory but no progression" item); status done.
+- nothing — track complete. Jest-verified only.
 ### Next
-- nothing after step 4.
+- see BACKLOG "Accessory ladder — device pass owed, and two loose ends".
 ### Decisions / gotchas
 - "Accessory" = a main entry with no `progressionFamilyId`. Cardio (`pattern: 'conditioning'`) is
   excluded: it is prescribed as intervals off the day's difficulty (`CARDIO_INTERVAL_TABLE`), and a

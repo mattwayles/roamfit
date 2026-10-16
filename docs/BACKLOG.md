@@ -230,11 +230,17 @@ the record of what was completed and why.
   `prescription/difficultyTable.ts`). A true circuit — rounds of back-to-back stations on a
   work/rest timer — needs a new `SessionFormat`, circuit-aware time fit, and a Workout-screen mode.
   Deferred when the Cardio focus landed (track 14) to keep that change inside the existing loop.
-- **Accessories have band memory but no progression.** Track 33: an exercise with no progression
-  family now starts on the band the user last finished it on (`exercise_state.working_band`), but
-  nothing ever moves it on its own — a "too easy" rating changes nothing, and reps/hold length still
-  come from the day's difficulty table. Not built: let `too_easy` step the remembered band up one
-  (and `too_hard` down one), or give accessories a light rep → band ladder of their own.
+- **Accessory ladder — device pass owed, and two loose ends.** Track 34
+  (`docs/handoff/STATUS-34-accessory-micro-progression.md`, Jest-verified only): every main exercise
+  with no progression family (cardio excluded) now climbs the family micro-ladder per exercise, and
+  timed holds climb 5s a session. On a device: finish an accessory at target rated "just right" and
+  check the next prescription is one step harder; the first generation after updating should
+  already reflect your last accessory sessions (seeded from history). Loose ends, not built: (1)
+  nothing on Summary/Journey says an accessory moved (`AccessoryProgressionEvent`s are computed and
+  dropped); (2) a timed exercise still spends a tier on "tempo +1s", which a hold can't show — at
+  the top of a hold range one qualifying session changes nothing visible; (3) the family path still
+  resets reps to the bottom on a heavier band even when every set met target on it (the accessory
+  path no longer does), and still reads a followed recovery-day band drop as the user going lighter.
 - **No quad stretch in the library**, so a Cardio cool-down can't target quads. Add one (and give
   it the `cardio` focus) if cardio cool-downs feel lopsided.
 

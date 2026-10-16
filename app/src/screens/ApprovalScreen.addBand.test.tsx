@@ -88,4 +88,82 @@ describe('Approval — Add exercise uses the remembered working band', () => {
       expect(added?.band).toBe('B4');
     }, WAIT_OPTS);
   });
+
+  it('an exercise with an accessory ladder position is added at it, not at the day’s table', async () => {
+    let db!: ReturnType<typeof useStore>['db'];
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+
+    const clock = nowEngineClock();
+    const utcInstant = nowUtcInstant();
+    const { plan, comebackTier, recoveryWeekManual } = generate(db, {
+      library: exerciseLibrary,
+      families: familyLibrary,
+      request: { focus: 'upper', difficulty: 'medium', targetMinutes: 30 },
+      clock,
+      rng: createRng(seedFromString('approval-add-micro')),
+      utcInstant,
+    });
+    const sessionId = sessionsRepo.createPendingSession(db, {
+      plan,
+      utcInstant,
+      localDate: clock.today,
+      tzId: clock.tzId,
+      comebackTier,
+      recoveryWeekManual,
+    });
+    for (const e of exerciseLibrary.exercises) {
+      exerciseStateRepo.recordAccessoryProgression(
+        db,
+        e.id,
+        {
+          micro: {
+            repTarget: 9,
+            band: e.equipment === 'band' ? 'B3' : null,
+            tempoSec: 4,
+            restSec: 30,
+            sets: 4,
+          },
+          consecutiveMisses: 0,
+        },
+        utcInstant,
+      );
+    }
+
+    render(
+      <StoreProvider>
+        <NavigationContainer>
+          <ApprovalScreen
+            navigation={{ navigate: jest.fn(), replace: jest.fn(), goBack: jest.fn() } as never}
+            route={{ key: 'Approval', name: 'Approval', params: { sessionId } } as never}
+          />
+        </NavigationContainer>
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('start-button')).toBeTruthy(), WAIT_OPTS);
+
+    await fireEvent.press(screen.getByTestId('add-exercise-main'));
+    await waitFor(() => expect(screen.getByTestId('add-picker-main')).toBeTruthy(), WAIT_OPTS);
+    const option = screen
+      .getAllByTestId(/^add-option-/)
+      .map((o) => (o.props.testID as string).replace('add-option-', ''))
+      .find((id) => {
+        const e = exerciseLibrary.exercises.find((x) => x.id === id);
+        return e?.equipment === 'band' && e.pattern !== 'conditioning';
+      });
+    expect(option).toBeDefined();
+    await fireEvent.press(screen.getByTestId(`add-option-${option}`));
+
+    await waitFor(() => {
+      const added = sessionsRepo
+        .getSession(db, sessionId)!
+        .entries.find((e) => e.exerciseId === option && e.unplanned);
+      expect(added).toMatchObject({ band: 'B3', tempoSec: 4, restSec: 30, sets: 4 });
+      expect(added!.repTarget ?? added!.durationSec).toBe(9);
+    }, WAIT_OPTS);
+  });
 });
