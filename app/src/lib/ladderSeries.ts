@@ -14,7 +14,7 @@
  *
  * Level ids are compared, never indices (invariant 5); the "L3"/"Rung 3" ordinal is the engine's.
  */
-import { exerciseForLevel, ladderPosition, levelOrdinal } from '@roamfit/engine';
+import { BAND_ORDER, exerciseForLevel, ladderPosition, levelOrdinal } from '@roamfit/engine';
 import type { BandId, PerformedSession } from '@roamfit/engine';
 import type { Exercise, ProgressionFamily } from '@roamfit/data';
 import type { exerciseCatalogRepo } from '@roamfit/store';
@@ -210,6 +210,50 @@ export function buildBestSetSeries(
   if (family) out.markers.push(...rungMarkers(family, sessions));
   out.markers.sort((a, b) => (a.localDate < b.localDate ? -1 : a.localDate > b.localDate ? 1 : 0));
   return out;
+}
+
+/** One exercise's single-value best: its top reps/seconds at the heaviest band it was done with. */
+export interface BestSetStat {
+  exerciseId: string;
+  name: string;
+  value: number;
+  /** The heaviest band this exercise was logged with; null for bodyweight work. */
+  band: BandId | null;
+}
+
+/**
+ * The Trail card's Best set: one stat per exercise, in order of first appearance. The value is the
+ * best reps/seconds among the sessions at that exercise's HEAVIEST band (`BAND_ORDER`), so a
+ * lighter band's bigger number never hides the strongest one. Bodyweight sessions carry no band;
+ * they only count when the exercise has no banded session. Sessions with nothing in `unit` are
+ * skipped, and an exercise with none is left out.
+ */
+export function buildBestSetStats(
+  sessions: readonly SeriesSession[],
+  unit: ProgressUnit | null,
+): BestSetStat[] {
+  if (!unit) return [];
+  const byExercise = new Map<string, BestSetStat>();
+  for (const s of sessions) {
+    const value = unit === 'reps' ? s.bestReps : s.bestSeconds;
+    if (value === null) continue;
+    const cur = byExercise.get(s.exerciseId);
+    if (!cur) {
+      byExercise.set(s.exerciseId, {
+        exerciseId: s.exerciseId,
+        name: s.exerciseName,
+        value,
+        band: s.band,
+      });
+      continue;
+    }
+    const rank = (b: BandId | null) => (b ? BAND_ORDER.indexOf(b) : -1);
+    if (rank(s.band) > rank(cur.band) || (rank(s.band) === rank(cur.band) && value > cur.value)) {
+      cur.value = value;
+      cur.band = s.band;
+    }
+  }
+  return [...byExercise.values()];
 }
 
 // ------------------------------------------------------------------------------------------

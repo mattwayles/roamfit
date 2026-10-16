@@ -9,19 +9,18 @@
  *   of the latest session. Earlier levels are a tap back — progress over time, level by level.
  * - **Progress** (default): steps up this level, so moving to a heavier band and doing fewer reps
  *   reads as a step forward, which is what it is.
- * - **Best set**: reps or seconds per session at this level. The line breaks and changes colour
- *   wherever the band (or sibling exercise) changes, with a dashed tick labelled with the band
- *   ("B3"), and the tap readout says "8 reps @ B3".
+ * - **Best set**: not a graph — one stat per exercise at this level: its top reps or seconds at
+ *   the heaviest band it was done with ("8 reps @ B3").
  *
  * Progress is hidden on a page where no session could be placed on the ladder, and that page falls
  * back to Best set. Nothing here is styled as a decline (invariant 4).
  */
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { makeStyles, space, useTheme } from '../theme';
+import { makeStyles, space } from '../theme';
 import { Chip, IconButton, Txt } from '../ui';
-import { ProgressChart, SEGMENT_TONES } from './ProgressChart';
-import { formatLocalDate, unitLabel } from '../lib/exerciseProgress';
+import { ProgressChart } from './ProgressChart';
+import { formatLocalDate } from '../lib/exerciseProgress';
 import { bestSetLabel, steps } from '../lib/ladderSeries';
 import type { TrailProgress } from '../lib/trailProgress';
 
@@ -36,30 +35,28 @@ export function TrailProgressChart({
   familyId,
   progress,
 }: TrailProgressChartProps): React.JSX.Element | null {
-  const theme = useTheme();
   const styles = useStyles();
   const [picked, setPicked] = useState<Mode>('progress');
   // null = the level of the latest session; clamped in case a reload dropped a page.
   const [pickedPage, setPickedPage] = useState<number | null>(null);
   const pages = progress.levels;
-  const charted = pages.some((p) => p.ladder.points.length > 0 || p.best.points.length > 0);
+  const charted = pages.some((p) => p.ladder.points.length > 0 || p.bests.length > 0);
   // Nothing measured on this trail yet: the card already says where you stand, so no empty chart.
   if (!charted) return null;
 
   const index = Math.min(Math.max(pickedPage ?? progress.currentLevel, 0), pages.length - 1);
   const page = pages[index];
   const hasProgress = page.ladder.points.length > 0;
-  const hasBest = page.best.points.length > 0;
+  const hasBest = page.bests.length > 0;
   const mode: Mode = hasProgress && (picked === 'progress' || !hasBest) ? 'progress' : 'best';
   const unit = page.unit;
-  const best = page.best;
-  const toneOf = (segment: number) => SEGMENT_TONES[segment % SEGMENT_TONES.length];
+  const best = page.bests;
 
   return (
     <View style={styles.wrap} testID={`board-chart-${familyId}`}>
       <View style={styles.head}>
         <Txt variant="eyebrow" color="text3">
-          {mode === 'progress' ? 'Progress per session' : 'Best set per session'}
+          {mode === 'progress' ? 'Progress per session' : 'Best set'}
         </Txt>
         {hasProgress && hasBest ? (
           <View style={styles.toggle}>
@@ -141,46 +138,21 @@ export function TrailProgressChart({
           </Txt>
         </>
       ) : (
-        <>
-          <ProgressChart
-            key={`best-${page.levelId}`}
-            testID={`board-chart-plot-${familyId}`}
-            title={`Level ${page.n} best set`}
-            points={best.points}
-            markers={best.markers}
-            formatValue={(v) => (unit ? unitLabel(unit, v) : String(v))}
-            integerTicks
-            height={140}
-            describeValue={(i) =>
-              unit && best.points[i]
-                ? bestSetLabel(unit, best.points[i].value, best.pointBand[i] ?? null)
-                : null
-            }
-            describePoint={(i) => best.pointExercise[i] ?? null}
-          />
-          {best.markers.length > 0 ? (
-            <Txt variant="caption" color="text3">
-              Dashed ticks mark a band change.
-            </Txt>
-          ) : null}
-          {best.legend.length > 1 ? (
-            <View style={styles.legend} testID={`board-best-legend-${familyId}`}>
-              {best.legend.map((entry) => (
-                <Chip
-                  key={entry.segment}
-                  label={entry.label}
-                  size="sm"
-                  tone={toneOf(entry.segment)}
-                  leading={
-                    <View
-                      style={[styles.dot, { backgroundColor: theme.colors[toneOf(entry.segment)] }]}
-                    />
-                  }
-                />
-              ))}
+        <View style={styles.stats} testID={`board-best-stats-${familyId}`}>
+          {best.map((stat) => (
+            <View key={stat.exerciseId} style={styles.stat}>
+              <Txt variant="body" numberOfLines={1} style={styles.statName}>
+                {stat.name}
+              </Txt>
+              <Txt variant="h3" testID={`board-best-stat-${familyId}-${stat.exerciseId}`}>
+                {unit ? bestSetLabel(unit, stat.value, stat.band) : String(stat.value)}
+              </Txt>
             </View>
-          ) : null}
-        </>
+          ))}
+          <Txt variant="caption" color="text3">
+            Each exercise's top set at the heaviest band you've used.
+          </Txt>
+        </View>
       )}
     </View>
   );
@@ -198,7 +170,13 @@ const useStyles = makeStyles(() =>
     toggle: { flexDirection: 'row', gap: space.sm },
     pager: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
     pageTitle: { flex: 1, alignItems: 'center' },
-    legend: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-    dot: { width: 8, height: 8, borderRadius: 4 },
+    stats: { gap: space.sm },
+    stat: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: space.sm,
+    },
+    statName: { flex: 1 },
   }),
 );

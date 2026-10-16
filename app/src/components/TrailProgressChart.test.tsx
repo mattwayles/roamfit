@@ -5,7 +5,6 @@ import type { TrailLevelPage, TrailProgress } from '../lib/trailProgress';
 import { inDaybreak, ready } from '../ui/test-utils';
 
 const empty = { points: [], labels: [], pointExercise: [], markers: [] };
-const noBest = { points: [], pointBand: [], pointExercise: [], markers: [], legend: [] };
 
 // Level 1: band-assisted, two bands. Level 2: strict pull-ups, fewer reps — on its own graph.
 const level1: TrailLevelPage = {
@@ -26,19 +25,7 @@ const level1: TrailLevelPage = {
     pointExercise: ['Band-assisted pull-up', 'Band-assisted pull-up'],
     markers: [],
   },
-  best: {
-    points: [
-      { localDate: '2026-01-04', value: 12, segment: 0 },
-      { localDate: '2026-02-01', value: 8, segment: 1 },
-    ],
-    pointBand: ['B4', 'B3'],
-    pointExercise: ['Band-assisted pull-up', 'Band-assisted pull-up'],
-    markers: [{ localDate: '2026-02-01', label: 'B3', kind: 'band' }],
-    legend: [
-      { label: 'Band-assisted pull-up · B4', segment: 0 },
-      { label: 'Band-assisted pull-up · B3', segment: 1 },
-    ],
-  },
+  bests: [{ exerciseId: 'assist', name: 'Band-assisted pull-up', value: 12, band: 'B4' }],
 };
 
 const level2: TrailLevelPage = {
@@ -56,13 +43,7 @@ const level2: TrailLevelPage = {
     pointExercise: ['Pull-up'],
     markers: [],
   },
-  best: {
-    points: [{ localDate: '2026-03-01', value: 4, segment: 0 }],
-    pointBand: [null],
-    pointExercise: ['Pull-up'],
-    markers: [],
-    legend: [{ label: 'Pull-up', segment: 0 }],
-  },
+  bests: [{ exerciseId: 'pullup', name: 'Pull-up', value: 4, band: null }],
 };
 
 const progress = (over: Partial<TrailProgress> = {}): TrailProgress => ({
@@ -119,7 +100,7 @@ describe.each([
     expect(title()).toHaveTextContent(/Level 2 · Pull-up/);
   });
 
-  it('Best set on a level: band-aware legend, band note and an "@ band" readout', async () => {
+  it('Best set is a stat per exercise (top set at the heaviest band), not a graph', async () => {
     await render(
       wrap(
         <TrailProgressChart familyId="vertical_pull" progress={progress({ currentLevel: 0 })} />,
@@ -127,18 +108,14 @@ describe.each([
     );
     await ready('board-chart-vertical_pull');
     await fireEvent.press(screen.getByTestId('board-chart-mode-best-vertical_pull'));
-    expect(screen.getByText('Best set per session')).toBeTruthy();
-    expect(screen.getByText('Dashed ticks mark a band change.')).toBeTruthy();
-    expect(screen.getByText('Band-assisted pull-up · B3')).toBeTruthy();
-    await measure(plot);
-    await fireEvent.press(screen.getByTestId(`${plot}-touch`), { nativeEvent: { locationX: 900 } });
-    expect(screen.getByTestId(`${plot}-readout`)).toHaveTextContent(
-      'Feb 1 · 8 reps @ B3 · Band-assisted pull-up',
+    expect(screen.getAllByText('Best set')).toHaveLength(2); // eyebrow + toggle chip
+    expect(screen.queryByTestId(plot)).toBeNull();
+    expect(screen.getByTestId('board-best-stat-vertical_pull-assist')).toHaveTextContent(
+      '12 reps @ B4',
     );
-    // The mode carries across pages; the next level has one exercise, so no legend.
+    // The mode carries across pages; a bodyweight exercise shows no band.
     await fireEvent.press(screen.getByTestId('board-level-next-vertical_pull'));
-    expect(screen.getByText('Best set per session')).toBeTruthy();
-    expect(screen.queryByTestId('board-best-legend-vertical_pull')).toBeNull();
+    expect(screen.getByTestId('board-best-stat-vertical_pull-pullup')).toHaveTextContent('4 reps');
   });
 
   it('shows no arrows for a trail trained at one level', async () => {
@@ -166,7 +143,7 @@ describe.each([
       ),
     );
     await ready('board-chart-vertical_pull');
-    expect(screen.getByText('Best set per session')).toBeTruthy();
+    expect(screen.getByText('Best set')).toBeTruthy();
     expect(screen.queryByTestId('board-chart-mode-progress-vertical_pull')).toBeNull();
   });
 
@@ -175,7 +152,7 @@ describe.each([
       wrap(
         <TrailProgressChart
           familyId="vertical_pull"
-          progress={progress({ levels: [level1, { ...level2, ladder: empty, best: noBest }] })}
+          progress={progress({ levels: [level1, { ...level2, ladder: empty, bests: [] }] })}
         />,
       ),
     );

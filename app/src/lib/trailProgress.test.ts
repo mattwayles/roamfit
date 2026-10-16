@@ -64,10 +64,10 @@ describe('buildTrailProgress', () => {
       ['lv_a', 2, 3, 'Knee push-up', 2],
     ]);
     // The drop from 12 wall push-ups to 6 knee push-ups never shares a graph.
-    expect(t.levels[0].best.points.map((p) => p.value)).toEqual([8, 12]);
-    expect(t.levels[1].best.points.map((p) => p.value)).toEqual([6, 7]);
+    expect(t.levels[0].bests.map((b) => b.value)).toEqual([12]);
+    expect(t.levels[1].bests.map((b) => b.value)).toEqual([7]);
     // One level per graph, so no rung ticks.
-    expect(t.levels.flatMap((l) => [...l.best.markers, ...l.ladder.markers])).toEqual([]);
+    expect(t.levels.flatMap((l) => l.ladder.markers)).toEqual([]);
     expect([t.levels[1].firstDate, t.levels[1].latestDate]).toEqual(['2026-01-15', '2026-01-22']);
     expect(t.exercises.map((e) => [e.name, e.sessions, e.summary])).toEqual([
       ['Wall push-up', 2, '8 reps → 12 reps'],
@@ -84,7 +84,7 @@ describe('buildTrailProgress', () => {
     expect(t.levels.map((l) => l.levelId)).toEqual(['lv_z', 'lv_a']);
     expect(t.currentLevel).toBe(0);
     // Both stints at level 1 share its page.
-    expect(t.levels[0].best.points.map((p) => p.value)).toEqual([10, 14]);
+    expect(t.levels[0].bests.map((b) => b.value)).toEqual([14]);
   });
 
   it('charts each level in its own unit', () => {
@@ -94,7 +94,7 @@ describe('buildTrailProgress', () => {
       perf({ localDate: '2026-02-22', exerciseId: 'hold', level: 'lv_m', bestSeconds: 40 }),
     ]);
     expect(t.levels.map((l) => l.unit)).toEqual(['reps', 'seconds']);
-    expect(t.levels[1].best.points.map((p) => p.value)).toEqual([30, 40]);
+    expect(t.levels[1].bests.map((b) => b.value)).toEqual([40]);
     expect(t.exercises.find((e) => e.exerciseId === 'hold')?.summary).toBe('30s → 40s');
   });
 
@@ -119,7 +119,7 @@ describe('buildTrailProgress', () => {
       perf({ localDate: '2026-05-09', exerciseId: 'band', level: null as never, bestReps: 9 }),
     ]);
     expect(t.levels).toHaveLength(1);
-    expect(t.levels[0].best.points.map((p) => p.value)).toEqual([5, 6]);
+    expect(t.levels[0].bests.map((b) => b.value)).toEqual([6]);
     expect(t.currentLevel).toBe(0);
     expect(t.exercises.map((e) => e.exerciseId)).toEqual(['wall', 'band']);
   });
@@ -157,13 +157,9 @@ describe('buildTrailProgress', () => {
     ]);
     const page = t.levels[t.currentLevel];
     expect(page.levelId).toBe('lv_b');
-    // Best set drops 12 -> 8 but is a new run labelled B2 ...
-    expect(page.best.points.map((p) => [p.value, p.segment])).toEqual([
-      [12, 0],
-      [8, 1],
-    ]);
-    expect(page.best.markers).toEqual([{ localDate: '2026-04-15', label: 'B2', kind: 'band' }]);
-    // ... while Progress goes up, counted from this rung's floor rather than the whole ladder.
+    // Best set is the top set at the heaviest band (8 @ B2), not the larger 12 @ B1 ...
+    expect(page.bests).toMatchObject([{ exerciseId: 'band', value: 8, band: 'B2' }]);
+    // ... and Progress goes up, counted from this rung's floor rather than the whole ladder.
     expect(page.ladder.points.map((p) => p.value)).toEqual([4, 5]);
     expect(page.ladder.labels[1]).toBe('Rung 2 · B2 × 8 reps · 3 sets');
   });

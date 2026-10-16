@@ -3,6 +3,7 @@ import type { exerciseCatalogRepo } from '@roamfit/store';
 import {
   bestSetLabel,
   buildBestSetSeries,
+  buildBestSetStats,
   buildExerciseBestSeries,
   buildExerciseLadder,
   buildLadderSeries,
@@ -166,6 +167,70 @@ describe('buildBestSetSeries (band-aware)', () => {
 
   it('is empty without a unit', () => {
     expect(buildBestSetSeries(sessions, null).points).toEqual([]);
+  });
+});
+
+describe('buildBestSetStats', () => {
+  it('takes the top reps at the heaviest band, not the biggest number overall', () => {
+    const stats = buildBestSetStats(
+      [
+        sess({ localDate: '2026-01-01', bestReps: 15, band: 'B1' }),
+        sess({ localDate: '2026-01-08', bestReps: 6, band: 'B3' }),
+        sess({ localDate: '2026-01-15', bestReps: 8, band: 'B3' }),
+        sess({ localDate: '2026-01-22', bestReps: 20, band: 'B2' }),
+      ],
+      'reps',
+    );
+    expect(stats).toEqual([
+      { exerciseId: 'banded-push-up', name: 'Banded push-up', value: 8, band: 'B3' },
+    ]);
+  });
+
+  it('one stat per exercise in order of first appearance; bodyweight has no band', () => {
+    const stats = buildBestSetStats(
+      [
+        sess({
+          localDate: '2026-01-01',
+          exerciseId: 'bw',
+          exerciseName: 'Push-up',
+          band: null,
+          bestReps: 9,
+        }),
+        sess({ localDate: '2026-01-08', bestReps: 5, band: 'B2' }),
+        sess({
+          localDate: '2026-01-15',
+          exerciseId: 'bw',
+          exerciseName: 'Push-up',
+          band: null,
+          bestReps: 11,
+        }),
+      ],
+      'reps',
+    );
+    expect(stats.map((s) => [s.name, s.value, s.band])).toEqual([
+      ['Push-up', 11, null],
+      ['Banded push-up', 5, 'B2'],
+    ]);
+  });
+
+  it('a banded session outranks bodyweight; timed sets use seconds; unmeasured sessions are skipped', () => {
+    const mixed = [
+      sess({ localDate: '2026-01-01', band: null, bestReps: 30 }),
+      sess({ localDate: '2026-01-08', band: 'B1', bestReps: 10 }),
+    ];
+    expect(buildBestSetStats(mixed, 'reps')[0]).toMatchObject({ value: 10, band: 'B1' });
+    const timed = buildBestSetStats(
+      [
+        sess({ localDate: '2026-01-01', bestReps: null, bestSeconds: 30 }),
+        sess({ localDate: '2026-01-08', bestReps: 8, bestSeconds: null }),
+        sess({ localDate: '2026-01-15', bestReps: null, bestSeconds: 45 }),
+      ],
+      'seconds',
+    );
+    expect(timed).toEqual([
+      { exerciseId: 'banded-push-up', name: 'Banded push-up', value: 45, band: 'B1' },
+    ]);
+    expect(buildBestSetStats(mixed, null)).toEqual([]);
   });
 });
 

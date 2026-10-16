@@ -23,7 +23,7 @@ the record of what was completed and why.
   works both from a cold Journey and with Journey already open, and that Reduce Motion is fine.
 - **History / past months / progress graphs — device pass owed.** Track 27
   (`docs/handoff/STATUS-27-history-progress.md`) is Jest-verified only. On a device, in Midnight
-  and Daybreak: (1) `ProgressChart` (Exercise detail and the best-set chart on each Journey Trail card): the tap-to-read target is
+  and Daybreak: (1) `ProgressChart` (Exercise detail and the Journey Trail cards' Best set is now one single-value stat per exercise — top reps/seconds at the heaviest band, Track 32 — not a chart): the tap-to-read target is
   the whole plot, so check nearest-point taps feel right on a long history, y/date labels and the
   dashed level ticks read at phone width, the per-exercise colours separate (a colour-blind check
   was not run — `dataviz`'s validator was not run on the five accent tones), and the Best set /

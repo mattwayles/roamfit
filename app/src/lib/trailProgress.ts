@@ -9,8 +9,8 @@
  *   card opens on the level of the latest session (`currentLevel`) with arrows to the others.
  * - **Progress** (the default per page): steps up this rung (`stepsInRung`), so a band step-up
  *   that costs reps reads as a step forward.
- * - **Best set**: reps/seconds per session at this level, band-aware — the line breaks and changes
- *   colour where the band (or sibling exercise) changes, with band ticks.
+ * - **Best set**: not a graph — one stat per exercise at this level, its top reps/seconds at the
+ *   heaviest band it was done with.
  * - Pages are keyed by the stable `level_id` (invariant 5; the "Level 3" number is the engine's
  *   `levelOrdinal`). A level-down and back again puts both stints on one page, with the honest
  *   time gap between them.
@@ -25,8 +25,8 @@ import type { Exercise, ProgressionFamily } from '@roamfit/data';
 import type { exerciseCatalogRepo } from '@roamfit/store';
 import { unitLabel } from './exerciseProgress';
 import type { ProgressUnit } from './exerciseProgress';
-import { buildBestSetSeries, buildLadderSeries } from './ladderSeries';
-import type { BestSetSeries, LadderSeries, SeriesSession } from './ladderSeries';
+import { buildBestSetStats, buildLadderSeries } from './ladderSeries';
+import type { BestSetStat, LadderSeries, SeriesSession } from './ladderSeries';
 
 type FamilyPerformance = exerciseCatalogRepo.FamilySessionPerformance;
 
@@ -53,8 +53,8 @@ export interface TrailLevelPage {
   unit: ProgressUnit | null;
   /** Steps up this rung per session; empty when no session could be placed. */
   ladder: LadderSeries;
-  /** Best set per session at this level, band-aware (band ticks only — one level, no rungs). */
-  best: BestSetSeries;
+  /** Best set per exercise at this level: top reps/seconds at the heaviest band (single values). */
+  bests: BestSetStat[];
 }
 
 export interface TrailProgress {
@@ -131,7 +131,7 @@ export function buildTrailProgress(
       latestDate: mine[mine.length - 1].localDate,
       unit,
       ladder: buildLadderSeries(family, exercises, sessions, { withinRung: true }),
-      best: buildBestSetSeries(sessions, unit),
+      bests: buildBestSetStats(sessions, unit),
     });
   }
 
