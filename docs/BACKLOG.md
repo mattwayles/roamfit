@@ -246,6 +246,15 @@ the record of what was completed and why.
   day's tier out of the draw — with bands now climbing to B5, an "easy"-tagged exercise at B4 is no
   longer easy, so that tag may want to stop gating passed rungs; (5) bodyweight passed-rung
   exercises still take the family's projected tier.
+- **Weighted set volume — device pass owed, and the rest of the engine still counts planned sets.**
+  Track 36 (`docs/handoff/STATUS-36-weighted-focus-volume.md`, Jest-verified only). The Recommended
+  Focus now weights each completed set by logged reps (holds: per-side seconds) and band against the
+  exercise's own range; skipped sets count nothing. On a device: after a short leg session and a
+  long upper one, check Generate recommends legs. Not changed, deliberately: `trailingVolume` —
+  OVER-WORKED / UNTRAINED / LOW (thresholds calibrated in planned sets, LOW < 3) and the generation
+  lean (`lightestMuscles`), which still count planned sets including skipped ones. Moving them to the
+  same weighting needs those thresholds re-tuned. Cardio counts completed sets unweighted (no reps or
+  band to weigh); an interval's seconds could weight it if cardio vs strength feels off.
 - **No quad stretch in the library**, so a Cardio cool-down can't target quads. Add one (and give
   it the `cardio` focus) if cardio cool-downs feel lopsided.
 

@@ -6,11 +6,12 @@
  * just re-reading `getSession` — there is no separate "cursor" that could go stale, because
  * "which set was in progress" is entirely reconstructible from which `set_logs` rows exist.
  */
-import { eq, and, desc, gte, lte } from 'drizzle-orm';
+import { eq, and, desc, gte, lte, inArray } from 'drizzle-orm';
 import { estimateEntrySec } from '@roamfit/engine';
 import type {
   BandId,
   Difficulty,
+  LoggedSet,
   PatternGapNote,
   SessionEntry as EngineSessionEntry,
   SessionHistoryEntry,
@@ -1278,18 +1279,63 @@ export function getHistoryForGeneration(db: Db, limit = 90): SessionHistoryRecor
     .slice(0, limit)
     .reverse();
 
-  return rows.map((row): SessionHistoryRecord => {
-    const entries = db
+  const entriesBySession = new Map(
+    rows.map((row) => [
+      row.id,
+      db
+        .select()
+        .from(schema.sessionEntries)
+        .where(eq(schema.sessionEntries.sessionId, row.id))
+        .all()
+        .filter((e) => e.entryStatus !== 'removed_at_approval'),
+    ]),
+  );
+  // Completed sets of completed sessions' main work, for the Recommended Focus's weighting
+  // (`LoggedSet`). One query; discarded sessions count nothing, so their logs aren't read.
+  const loggedEntryIds = rows
+    .filter((r) => r.status === 'completed')
+    .flatMap((r) => entriesBySession.get(r.id)!.filter((e) => e.role === 'main'))
+    .map((e) => e.id);
+  const setsByEntry = new Map<string, (typeof schema.setLogs.$inferSelect)[]>();
+  if (loggedEntryIds.length > 0) {
+    const logs = db
       .select()
-      .from(schema.sessionEntries)
-      .where(eq(schema.sessionEntries.sessionId, row.id))
-      .all()
-      .filter((e) => e.entryStatus !== 'removed_at_approval');
+      .from(schema.setLogs)
+      .where(
+        and(
+          inArray(schema.setLogs.entryId, loggedEntryIds),
+          eq(schema.setLogs.status, 'completed'),
+        ),
+      )
+      .orderBy(schema.setLogs.setIndex)
+      .all();
+    for (const log of logs) {
+      const list = setsByEntry.get(log.entryId) ?? [];
+      list.push(log);
+      setsByEntry.set(log.entryId, list);
+    }
+  }
+
+  return rows.map((row): SessionHistoryRecord => {
+    const entries = entriesBySession.get(row.id)!;
     const historyEntries: SessionHistoryEntry[] = entries.map((e) => ({
       exerciseId: e.exerciseId,
       role: e.role as SessionHistoryEntry['role'],
       difficulty: e.difficulty,
       sets: e.sets,
+      ...(row.status === 'completed' && e.role === 'main'
+        ? {
+            loggedSets: (setsByEntry.get(e.id) ?? []).map((s): LoggedSet => {
+              // A unilateral hold logs both sides summed (WorkoutScreen); the engine wants per side.
+              const seconds = s.secondsActual ?? s.secondsPrescribed;
+              return {
+                reps: s.repsActual ?? s.repsPrescribed,
+                seconds: seconds != null && e.unilateral ? seconds / 2 : seconds,
+                band: (s.bandActual ?? e.band) as BandId | null,
+              };
+            }),
+          }
+        : {}),
     }));
     return {
       localDate: row.localDate,
