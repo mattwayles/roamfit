@@ -4362,7 +4362,7 @@
       ],
       "equipment": "band",
       "band": "B1-B2",
-      "anchor": "stance",
+      "anchor": "anchor-low",
       "anchor_alt": null,
       "anchor_class": "band_tension",
       "unilateral": true,
@@ -4378,7 +4378,7 @@
       "contraindications": [
         "lower_back_extension"
       ],
-      "setup": "Half-kneeling with the band under the front foot. Pull diagonally up and across to the opposite shoulder, hips square.",
+      "setup": "Anchor the band low, half-kneel side-on with the anchored-side knee down. Pull diagonally up and across to the opposite shoulder, hips square.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Half-Kneeling+Band+Chop+proper+form+tutorial"
     },
     {

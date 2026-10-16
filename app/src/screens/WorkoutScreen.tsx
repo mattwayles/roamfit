@@ -2589,12 +2589,12 @@ function RestPhase({
           {/* Rest is exactly when a user would go and rig the next anchor, and swap to the next
               band, so both are worth naming before the set rather than at the top of it. */}
           <View style={styles.chipRow}>
-            <AnchorBadge anchor={nextAnchor} anchorAlt={nextAnchorAlt} testID="rest-next-anchor" />
             {nextBand != null && (
               <View testID="rest-next-band">
                 <BandChip band={nextBand} tensions={bandTensions} size="lg" />
               </View>
             )}
+            <AnchorBadge anchor={nextAnchor} anchorAlt={nextAnchorAlt} testID="rest-next-anchor" />
           </View>
         </View>
       </Card>
