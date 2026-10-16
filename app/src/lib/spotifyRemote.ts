@@ -715,11 +715,12 @@ export function useSpotifyPlayer(): SpotifyPlayer {
     const connection = mod.AppRemote.addListener('connectionStateChange', ({ state }) => {
       const dropped = state === 'disconnected' && lastNativeState.current === 'connected';
       lastNativeState.current = state;
+      if (state === 'connected') setLastError(null);
       // iOS often reports the drop *after* the app is already back in front, by which time the
       // foreground resume has seen a stale `isConnected()` and done nothing. A drop while active is
       // therefore its own resume trigger. Only a connected → disconnected edge counts: a failed
       // resume also reports `disconnected`, and reacting to that would loop.
-      if (dropped && !userConnectInFlight.current && AppState.currentState === 'active') {
+      if (dropped && !userConnectInFlight.current && AppState.currentState !== 'background') {
         void resumeSpotifySession({ allowWake: false });
       }
       if (state === 'disconnected' && userConnectInFlight.current) return;
@@ -733,6 +734,11 @@ export function useSpotifyPlayer(): SpotifyPlayer {
     });
     const connectionError = mod.AppRemote.addListener('connectionError', (event) => {
       if (silentConnectsInFlight > 0 && errorCode(event) === 'CONNECTION_FAILED') return;
+      // A passive drop (backgrounding, Spotify suspended) is reported as CONNECTION_LOST. It's not
+      // something the user did, and the silent resume above is already handling it — a message
+      // here would be shown for a state we're about to repair. A transport press made while
+      // disconnected still reports its own error through `run()`.
+      if (errorCode(event) === 'CONNECTION_LOST') return;
       setLastError(describeError(event));
     });
     const player = mod.Player.addListener('playerStateChange', (state) => {

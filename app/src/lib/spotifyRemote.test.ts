@@ -900,6 +900,22 @@ describe('useSpotifyPlayer', () => {
     expect(result.current.lastError).toBeNull();
   });
 
+  it('does not show "lost connection" for a passive drop, and clears a stale error on reconnect', async () => {
+    mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
+    const { result } = await renderHook(() => useSpotifyPlayer());
+    await waitFor(() => expect(mockModule.AppRemote.connect).toHaveBeenCalledTimes(1));
+
+    await act(async () =>
+      emit('connectionError', { code: 'CONNECTION_LOST', message: 'App Remote disconnected' }),
+    );
+    expect(result.current.lastError).toBeNull();
+
+    await act(async () => emit('connectionError', { code: 'PREMIUM_REQUIRED', message: 'x' }));
+    expect(result.current.lastError).not.toBeNull();
+    await act(async () => emit('connectionStateChange', { state: 'connected' }));
+    expect(result.current.lastError).toBeNull();
+  });
+
   it('does not loop when a failed resume reports disconnected again', async () => {
     mockLoadStoredSpotifySession.mockResolvedValue(storedSession());
     const { result } = await renderHook(() => useSpotifyPlayer());
