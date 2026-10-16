@@ -201,14 +201,17 @@ export function completeSession(
           entry.exerciseId,
           {
             localDate: session.localDate,
-            bestPerformance: exercise
-              ? {
-                  reps: exercise.metric === 'time' ? undefined : (summary.bestActual ?? undefined),
-                  seconds:
-                    exercise.metric === 'time' ? (summary.bestActual ?? undefined) : undefined,
-                  band: summary.bestBand,
-                }
-              : undefined,
+            // Warm-up/cool-down sets are prep, not training — they never count toward a best set.
+            bestPerformance:
+              exercise && entry.section === 'main'
+                ? {
+                    reps:
+                      exercise.metric === 'time' ? undefined : (summary.bestActual ?? undefined),
+                    seconds:
+                      exercise.metric === 'time' ? (summary.bestActual ?? undefined) : undefined,
+                    band: summary.bestBand,
+                  }
+                : undefined,
           },
           now,
         );

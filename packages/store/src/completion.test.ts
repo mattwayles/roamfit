@@ -11,7 +11,7 @@ import {
 } from './repositories/sessions';
 import { getAllProgressionStates } from './repositories/progressionState';
 import { getAllMilestones } from './repositories/milestones';
-import { getAllExerciseStates } from './repositories/exerciseState';
+import { getAllExerciseStates, recordExercisePerformed } from './repositories/exerciseState';
 import { getPendingDeferredWork } from './repositories/queues';
 import { completeSession } from './completion';
 import { ensureUser, updateUser } from './repositories/users';
@@ -29,7 +29,11 @@ function runSession(
   localDate: string,
   seed: number,
   actualBonus: number,
-  opts: { recoveryWeek?: boolean } = {},
+  opts: {
+    recoveryWeek?: boolean;
+    bonusFor?: (section: string) => number;
+    afterStart?: (entries: { section: string; exerciseId: string }[]) => void;
+  } = {},
 ) {
   const clock = clockFor(localDate);
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
@@ -51,7 +55,9 @@ function runSession(
   });
   startSession(db, sessionId, utcInstantFor(localDate, 9));
   const session = getPendingSession(db)!;
+  opts.afterStart?.(session.entries);
   for (const entry of session.entries) {
+    const bonus = opts.bonusFor ? opts.bonusFor(entry.section) : actualBonus;
     for (let i = 0; i < entry.sets; i++) {
       logSet(
         db,
@@ -61,8 +67,8 @@ function runSession(
           status: 'completed',
           repsPrescribed: entry.repTarget ?? undefined,
           secondsPrescribed: entry.durationSec ?? undefined,
-          repsActual: entry.repTarget != null ? entry.repTarget + actualBonus : undefined,
-          secondsActual: entry.durationSec != null ? entry.durationSec + actualBonus : undefined,
+          repsActual: entry.repTarget != null ? entry.repTarget + bonus : undefined,
+          secondsActual: entry.durationSec != null ? entry.durationSec + bonus : undefined,
           restPrescribedSec: entry.restSec,
           restTakenSec: entry.restSec,
         },
@@ -85,6 +91,34 @@ describe('completion — best-set PR and milestones', () => {
       runSession(db, '2026-04-03', 1, 5); // same seed -> same session shape, bigger bonus
       const milestonesAfterSecond = getAllMilestones(db);
       expect(milestonesAfterSecond.some((m) => m.type === 'best_set_pr')).toBe(true);
+    } finally {
+      close();
+    }
+  });
+
+  it('beating a warm-up/cool-down set is never a best-set PR', () => {
+    const { db, close } = createTestDb();
+    try {
+      const { plan } = runSession(db, '2026-04-01', 1, 0, {
+        bonusFor: (section) => (section === 'main' ? 1 : 20),
+        // Give every prep exercise a tiny prior best, so any logged set would beat it.
+        afterStart: (entries) => {
+          for (const e of entries.filter((x) => x.section !== 'main')) {
+            recordExercisePerformed(
+              db,
+              e.exerciseId,
+              { localDate: '2026-03-30', bestPerformance: { reps: 1, seconds: 1 } },
+              utcInstantFor('2026-03-30'),
+            );
+          }
+        },
+      });
+      const prep = plan.entries.filter((e) => e.section !== 'main');
+      expect(prep.length).toBeGreaterThan(0);
+      const prIds = getAllMilestones(db)
+        .filter((m) => m.type === 'best_set_pr')
+        .map((m) => (m.payload as { exerciseId: string }).exerciseId);
+      for (const e of prep) expect(prIds).not.toContain(e.exerciseId);
     } finally {
       close();
     }
