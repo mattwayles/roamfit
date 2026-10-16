@@ -759,6 +759,29 @@ describe('useSpotifyPlayer', () => {
     });
   });
 
+  it('stays on connecting when the native side reports disconnected mid-connect', async () => {
+    // The silent reattach attempt that precedes interactive auth fails with a native
+    // `disconnected` event; that used to flip the button back to "Connect Spotify" for the
+    // seconds before Spotify opened.
+    let release: () => void = () => {};
+    mockModule.Auth.authenticate.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({ accessToken: 'token-abc' });
+        }),
+    );
+
+    const { result } = await renderHook(() => useSpotifyPlayer());
+    await act(async () => result.current.connect());
+    await act(async () => emit('connectionStateChange', { state: 'disconnected' }));
+
+    expect(result.current.connectionState).toBe('connecting');
+
+    await act(async () => {
+      release();
+    });
+  });
+
   it('drops back to disconnected when the auth bounce fails, instead of sticking on "connecting" forever', async () => {
     // The regression this guards: a real device bounces to Spotify and back with the connection
     // never established (auth cancelled, or Spotify never reachable). Nothing fires

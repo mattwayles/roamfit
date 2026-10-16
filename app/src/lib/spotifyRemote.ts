@@ -65,7 +65,7 @@
  * hijack the screen mid-workout the way `connectSpotify`'s own header already rules out for the
  * first-ever connect.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking } from 'react-native';
 import {
   clearStoredSpotifySession,
@@ -695,6 +695,10 @@ export function useSpotifyPlayer(): SpotifyPlayer {
   const [canSkipNext, setCanSkipNext] = useState(true);
   const [canSkipPrevious, setCanSkipPrevious] = useState(true);
   const [lastError, setLastError] = useState<SpotifyErrorMessage>(null);
+  // True from the user's tap on Connect until `connectSpotify` settles. That call first makes a
+  // silent reattach attempt whose failure the native side reports as `disconnected`; letting that
+  // through flipped the button back to "Connect Spotify" for the seconds before Spotify opened.
+  const userConnectInFlight = useRef(false);
 
   useEffect(() => {
     const mod = loadModule();
@@ -705,6 +709,7 @@ export function useSpotifyPlayer(): SpotifyPlayer {
     setConnectionState(mod.AppRemote.isConnected() ? 'connected' : 'disconnected');
 
     const connection = mod.AppRemote.addListener('connectionStateChange', ({ state }) => {
+      if (state === 'disconnected' && userConnectInFlight.current) return;
       setConnectionState(state);
       // A dropped connection leaves whatever was last playing on screen, which would be a lie the
       // moment Spotify moves on without us.
@@ -771,7 +776,9 @@ export function useSpotifyPlayer(): SpotifyPlayer {
     // authenticate/connect never fires it (Spotify never got far enough to have a state to
     // report). Without this, a cancelled auth or a bounce back to RoamFit with no connection
     // leaves the button reading "Connecting…" forever — `run()` alone only sets `lastError`.
+    userConnectInFlight.current = true;
     void connectSpotify().then((error) => {
+      userConnectInFlight.current = false;
       setLastError(error);
       if (error) setConnectionState((state) => (state === 'connecting' ? 'disconnected' : state));
     });
