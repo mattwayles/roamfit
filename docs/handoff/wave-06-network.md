@@ -32,8 +32,8 @@ YouTube search link (online, universal fallback). Offline shows the figure with 
 and no error**. Player errors fall back to the figure silently and raise an automatic flag.
 `youtube-nocookie.com`, official IFrame player, no autoplay, no fullscreen takeover. **It must not
 hijack the audio session** — rest-timer cues keep priority — and must not pause or drift the
-workout timer. Skipped on a metered connection with data saver on. A one-tap *"this video is wrong
-or broken"* sits under the player; two reports demote to tier 2 automatically.
+workout timer. Skipped on a metered connection with data saver on. A one-tap _"this video is wrong
+or broken"_ sits under the player; two reports demote to tier 2 automatically.
 
 ### 3. LLM proxy (§7.1, §7.3)
 

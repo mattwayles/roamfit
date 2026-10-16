@@ -12,8 +12,6 @@ the record of what was completed and why.
 
 ---
 
-
-
 ## Desired Fixes
 
 - **Next Unlock → Journey scroll — device pass owed.** Tapping the Next Unlock card on Today now opens
@@ -152,10 +150,10 @@ the record of what was completed and why.
   9. Band-chip labels on mid-tone swatches: BandChip's pre-existing 0.45 luminance threshold may pick
      the wrong legend on a few mid-tone bands; swatches are mode-invariant, so check each. The
      workout hero and rest "Up next" now show the band as a large filled swatch (`BandChip
-     size="lg"`): check it reads at arm's length, the B3 near-black swatch stands off the card in
+size="lg"`): check it reads at arm's length, the B3 near-black swatch stands off the card in
      Midnight, and a long custom label (e.g. "Thin orange") still fits beside the anchor badge.
   10. Logbook and Today week-strip day cells (`dayCell`: vivid at 40%, deep border): every marker
-     reads as its own color next to the others, not washed out; tune the alpha if not.
+      reads as its own color next to the others, not washed out; tune the alpha if not.
 - **WorkoutScreen tests flake under a full `npm run check` (~1 run in 10).** A different
   `WorkoutScreen.*.test.tsx` fails each time (seen: `anchor`, `rest`, `keyboard`), always a
   `waitFor` timing out on the first screen element while the suite takes 8-10s, followed by "A
@@ -182,25 +180,19 @@ the record of what was completed and why.
 
 ---
 
-
-
 ## Problems with Individual Exercises
 
-*Use this section to backlog changes to individual exercise details*
+_Use this section to backlog changes to individual exercise details_
 
 - **Do scapular push-ups warrant a** `shoulder_overhead` **tag?** The library carried the same movement twice with different tagging — the purpose-built warm-up record had only `wrist_extension`, `bw-scap-push-up` also has `shoulder_overhead`. Merging the duplicates (track 13) kept the stricter one, deliberately: loosening a §13.2 safety tag is not a refactor's call. If it is over-cautious, dropping it gives a shoulder-limited user one more upper warm-up.
 
 ---
 
-
-
 ## Requested Exercises
 
-*List exercises that you'd like to incldue in the library here. Any exercise you want to remove should be disabled through the Exercise Details page*
+_List exercises that you'd like to incldue in the library here. Any exercise you want to remove should be disabled through the Exercise Details page_
 
 ---
-
-
 
 ## Future Features
 
@@ -278,8 +270,8 @@ the record of what was completed and why.
 - **Get a second opinion on** `contraindications[]` **tagging**, especially `core_pressure` and `lower_back_extension` across the hinge, plank and hollow-hold families. This is the pregnancy hard filter — the highest-stakes judgment call in the content set, and it was made by one pass with no review.
 - **Band tensions have no editor.** `DEFAULT_BAND_TENSIONS` ships sensible colours and labels and the data model is user-editable, but Settings has no UI to change them. Band brands genuinely differ.
 - **LLM integration is not fully written:** `functions/` is written; no `LlmProxyCaller` implementation calls
-the deployed function, nothing triggers `processLlmQueue`, and there is no natural-language intake
-UI. `docs/RUNBOOK-functions-deploy.md` has never been run against a real Firebase project.
+  the deployed function, nothing triggers `processLlmQueue`, and there is no natural-language intake
+  UI. `docs/RUNBOOK-functions-deploy.md` has never been run against a real Firebase project.
   - Using AI in workout generation based on previous retrospective input **(hold on this until we see how current progression is working)**
 - **HealthKit write is never authorized.** Settings has the "Write workouts" toggle (it persists
   `healthWriteEnabled`), but nothing calls `requestHealthKitWritePermission()`, and
@@ -288,12 +280,11 @@ UI. `docs/RUNBOOK-functions-deploy.md` has never been run against a real Firebas
   `authorizationRequested` resets each app start). Found in the Phase G sweep; left alone because the
   redesign froze behavior.
 - **Sync trigger is weak.** `runOpportunisticSync` fires only when the Home screen regains focus. A
-real connectivity-restored or app-foreground trigger would be better.
+  real connectivity-restored or app-foreground trigger would be better.
 - `progression_state` **/** `users` **/** `limitations` **/** `spotify_playlists` **(and `users.spotify_vibes`) don't sync.** Cut for scope. Would reuse the exact  
-`resolveLastWriteWins` / `syncRows.ts` pattern already in place.
+  `resolveLastWriteWins` / `syncRows.ts` pattern already in place.
 - **Spotify: no Settings toggle and no per-workout hide.** The bar renders nothing when the native
-module is absent, so a non-Spotify build is unaffected — but a Spotify user who wants a silent
-session has no way to hide it short of not connecting. Add a toggle if the row proves to be
-clutter; it would follow `cueSoundsEnabled`'s pattern exactly (one column, migration 0014 is the
-precedent).
-
+  module is absent, so a non-Spotify build is unaffected — but a Spotify user who wants a silent
+  session has no way to hide it short of not connecting. Add a toggle if the row proves to be
+  clutter; it would follow `cueSoundsEnabled`'s pattern exactly (one column, migration 0014 is the
+  precedent).

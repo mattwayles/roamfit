@@ -1,32 +1,34 @@
 ## Track: 2b-timefit-slots — carried-forward issue #7 (§5.5/§5.6 time-fit shortfalls)
+
 Last updated: 2026-08-30
 
 ### Done
+
 - [x] Re-diagnosed the four flagged combos against the real library (cold-start user,
-  `equipmentPreference: 'any'`). Confirmed the review's two suspected root causes, both real,
-  both present simultaneously:
+      `equipmentPreference: 'any'`). Confirmed the review's two suspected root causes, both real,
+      both present simultaneously:
   1. `timefit/fitSession.ts`'s optional-entry add loop `break`s on the first entry that doesn't
      fit the polite +10% ceiling, so a smaller entry later in the (already priority-ordered) slot
-     list never gets a chance — slot *order*, not slot *size*, decided what got in.
+     list never gets a chance — slot _order_, not slot _size_, decided what got in.
      `abs/hard/30min` was exactly this: `side-bend` (534s, first optional) didn't fit, the loop
-     broke, and `bw-windshield-wiper` (342s, next optional) — which *did* fit — was never tried.
+     broke, and `bw-windshield-wiper` (342s, next optional) — which _did_ fit — was never tried.
   2. Even without the `break`, an optional candidate can be larger than the room actually left
      (e.g. `legs/25min`'s three optional candidates — `hamstring-curl`, `bw-single-leg-calf-raise`,
      `clamshell` — were all prescribed at 480s against ~392s of remaining room) while a smaller
-     prescription of that *same* exercise (fewer sets) would fit and is still real work, better
+     prescription of that _same_ exercise (fewer sets) would fit and is still real work, better
      than leaving the slot empty.
   - `template/focusTemplate.ts`'s `expandOptionalSlots` (landed in an earlier round, `e56ed02`)
-    was already filling the template's slot *list* correctly — this was NOT the bug. The bug was
+    was already filling the template's slot _list_ correctly — this was NOT the bug. The bug was
     downstream, in what the fit loop did with that list.
 - [x] **Fix 1 — `timefit/fitSession.ts`'s add loop**: no longer `break`s on a miss; it tries every
-  remaining optional entry. Before giving up on an entry that doesn't fit at its prescribed size,
-  it now tries the entry at one fewer set at a time (via `prescription/prescribe.ts`'s
-  `withOneFewerSet`, already used for the required-entry overrun trim) down to the 1-set floor,
-  and takes the smallest trimmed version that fits. Never crosses the polite +10% ceiling — same
-  invariant as before, just applied per-candidate instead of stopping at the first miss.
+      remaining optional entry. Before giving up on an entry that doesn't fit at its prescribed size,
+      it now tries the entry at one fewer set at a time (via `prescription/prescribe.ts`'s
+      `withOneFewerSet`, already used for the required-entry overrun trim) down to the 1-set floor,
+      and takes the smallest trimmed version that fits. Never crosses the polite +10% ceiling — same
+      invariant as before, just applied per-candidate instead of stopping at the first miss.
 - [x] **Fix 2 — reason label** (types.ts `TimeBudgetDeviation`, mirrored in
-  `explain/explain.ts`'s `TimeBudgetDeviationFact`): added `'template_exhausted'` alongside
-  `'thin_pool'` for the `'under'` direction. `pipeline.ts` now derives which applies:
+      `explain/explain.ts`'s `TimeBudgetDeviationFact`): added `'template_exhausted'` alongside
+      `'thin_pool'` for the `'under'` direction. `pipeline.ts` now derives which applies:
   - `'thin_pool'` — either an optional accessory slot the template offered had ZERO eligible
     candidates, or a REQUIRED slot came back as a PATTERN GAP (`stated_imbalance`, no band
     exception rescued it). Both mean selection genuinely had nothing to put somewhere — a real
@@ -35,41 +37,41 @@ Last updated: 2026-08-30
     get filled; the pool wasn't the limiter. The template's own §5.6 exercise-count-sanity
     ceiling (`mainExerciseCountRange`) simply stopped offering more slots before the time budget
     was used up.
-  §5.8's explanation line (`explain.ts`) now reads the `reason`, not just `direction` — the
-  `'thin_pool'` under-copy ("not enough fresh work in the pool") only fires for that reason;
-  `'template_exhausted'` gets its own honest line ("filled everything this template offers for a
-  session this long").
+    §5.8's explanation line (`explain.ts`) now reads the `reason`, not just `direction` — the
+    `'thin_pool'` under-copy ("not enough fresh work in the pool") only fires for that reason;
+    `'template_exhausted'` gets its own honest line ("filled everything this template offers for a
+    session this long").
 - [x] Wrote the failing test FIRST, per the brief: `packages/engine/src/timefit/issue7.test.ts`
-  pins `legs/easy/25`, `legs/hard/25`, `abs/hard/30` within ±10% of target with no
-  `timeBudgetDeviation`, `abs/hard/30` filling the required `lateral_flexion` slot (§5.5: "plus
-  one oblique/lateral"), and `full/normal/60` either in-band or, if it ever regresses to a
-  deviation, carrying a reason other than `thin_pool`. All 5 assertions were red before the fix,
-  green after. Not weakened at any point.
+      pins `legs/easy/25`, `legs/hard/25`, `abs/hard/30` within ±10% of target with no
+      `timeBudgetDeviation`, `abs/hard/30` filling the required `lateral_flexion` slot (§5.5: "plus
+      one oblique/lateral"), and `full/normal/60` either in-band or, if it ever regresses to a
+      deviation, carrying a reason other than `thin_pool`. All 5 assertions were red before the fix,
+      green after. Not weakened at any point.
 - [x] `properties.test.ts` updated to accept either `'thin_pool'` or `'template_exhausted'` for an
-  `'under'` deviation (previously hardcoded `'thin_pool'`, which was the mislabeling this whole
-  issue is about) — every other assertion in that test (internal consistency, direction, the
-  actual out-of-band check, the ±10% in-band path) is unchanged.
+      `'under'` deviation (previously hardcoded `'thin_pool'`, which was the mislabeling this whole
+      issue is about) — every other assertion in that test (internal consistency, direction, the
+      actual out-of-band check, the ±10% in-band path) is unchanged.
 - [x] `simulation.test.ts`'s 30-session "no chronic over-work" check needed a real, honest revision
-  (not a silent loosening — see "Ambiguities" below): correctly filling every session's optional
-  *and* required slots (this fix) makes a demanding every-1-2-day, all-four-foci synthetic
-  schedule keep some muscle's 7-day trailing ratio elevated on nearly every day — verified by
-  instrumenting `overWorkedMuscles` per session before touching the assertion: the flagged set
-  fluctuates (1-5 muscles) but never idles at zero after session 0, where before this fix it did
-  go quiet periodically only because sessions were under-filled (part of the bug being fixed here).
-  The rule's actual guarantee — an over-worked muscle is never handed a *new accessory-slot*
-  exercise as its primary mover — is real and unaffected; required laddered slots (e.g. squat) are
-  never screened by OVER-WORKED at all, by the documented design in STATUS-2-engine.md's
-  "Architecture clarification". Replaced the loose "some session has zero over-worked muscles"
-  assertion with a precise per-session check: for every accessory (non-laddered,
-  `progressionFamilyId === null`) main entry, its primary muscle was never in the pre-generation
-  over-worked set. This is a tighter, more meaningful check of the same rule, not a weaker one.
+      (not a silent loosening — see "Ambiguities" below): correctly filling every session's optional
+      _and_ required slots (this fix) makes a demanding every-1-2-day, all-four-foci synthetic
+      schedule keep some muscle's 7-day trailing ratio elevated on nearly every day — verified by
+      instrumenting `overWorkedMuscles` per session before touching the assertion: the flagged set
+      fluctuates (1-5 muscles) but never idles at zero after session 0, where before this fix it did
+      go quiet periodically only because sessions were under-filled (part of the bug being fixed here).
+      The rule's actual guarantee — an over-worked muscle is never handed a _new accessory-slot_
+      exercise as its primary mover — is real and unaffected; required laddered slots (e.g. squat) are
+      never screened by OVER-WORKED at all, by the documented design in STATUS-2-engine.md's
+      "Architecture clarification". Replaced the loose "some session has zero over-worked muscles"
+      assertion with a precise per-session check: for every accessory (non-laddered,
+      `progressionFamilyId === null`) main entry, its primary muscle was never in the pre-generation
+      over-worked set. This is a tighter, more meaningful check of the same rule, not a weaker one.
 - [x] Golden snapshots regenerated (`jest -u`) and `ENGINE_VERSION` bumped `2.2.0` -> `2.3.0`
-  (`version.ts`). Two golden fixtures changed (`cold-start upper, 30min` and `abs, 30min` — both
-  now fill an extra accessory slot they previously left on the table, exactly what this fix is
-  for); the other three golden fixtures were unaffected (Quick Session's minimal template and the
-  legs/full fixtures whose targets already landed in-band before this fix).
+      (`version.ts`). Two golden fixtures changed (`cold-start upper, 30min` and `abs, 30min` — both
+      now fill an extra accessory slot they previously left on the table, exactly what this fix is
+      for); the other three golden fixtures were unaffected (Quick Session's minimal template and the
+      legs/full fixtures whose targets already landed in-band before this fix).
 - [x] Full sweep re-run post-fix (4 foci x 3 efforts x {15,20,25,30,45,60}min x {any,bodyweight,
-  band} = 216 cases, cold-start user, real library). Result:
+      band} = 216 cases, cold-start user, real library). Result:
   - **171/216 in-band, 45/216 `under:thin_pool`, 0 `template_exhausted`, 0 `over` in this sweep.**
   - **Every one of the 45 residual shortfalls is `equipmentPreference: 'bodyweight'` or `'band'`**
     (never `'any'`, the realistic default) — this matches, and is unchanged from, the
@@ -86,6 +88,7 @@ Last updated: 2026-08-30
     forced into the residual sweep's output.
 
 ### Residual, case by case (the four originally-flagged combos)
+
 - `legs/easy/25min`, `legs/hard/25min`: **fixed, in-band, no deviation.** Root cause was the
   add-loop `break` combined with all three optional candidates (`hamstring-curl`,
   `bw-single-leg-calf-raise`, `clamshell`) being sized larger than the remaining room; the
@@ -115,11 +118,12 @@ Last updated: 2026-08-30
   see Ambiguities.
 
 ### Files touched (all within `packages/engine/`)
+
 - `packages/engine/src/timefit/fitSession.ts` — the add-loop fix (no `break`, try-smaller-first).
 - `packages/engine/src/timefit/issue7.test.ts` — new, the pinned regression test (written first).
 - `packages/engine/src/pipeline.ts` — `thin_pool` vs `template_exhausted` derivation.
 - `packages/engine/src/types.ts`, `packages/engine/src/explain/explain.ts` — the new reason value
-  + its own explanation-line copy.
+  - its own explanation-line copy.
 - `packages/engine/src/properties.test.ts` — accept either valid `'under'` reason.
 - `packages/engine/src/simulation.test.ts` — tightened the over-worked invariant to what the rule
   actually promises (see Done, above).
@@ -127,6 +131,7 @@ Last updated: 2026-08-30
   version bump + regenerated snapshots.
 
 ### Decisions / gotchas
+
 - No new ADR written. Nothing here contradicts `spec.md` — §5.6 says "fill main_sec until the
   next exercise would overshoot" and the fix makes that literally true (tries every candidate,
   not just the first); trimming an optional entry's sets to fit is the same lever already used
@@ -148,6 +153,7 @@ Last updated: 2026-08-30
   investigated or fixed here, flagged for the `4-loop` track.
 
 ### Ambiguities for a human/product call (not silently decided)
+
 - **`Exercise.focus` is not load-bearing for selection** (see the `full/normal/60min` writeup
   above) — `selection/candidates.ts`'s `buildCandidates` filters only by `role`, and
   `selection/mainSelection.ts`'s `eligibleForSlot` filters only by pattern (plus

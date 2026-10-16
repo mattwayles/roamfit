@@ -1,7 +1,9 @@
 ## Track: 6d-sync-health — Firestore sync, HealthKit write, location queue
+
 Last updated: 2026-09-01 — **track complete for its committed scope; see "What remains unverified"**
 
 ### Done
+
 - [x] Ramp-up: ORCHESTRATION.md, wave-06-network.md §4/§5/§7, STATUS-6b/6c, spec §11.3/§13.4/
       §13.5/§9.6/§4.1 remote-config block. HEAD confirmed `27a1b02`, tree clean at start.
 - [x] Dependencies: `expo-location` (SDK-57 pin via `npx expo install`),
@@ -43,9 +45,11 @@ Last updated: 2026-09-01 — **track complete for its committed scope; see "What
       lint 0 errors 0 warnings; `check:engine-purity` OK).
 
 ### In progress
+
 Nothing mid-flight — this is a clean stopping point.
 
 ### Next (deliberately not done — see "Deliberate cuts")
+
 - A settings-screen toggle to opt into HealthKit write (`requestHealthKitWritePermission` +
   `updateUser(db, { healthWriteEnabled: true })`) — Passport already has one in `HomeScreen.tsx`
   from Wave 5; HealthKit has no equivalent UI yet. Same shape as carried-forward issue #20.
@@ -61,6 +65,7 @@ Nothing mid-flight — this is a clean stopping point.
   `resolveLastWriteWins`/`syncRows.ts` pattern if picked up later.
 
 ### Decisions / gotchas
+
 - **Firestore/Auth client-side: `firebase` JS modular SDK, not `@react-native-firebase`.** No
   native linking/config plugin needed — matters because this environment cannot run
   `pod install`/build for real. Cost: no native AsyncStorage auth persistence out of the box
@@ -80,11 +85,12 @@ Nothing mid-flight — this is a clean stopping point.
 - **HealthKit estimated active energy** (`ESTIMATED_KCAL_PER_MINUTE = 5` in `deviceQueueWorker.ts`)
   is a documented estimate, not a MET-table computation — no heart rate/weight/intensity signal
   exists in v1. Matches §13.4's own wording ("an estimated active-energy value").
-- **New city detection** compares the resolved city string against every prior *completed*
+- **New city detection** compares the resolved city string against every prior _completed_
   session's `city` column (exact string match, same semantics `buildPassportSummary` in
   `app/src/lib/dashboard.ts` already uses) — not against a separate "visited cities" table.
 
 ### What I verified, and how
+
 - **The offline path never blocks.** `firestoreSyncWorker.test.ts`'s "a client that throws for
   every method still returns normally, never throws to the caller" test, and
   `deviceQueueWorker.test.ts`'s "both jobs failing... still returns a normal result object" test.
@@ -100,7 +106,7 @@ Nothing mid-flight — this is a clean stopping point.
 - **The `local_date` pinning of a queued geocode result — proven with mutation, per the
   verification bar.** `deviceQueueWorker.test.ts`'s "a geocode resolved days later still lands
   on the session's own local_date" test resolves the lookup 3 days after completion and asserts
-  both the session row and the `new_city` milestone carry the *session's* `local_date`, not the
+  both the session row and the `new_city` milestone carry the _session's_ `local_date`, not the
   resolution instant's. I deliberately broke `applyGeocodeResult` (swapped `session.localDate`
   for `now.slice(0, 10)`) and confirmed the test fails with the expected/received dates exactly
   as predicted, then restored the fix — this is a real red-green cycle, not an after-the-fact
@@ -110,7 +116,7 @@ Nothing mid-flight — this is a clean stopping point.
   marked done (not retried, not in `getPendingDeferredWork`) when the injected writer resolves
   having done nothing. I deliberately broke the fake writer to throw instead of resolving on
   denial and confirmed the test fails immediately (`failedOrRetrying` becomes 1), then restored
-  it. Separately, `healthKit.test.ts` proves the *real* app-side implementation's own
+  it. Separately, `healthKit.test.ts` proves the _real_ app-side implementation's own
   unavailability path (native module fails to load under Jest — confirmed by direct probing,
   the `@kingstinct/react-native-healthkit` NitroModules require() throws) resolves without
   throwing, matching the same contract one layer down.
@@ -118,8 +124,8 @@ Nothing mid-flight — this is a clean stopping point.
   write failure... IS retried" and "a geocode failure (offline) leaves the job pending" tests,
   both checking `attempts`/pending-queue state directly via `queuesRepo`.
 - **New-city milestone correctness** — three tests: first-ever city fires exactly one `new_city`
-  milestone pinned to the right `local_date`; a second session in the *same* city does not fire a
-  second one; a session in a genuinely *different* city fires its own.
+  milestone pinned to the right `local_date`; a second session in the _same_ city does not fire a
+  second one; a session in a genuinely _different_ city fires its own.
 - **No key/credential material anywhere** — `firebase.json`/`.firebaserc` contain only a
   placeholder project id string; `firestoreSyncClient.ts` reads every Firebase config value from
   `process.env.EXPO_PUBLIC_FIREBASE_*`, never a literal. Re-grepped the whole repo for
@@ -133,6 +139,7 @@ Nothing mid-flight — this is a clean stopping point.
   guessing method names from memory.
 
 ### What remains unverified, and why (stated plainly, per the review bar)
+
 - **No real Firestore instance, no real Auth, no real device HealthKit, no real geocode.** This
   environment has no simulator, no device, and no Firebase project credentials. Every claim above
   is proven at the interface boundary (`FirestoreSyncClient`/`HealthKitWriter`/`GeocodeCaller`)
@@ -140,10 +147,10 @@ Nothing mid-flight — this is a clean stopping point.
   external system.
 - **`firebase.json`/`functions/` have still never been deployed or run against an emulator** —
   same gap `6c` already flagged (issue #35); this track added the config files that make
-  deployment *possible* but did not attempt it (no credentials).
+  deployment _possible_ but did not attempt it (no credentials).
 - **The Firestore security rules are unverified against the Firestore emulator** — written by
   hand against the documented rules-language semantics, not run through `firebase emulators:start
-  --only firestore` with a rules test suite (would need the Firebase CLI + emulator, which needs
+--only firestore` with a rules test suite (would need the Firebase CLI + emulator, which needs
   a real `npx firebase-tools` install this environment wasn't asked to add).
 - **HealthKit's real authorization-crash footgun.** The package's own README warns that calling
   a HealthKit function for a type whose authorization was never requested can crash the app
@@ -156,6 +163,7 @@ Nothing mid-flight — this is a clean stopping point.
   cannot actually turn this on from the app today; flagged as a carried-forward issue below.
 
 ### Operator runbook — what deploying this actually needs (not run here)
+
 1. `npx firebase-tools login`, then `firebase projects:create` (or use an existing project) and
    put its id in `.firebaserc` (replacing the `REPLACE-WITH-YOUR-FIREBASE-PROJECT-ID`
    placeholder) — **do not commit a real project id if the repo is public; if private, still keep
@@ -165,7 +173,7 @@ Nothing mid-flight — this is a clean stopping point.
 3. `firebase deploy --only firestore:rules,firestore:indexes` to publish `firestore.rules`.
 4. `firebase functions:secrets:set ANTHROPIC_API_KEY` (from `6c`'s scope, still outstanding), then
    `firebase deploy --only functions` — note `functions/tsconfig.json` currently sets `noEmit:
-   true` (inherited from `tsconfig.base.json`) and `module: ESNext`; a real deploy needs a build
+true` (inherited from `tsconfig.base.json`) and `module: ESNext`; a real deploy needs a build
    step emitting CommonJS (or an ESM-compatible Cloud Functions runtime config) into a `lib/`
    directory referenced by `functions/package.json`'s `main` — **not set up in this track**, since
    actually deploying was explicitly out of scope. Whoever deploys first will need to add that
@@ -178,6 +186,7 @@ Nothing mid-flight — this is a clean stopping point.
    of this for the first time.
 
 ### New dependencies (noted per CLAUDE.md)
+
 - `expo-location` (`app/package.json`, SDK-57 pin via `npx expo install`) — coarse reverse-geocode.
 - `@kingstinct/react-native-healthkit@14.1.0` (`app/package.json`) — write-only `HKWorkout`.
   Not in Expo's managed compatibility table; added directly, needs `expo prebuild`.
@@ -186,6 +195,7 @@ Nothing mid-flight — this is a clean stopping point.
   that can't build for a device.
 
 ### Carried-forward issues (for the orchestrator to file)
+
 1. **No real device/simulator/Firestore-emulator verification of any of this track's work**
    (same class as #16/#22/#27) — HealthKit write, reverse-geocode, and Firestore sync are all
    proven only at their injected-interface boundary or against the real package's Jest-time

@@ -1,4 +1,5 @@
 ## Track: 9-ladder-variety — Sibling exercises per ladder level + accessory rotation
+
 Last updated: 2026-09-01
 
 Origin: user report — a 30-minute full-body workout always contains the same five main
@@ -6,12 +7,14 @@ exercises (`goblet-squat, rdl, bw-knee-push-up, seated-row, bw-plank`), and the 
 slot is always a curl. Root cause and design in `docs/decisions/0010-sibling-exercises-per-ladder-level.md`.
 
 User decisions already made (do not re-litigate):
+
 - **Anchored siblings**, not strict. Siblings share `metric`; band ranges and equipment may
   differ; `micro.band` is clamped into the chosen sibling's range at prescription time.
 - **Author new exercises** to fill the `vertical_push` / `vertical_pull` / `squat.l3` gaps rather
   than accept those levels staying single or promoting `tier: fill` conditioning moves.
 
 ### Done
+
 - [x] Root cause confirmed empirically (5 of 6 full-body main slots bypass `selectMain` entirely;
       `expandOptionalSlots` restarted its cycle at index 0 every call).
 - [x] ADR 0010 written — `f1c6640`.
@@ -26,9 +29,11 @@ User decisions already made (do not re-litigate):
 - [x] ADR 0011 — abandoning rotates the template ("seen" vs "trained" recency).
 
 ### In progress
+
 - Nothing. The track is complete and `npm run check` is green.
 
 ### Next
+
 - **Device verification is outstanding.** Everything here is verified by unit/golden tests and by
   a scripted probe against the real library; none of it has been seen on a device. That belongs
   with the Wave 7 acceptance gate.
@@ -46,6 +51,7 @@ User decisions already made (do not re-litigate):
     revisiting whether those anchors belong on a rung at all.
 
 ### Decisions / gotchas
+
 - **ADR 0011 splits recency in two.** "Seen" (what the generator last showed you) counts
   discarded sessions: `lastChosenPattern`/`alternate()`, `accessoryRotationOffset`, and
   `recentExerciseIds`. "Trained" (what the body did) does not: `sessionsAgo`, the volume/48h
@@ -68,7 +74,7 @@ User decisions already made (do not re-litigate):
   deliberately NOT eligible as siblings — the validator now rejects them outright.
 - **Tests that ran the same seed twice and compared sessions are now invalid by construction.**
   `packages/store/src/testFixtures.ts` exports `singleExerciseFamilies` (every level trimmed to
-  its anchor) for tests whose subject is session-to-session *state* — best-set PRs, level
+  its anchor) for tests whose subject is session-to-session _state_ — best-set PRs, level
   transitions. `completion.test.ts` uses it. Do not "fix" such a test by re-pinning exercise ids.
 - `lowBarAnchor.test.ts` is an ADR 0007 tripwire pinning exactly which `bodyweight_bearing`
   exercises are default-available. `bw-low-bar-hang` was added to it deliberately. Anything on

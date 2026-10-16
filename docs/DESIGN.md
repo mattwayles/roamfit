@@ -12,18 +12,18 @@ halfway up. Not a spreadsheet. Not a gym membership.
 
 Three moods, one system:
 
-| Mood | Where | Feel |
-| --- | --- | --- |
-| **Basecamp** | Today, Journey, Field Guide, Settings | Warm, calm, dark night-sky surfaces with golden accents. Invites you in. |
-| **Ignition** | Generate, Plan, Active Workout | High energy. Sunrise gradients, giant condensed numerals, haptics, motion. Gets you pumped. |
-| **Summit** | Debrief, Completion | Celebration. Gold, violet, stamps, confetti. You made it up the hill. |
+| Mood         | Where                                 | Feel                                                                                        |
+| ------------ | ------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **Basecamp** | Today, Journey, Field Guide, Settings | Warm, calm, dark night-sky surfaces with golden accents. Invites you in.                    |
+| **Ignition** | Generate, Plan, Active Workout        | High energy. Sunrise gradients, giant condensed numerals, haptics, motion. Gets you pumped. |
+| **Summit**   | Debrief, Completion                   | Celebration. Gold, violet, stamps, confetti. You made it up the hill.                       |
 
-Travel motifs are used as *texture and metaphor*, lightly: topographic contour lines on hero
+Travel motifs are used as _texture and metaphor_, lightly: topographic contour lines on hero
 cards, passport stamps for places and milestones, a boarding-pass header on the plan, trails and
 summits for progression ladders. Never kitsch — one motif per surface.
 
-**Two lights, one system.** *Midnight* (dark) is the original: bright accents on a near-black
-night sky, the most energetic read at dawn, dusk and indoors. *Daybreak* (light, §8) exists because
+**Two lights, one system.** _Midnight_ (dark) is the original: bright accents on a near-black
+night sky, the most energetic read at dawn, dusk and indoors. _Daybreak_ (light, §8) exists because
 Midnight washes out in direct sun: it is the same app printed as a trail map — ink on warm paper,
 accents deepened until they read in glare, white legends on saturated panels like a highway sign.
 The user picks System / Daybreak / Midnight; System follows iOS, whose Automatic appearance
@@ -35,27 +35,27 @@ flips to Midnight at sunset. All text meets WCAG AA on its surface in both.
 
 ```ts
 // Surfaces — night sky, bluish-black, never pure black
-bg:        '#0B0E13'   // screen background
-surface:   '#141922'   // cards
-surface2:  '#1C2330'   // raised: inputs, wells, chips, nested cards
-surface3:  '#263042'   // pressed / highlighted surface
-line:      '#2A3342'   // hairlines, card borders
-lineStrong:'#3A4558'
+bg: '#0B0E13'; // screen background
+surface: '#141922'; // cards
+surface2: '#1C2330'; // raised: inputs, wells, chips, nested cards
+surface3: '#263042'; // pressed / highlighted surface
+line: '#2A3342'; // hairlines, card borders
+lineStrong: '#3A4558';
 
 // Text — warm paper white, not blue-white
-text:      '#F7F3EA'
-text2:     '#B4BCC8'   // secondary
-text3:     '#7C8696'   // muted / captions / disabled
-ink:       '#170B03'   // text ON bright accent fills (teal/gold/fern). Never white on teal.
+text: '#F7F3EA';
+text2: '#B4BCC8'; // secondary
+text3: '#7C8696'; // muted / captions / disabled
+ink: '#170B03'; // text ON bright accent fills (teal/gold/fern). Never white on teal.
 
 // Accents
-teal:     '#4FB8C4'   // primary (Midnight Green's light complement): action, work, "go"
-tealDeep: '#2E8C98'
-gold:      '#FFB938'   // warm-up, achievements, best sets, notes
-fern:     '#68CF59'   // rest, recovery, cool-down, calm; hue 112.5 = middle of the gold-teal gap
-sky:       '#5AA9FF'   // travel / in transit / passport
-summit:    '#C77DFF'   // plum: progression, levels, ladders
-rose:      '#FF5C93'   // cardio focus ONLY — never an error/negative state
+teal: '#4FB8C4'; // primary (Midnight Green's light complement): action, work, "go"
+tealDeep: '#2E8C98';
+gold: '#FFB938'; // warm-up, achievements, best sets, notes
+fern: '#68CF59'; // rest, recovery, cool-down, calm; hue 112.5 = middle of the gold-teal gap
+sky: '#5AA9FF'; // travel / in transit / passport
+summit: '#C77DFF'; // plum: progression, levels, ladders
+rose: '#FF5C93'; // cardio focus ONLY — never an error/negative state
 ```
 
 **Semantic maps** (export these; screens use the semantic name, not the accent):
@@ -77,11 +77,11 @@ and badge backgrounds.
 ### Gradients (rendered with `react-native-svg`)
 
 ```ts
-trail: ['#3FA9B6', '#62CBD5']   // THE primary CTA + Ignition hero. 135°.
-golden:  ['#FFB938', '#FFD166']   // achievements, best sets
-fern:   ['#50BF40', '#8DE481']   // rest ring, recovery
-summit:  ['#A45CF0', '#D59BFF']   // level ups, progression rings
-night:   ['#1C2330', '#0B0E13']   // subtle card sheen, top→bottom
+trail: ['#3FA9B6', '#62CBD5']; // THE primary CTA + Ignition hero. 135°.
+golden: ['#FFB938', '#FFD166']; // achievements, best sets
+fern: ['#50BF40', '#8DE481']; // rest ring, recovery
+summit: ['#A45CF0', '#D59BFF']; // level ups, progression rings
+night: ['#1C2330', '#0B0E13']; // subtle card sheen, top→bottom
 ```
 
 ### Typography
@@ -92,20 +92,20 @@ Two families from the same designer, loaded with `expo-font` (already linked —
   highway signage, which is exactly the road-trip voice we want.
 - **Barlow** — body copy.
 
-| Token | Family / weight | Size / line | Case | Use |
-| --- | --- | --- | --- | --- |
-| `mega` | Condensed 800 | 112 / 112 | — | rep counter, rest/hold countdown |
-| `hero` | Condensed 800 | 64 / 64 | — | elapsed clock, completion stats |
-| `display` | Condensed 800 | 40 / 42 | UPPER | exercise name, screen hero titles |
-| `h1` | Condensed 700 | 30 / 34 | UPPER | screen titles |
-| `h2` | Condensed 700 | 22 / 26 | UPPER | card titles |
-| `h3` | Barlow 700 | 17 / 22 | — | list item titles |
-| `body` | Barlow 400 | 16 / 23 | — | paragraphs |
-| `bodyStrong` | Barlow 600 | 16 / 23 | — | emphasis |
-| `small` | Barlow 500 | 14 / 19 | — | secondary |
-| `caption` | Barlow 500 | 12 / 16 | — | captions |
-| `eyebrow` | Condensed 700 | 13 / 16, letterSpacing 1.6 | UPPER | section labels, chips |
-| `button` | Condensed 800 | 20 / 24, letterSpacing 1.2 | UPPER | primary buttons |
+| Token        | Family / weight | Size / line                | Case  | Use                               |
+| ------------ | --------------- | -------------------------- | ----- | --------------------------------- |
+| `mega`       | Condensed 800   | 112 / 112                  | —     | rep counter, rest/hold countdown  |
+| `hero`       | Condensed 800   | 64 / 64                    | —     | elapsed clock, completion stats   |
+| `display`    | Condensed 800   | 40 / 42                    | UPPER | exercise name, screen hero titles |
+| `h1`         | Condensed 700   | 30 / 34                    | UPPER | screen titles                     |
+| `h2`         | Condensed 700   | 22 / 26                    | UPPER | card titles                       |
+| `h3`         | Barlow 700      | 17 / 22                    | —     | list item titles                  |
+| `body`       | Barlow 400      | 16 / 23                    | —     | paragraphs                        |
+| `bodyStrong` | Barlow 600      | 16 / 23                    | —     | emphasis                          |
+| `small`      | Barlow 500      | 14 / 19                    | —     | secondary                         |
+| `caption`    | Barlow 500      | 12 / 16                    | —     | captions                          |
+| `eyebrow`    | Condensed 700   | 13 / 16, letterSpacing 1.6 | UPPER | section labels, chips             |
+| `button`     | Condensed 800   | 20 / 24, letterSpacing 1.2 | UPPER | primary buttons                   |
 
 Export as ready-made `TextStyle` objects (`type.display`, …) and a `<Txt variant="display">`
 primitive. Numerals that tick (timers) get `fontVariant: ['tabular-nums']` and a fixed-width
@@ -117,7 +117,7 @@ container so they don't jitter.
 - Radius: `sm 10, md 16, lg 24, xl 32, pill 999`.
 - Elevation: no drop shadows on dark (they vanish). Depth comes from surface steps + a 1px `line`
   border. Accent elements get a **glow**: `shadowColor: accent, shadowOpacity: 0.45,
-  shadowRadius: 18, shadowOffset: {0, 6}` — reserved for the one primary thing on a screen.
+shadowRadius: 18, shadowOffset: {0, 6}` — reserved for the one primary thing on a screen.
 - Motion (built-in `Animated`, native driver where possible):
   - `press`: scale → 0.96, 90ms, spring back. Every tappable card/button (`PressableScale`).
   - `enter`: opacity 0→1 + translateY 14→0, spring, staggered 45ms per item on first mount.
@@ -137,26 +137,26 @@ in one place. Replaces every unicode glyph currently used as an icon (❚❚ ▶
 
 Each is small, typed, tested for render + press, and styled only from tokens.
 
-| Component | Notes |
-| --- | --- |
-| `Txt` | `variant` from the type scale, `color` from tokens, `upper` auto for display/h1/h2/eyebrow/button. |
-| `Gradient` | Absolute-fill SVG linear gradient; props `colors`, `angle`, `radius`. |
-| `TopoPattern` | Absolute-fill SVG of 5–7 organic contour loops, deterministic from a `seed` string, stroke `text` at 6–9% opacity. The travel-map texture for hero cards. |
-| `Screen` | SafeArea + `bg` + optional ScrollView + standard gutter + bottom inset for a sticky footer. |
-| `Card` | `surface`, radius `lg`, 1px `line` border, padding 16–20. `variant: 'plain' | 'hero' | 'accent'` (hero = gradient fill + TopoPattern; accent = 2px gradient border). |
-| `Button` | `variant: 'primary' | 'secondary' | 'ghost' | 'quiet'`, `size: 'lg' | 'md' | 'sm'`, optional `icon`, `loading`. Primary = `trail` gradient, `ink` text, glow, 64px tall at `lg`. Secondary = `surface2` + `line` border. |
-| `IconButton` | Circular 44/56px, `surface2`, optional label below (caption). |
-| `PressableScale` | The press animation + selection haptic, wraps any child. |
-| `Chip` | Pill, eyebrow text, `tone` (accent name) → tint bg + accent text; `selected` → solid accent + ink text. |
-| `Eyebrow` / `SectionHeader` | Eyebrow label + optional right-aligned action link. |
-| `ProgressRing` | SVG ring: `progress 0..1`, `size`, `stroke`, `gradient`, track `surface2`, children centered. Animates progress changes. |
-| `SegmentedBar` | N segments with gaps, each 0..1 filled, `activeIndex` glows. Session progress. |
-| `Pips` | N dots, `filled` count, `current` index ring; `pop` animates newly filled. Set progress. |
-| `StatTile` | Big `hero`/`h1` numeral + eyebrow label + optional icon, `tone`. |
-| `Stamp` | Passport stamp: rounded-rect or circle (seeded), double inset border in the stamp color, condensed uppercase text, rotation −8°..8° seeded, 90% opacity "ink". `title`, `subtitle`, `seed`, `tone?`. |
-| `Switch` | Custom pill toggle (teal when on) + selection haptic. |
-| `Sheet` | Bottom sheet on `Modal` (fade backdrop + slide-up panel, radius `xl` top). Replaces ad-hoc centered dialogs. |
-| `Toast` | Transient floating line (e.g. "Strong set.") that rises and fades; used by Workout. |
+| Component                   | Notes                                                                                                                                                                                                |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Txt`                       | `variant` from the type scale, `color` from tokens, `upper` auto for display/h1/h2/eyebrow/button.                                                                                                   |
+| `Gradient`                  | Absolute-fill SVG linear gradient; props `colors`, `angle`, `radius`.                                                                                                                                |
+| `TopoPattern`               | Absolute-fill SVG of 5–7 organic contour loops, deterministic from a `seed` string, stroke `text` at 6–9% opacity. The travel-map texture for hero cards.                                            |
+| `Screen`                    | SafeArea + `bg` + optional ScrollView + standard gutter + bottom inset for a sticky footer.                                                                                                          |
+| `Card`                      | `surface`, radius `lg`, 1px `line` border, padding 16–20. `variant: 'plain'                                                                                                                          | 'hero'      | 'accent'` (hero = gradient fill + TopoPattern; accent = 2px gradient border). |
+| `Button`                    | `variant: 'primary'                                                                                                                                                                                  | 'secondary' | 'ghost'                                                                       | 'quiet'`, `size: 'lg' | 'md' | 'sm'`, optional `icon`, `loading`. Primary = `trail`gradient,`ink`text, glow, 64px tall at`lg`. Secondary = `surface2`+`line` border. |
+| `IconButton`                | Circular 44/56px, `surface2`, optional label below (caption).                                                                                                                                        |
+| `PressableScale`            | The press animation + selection haptic, wraps any child.                                                                                                                                             |
+| `Chip`                      | Pill, eyebrow text, `tone` (accent name) → tint bg + accent text; `selected` → solid accent + ink text.                                                                                              |
+| `Eyebrow` / `SectionHeader` | Eyebrow label + optional right-aligned action link.                                                                                                                                                  |
+| `ProgressRing`              | SVG ring: `progress 0..1`, `size`, `stroke`, `gradient`, track `surface2`, children centered. Animates progress changes.                                                                             |
+| `SegmentedBar`              | N segments with gaps, each 0..1 filled, `activeIndex` glows. Session progress.                                                                                                                       |
+| `Pips`                      | N dots, `filled` count, `current` index ring; `pop` animates newly filled. Set progress.                                                                                                             |
+| `StatTile`                  | Big `hero`/`h1` numeral + eyebrow label + optional icon, `tone`.                                                                                                                                     |
+| `Stamp`                     | Passport stamp: rounded-rect or circle (seeded), double inset border in the stamp color, condensed uppercase text, rotation −8°..8° seeded, 90% opacity "ink". `title`, `subtitle`, `seed`, `tone?`. |
+| `Switch`                    | Custom pill toggle (teal when on) + selection haptic.                                                                                                                                                |
+| `Sheet`                     | Bottom sheet on `Modal` (fade backdrop + slide-up panel, radius `xl` top). Replaces ad-hoc centered dialogs.                                                                                         |
+| `Toast`                     | Transient floating line (e.g. "Strong set.") that rises and fades; used by Workout.                                                                                                                  |
 
 ## 4. Navigation
 
@@ -183,6 +183,7 @@ changes how things look and where they sit, not what the app decides.
 ### 5.1 Today (was Home, top half)
 
 Top to bottom:
+
 1. **Header row** — `ROAMFIT` wordmark (`h1`, teal) with a time-of-day greeting under it
    ("Good morning" / "Good afternoon" / "Good evening", `small`, text2). Gear `IconButton` right.
 2. **Banners** (comeback / travel-suggest / recovery week) as compact `Card`s with a leading
@@ -205,6 +206,7 @@ Top to bottom:
 ### 5.2 Journey (new tab — was Home, bottom half)
 
 The long-term story. Title `Journey Markers` in `display`, no eyebrow.
+
 1. **Journey Markers** — 3×2 grid of `StatTile`s in a teal/fern checkerboard (Sets completed, Levels gained and Countries are `fern`, the rest `teal`): Sessions (flame),
    Sets completed (barbell), Personal bests (trophy), Levels gained (trending-up), Places
    (location), Countries (globe). The icon and label say what each counts. Numbers in
@@ -283,6 +285,7 @@ The long-term story. Title `Journey Markers` in `display`, no eyebrow.
 ### 5.5 Generate ("New session") — Ignition
 
 Should feel like choosing your adventure.
+
 - Eyebrow `NEW SESSION`, title `display` "WHAT ARE WE TRAINING?".
 - **Focus**: grid of tiles (2 columns; Cardio full-width last), each ~96pt: icon + name +
   one-line flavor ("Push, pull, press", "Squats, lunges, hinges", "Anti-everything core",
@@ -332,6 +335,7 @@ in its header). Favorites/Recents headers are tappable rows with a chevron and a
 empty. Every playlist row: tap plays, heart toggles favorite, chevron previews tracks.
 
 **Exercise phase (reps)** — a hero `Card` with a 2px gradient border in the section's color:
+
 - Level badge as a summit `Chip` ("LVL 3 · HORIZONTAL PUSH") top-left.
 - Exercise name in `display`, up to 2 lines, `adjustsFontSizeToFit`.
 - Set row: `Pips` for the sets + "SET 2 OF 4" eyebrow; existing prev/next set chevrons.
@@ -355,6 +359,7 @@ starts. Final 3 seconds: ring and numeral `pulse`, light haptic each second.
 
 **Rest phase** — the whole hero shifts to the **fern** mood (fern gradient border, fern
 ring) so rest is unmistakable at a glance from across a room:
+
 - Eyebrow `REST`, a line from the rest pool ("Shake it out.") in `h2`.
 - 220pt fern `ProgressRing` with the countdown in `mega`.
 - −15s / +15s / Skip as secondary pill buttons.
@@ -370,6 +375,7 @@ paused-completion nudge becomes a `Sheet`.
 
 Problem today: it's hard to read at a glance and wastes space. Fix: **one screen, one glance,
 one button.**
+
 - Header: eyebrow `DEBRIEF`, title "{FOCUS} · {N} MIN", and a row of three compact `StatTile`s
   computed from what's already on screen: Sets done, Exercises, Reps/holds logged (additive
   counts only — never "of planned").
@@ -386,7 +392,7 @@ one button.**
 ### 5.9 Completion (Summary, after FINISH)
 
 **User direction (verbatim intent):** this is the one page that already has the energy the rest
-of the app lacks, and it must stay *highly* exciting, interactive and animated. The user
+of the app lacks, and it must stay _highly_ exciting, interactive and animated. The user
 specifically loves: the **stamped-on hype headline** ("BEAST MODE ACTIVATED" slamming in word by
 word), the **stat chips** counting up, the **confetti cannons and radial sunburst**, the
 **pulsating "Heck yes!" button**, and **all the haptics**. The one thing they dislike is the
@@ -425,6 +431,7 @@ here at all.
 ### 5.10 Settings — Basecamp
 
 Grouped iOS-style list on `bg`, reordered so what people change most comes first:
+
 1. **Header**: title `h1` "SETTINGS".
 2. **Training** group — Timer sounds (`Switch`, volume icon, gold), with its explanation as
    `caption` under the row.
@@ -440,10 +447,10 @@ Grouped iOS-style list on `bg`, reordered so what people change most comes first
    ("Load diagnostics" as a secondary `sm` button; output lines in a `surface2` well, monospace
    is fine here) and Reset progression sessions (secondary button, with its confirm as a
    `Sheet`).
-Every row: 52pt min height, leading 32pt icon tile tinted in its group's accent, `h3` label,
-`Switch` or chevron on the right, hairline separators inset past the icon. `surface` group
-cards, radius `lg`. Group eyebrows above each card. Footer: small `ROAMFIT` wordmark + version in
-`caption` text3 — a quiet sign-off.
+   Every row: 52pt min height, leading 32pt icon tile tinted in its group's accent, `h3` label,
+   `Switch` or chevron on the right, hairline separators inset past the icon. `surface` group
+   cards, radius `lg`. Group eyebrows above each card. Footer: small `ROAMFIT` wordmark + version in
+   `caption` text3 — a quiet sign-off.
 
 ### 5.11 Every other surface
 
@@ -466,7 +473,7 @@ Nothing ships on the old look. Beyond the screens above, the redesign covers:
   keep their real-world tension colors — they're information, shown as a color dot on a dark
   chip), `DemoMedia` (dark card, rounded video, restyled fallback/link states), `PinnedNote` (gold
   sticky-note card with a pin icon, edit mode as a `surface2` well), `SpotifyControls` (compact
-  dark pill, Spotify green is allowed *only* as the logo/brand dot; its browse sheet is vibe chips
+  dark pill, Spotify green is allowed _only_ as the logo/brand dot; its browse sheet is vibe chips
   over Favorites / Recently played / Fresh picks sections, with a heart on every playlist row), `FeedbackControls`,
   `HighlightCard`, `AnimatedStatCounter`, `HypeHeadline`, `CelebrationBackdrop`, `ConfettiBurst`
   (palette → teal/gold/summit/fern/sky), `OptionPicker` (restyle or delete if unused).
@@ -519,7 +526,7 @@ are stable):
 ## 8. Daybreak — the light mode
 
 Midnight is unreadable in direct sun: dim surfaces and mid-luminance text drown in glare.
-Daybreak keeps everything that makes the app *RoamFit* — Barlow highway-sign type, the travel
+Daybreak keeps everything that makes the app _RoamFit_ — Barlow highway-sign type, the travel
 motifs, the trail CTA, the three moods, the copy — and changes only the light it is seen in.
 
 **The metaphor:** a paper trail map in your hand at noon. Warm paper ground, near-black ink, contour
@@ -533,37 +540,37 @@ Same token names as Midnight; only values change. Contrast ratios are measured a
 
 ```ts
 // Surfaces — warm map paper. Cards are lighter than the ground, and lift with a soft shadow.
-bg:         '#F6F0E4'
-surface:    '#FFFDF8'
-surface2:   '#EFE7D8'   // wells, inputs, chips, nested cards
-surface3:   '#E3D8C4'   // pressed / highlighted
-line:       '#D6C9B2'
-lineStrong: '#B3A288'
+bg: '#F6F0E4';
+surface: '#FFFDF8';
+surface2: '#EFE7D8'; // wells, inputs, chips, nested cards
+surface3: '#E3D8C4'; // pressed / highlighted
+line: '#D6C9B2';
+lineStrong: '#B3A288';
 
 // Text — printer's ink, warm not blue
-text:  '#1A130C'   // 16.2:1 on bg
-text2: '#4A4036'   //  8.9:1
-text3: '#6B6052'   //  5.4:1 — still AA, because "muted" outdoors is "invisible"
+text: '#1A130C'; // 16.2:1 on bg
+text2: '#4A4036'; //  8.9:1
+text3: '#6B6052'; //  5.4:1 — still AA, because "muted" outdoors is "invisible"
 
 // Accents — deepened so each is ≥ 4.5:1 as text on bg AND carries a white legend as a fill
-teal:     '#004C54'   // Midnight Green; 8.6:1 on bg; white on it 9.7:1
-tealDeep: '#003A40'
-gold:      '#8F5A00'   // brass — reads as gold on paper, unlike a yellow
-fern:     '#217515'   // 5.8:1 white, 5.1:1 on bg, 4.6:1 on its own tint
-sky:       '#1A5FC2'
-summit:    '#7E2BB0'   // plum; 7.3:1 white, 6.5:1 on bg, 6.0:1 on surface2
-rose:      '#BF1D63'   // still cardio-only, still never an error
+teal: '#004C54'; // Midnight Green; 8.6:1 on bg; white on it 9.7:1
+tealDeep: '#003A40';
+gold: '#8F5A00'; // brass — reads as gold on paper, unlike a yellow
+fern: '#217515'; // 5.8:1 white, 5.1:1 on bg, 4.6:1 on its own tint
+sky: '#1A5FC2';
+summit: '#7E2BB0'; // plum; 7.3:1 white, 6.5:1 on bg, 6.0:1 on surface2
+rose: '#BF1D63'; // still cardio-only, still never an error
 ```
 
 **`ink` changes meaning slightly.** It was always "the text on an accent fill". In Midnight the
 fills are bright, so it is near-black; in Daybreak the fills are deep, so it is **white
 (`#FFFFFF`)**. Every `color="ink"` call site is therefore correct in both modes without change —
 the "never white on teal" rule is a Midnight rule (bright teal); Daybreak's deep teal wants
-white. Two **mode-invariant** tokens cover content on colors that do *not* change with the theme:
+white. Two **mode-invariant** tokens cover content on colors that do _not_ change with the theme:
 `fixedInk` (`#170B03`) and `fixedPaper` (`#F7F3EA`) — band swatches (real-world colors, user data),
 anything over video/imagery.
 
-**`vivid`** — the Midnight accent hexes, exported unchanged in *both* modes, for purely
+**`vivid`** — the Midnight accent hexes, exported unchanged in _both_ modes, for purely
 decorative color with no text on it: confetti, celebration orbs, the sunburst, the headline's stamp
 shadow. Deep confetti looks like dirt; vivid confetti on paper looks like a sunny day.
 
@@ -575,11 +582,11 @@ Deepened in the same proportion as the accents so white legends hold ≥ 4.2:1 a
 gradient text is large/bold):
 
 ```ts
-trail: ['#003F46', '#0A5C66']
-golden:  ['#8F5A00', '#A46D00']
-fern:   ['#1C6911', '#248217']
-summit:  ['#6A22A0', '#8E3BC4']
-night:   ['#FFFDF8', '#F6F0E4']   // card sheen: surface -> bg
+trail: ['#003F46', '#0A5C66'];
+golden: ['#8F5A00', '#A46D00'];
+fern: ['#1C6911', '#248217'];
+summit: ['#6A22A0', '#8E3BC4'];
+night: ['#FFFDF8', '#F6F0E4']; // card sheen: surface -> bg
 ```
 
 `onGradient(tone)` returns the legend color for a hero in the current mode: always `ink`
@@ -618,8 +625,8 @@ night:   ['#FFFDF8', '#F6F0E4']   // card sheen: surface -> bg
 - `theme/palettes.ts`: `midnight` and `daybreak`, each a complete `Palette` (identical key sets,
   asserted). `theme/buildTheme.ts`: `buildTheme(scheme)` → a frozen `Theme`:
   `{ scheme, colors, vivid, tints, gradients, accentGradient, section, focus, setState, dayMarker,
-  dayCell, trainedColor, onGradient, heroCta, glow, elevation, topo, stamp, statusBar, navTheme,
-  headerOptions }`. `onGradient(tone)` returns a color token *name* (`'ink' | 'fixedPaper'`), not a
+dayCell, trainedColor, onGradient, heroCta, glow, elevation, topo, stamp, statusBar, navTheme,
+headerOptions }`. `onGradient(tone)` returns a color token _name_ (`'ink' | 'fixedPaper'`), not a
   hex; `heroCta` is the token name of the Home hero pill's legend (Midnight `gold`, Daybreak
   `teal`). No scattered `scheme === ` color checks: add a
   Theme field instead.
@@ -647,8 +654,8 @@ night:   ['#FFFDF8', '#F6F0E4']   // card sheen: surface -> bg
 
 ### 8.5 Where you switch
 
-- **Settings → Appearance** (first group, above Training): a three-way picker made of three `Chip`s (`SegmentedBar` is a progress bar, not a selector; testIDs `appearance-system|light|dark`) — *System* /
-  *Daybreak* (sun icon) / *Midnight* (moon icon) — with the caption "Daybreak is built for
+- **Settings → Appearance** (first group, above Training): a three-way picker made of three `Chip`s (`SegmentedBar` is a progress bar, not a selector; testIDs `appearance-system|light|dark`) — _System_ /
+  _Daybreak_ (sun icon) / _Midnight_ (moon icon) — with the caption "Daybreak is built for
   training outdoors in full sun. System follows your iPhone, which can switch at sunset."
 - **Active Workout top bar:** a sun/moon `IconButton` (`theme-toggle`). This is the point of the
   feature: you walk out into the courtyard mid-session and the screen is unreadable — one tap, no
@@ -660,7 +667,7 @@ night:   ['#FFFDF8', '#F6F0E4']   // card sheen: surface -> bg
 
 - Never read a color at module scope. `colors`, `tints`, `gradients` and the semantic maps are no
   longer exported as statics (deleted at the end of track 22) — read them from `useTheme()`.
-- Pure `lib/` code returns token *names* (`AccentName`, `ColorName`), not hex, and lets the
+- Pure `lib/` code returns token _names_ (`AccentName`, `ColorName`), not hex, and lets the
   component resolve them; where it must return a color it takes the `Theme` as an argument.
 - Every new color decision is made for both palettes at once. A screen is not done until it has been
   looked at in both.

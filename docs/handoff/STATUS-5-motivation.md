@@ -1,13 +1,17 @@
 ## Track: 5-motivation — Motivation surfaces
+
 Last updated: 2026-08-31
 
 ### Read before starting
+
 CLAUDE.md, wave-05-motivation.md, ORCHESTRATION.md (status board + carried-forward #4/#5/#11/#12
-+ verification log), STATUS-4-loop.md, STATUS-4b-loop-completion.md, `packages/store/src/index.ts`
-+ `repositories/{stats,milestones,progressionState,users,queues}.ts`, `packages/engine/src/index.ts`,
-spec §14, §6.4, §6.7, §9.1-9.4, §9.6-9.10, §10.1.
+
+- verification log), STATUS-4-loop.md, STATUS-4b-loop-completion.md, `packages/store/src/index.ts`
+- `repositories/{stats,milestones,progressionState,users,queues}.ts`, `packages/engine/src/index.ts`,
+  spec §14, §6.4, §6.7, §9.1-9.4, §9.6-9.10, §10.1.
 
 ### Key findings from ramp-up (context for future increments)
+
 - Wave 3 already built almost the entire persistence substrate this wave needs: `sessions.city`/
   `country` columns, `milestones` table with `level_up`/`best_set_pr`/`recovery_week`/`nth_session`/
   `new_city` types, `rolledUpStats.weeksSinceLastRecoveryWeek` column, `deferredWork` with a
@@ -40,6 +44,7 @@ spec §14, §6.4, §6.7, §9.1-9.4, §9.6-9.10, §10.1.
   literal branded image.
 
 ### Plan (small commits, this order)
+
 1. Engine: `sessionsUntilNextLevel` pure simulation (micro-steps remaining until a level change),
    exported, tested. Substrate for Next Unlock's "N sessions from X."
 2. Store: implement the recovery-week auto-suggest counter (issue #12) + `shouldSuggestRecoveryWeek`.
@@ -54,33 +59,34 @@ spec §14, §6.4, §6.7, §9.1-9.4, §9.6-9.10, §10.1.
 10. Grep-for-shame pass, `npm run check`, ORCHESTRATION.md update.
 
 ### Done
+
 - [x] **Step 1** (`e52c432`) — `packages/engine/src/progression/micro.ts`'s `microStepsToNextLevel`:
-  pure simulation of repeated `microAdvance` calls until a level change fires, capped at 100 steps
-  as a belt-and-braces guard. Exported from `packages/engine/src/index.ts`, along with the ladder
-  lookups (`findFamily`, `levelById`, `exerciseForLevel`, `isMaxLevel`, `levelOrdinal`, `nextLevel`)
-  the progression board UI needs — none of those were exported before this wave. 3 new tests in
-  `micro.test.ts` (walks the real advance sequence and confirms the count decrements by exactly 1
-  each step, hits exactly 1 the step before a level change, band vs. bodyweight).
+      pure simulation of repeated `microAdvance` calls until a level change fires, capped at 100 steps
+      as a belt-and-braces guard. Exported from `packages/engine/src/index.ts`, along with the ladder
+      lookups (`findFamily`, `levelById`, `exerciseForLevel`, `isMaxLevel`, `levelOrdinal`, `nextLevel`)
+      the progression board UI needs — none of those were exported before this wave. 3 new tests in
+      `micro.test.ts` (walks the real advance sequence and confirms the count decrements by exactly 1
+      each step, hits exactly 1 the step before a level change, band vs. bodyweight).
 - [x] **Step 2 / issue #12** (`1d30847`) — confirmed via grep that `weeksSinceLastRecoveryWeek` was
-  declared in schema but never written anywhere. Implemented incrementally in
-  `packages/store/src/repositories/stats.ts`'s `recordSessionCompletion`: a Recovery Week
-  completion (`recoveryWeekManual`) resets the counter to 0; any other completed session bumps it
-  by 1 the first time a *new* ISO week (via the file's existing `isoWeekKey`) produces a session —
-  same-week repeats don't double-count. Added `shouldSuggestRecoveryWeek(stats)` (true for
-  6-8 weeks inclusive, per §9.9's literal "every 6-8 weeks"). Threaded `session.recoveryWeekManual`
-  through `completion.ts` into the new `RecordSessionCompletionInput` field. 3 new tests in
-  `completion.test.ts` covering: same-week de-dup, the false-then-true transition at 5→6 weeks,
-  and the reset-on-Recovery-Week-completion behavior (never "penalizes," per §1.1).
+      declared in schema but never written anywhere. Implemented incrementally in
+      `packages/store/src/repositories/stats.ts`'s `recordSessionCompletion`: a Recovery Week
+      completion (`recoveryWeekManual`) resets the counter to 0; any other completed session bumps it
+      by 1 the first time a _new_ ISO week (via the file's existing `isoWeekKey`) produces a session —
+      same-week repeats don't double-count. Added `shouldSuggestRecoveryWeek(stats)` (true for
+      6-8 weeks inclusive, per §9.9's literal "every 6-8 weeks"). Threaded `session.recoveryWeekManual`
+      through `completion.ts` into the new `RecordSessionCompletionInput` field. 3 new tests in
+      `completion.test.ts` covering: same-week de-dup, the false-then-true transition at 5→6 weeks,
+      and the reset-on-Recovery-Week-completion behavior (never "penalizes," per §1.1).
 - [x] **Issue #11** — ADR 0006 (`docs/decisions/0006-recovery-week-volume-cut-placement.md`):
-  decided to *keep* the ~20% volume cut as `generation.ts`'s store-level post-generation pass
-  rather than promote it into the engine this wave. Full reasoning in the ADR; short version: the
-  store-level pass already applies the engine's own exported `COMEBACK_VOLUME_MULTIPLIER` verbatim
-  (not a re-derived number), so the invariant-2 risk is narrow, and the "who decides a Recovery
-  Week is happening" question would stay a store/UI concern either way. Documents a real, narrow
-  known gap (post-hoc `Math.floor` can't rebalance across a pattern-gap substitution the way
-  in-prescription cutting could) rather than hiding it.
+      decided to _keep_ the ~20% volume cut as `generation.ts`'s store-level post-generation pass
+      rather than promote it into the engine this wave. Full reasoning in the ADR; short version: the
+      store-level pass already applies the engine's own exported `COMEBACK_VOLUME_MULTIPLIER` verbatim
+      (not a re-derived number), so the invariant-2 risk is narrow, and the "who decides a Recovery
+      Week is happening" question would stay a store/UI concern either way. Documents a real, narrow
+      known gap (post-hoc `Math.floor` can't rebalance across a pattern-gap substitution the way
+      in-prescription cutting could) rather than hiding it.
 - [x] **Issues #4/#5 confirmed, no code needed:**
-  - #4 (`hamstring-curl`/`tke` tagged `hip_extension`): confirmed the pattern enum *has* since
+  - #4 (`hamstring-curl`/`tke` tagged `hip_extension`): confirmed the pattern enum _has_ since
     grown a `knee_flexion_loaded` bucket (`packages/data/src/schema.ts`/`validate.ts`), but the two
     exercises' content rows were never migrated to it. Confirmed harmless to engine correctness:
     their `primary`/`secondary` muscle tags (`hamstrings`/`quads`) are correct regardless of
@@ -96,16 +102,16 @@ spec §14, §6.4, §6.7, §9.1-9.4, §9.6-9.10, §10.1.
     present by accident.
 
 - [x] **Step 4/5** (`5217072`, `b55490c`) — `app/src/lib/dashboard.ts` (new, pure, tested —
-  `dashboard.test.ts`, 8 tests including a "zero-session board has every family, none mastered"
-  case): `buildProgressionBoard`, `nextUnlockHero` (picks the single most-imminent family, not a
-  list — matches §14's "one concrete, close reward"), `overWorkedMuscles`/`buildMuscleBalanceRows`
-  (built now, wired into `HomeScreen` in a later step). `HomeScreen.tsx` rewritten to the full
-  §10.1/§14.1 order: comeback banner → travel auto-suggest banner → Recovery Week suggest banner →
-  Today/Resume card → Quick Session → This week (bug fixed, see below) + travel button → Next
-  Unlock hero → Progression board (with the zero-session calibration note and §6.7 Mastery
-  badges). `GenerateScreen.tsx` gained the §9.9 manual Recovery Week toggle (route-param-seedable
-  from Home's suggestion banner, `generate(..., recoveryWeek)`); `navigation/types.ts`'s `Generate`
-  route now carries an optional `recoveryWeek` param.
+      `dashboard.test.ts`, 8 tests including a "zero-session board has every family, none mastered"
+      case): `buildProgressionBoard`, `nextUnlockHero` (picks the single most-imminent family, not a
+      list — matches §14's "one concrete, close reward"), `overWorkedMuscles`/`buildMuscleBalanceRows`
+      (built now, wired into `HomeScreen` in a later step). `HomeScreen.tsx` rewritten to the full
+      §10.1/§14.1 order: comeback banner → travel auto-suggest banner → Recovery Week suggest banner →
+      Today/Resume card → Quick Session → This week (bug fixed, see below) + travel button → Next
+      Unlock hero → Progression board (with the zero-session calibration note and §6.7 Mastery
+      badges). `GenerateScreen.tsx` gained the §9.9 manual Recovery Week toggle (route-param-seedable
+      from Home's suggestion banner, `generate(..., recoveryWeek)`); `navigation/types.ts`'s `Generate`
+      route now carries an optional `recoveryWeek` param.
   - **Fixed the pre-existing "This week" dots bug** found during ramp-up: now
     `statsRepo.rollingSessionCount`/`effectiveWeeklyDenominator` (travel-day-aware), not
     `lifetimeSessionCount` capped at 7.
@@ -152,28 +158,28 @@ spec §14, §6.4, §6.7, §9.1-9.4, §9.6-9.10, §10.1.
   - `npm run check` green (engine 873, store 38, data 2, app 38 across 14 suites).
 
 - [x] **Step 8** (`b490fc0`) — `app/src/lib/celebration.ts` (new, pure, 5 tests): shapes
-  `completeSession`'s `progressionEvents` + the milestone rows it wrote into "full-screen,
-  unmissable" celebrations (level-ups, and Mastery best-set PRs matched via `mastery_pr_check`
-  progression events cross-referenced with `best_set_pr` milestone payloads) vs. "quiet,
-  accumulating" ones (ordinary PRs, nth-session, new-city, recovery-week). `SummaryScreen.tsx`
-  rewritten: FINISH now shows full-screen celebrations **one at a time, before** the plain
-  completion summary (previously both were stacked in one scroll view) with a real §9.10
-  `Share.share` action on each. New `SummaryScreen.test.tsx` drives a real calibration-mode
-  session (rep bonus large enough to trigger §6.5's "exceeds target by >=25%" full-level advance)
-  through FINISH and asserts the celebration really appears before Done, share really fires, and
-  Continue reaches the Done screen — not a mocked/fabricated progression event.
+      `completeSession`'s `progressionEvents` + the milestone rows it wrote into "full-screen,
+      unmissable" celebrations (level-ups, and Mastery best-set PRs matched via `mastery_pr_check`
+      progression events cross-referenced with `best_set_pr` milestone payloads) vs. "quiet,
+      accumulating" ones (ordinary PRs, nth-session, new-city, recovery-week). `SummaryScreen.tsx`
+      rewritten: FINISH now shows full-screen celebrations **one at a time, before** the plain
+      completion summary (previously both were stacked in one scroll view) with a real §9.10
+      `Share.share` action on each. New `SummaryScreen.test.tsx` drives a real calibration-mode
+      session (rep bonus large enough to trigger §6.5's "exceeds target by >=25%" full-level advance)
+      through FINISH and asserts the celebration really appears before Done, share really fires, and
+      Continue reaches the Done screen — not a mocked/fabricated progression event.
 - [x] **Step 9** (`b5dabf2`) — §9.8 notifications: new `sessionsRepo.getCompletedSessionStartTimes`
-  (startedAt + that session's own `tzId`, so "observed training window" reflects where the user
-  actually was, not the device's current tz) and `app/src/lib/motivationNotifications.ts` (pure
-  core: `sessionLocalHours`/`observedTrainingHour`/`clampToQuietHours`/copy builders, 11 tests).
-  **"Max one per day" is structural, not a rule to remember**: seven weekday-scoped
-  `expo-notifications` calendar triggers (fixed identifiers `motivation-nudge-0..6`), re-scheduled
-  on every Home open — Sunday carries the weekly-summary copy, the other six carry the adaptive
-  loss-aversion nudge (built from Next Unlock when available). Gated on
-  `user.hasEverCompletedSession` so a fresh install isn't prompted for notification permission
-  before it has anything to be adaptive about. §9.10 share wired for the passport and weekly
-  summary too (`share-passport`/`share-weekly-summary` buttons on Home, both real `Share.share`
-  calls, tested).
+      (startedAt + that session's own `tzId`, so "observed training window" reflects where the user
+      actually was, not the device's current tz) and `app/src/lib/motivationNotifications.ts` (pure
+      core: `sessionLocalHours`/`observedTrainingHour`/`clampToQuietHours`/copy builders, 11 tests).
+      **"Max one per day" is structural, not a rule to remember**: seven weekday-scoped
+      `expo-notifications` calendar triggers (fixed identifiers `motivation-nudge-0..6`), re-scheduled
+      on every Home open — Sunday carries the weekly-summary copy, the other six carry the adaptive
+      loss-aversion nudge (built from Next Unlock when available). Gated on
+      `user.hasEverCompletedSession` so a fresh install isn't prompted for notification permission
+      before it has anything to be adaptive about. §9.10 share wired for the passport and weekly
+      summary too (`share-passport`/`share-weekly-summary` buttons on Home, both real `Share.share`
+      calls, tested).
   - **What's Jest-only vs. device-verified** (same honest split Wave 4b established for audio/
     haptics): every test here proves "the right calls happen with the right arguments," never
     that a notification actually appears at the scheduled weekday/hour on a real device, or that
@@ -182,6 +188,7 @@ spec §14, §6.4, §6.7, §9.1-9.4, §9.6-9.10, §10.1.
   - `npm run check` green throughout (engine 873, store 38, data 2, app 55 across 17 suites).
 
 ### Grep-for-shame pass (done criterion)
+
 Ran targeted greps across `app/src`, `packages/store/src`, `packages/engine/src` for: a daily-
 streak concept, red/warning color codes tied to untrained days or misses, and guilt-shaped copy
 ("you missed", "you failed", "don't break your streak", "behind", "slacking", etc.). Result:
@@ -194,6 +201,7 @@ a neutral gray (`#e2e8f0`, same family as every other neutral UI element); the O
 the muscle-balance rows is plain trailing text in the row's own font/color, not a color change.
 
 ### Final status
+
 Every §14.1 element is built, in spec order, in `HomeScreen.tsx`, gated correctly for the
 zero-session state. Issues #4, #5, #11, #12 are resolved (see ORCHESTRATION.md's carried-forward
 table, updated this session) or explicitly re-filed as a content-only follow-up (#4's retag).
@@ -204,12 +212,12 @@ table, updated this session) or explicitly re-filed as a content-only follow-up 
   real iOS notification center, a real native share sheet, or a real device screenshot). This
   mirrors Wave 4/4b's own honest split between "proven in Jest" and "proven on a phone"; a future
   session with simulator/device access should do an `expo run:ios` pass the way `STATUS-4b-loop-
-  completion.md`'s evidence section did, and actually watch a level-up celebration and a share
+completion.md`'s evidence section did, and actually watch a level-up celebration and a share
   sheet render for real.
 - **§9.10 share cards are text, not a rendered branded image** — no image-rendering library is
   installed (`react-native-view-shot`, etc.); adding one was judged not worth the wave's remaining
   budget over finishing every §14.1 element. Recorded as a scope cut, not a silent gap. The share
-  *action* (native share sheet, real content) is real; only the artifact format differs from the
+  _action_ (native share sheet, real content) is real; only the artifact format differs from the
   spec's literal "branded image card."
   - **New dependency note (CLAUDE.md: no new deps without noting them):** none were added. RN's
     built-in `Share` API covered §9.10 entirely.
@@ -232,6 +240,7 @@ table, updated this session) or explicitly re-filed as a content-only follow-up 
   (rare in practice — most sessions produce at most one).
 
 ### Next (for whoever picks this up)
+
 1. An `expo run:ios` pass: build, boot, and screenshot the zero-session dashboard, a completed-
    session dashboard, a level-up celebration, and both share sheets for real — this track's Jest
    coverage is real but, per CLAUDE.md's own "Standing lesson," not sufficient proof by itself.
@@ -244,5 +253,6 @@ table, updated this session) or explicitly re-filed as a content-only follow-up 
 4. If travel-day-suggestion nagging turns out to matter: a persisted per-day dismissal column.
 
 ### Decisions / gotchas
+
 - One screen (`HomeScreen.tsx`) carries the whole §14.1 dashboard — see "Key findings" above.
 - §9.10 share cards ship as native text share, not a rendered image — see "Key findings" above.

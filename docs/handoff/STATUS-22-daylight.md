@@ -1,4 +1,5 @@
 ## Track: 22 — "Daylight" light mode
+
 Last updated: 2026-09-30 — TRACK DONE (Phases 1, 2, 3). Only the device pass remains, owned by docs/BACKLOG.md ("Daylight light mode — device pass owed").
 
 User request: Golden Hour is hard to see when exercising outdoors. Keep it as the dark mode and add
@@ -9,6 +10,7 @@ Presentation + one preference column. Engine/data behavior is frozen; the only s
 `theme_preference` column (migration 0022) and its `usersRepo` field.
 
 ### Done
+
 - [x] Design: `docs/DESIGN.md` §8 (palette, gradients, elevation/glow/topo/stamp, mechanism, switch points); §1 "Dark only" rewritten as "Two lights, one system".
 - [x] Phase 1: store migration 0022 + usersRepo `themePreference` (afcda30); theme foundation palettes/buildTheme/ThemeContext (eb2e433); ThemeProvider + App wiring (e16e12e); `lib/dayMarkers` `markerTone` (3105109); `ui/` + `navigation/` on theme hooks (c88a638, 438bf5b cleanup).
 - [x] Phase 2A Workout + `theme-toggle` (98262cb); 2B Summit: Summary/Completion/confetti (ac7d895); 2C Home (3e87a7c), Journey (b749874), Generate (763464a), Approval (883dd94, c98cc1f); 2D Field Guide (9a3ca9a), Exercise detail (fd92033), Settings Appearance (7a9825c), Icon `sun` (d5e74ea). In-flight marker (9916609).
@@ -18,6 +20,7 @@ Presentation + one preference column. Engine/data behavior is frozen; the only s
 - [x] Phase 3 steps 5-7: Daylight tint alpha 8% + ember `#B83507`, contrast test; `userInterfaceStyle: "automatic"`; BACKLOG device-pass item; DESIGN §8 reconciled (see the closing commit in `git log`).
 
 ### In progress
+
 - Nothing. Track closed.
 
 ### Next (historical plan — all done; kept for the API reference below)
@@ -26,6 +29,7 @@ Presentation + one preference column. Engine/data behavior is frozen; the only s
 every commit. Keep the old static exports (`colors`, `tints`, `gradients`, semantic maps, `glow`,
 `navTheme`) alive and equal to the Golden Hour values throughout Phase 1 and 2, marked
 `/** @deprecated use useTheme() */`, so unmigrated files still compile.
+
 1. `theme/palettes.ts` (`goldenHour`, `daylight`, `Palette` type; add `fixedInk`, `fixedPaper`,
    `backdrop` to both), `theme/buildTheme.ts` (`Theme`, `buildTheme`, the two frozen instances,
    `onGradient`, `glow`, `elevation`, `topo`, `stamp`, `statusBar`, `navTheme`, `headerOptions`),
@@ -60,12 +64,13 @@ reads. Commit only your own paths: `git commit -m "..." -- <your paths>` (retry 
 Verify with jest on your own tests and `npx tsc --noEmit -p app` filtered to your files (other
 agents' files may be mid-edit). Every existing test keeps passing; add at least one Daylight render
 test per screen.
+
 - **2A Workout:** `screens/WorkoutScreen.tsx`, `components/{SpotifyControls,BandPicker,BandChip,
-  KeyboardDoneBar,PinnedNote,DemoMedia,AbandonSessionButton,AnchorBadge}.tsx`, plus the top-bar
+KeyboardDoneBar,PinnedNote,DemoMedia,AbandonSessionButton,AnchorBadge}.tsx`, plus the top-bar
   `theme-toggle` IconButton (§8.5) with tests. BandChip's `textToneOn` returns `fixedInk`/`fixedPaper`
   (band swatches are mode-invariant). `keyboardAppearance` on Workout/DemoMedia/PinnedNote inputs.
 - **2B Summit:** `screens/SummaryScreen.tsx`, `components/{HypeHeadline,CelebrationBackdrop,
-  ConfettiBurst,HighlightCard,AnimatedStatCounter,FeedbackControls}.tsx`. Headline uses `stamp.*`;
+ConfettiBurst,HighlightCard,AnimatedStatCounter,FeedbackControls}.tsx`. Headline uses `stamp.*`;
   confetti/orbs/sunburst use `vivid`. `keyboardAppearance` on Summary's input.
 - **2C Basecamp + Ignition:** `screens/{HomeScreen,JourneyScreen,GenerateScreen,ApprovalScreen}.tsx`,
   `components/{DayCell,RungTrack,IconBadge,SectionTitle,EmptyState}.tsx`. Home's hero CTA `sun` text
@@ -77,6 +82,7 @@ test per screen.
   `useThemePreference`, with tests. `keyboardAppearance` on the search input.
 
 **Phase 3 — close (one agent).**
+
 1. Delete the deprecated static exports from `theme/`; fix every compile error that surfaces (that is
    the straggler list). Grep `app/src` outside `theme/` for raw hex/rgba — only `SPOTIFY_GREEN` may
    remain.
@@ -87,7 +93,9 @@ test per screen.
    (add to the icon/splash art item). Close this file.
 
 ### Phase 1 API (what Phase 2 copies from)
+
 Imports are all from `'../theme'` (index) except the provider:
+
 - `useTheme(): Theme`, `makeStyles(factory): () => styles`, `ThemeContext` (default = Golden Hour).
 - `Theme` fields: `scheme` ('light'|'dark'), `colors` (Palette: bg surface surface2 surface3 line lineStrong
   text text2 text3 ink fixedInk fixedPaper backdrop ember emberDeep gold sun lagoon sky summit rose),
@@ -104,26 +112,35 @@ Imports are all from `'../theme'` (index) except the provider:
 - Store: `usersRepo.UserRecord.themePreference`, `UserPatch.themePreference`, type `ThemePreference`
   exported from `@roamfit/store`.
 - Test helpers: `inDaylight(node)` in `ui/test-utils.ts` wraps a subtree in `ThemeContext` = Daylight.
-  Tests that need the *provider* (OS scheme, persistence) see `state/ThemeProvider.test.tsx`
+  Tests that need the _provider_ (OS scheme, persistence) see `state/ThemeProvider.test.tsx`
   (RN's `useColorScheme` is mocked via `jest.mock('react-native/Libraries/Utilities/useColorScheme')`;
   spying on `Appearance` does not reach it).
 
 **Migrating a component (the one pattern):**
+
 ```tsx
 import { makeStyles, useTheme } from '../theme';
-const useStyles = makeStyles((t) => StyleSheet.create({
-  card: { backgroundColor: t.colors.surface, borderColor: t.colors.line, ...t.elevation.card },
-}));
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    card: { backgroundColor: t.colors.surface, borderColor: t.colors.line, ...t.elevation.card },
+  }),
+);
 export function Thing() {
-  const theme = useTheme();            // only for render-time values (icon color, gradient, glow)
-  const styles = useStyles();          // themed StyleSheet, cached per Theme instance
-  return <View style={[styles.card, theme.glow(theme.colors.ember)]}><Txt color="ember">x</Txt></View>;
+  const theme = useTheme(); // only for render-time values (icon color, gradient, glow)
+  const styles = useStyles(); // themed StyleSheet, cached per Theme instance
+  return (
+    <View style={[styles.card, theme.glow(theme.colors.ember)]}>
+      <Txt color="ember">x</Txt>
+    </View>
+  );
 }
 ```
+
 Delete the old `import { colors, glow, tints, ... } from '../theme'` statics from the file as you go. A
 `StyleSheet.create` with no color in it stays module-level.
 
 ### Phase 1 gotchas for Phase 2
+
 - Old statics (`colors`, `tints`, `gradients`, `section`, `focus`, `setState`, `dayMarker`,
   `trainedColor`, `accentGradient`, `glow`, `navTheme`) still exist, `@deprecated`, Golden Hour values.
   A screen that still imports them renders Golden Hour colors even in Daylight — that is the
@@ -139,6 +156,7 @@ Delete the old `import { colors, glow, tints, ... } from '../theme'` statics fro
   (the full check is ~8 minutes).
 
 ### Decisions / gotchas
+
 - **`useOptionalThemePreference()`** (state/ThemeProvider.tsx) returns null without a provider; the Workout theme toggle hides when null. `useThemePreference()` still throws outside the provider (Settings needs it): any test that renders Settings (navigation.test) must wrap in `ThemeProvider`.
 - **`inDaylight(node)`** in `ui/test-utils.ts` wraps a subtree in Daylight for render tests. Tests that need the RN color scheme must mock `react-native/Libraries/Utilities/useColorScheme`; spying on `Appearance` does not reach the hook.
 - **Daylight tints are 8% alpha** (Golden Hour 15%) and Daylight ember is `#B83507`: measured accent-on-own-tint contrast over surface and bg is >= 4.5 for all accents except `sun` (>= 3); asserted in `themes.test.ts`.
@@ -153,5 +171,5 @@ Delete the old `import { colors, glow, tints, ... } from '../theme'` statics fro
   Use `fixedInk`/`fixedPaper` only where the background does not change with the theme.
 - **`vivid` is for decoration with no text on it.** Never put text in a `vivid` color on paper.
 - The ThemeContext default is Golden Hour so existing tests need no provider. That also means a
-  forgotten provider fails *silently dark* — App.tsx has the provider; a test asserts it.
+  forgotten provider fails _silently dark_ — App.tsx has the provider; a test asserts it.
 - Invariant 4 still holds: Daylight has no red/error color either; `rose` stays cardio-only.

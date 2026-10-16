@@ -1,26 +1,35 @@
 ## Track: 34 — accessory micro-progression + faster timed holds
+
 Last updated: 2026-10-16
+
 ### Done
+
 - [x] engine: timed holds climb 5s per qualifying session instead of 1s
-  (`PROGRESSION_TIME_STEP_SEC`, used by `microAdvance`/`microRegress`, clamped to the range so an
-  existing off-grid target like 23s goes 23→28→…→45). 20→45s is 5 sessions, like 8→12 reps.
-  ladderPosition expectations updated (it replays microAdvance, so it follows automatically).
+      (`PROGRESSION_TIME_STEP_SEC`, used by `microAdvance`/`microRegress`, clamped to the range so an
+      existing off-grid target like 23s goes 23→28→…→45). 20→45s is 5 sessions, like 8→12 reps.
+      ladderPosition expectations updated (it replays microAdvance, so it follows automatically).
 - [x] engine: `progression/accessory.ts` — `seedAccessoryMicro`, `applyAccessorySessionResult`,
-  `progressesAsAccessory`; `ExerciseState.accessoryMicro`/`accessoryMisses`;
-  `prescribeAccessory({ micro })`; pipeline wiring; tests (see git log)
+      `progressesAsAccessory`; `ExerciseState.accessoryMicro`/`accessoryMisses`;
+      `prescribeAccessory({ micro })`; pipeline wiring; tests (see git log)
 - [x] engine: an accessory switched to a heavier band for every set with every set met keeps its
-  rep target (dabe62e)
+      rep target (dabe62e)
 - [x] store: migration 0028 (`micro_*` columns), `rowToState` → `accessoryMicro`/`accessoryMisses`,
-  `recordAccessoryProgression`, completion runs `progressAccessoryEntry` for accessory entries,
-  `seedAccessoryProgressionFromHistory` called at the top of `generate()`; tests
-  (`accessoryProgression.test.ts`)
+      `recordAccessoryProgression`, completion runs `progressAccessoryEntry` for accessory entries,
+      `seedAccessoryProgressionFromHistory` called at the top of `generate()`; tests
+      (`accessoryProgression.test.ts`)
 - [x] app: Approval Add exercise passes `micro: state.accessoryMicro`; test. BACKLOG: replaced the
-  track-33 parked item with a device-pass + loose-ends item.
+      track-33 parked item with a device-pass + loose-ends item.
+
 ### In progress
+
 - nothing — track complete. Jest-verified only.
+
 ### Next
+
 - see BACKLOG "Accessory ladder — device pass owed, and two loose ends".
+
 ### Decisions / gotchas
+
 - "Accessory" = a main entry with no `progressionFamilyId`. Cardio (`pattern: 'conditioning'`) is
   excluded: it is prescribed as intervals off the day's difficulty (`CARDIO_INTERVAL_TABLE`), and a
   45s-rest strength ladder would wreck that. It keeps band memory (track 33) only.

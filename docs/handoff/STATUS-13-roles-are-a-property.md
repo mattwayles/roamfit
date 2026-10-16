@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-02
 
-The request: warm-ups were a *separate species* of exercise — a handful of records whose names
+The request: warm-ups were a _separate species_ of exercise — a handful of records whose names
 literally started "Warm-Up", each usable only in the warm-up section, several of them duplicates of a
 real main exercise. They are now ordinary library records that declare which sections they are
 eligible for, and the same exercise can be programmed as a warm-up (lighter) or as main work (full
@@ -10,33 +10,37 @@ dose). True mobility drills (cat-cow, scapular push-ups, arm circles) stay warm-
 are not training a muscle group.
 
 ### Done
+
 - [x] Increment 1 — the mechanical shape change: `Exercise.role: Role` → `Exercise.roles: Role[]`
-  across `packages/data` (schema, validator, all 219 records as single-element arrays),
-  `packages/engine` (`candidates`, `warmupCooldown`, `swap`), `packages/store` and `app/`
-  (catalogue filter, Approval's add-exercise pool, detail screen). No eligibility changed, so the
-  golden snapshot was untouched — proof the change really was mechanical. (4f3776f)
+      across `packages/data` (schema, validator, all 219 records as single-element arrays),
+      `packages/engine` (`candidates`, `warmupCooldown`, `swap`), `packages/store` and `app/`
+      (catalogue filter, Approval's add-exercise pool, detail screen). No eligibility changed, so the
+      golden snapshot was untouched — proof the change really was mechanical. (4f3776f)
 - [x] Increment 2 — what reuse needs: a warm-up band exercise gets its lightest band instead of
-  `null`, holds used as a warm-up are capped at 45s (a stretch keeps its authored cool-down
-  length), and no exercise is drawn twice in one session (`pipeline` passes the main picks to
-  warm-up selection and both to cool-down selection; the group loop merges the caller's exclusions
-  instead of overwriting them). (ff4c26c)
+      `null`, holds used as a warm-up are capped at 45s (a stretch keeps its authored cool-down
+      length), and no exercise is drawn twice in one session (`pipeline` passes the main picks to
+      warm-up selection and both to cool-down selection; the group loop merges the caller's exclusions
+      instead of overwriting them). (ff4c26c)
 - [x] Increment 3 — the content pass. 219 → 213 records; roles now `main: 194, warmup: 46,
-  cooldown: 16`, 43 records eligible for more than one section. No name contains "Warm-Up".
+cooldown: 16`, 43 records eligible for more than one section. No name contains "Warm-Up".
 
 ### In progress
+
 - Nothing. The track is complete as specified.
 
 ### Next
+
 - Only what feedback asks for. The judgment table below is the thing most likely to need tuning:
   if a warm-up shows up that reads as a working set (or vice versa), edit that record's `roles`.
 
 ### Decisions / gotchas
+
 - **`roles` is an array on the library record; `SessionEntry.role` stays singular.** The entry
   records the section an exercise actually ran in, which is still exactly one thing. That also keeps
-  `sessionsAgo(history, id, role)` meaningful: "when did I last do this *as a warm-up*".
+  `sessionsAgo(history, id, role)` meaningful: "when did I last do this _as a warm-up_".
 - **Exclusions are applied before the focus preference, not after** (`selectWarmupCooldown`).
   Matching the day's focus already falls back to the whole role pool when it can't be met; applying
-  it first and *then* removing ids taken elsewhere could empty a one-deep focus pool and return
+  it first and _then_ removing ids taken elsewhere could empty a one-deep focus pool and return
   nothing. Real case caught by the property sweep: under a band-only equipment preference the abs
   cool-down pool is a single band stretch, so a warm-up that took it left the session with no
   cool-down at all.
@@ -49,7 +53,7 @@ are not training a muscle group.
   nothing crashes, but that history no longer rolls up under the surviving exercise.
 - **Ids were never renamed**, only names. An id is a stable identifier and every per-user row in
   `exercise_state` is keyed by it, so `wu-band-external-rotation` keeps its `wu-` id while being
-  named "Band External Rotation" and eligible for warm-up *and* main.
+  named "Band External Rotation" and eligible for warm-up _and_ main.
 - **The scap-push-up merge kept the stricter contraindications.** The two duplicate records
   disagreed: the warm-up had only `wrist_extension`, `bw-scap-push-up` also has `shoulder_overhead`.
   Loosening a §13.2 safety tag is not a refactor's call (invariant 3), so the stricter tagging

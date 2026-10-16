@@ -1,11 +1,14 @@
 ## Track: 6g-warmups — Shoulder-safe warm-up variety (closes issue #33)
+
 Last updated: 2026-09-01
 
 ### Status
+
 Done. `npm run validate:library` and `npm run check` both green. Commit: (see git log after this
 status file's own commit — this track lands in one commit alongside itself).
 
 ### Measured before/after (against the committed library, not estimated)
+
 - Warmup pool: 9 -> 13 records (`npm run validate:library`'s coverage report: `role: warmup` 13).
 - Genuinely shoulder-specific `focus: upper` warmups that survive a `shoulder_overhead`
   limitation (defined as: role=warmup, focus includes upper, no `shoulder_overhead` tag, and
@@ -21,6 +24,7 @@ status file's own commit — this track lands in one commit alongside itself).
   querying the actual committed `packages/data/library/exercises.json`, not the design intent.
 
 ### Done
+
 - [x] Read CLAUDE.md, ORCHESTRATION.md (issues #33/#3/#1/#23), contraindications-review.md,
       STATUS-6a-figures.md, spec §4.1/§5.2/§5.5.
 - [x] Confirmed HEAD `e2daca4`, tree clean.
@@ -33,18 +37,15 @@ status file's own commit — this track lands in one commit alongside itself).
       `maxY` in `[GROUND-6, GROUND+2]` = `[146,154]` unless allowlisted).
 - [x] Designed 4 new warmup records, hand-verified grounding/canvas-bounds math for each new
       figure archetype with a throwaway python forward-kinematics script (matching this rig's
-      exact formulas) before touching any code:
-      - `wu-scap-push-up` (bodyweight, plank, scapular protraction/retraction, straight arms) —
-        new archetype `scap_push_up`.
-      - `wu-band-external-rotation` (band, elbows pinned at sides, external rotation) — new archetype
-        `band_external_rotation`.
-      - `wu-thread-the-needle` (bodyweight, quadruped, thoracic/shoulder rotation) — new
-        archetype `thread_needle`, reuses `quadruped_reach`'s verified grounding offset.
-      - `wu-band-row` (band, standing, elbow-driven horizontal row) — reuses the existing
-        `horizontal_pull` pattern-default archetype, no override needed (same as `door-row`/
-        `seated-row`).
+      exact formulas) before touching any code: - `wu-scap-push-up` (bodyweight, plank, scapular protraction/retraction, straight arms) —
+      new archetype `scap_push_up`. - `wu-band-external-rotation` (band, elbows pinned at sides, external rotation) — new archetype
+      `band_external_rotation`. - `wu-thread-the-needle` (bodyweight, quadruped, thoracic/shoulder rotation) — new
+      archetype `thread_needle`, reuses `quadruped_reach`'s verified grounding offset. - `wu-band-row` (band, standing, elbow-driven horizontal row) — reuses the existing
+      `horizontal_pull` pattern-default archetype, no override needed (same as `door-row`/
+      `seated-row`).
 
 ### Done (continued)
+
 - [x] Wrote the availability regression test in `packages/data/src/index.test.ts`
       (`describe('warm-up variety for a shoulder_overhead limitation ...')`, 3 `it`s) and ran it
       against the pre-track library **first** — confirmed it fails (`Expected: > 1, Received: 1`)
@@ -56,9 +57,9 @@ status file's own commit — this track lands in one commit alongside itself).
       it's a standing row, exactly `horizontal_pull`'s own pattern default, same as `door-row`/
       `seated-row`). Regenerated `figures.json` (204 figures, 410.7 KB / 3 MB budget).
 - [x] Hand-verified grounding math for each new archetype with a throwaway python
-      forward-kinematics script *before* touching the generator, the same method 6a-figures used —
+      forward-kinematics script _before_ touching the generator, the same method 6a-figures used —
       caught and fixed one real bug this way: `thread_needle`'s first attempt reused
-      `quadruped_reach`'s hipOffset verbatim, which grounds *its* arm angles (100/100), not
+      `quadruped_reach`'s hipOffset verbatim, which grounds _its_ arm angles (100/100), not
       `thread_needle`'s different "threaded under" angles (60/60) — landed the hand at y=142.6,
       9.4px outside the test's 6px float tolerance. Fixed by recomputing the offset for this
       archetype's own angles (now grounds at y=149.98). Caught by actually running the jest suite
@@ -67,20 +68,15 @@ status file's own commit — this track lands in one commit alongside itself).
   - `packages/data`'s jest suite (17 tests, includes the pre-existing ground-contact and
     canvas-bounds regression tests from 6a-figures): all pass, including on the new figures.
 - [x] Rendered all 4 new figures with `qlmanage -t -s 700` and looked at each with the Read tool
-      against its own `setup` cue:
-      - `wu-scap-push-up`: straight line from head through a fixed elbow to hand in both panels
-        (confirms no elbow bend — a real scap push-up doesn't bend the elbow), chest height
-        visibly lower in the left panel than the right — reads as the scapular
-        protraction/retraction the cue describes, in a plank position.
-      - `wu-band-external-rotation`: standing figure, forearm sweeping from across the body to out to the
-        side at a constant, non-overhead height (band loop drawn at the hand in both panels) —
-        matches "elbows pinned at your sides, forearms rotate."
-      - `wu-thread-the-needle`: quadruped figure, the moving arm reaches low (near the floor, left
-        panel) to high (well above the head, right panel), stationary leg unchanged — reads as
-        threading under and rotating open.
-      - `wu-band-row`: standing figure at a wall-mounted anchor, arm extended toward the anchor in
-        the left panel and pulled back to the ribs in the right panel — a clean standing row.
-      - No defects found; no further rounds needed.
+      against its own `setup` cue: - `wu-scap-push-up`: straight line from head through a fixed elbow to hand in both panels
+      (confirms no elbow bend — a real scap push-up doesn't bend the elbow), chest height
+      visibly lower in the left panel than the right — reads as the scapular
+      protraction/retraction the cue describes, in a plank position. - `wu-band-external-rotation`: standing figure, forearm sweeping from across the body to out to the
+      side at a constant, non-overhead height (band loop drawn at the hand in both panels) —
+      matches "elbows pinned at your sides, forearms rotate." - `wu-thread-the-needle`: quadruped figure, the moving arm reaches low (near the floor, left
+      panel) to high (well above the head, right panel), stationary leg unchanged — reads as
+      threading under and rotating open. - `wu-band-row`: standing figure at a wall-mounted anchor, arm extended toward the anchor in
+      the left panel and pulled back to the ribs in the right panel — a clean standing row. - No defects found; no further rounds needed.
 - [x] `packages/engine`'s golden snapshot suite failed after regenerating the library (3 tests) —
       expected and documented behavior per `golden.test.ts`'s own header comment ("if a change is
       deliberate, update the snapshot AND bump ENGINE_VERSION"). Bumped `ENGINE_VERSION`
@@ -92,9 +88,11 @@ status file's own commit — this track lands in one commit alongside itself).
       897 engine tests, `check:engine-purity`).
 
 ### Next
+
 None — track complete. Carried-forward items below are for the orchestrator to file, not blockers.
 
 ### Decisions / gotchas
+
 - Ground-contact test tolerance direction: `gap = GROUND - maxY` must be in `[-2, 6]`, i.e.
   `maxY` (the largest/deepest y coordinate drawn, across BOTH panels combined) must be in
   `[146, 154]`. It's a whole-figure check, not per-pose — a pose whose arm swings away from the
@@ -118,10 +116,12 @@ None — track complete. Carried-forward items below are for the orchestrator to
   (primary movers `lower_back`/`hip_flexors`, not a shoulder muscle).
 
 ### Cut / not done
+
 - No new exercises added to the cooldown pool (12 records, only 4 tagged `abs` — carried-forward
   issue #3's other half). Out of this track's scope, which was specifically issue #33 (warmups).
 - Did not touch `docs/ORCHESTRATION.md` (orchestrator's file, per the brief's hard constraint).
 
 ### Carried-forward issues for the orchestrator to file
+
 - None new. Issue #3 (cooldown pool is also thin, only 4/12 tagged `abs`) remains open and is not
   addressed by this track — it was explicitly out of scope (issue #33 is warmups only).

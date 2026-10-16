@@ -1,24 +1,33 @@
 ## Track: 33 — accessory band memory
+
 Last updated: 2026-10-16
+
 ### Done
+
 - [x] engine: `ExerciseState.workingBand`, `prescribeAccessory({ workingBand })`, pipeline wiring,
-  tests; regression test that a B3 on Banded Lat Pull Hold (bodyweight-anchored rung) comes back
-  B2 (cf1265a)
+      tests; regression test that a B3 on Banded Lat Pull Hold (bodyweight-anchored rung) comes back
+      B2 (cf1265a)
 - [x] store: migration `0027_working_band.sql` (backfilled from history), schema, `rowToState`,
-  `recordExercisePerformed({ workingBand })`, completion passes the final completed main set's
-  band; tests (b0551e5)
+      `recordExercisePerformed({ workingBand })`, completion passes the final completed main set's
+      band; tests (b0551e5)
 - [x] app: Approval's Add exercise prescribes at the stored working band; test. BACKLOG: removed the
-  stale "frozen band at a bodyweight-anchored rung" item (the tier projection fixed it; the
-  regression test above pins it), parked "accessories have band memory but no progression".
+      stale "frozen band at a bodyweight-anchored rung" item (the tier projection fixed it; the
+      regression test above pins it), parked "accessories have band memory but no progression".
+
 ### In progress
+
 - nothing — track complete. Jest-verified only; a device check is just: move an accessory's band
   up mid-workout, finish, generate again.
+
 ### Background
+
 - Root cause: exercises with no `progression_family` (72 of 137 band exercises, e.g.
   `single-arm-curl`) are prescribed by `prescribeAccessory`, which always took the lightest
   authored band. Nothing remembered the band the user actually trained with for them — progression
   state (and `reconcileMicroToObservedBand`) only exists per family.
+
 ### Decisions / gotchas
+
 - The band carried forward is the band of the **final completed main set** (`bandActual ?? entry.band`),
   not the family path's `dominantBand`: a user who bumps the band up on set 3 of 3 has told us where
   they belong, and a dominant tally would discard it.

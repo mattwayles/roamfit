@@ -1,14 +1,22 @@
 ## Track: 30 — Trail charts: one graph per level, paged with arrows
+
 Last updated: 2026-10-06
+
 ### Done
+
 - [x] 1. lib: `buildTrailProgress` returns `levels: TrailLevelPage[]` + `currentLevel`;
-  `buildLadderSeries` `{ withinRung }` (stepsInRung). 2. TrailProgressChart level pager.
-  3. DESIGN.md + BACKLOG device-pass item (6). One commit — see git log.
+      `buildLadderSeries` `{ withinRung }` (stepsInRung). 2. TrailProgressChart level pager. 3. DESIGN.md + BACKLOG device-pass item (6). One commit — see git log.
+
 ### In progress
+
 - Nothing; track complete pending the device pass in BACKLOG.
+
 ### Next
+
 - Device pass (BACKLOG 'History / past months / progress graphs', item 6).
+
 ### Decisions / gotchas
+
 - User feedback: at a level change Best set drops (harder exercise, fewer reps) and reads as a
   regression even with the dashed tick. Fix = never put two levels on one graph.
 - Pages are grouped by level id (not contiguous stints), ordered easiest → hardest; a level-down

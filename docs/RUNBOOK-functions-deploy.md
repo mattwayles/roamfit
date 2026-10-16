@@ -7,7 +7,7 @@ with real credentials to actually deploy the Cloud Functions this project has bu
 tested, plus the one thing that still cannot be verified without doing so: prompt caching
 (issue #36).
 
-Track `6f-deploy` closed the *build* gap (issue #41) — `functions/` now has a real `npm run build`
+Track `6f-deploy` closed the _build_ gap (issue #41) — `functions/` now has a real `npm run build`
 (esbuild bundle → `lib/index.js`, verified loadable in a plain Node process by
 `functions/src/build.test.ts`) and `firebase.json`'s `predeploy` runs it. Track `6d-sync-health`
 added the Firebase project config (`firebase.json`, `.firebaserc`, `firestore.rules`,
@@ -143,15 +143,15 @@ them in a committed file. Once set, `createLlmProxyCaller()` stops returning `nu
 
 ## Issue #36 — verifying prompt caching, the exact procedure
 
-§7.3's done-criterion is explicit: *"Verify with `usage.cache_read_input_tokens` — a persistent
-zero means something in the prefix is varying."* This has never been observed against a live API
+§7.3's done-criterion is explicit: _"Verify with `usage.cache_read_input_tokens` — a persistent
+zero means something in the prefix is varying."_ This has never been observed against a live API
 call from this project (no key, no deployment, in every environment this codebase has been
 developed in so far). **This criterion stays OPEN until an operator runs the steps below against
 a real deployment — do not treat it as closed by the structural proof alone** (the structural
 proof — `functions/src/prompt.test.ts`/`intake.test.ts`/`distill.test.ts` pinning that the cached
 system block is byte-identical across differing volatile inputs, and that untrusted text never
 enters it — is real and independently re-verified per `ORCHESTRATION.md`'s verification log, but
-it is a proof about the *code*, not an observation about the *live API's actual cache behavior*).
+it is a proof about the _code_, not an observation about the _live API's actual cache behavior_).
 
 Track `6f-deploy` made the value **observable**: every callable now emits one structured
 `llm_proxy_call` log line (via `functions/src/handlers.ts`'s injected `LogSink`, defaulting to
@@ -201,11 +201,11 @@ culprits, in order of likelihood, are:
 
 1. **A per-request value leaking into the system block.** Every job's system prompt is a fixed
    string constant today (`INTAKE_SYSTEM_PROMPT` etc. in `functions/src/jobs/*.ts`) — but
-   `distill.ts` interpolates `input.sessionExerciseIds` *into* its system block
+   `distill.ts` interpolates `input.sessionExerciseIds` _into_ its system block
    (`` `${DISTILL_SYSTEM_PROMPT}\n\nThis session's exercise ids: ${JSON.stringify(...)}` ``, line
    ~52). **This is a real, already-present variance source**: two different sessions have two
-   different exercise-id lists, so `llmDistillFeedback`'s cache will *never* hit across sessions
-   by construction — only repeated calls for the *same* session within the TTL would ever see a
+   different exercise-id lists, so `llmDistillFeedback`'s cache will _never_ hit across sessions
+   by construction — only repeated calls for the _same_ session within the TTL would ever see a
    cache read. If a persistent zero shows up specifically on `llmDistillFeedback` even for
    same-session repeat calls, look here first. (`intake.ts`/`coachVoice.ts` do not do this — their
    system blocks are the literal constant string, unconditionally cacheable across all users and

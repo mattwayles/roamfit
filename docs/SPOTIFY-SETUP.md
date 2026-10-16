@@ -2,7 +2,7 @@
 
 The transport bar on the active workout screen is built and tested, but it stays invisible until
 this is done once. Everything below is a step only you can take: it needs a Spotify account and a
-dashboard entry that identifies *your* build.
+dashboard entry that identifies _your_ build.
 
 Until then the app behaves exactly as it did before the feature existed — no row, no placeholder,
 no error. That is deliberate (`app/app.config.js` appends the plugin only when the client ID is
@@ -28,6 +28,7 @@ present), so nothing here is urgent and nothing is broken while it waits.
 
    It has to match character for character. It is `{scheme}://{host}` from `app/app.config.js`,
    and a mismatch fails at the moment of authorization with nothing useful on screen.
+
 4. Under **Which API/SDKs are you planning to use**, tick **iOS**.
 5. Save, then copy the **Client ID** from the app's settings page — you'll need the **Client
    Secret** too, in "Deploy the token-swap server" below, but never put it in the app build or the repo.
@@ -133,7 +134,7 @@ its own is foreground Spotify (`authorizeAndPlay`) — that stays behind an expl
 same as before.
 
 This used to not be possible — the old Implicit Grant flow returned a token good for about an hour
-with no refresh token at all, so there was nothing *to* persist, and reconnecting was a one-tap
+with no refresh token at all, so there was nothing _to_ persist, and reconnecting was a one-tap
 "bounce through an already-authorized Spotify" every app launch with no way to avoid even that.
 Authorization Code (step 3 above) is what changed that: it returns a real refresh token, which is
 what `spotifySession.ts` now persists and `Auth.refresh()` uses to get a new access token whenever

@@ -55,7 +55,9 @@ function main() {
   }
 
   if (violations.length > 0) {
-    console.error('check-engine-purity: packages/engine must not import from app/ or react-native:\n');
+    console.error(
+      'check-engine-purity: packages/engine must not import from app/ or react-native:\n',
+    );
     for (const v of violations) console.error(`  ${v}`);
     console.error('\npackages/engine must stay pure TypeScript — no RN, no app/. See CLAUDE.md.');
     process.exit(1);

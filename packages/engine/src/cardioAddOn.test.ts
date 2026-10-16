@@ -80,9 +80,9 @@ describe('cardio add-on', () => {
       for (const seed of [1, 2, 3, 7, 11]) {
         const p = plan(focus, true, 45, seed);
         for (const section of [p.warmup, p.cooldown]) {
-          expect(
-            section.some((e) => isLegPrep(library.find((x) => x.id === e.exerciseId)!)),
-          ).toBe(true);
+          expect(section.some((e) => isLegPrep(library.find((x) => x.id === e.exerciseId)!))).toBe(
+            true,
+          );
         }
       }
     },

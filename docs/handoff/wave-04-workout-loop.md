@@ -14,15 +14,15 @@ offline, and the resulting data is correct in the store.
 
 ## Screens
 
-| § | Screen | Notes |
-|---|---|---|
-| 10.1 | **Home** | Action above analytics. Today card → Quick Session → this week → Next Unlock. A resumable pending session replaces the Today card. |
-| 10.2 | **Generate** | Pickers arrive **pre-filled with the recommendation and the reason inline** — smart generation is the default, not a button. Order: Time, Anchors, Focus, Effort. |
-| 10.3 | **Plan approval** | The §5.8 explanation line at top. Add/remove/swap, edit sets and rep targets, live time estimate, Regenerate, "Regenerate with a note". |
-| 10.4 | **Active — reps** | Strict hierarchy. Hero = name, target reps, `Set 2 of 3`, nothing else at that size. |
-| 10.5 | **Active — timed** | Large circular timer, tap-to-start with 3s "get ready", End early records **actual seconds held**. Unilateral runs two sequential timers. |
-| 10.7 | **Rest timer** | Auto-starts. `+15s`/`−15s`/`Skip`. Next-up preview. **The only place the two feedback controls appear.** |
-| 10.9 | **Summary** | Per-set actuals, optional retrospective, level-up celebration full-screen before anything else, FINISH. |
+| §    | Screen             | Notes                                                                                                                                                             |
+| ---- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 10.1 | **Home**           | Action above analytics. Today card → Quick Session → this week → Next Unlock. A resumable pending session replaces the Today card.                                |
+| 10.2 | **Generate**       | Pickers arrive **pre-filled with the recommendation and the reason inline** — smart generation is the default, not a button. Order: Time, Anchors, Focus, Effort. |
+| 10.3 | **Plan approval**  | The §5.8 explanation line at top. Add/remove/swap, edit sets and rep targets, live time estimate, Regenerate, "Regenerate with a note".                           |
+| 10.4 | **Active — reps**  | Strict hierarchy. Hero = name, target reps, `Set 2 of 3`, nothing else at that size.                                                                              |
+| 10.5 | **Active — timed** | Large circular timer, tap-to-start with 3s "get ready", End early records **actual seconds held**. Unilateral runs two sequential timers.                         |
+| 10.7 | **Rest timer**     | Auto-starts. `+15s`/`−15s`/`Skip`. Next-up preview. **The only place the two feedback controls appear.**                                                          |
+| 10.9 | **Summary**        | Per-set actuals, optional retrospective, level-up celebration full-screen before anything else, FINISH.                                                           |
 
 ### Hard UI rules from the spec
 

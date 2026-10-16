@@ -1,4 +1,5 @@
 ## Track: 10-cold-start-and-level-up — Level-1 cold start + user-driven "too easy"
+
 Last updated: 2026-09-01
 
 Origin: user rejected the §6.5 30th-percentile cold start ("it defeats the purpose of
@@ -6,11 +7,13 @@ progressing") and asked for a way to mark a laddered exercise too easy and unloc
 Design in `docs/decisions/0012-level-1-cold-start-and-user-level-up.md`.
 
 User decisions already made (do not re-litigate):
+
 - Control lives at **both** approval and mid-workout, applying immediately to the current session.
 - **Repeatable, one rung per tap** — not a level picker.
 - **Reset existing progression state** to level 1 via migration.
 
 ### Done
+
 - [x] `calibrationStartLevel` returns `levels[0]`; `CALIBRATION_START_PERCENTILE` deleted.
 - [x] `levelUpForTooEasy` in `progression/rules.ts`, with tests. `ENGINE_VERSION` 2.4.0 → 2.5.0.
 - [x] `banded-lat-pull-hold` authored — `vertical_pull.l1` was bar-only and would have been a
@@ -27,17 +30,20 @@ User decisions already made (do not re-litigate):
       rung before generating anything, which is the whole point of a level-1 cold start.
 
 ### In progress
+
 - Nothing. `npm run check` is green.
 
 ### Next
+
 - **Device verification is outstanding**, and matters more here than usual: migration 0009 runs
   destructively against a real database on first launch after this ships, and no automated test
-  exercises a *populated* pre-0009 database. Verify on device that (a) progression re-seeds at
+  exercises a _populated_ pre-0009 database. Verify on device that (a) progression re-seeds at
   level 1, (b) exercise_state survives, (c) the two controls behave.
 - Consider feeding `level_up_too_easy` signals back into the cold start once there is real data —
   the ADR flags this as the reason the signal carries both rungs.
 
 ### Decisions / gotchas
+
 - **Level-up is NOT a swap.** A swap increments `swapAwayCount`, which feeds §5.2's
   REPEATEDLY-SKIPPED suppression; a level-up must not, because the user has no complaint about
   the exercise. Pinned by a test in `levelUp.test.ts`.

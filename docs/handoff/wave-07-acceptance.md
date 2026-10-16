@@ -38,7 +38,7 @@ Test the things unit tests structurally miss:
 ## 3. §15 product instrumentation
 
 Separate from the user-facing dashboard — without it there is no way to tell whether the engine is
-any good. Activation (first *completed* workout, target within 5 minutes of install) · funnel
+any good. Activation (first _completed_ workout, target within 5 minutes of install) · funnel
 generate→approve→start→complete with drop-off · D1/D7/D30 retention and week-target adherence ·
 completion rate by session length · estimate-accuracy distribution · swap and removal rate per
 exercise (the library-quality signal) · superset-pair completion rate · abandon point · video flag

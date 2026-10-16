@@ -14,7 +14,7 @@ swap between apps during a workout."
 - [x] `docs/SPOTIFY-SETUP.md` + backlog entries
 
 - [x] Fix: `connect()` never recovered from a failed auth bounce — `spotifyRemote.ts`,
-  `spotifyRemote.test.ts`
+      `spotifyRemote.test.ts`
 
 ### Bug found on device: "Unable to open URL: about:blank"
 
@@ -37,7 +37,7 @@ call-site bug on our end.
 - `functions/src/spotifyTokenSwap.ts` (+ `spotifyTokenSwap.test.ts`, 6 cases) — the token-swap
   server `@wwdrew/expo-spotify-sdk`'s `tokenSwapURL`/`tokenRefreshURL` need, matching that
   package's documented server contract exactly (fetched from its GitHub `docs/guides/
-  token-swap-server.md`, not in the npm package). Pure, `fetch`-injected, no `firebase-functions`
+token-swap-server.md`, not in the npm package). Pure, `fetch`-injected, no `firebase-functions`
   import — same discipline as `handlers.ts` — so it's Jest-testable without real credentials.
 - `functions/src/index.ts` — wires it in as two plain `onRequest` exports (`spotifyTokenSwap`,
   `spotifyTokenRefresh`; NOT `onCall` — the native SDK POSTs form-urlencoded directly, no Firebase
@@ -81,7 +81,7 @@ Reported: prebuild + redeploy done, Spotify opens, fails to connect, bounces Roa
 foreground, and the connect button is stuck on "Connecting…" permanently.
 
 **Root cause.** `connect()` in `useSpotifyPlayer` optimistically flips `connectionState` to
-`'connecting'`, but until this fix the *only* code path that ever moved it out of `'connecting'`
+`'connecting'`, but until this fix the _only_ code path that ever moved it out of `'connecting'`
 was the native `connectionStateChange` listener. When `connectSpotify()` fails outright — auth
 cancelled, or the whole `authenticate` → `connect`/`authorizeAndPlay` sequence never reaches a
 connected state — Spotify never has a connection state to report, so that event never fires, and
@@ -91,14 +91,14 @@ one caller where a failure has nowhere else to be reported from.
 
 **Fix.** `connect()` now awaits `connectSpotify()` directly (not through `run()`) and, on a
 non-null error, resets `connectionState` from `'connecting'` back to `'disconnected'` — same
-functional-update guard style already used elsewhere in the file, so a connection that *did*
+functional-update guard style already used elsewhere in the file, so a connection that _did_
 land via the listener in the meantime isn't clobbered. Added a regression test:
 "drops back to disconnected when the auth bounce fails, instead of sticking on 'connecting'
 forever" in `spotifyRemote.test.ts`.
 
 **Not yet reverified on device** — the fix is Jest-provable (the failure path is exercised) but the
 actual auth-bounce-and-fail sequence on a physical phone is not, per the existing device-only list
-above. Worth also checking *why* the connect is failing at all (Spotify app version, redirect URI
+above. Worth also checking _why_ the connect is failing at all (Spotify app version, redirect URI
 registration exactly matching `roamfit://spotify-auth`, or an `AUTH_IN_PROGRESS` leak from a prior
 attempt) — this fix makes the failure recoverable, it doesn't address why the first connect fails.
 
@@ -106,7 +106,7 @@ attempt) — this fix makes the failure recoverable, it doesn't address why the 
 
 `render`, `rerender` and `fireEvent.press` are **all async** under React 19 / RNTL 14. Leaving any
 of them un-awaited holds an `act()` scope open past the end of the test, and the failure surfaces
-on the *next* test: cases that pass in isolation fail in sequence, by timeout or by "unable to find
+on the _next_ test: cases that pass in isolation fail in sequence, by timeout or by "unable to find
 an element", with the error pointing at a component that is fine. Three un-awaited presses in one
 case cost the four cases after it. The older component suites in `app/src/components` use the
 un-awaited `render(...)` + `await waitFor(...)` shape and get away with it; they are one added
@@ -116,7 +116,7 @@ un-awaited `render(...)` + `await waitFor(...)` shape and get away with it; they
 
 **Transport: the Spotify iOS App Remote SDK, not the Web API.** iOS gives a third-party app no
 other way to drive another app's playback — `MPRemoteCommandCenter` receives commands about your
-*own* audio, and `MPMusicPlayerController` is Apple Music only. Of the two Spotify routes, App
+_own_ audio, and `MPMusicPlayerController` is Apple Music only. Of the two Spotify routes, App
 Remote talks over IPC to the Spotify app already running on the device, so the buttons keep
 working with no connectivity; the Web API (`/v1/me/player/*`) needs a round trip per button press
 and an "active device", which is exactly wrong for a workout in a park. Invariant 1 doesn't
@@ -150,7 +150,7 @@ Spotify and straight back. The swap-server upgrade is parked in the backlog.
 
 **Native module absence is handled the way `workoutAudio.ts` handles `expo-audio`,** and for the
 identical reason: `build/ExpoSpotifySDKModule.js` calls `requireNativeModule("ExpoSpotifySDK")` at
-the top level, which *throws on import* when no native module is registered (i.e. under Jest, and
+the top level, which _throws on import_ when no native module is registered (i.e. under Jest, and
 in any build made before the prebuild). So the import is lazy and try/caught, and every export
 degrades to a no-op / "unavailable" — anything importing it stays importable under Jest.
 

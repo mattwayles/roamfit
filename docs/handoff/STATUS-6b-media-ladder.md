@@ -1,27 +1,31 @@
 ## Track: 6b-media-ladder — The three-tier media ladder (§11.4)
+
 Last updated: 2026-08-31
 
 ### Status
+
 Done, pending orchestrator sign-off. `npm run check` green (typecheck, lint, all workspace
 tests, `check:engine-purity`) at every commit boundary below. HEAD before this track was
 `55bf665`, tree clean.
 
 ### Done (commit shas)
+
 - [x] `81b2a1e` — ramp-up; added `react-native-svg@15.15.4`, `react-native-webview@13.16.1`,
-  `expo-network@~57.0.1` via `npx expo install` (SDK-57-pinned versions).
+      `expo-network@~57.0.1` via `npx expo install` (SDK-57-pinned versions).
 - [x] `ffdaba3` — `app/src/lib/mediaLadder.ts`: pure tier-selection rule + `youtube-nocookie.com`
-  embed URL builder (muted, no autoplay, no fullscreen) + tier-3 search URL builder.
-  `app/src/lib/networkStatus.ts`: lazy `expo-network` wrapper, safe-default-on-failure.
+      embed URL builder (muted, no autoplay, no fullscreen) + tier-3 search URL builder.
+      `app/src/lib/networkStatus.ts`: lazy `expo-network` wrapper, safe-default-on-failure.
 - [x] `a50e0f3` — `packages/store` migration `0004_video_flags.sql`
-  (`exercise_state.video_flag_count`/`video_demoted_at`), `reportVideoIssue`/`getVideoFlagState`
-  in `exerciseState.ts`, new `video_flag_reported` signal type.
+      (`exercise_state.video_flag_count`/`video_demoted_at`), `reportVideoIssue`/`getVideoFlagState`
+      in `exerciseState.ts`, new `video_flag_reported` signal type.
 - [x] `00e1683` — `app/src/components/DemoMedia.tsx`, the rendered ladder. Global Jest manual
-  mocks for `react-native-webview` (throws at import under Jest) and `react-native-svg` (real
-  `SvgXml` causes a post-teardown `require`, same failure class as issue #14).
+      mocks for `react-native-webview` (throws at import under Jest) and `react-native-svg` (real
+      `SvgXml` causes a post-teardown `require`, same failure class as issue #14).
 - [x] `a9b0f8d` — wired into `WorkoutScreen.tsx` above the existing "How to" disclosure;
-  `StoreContext` now exposes `figures` (the tier-2 SVG registry) alongside `library`/`families`.
+      `StoreContext` now exposes `figures` (the tier-2 SVG registry) alongside `library`/`families`.
 
 ### What I verified, and how
+
 - **Tier-selection logic is correct** — `mediaLadder.test.ts` (11 cases): online+curated+
   unmetered+not-demoted → embed; every other combination → figure. Confirmed against a
   deliberately broken stub (always returns tier 2) that the "picks the curated embed" case fails
@@ -49,10 +53,11 @@ tests, `check:engine-purity`) at every commit boundary below. HEAD before this t
   `SwapAlternative`/`alternativesForSlot` WorkoutScreen already used; `check:engine-purity` still
   passes because nothing here touches `packages/engine` at all.
 - **Existing WorkoutScreen tests still pass unmodified** (`WorkoutScreen.swap/.rest/
-  .timedBilateral/.timedUnilateral/.resume.test.tsx`) — confirms wiring `DemoMedia` in didn't
+.timedBilateral/.timedUnilateral/.resume.test.tsx`) — confirms wiring `DemoMedia` in didn't
   regress anything Wave 4 built.
 
 ### What I deliberately did NOT verify (be explicit, per the review bar)
+
 - **No real device / simulator / Metro bundle / `pod install` run.** This environment has no iOS
   simulator. `react-native-svg` and `react-native-webview` are native modules; Jest cannot load
   either one for real (confirmed by direct probing — recorded in both `__mocks__/*.js` file
@@ -82,6 +87,7 @@ tests, `check:engine-purity`) at every commit boundary below. HEAD before this t
   gap, documented in `networkStatus.ts`'s file header.
 
 ### Deliberately cut (scope, not oversight)
+
 - No settings UI for a "silent-switch override" specific to video, and no toggle to force-allow
   tier 1 on cellular — matches the existing carried-forward gap (#20, notification quiet-hours
   has the same "no settings screen yet" shape).
@@ -94,6 +100,7 @@ tests, `check:engine-purity`) at every commit boundary below. HEAD before this t
   (sync the count somewhere reachable) + 6e (read it) on top of what's here.
 
 ### New dependencies (noted per CLAUDE.md)
+
 - `react-native-svg@15.15.4` — renders the bundled tier-2 figure. Chosen over a second WebView
   because it's a native vector renderer with zero HTML/JS execution and zero audio-session
   surface — the safer, lighter choice for content that ships in the binary and must always work
@@ -101,13 +108,14 @@ tests, `check:engine-purity`) at every commit boundary below. HEAD before this t
 - `react-native-webview@13.16.1` — hosts the tier-1 YouTube nocookie IFrame embed. The only way
   to embed YouTube's official IFrame player in RN; no native "embed a video" Expo module exists.
 - `expo-network@~57.0.1` — online/metered connectivity signal for the ladder gate.
-All three installed via `npx expo install` (SDK-57-compatible pins), added to `app/package.json`
-only (no other workspace needs them).
+  All three installed via `npx expo install` (SDK-57-compatible pins), added to `app/package.json`
+  only (no other workspace needs them).
 
 ### Decisions / gotchas (for whoever picks this up next)
+
 - **Tier-1 embed audio is muted by design (`mute=1` on the embed URL).** The hard constraint is
   "must not hijack the audio session." `workoutAudio.ts` already documents Wave 4's mitigation
-  (re-assert `duckOthers` at workout start), but that guards the *session shape*, not the instant
+  (re-assert `duckOthers` at workout start), but that guards the _session shape_, not the instant
   a WebView `<video>` element acquires the iOS audio route the moment a user taps play inside the
   embed — that acquisition happens beneath any JS this app controls, and is real-device-only to
   verify. Muting removes the risk by construction instead of relying on an untestable-here
@@ -129,6 +137,7 @@ only (no other workspace needs them).
   `DemoMedia.tsx`.
 
 ### Suggested carried-forward issues for the orchestrator to file
+
 1. No real device/simulator verification of this track exists (same class as Wave 4/4b/5's #16/
    #22) — roll into Wave 7's acceptance pass, with explicit checks for: figure actually renders,
    an actual curated embed plays muted with no fullscreen/autoplay, a real player error visibly

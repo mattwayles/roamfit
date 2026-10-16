@@ -1,7 +1,9 @@
 ## Track: 1b-content — Exercise library & progression ladders
+
 Last updated: 2026-08-30
 
 ### Done
+
 - [x] Read CLAUDE.md, wave-01b-content.md brief, spec.md §4.1/4.2/5.5/6.1/6.2/6.6/13.1/13.2.
 - [x] `packages/data/src/schema.ts` — TS types for `Exercise`, `ProgressionFamily`, and the
       library wrapper types. Single source of truth for shape.
@@ -30,33 +32,25 @@ Last updated: 2026-08-30
       are in `FAMILY_LEVELS` in `migrate_library.py` — see "Ladder design notes" below for the
       per-family reasoning and every judgment call.
 - [x] 4 exercises newly authored to fill explicit prototype gaps (all four flagged by the brief
-      as "archer/one-arm variants" the prototype lacks):
-      - `bw-one-arm-push-up` — top rung of `horizontal_push` (L9 of 9)
-      - `banded-archer-row` — top rung of `horizontal_pull` (L8 of 8)
-      - `bw-wall-hspu` (wall handstand push-up) — top rung of `vertical_push` (L7 of 7)
-      - `bw-archer-pull-up` — top rung of `vertical_pull` (L9 of 9)
+      as "archer/one-arm variants" the prototype lacks): - `bw-one-arm-push-up` — top rung of `horizontal_push` (L9 of 9) - `banded-archer-row` — top rung of `horizontal_pull` (L8 of 8) - `bw-wall-hspu` (wall handstand push-up) — top rung of `vertical_push` (L7 of 7) - `bw-archer-pull-up` — top rung of `vertical_pull` (L9 of 9)
       Full setup cues, contraindications, and constructed `video_search` URLs are in the
       `NEW_EXERCISES` list in `migrate_library.py`.
 - [x] **`npm run validate:library` exits 0 with zero errors.** Coverage report (from the last
-      run, 200 exercises total = 196 ported + 4 authored):
-      - By role: `main: 179, warmup: 9, cooldown: 12`
-      - By tier: `core: 96, fill: 92, stretch: 12`
-      - By anchor_class: `none: 94, band_tension: 91, bodyweight_bearing: 15`
-      - By focus: `upper: 74, full: 69, abs: 66, legs: 65`
-      - By pattern (all 17 non-empty): horizontal_push 19, vertical_push 7,
-        shoulder_isolation 12, vertical_pull 10, horizontal_pull 11, elbow_flexion 4,
-        elbow_extension 4, squat 19, lunge 18, hinge 23, hip_extension 3, abduction 7, calf 5,
-        anti_rotation 16, flexion 15, anti_extension 24, lateral_flexion 3
-      - All 8 families present with 7-9 levels each, all references resolve.
+      run, 200 exercises total = 196 ported + 4 authored): - By role: `main: 179, warmup: 9, cooldown: 12` - By tier: `core: 96, fill: 92, stretch: 12` - By anchor_class: `none: 94, band_tension: 91, bodyweight_bearing: 15` - By focus: `upper: 74, full: 69, abs: 66, legs: 65` - By pattern (all 17 non-empty): horizontal_push 19, vertical_push 7,
+      shoulder_isolation 12, vertical_pull 10, horizontal_pull 11, elbow_flexion 4,
+      elbow_extension 4, squat 19, lunge 18, hinge 23, hip_extension 3, abduction 7, calf 5,
+      anti_rotation 16, flexion 15, anti_extension 24, lateral_flexion 3 - All 8 families present with 7-9 levels each, all references resolve.
 - Commits:
   - `6e5ae14` — schema, migration, validator, tagged 196-exercise library (families stub empty)
   - `29c0e4b` — author the 8 v1 progression ladders + 4 new exercise records
 
 ### In progress
+
 - Nothing mid-flight. **This track's stated done-criteria are all met.** What remains is
   optional polish / second-opinion review, listed under Next.
 
 ### Next (all optional polish — the brief's done-criteria are satisfied)
+
 1. Get a second opinion on the `contraindications[]` tagging, especially the `core_pressure` /
    `lower_back_extension` tags across the hinge, plank, and hollow-hold families — §13.2 makes
    this the pregnancy hard-filter, so it's the highest-stakes judgment call in this track. See
@@ -74,12 +68,13 @@ Last updated: 2026-08-30
    `Preset ts-jest not found`. This predates 1b's work (1a-skeleton's own stub test hit the same
    thing) and isn't something to fix from this track, but the next agent touching `packages/data`
    should run `npm install` at the root before trusting `npm test` there. `node
-   packages/data/src/validate.ts` does not need any install — it runs on Node's built-in TS
+packages/data/src/validate.ts` does not need any install — it runs on Node's built-in TS
    type-stripping (confirmed on Node v26).
 5. If a future content pass adds a 9th accessory rung anywhere, remember: append a new
    `level_id`, never renumber existing ones (invariant 5, CLAUDE.md).
 
 ### Ladder design notes (for review)
+
 All levels ordered by leverage/load difficulty, not by the prototype's coarse `easy/medium/hard`
 difficulty tag (too coarse to order a 7-9 rung ladder on its own).
 
@@ -111,9 +106,10 @@ difficulty tag (too coarse to order a 7-9 rung ladder on its own).
   side-plank-abduction → bw-hollow-hold.
 
 ### Judgment calls needing review
+
 - **`bw-inverted-row` sits at `horizontal_pull.l5`, not the top.** Its `anchor` is `pullup-bar`
   (carried over unchanged from the prototype), which per §13.1 makes it `anchor_class:
-  bodyweight_bearing` — off-by-default, effort-capped, confirmation-gated. That safety
+bodyweight_bearing` — off-by-default, effort-capped, confirmation-gated. That safety
   classification seems arguably wrong for a standard inverted row (feet on the ground, body at
   an angle — much closer to a `body-support` partial load than a full dynamic hang), but I did
   not change the anchor value since the brief frames existing anchor tags as trustworthy
@@ -155,7 +151,7 @@ difficulty tag (too coarse to order a 7-9 rung ladder on its own).
 - `packages/data/package.json` pins `typescript: 6.0.3` (root pins `5.9.3`) — pre-existing from
   1a-skeleton's scaffold, not touched by this track; flagging in case it's not intentional.
 - Root `package.json`: added exactly one script, `"validate:library": "npm run validate:library
-  --workspace packages/data"`, per the brief's explicit allowance. Nothing else touched.
+--workspace packages/data"`, per the brief's explicit allowance. Nothing else touched.
 - **Shared-worktree note for whoever reviews git history**: this track ran concurrently with
   1a-skeleton in the same working tree. The first 1b commit (`6e5ae14`) ended up including
   1a-skeleton's then-uncommitted scaffold files (`app/`, `packages/engine/`, `tools/`,

@@ -1,21 +1,26 @@
 ## Track: 6e-video-cli — video_db.py operator CLI (§11.5)
+
 Last updated: 2026-09-01 — **done, this track's committed scope complete**
 
 ### Status
+
 Done. `npm run check` and `npm run validate:library` both green (this track touches no
 JS/TS workspace at all — verified anyway per CLAUDE.md's "never leave the build broken").
 HEAD before this track was `ad042a1`, tree clean.
 
 ### Done (commit shas)
+
 - [x] `f444615` — ramp-up: read ORCHESTRATION.md, wave-06-network.md §6, STATUS-6b/6d, spec
-  §11.4/§11.5/§4.1's remote-config block, and the prototype `workout_db.py` (found in the
-  sibling `ai-monorepo` repo, not this one — see below). Opened this status file with the design
-  decisions recorded *before* writing code.
+      §11.4/§11.5/§4.1's remote-config block, and the prototype `workout_db.py` (found in the
+      sibling `ai-monorepo` repo, not this one — see below). Opened this status file with the design
+      decisions recorded _before_ writing code.
 - [x] `2fe0602` — `tools/video_db.py` (six subcommands) + `tools/video_db_test.py` (36 tests,
-  stdlib `unittest`). `.gitignore` gains `tools/__pycache__/`.
+      stdlib `unittest`). `.gitignore` gains `tools/__pycache__/`.
 
 ### What landed
+
 `tools/video_db.py`:
+
 - **`queue`** — uncurated exercises (no `video_id` in the Firestore `video/{id}` doc), ranked
   descending by aggregate `sessions_performed` summed across every user's `exercise_state`
   Firestore doc (collection-group read).
@@ -37,7 +42,9 @@ HEAD before this track was `ad042a1`, tree clean.
 - **`status`** — curated / flagged / stale / uncurated counts against the full library.
 
 ### Design decisions (see the file's own module docstring + inline comments for the full
+
 reasoning; summarized here)
+
 - **`workout_db.py` isn't in this repo** — it's the daily-workout skill prototype at
   `~/Development/ai-monorepo/skills/health/daily-workout/scripts/workout_db.py`. Read it in full
   for the discipline this brief asked to match: argparse subcommands, `sys.exit("error: ...")`
@@ -52,7 +59,7 @@ reasoning; summarized here)
   `exercise_state`; 6d's sync worker pushes `exercise_state` per-uid (LWW), never rolls it up into
   the remote-config doc's own `video_flag_count` field. No Cloud Function exists to do that
   rollup. So `set`'s "resets `video_flag_count`" (spec's literal words) resets the remote-config
-  doc's own field — which this tool is the *only* writer of, so it's a real, exclusively-operator-
+  doc's own field — which this tool is the _only_ writer of, so it's a real, exclusively-operator-
   controlled counter — while `flagged`'s actual read path is the per-uid collection group, which
   is the one issue #30 names as "reading them back." This is a documented, deliberate design
   choice, not an oversight — recorded here so nobody rebuilds it differently by accident.
@@ -71,6 +78,7 @@ reasoning; summarized here)
   "prefer standard library" guidance for this track specifically.
 
 ### What I verified, and how
+
 - **Every one of the five §11.5 auto-reject rules — verified by mutation, individually.** For
   each of `embeddable`, `privacy_status`, `age_restricted`, `region_restricted`,
   `duration_seconds`, I removed that one `if` block from `auto_reject_reasons` in
@@ -93,7 +101,7 @@ reasoning; summarized here)
   failed (a synthetic library record carrying `video_id` loaded silently instead of refusing).
   Restored and diffed clean.
 - **Never reaches `packages/data`, live check** — `test_real_library_on_disk_carries_no_video_id`
-  calls `load_library()` with no path override, i.e. against the *actual* bundled
+  calls `load_library()` with no path override, i.e. against the _actual_ bundled
   `packages/data/library/exercises.json` (200 records) — passes, meaning the real file today
   carries no `video_id` field, same invariant `packages/data/src/validate.ts` enforces
   independently. `test_this_module_has_no_write_path_into_packages_data` is a structural grep
@@ -110,6 +118,7 @@ reasoning; summarized here)
   never instantiated anywhere in the test file).
 
 ### What I could NOT verify, stated plainly
+
 - **No real YouTube Data API call was ever made.** `RealYouTubeClient`'s `search`/`videos_details`
   (and the oEmbed liveness check) are proven only against hand-built `VideoDetails`/id lists via
   the fake client — the real HTTP request construction (query params, JSON parsing of an actual
@@ -137,14 +146,15 @@ reasoning; summarized here)
   smoke-test call by whoever has a key, before relying on this in anger.
 
 ### Deliberately cut (scope, not oversight)
+
 - **No local JSON cache/mirror of the Firestore video collection.** `workout_db.py`'s pattern is
   a local file as the system of record; here the system of record is genuinely Firestore (per
   spec: "it writes to remote config... takes effect on every device at the next sync"), so a
   local mirror would just be a second source of truth to keep in sync for no real benefit at CLI
   scale (196-200 exercises, one document read/write per command). Cut deliberately rather than
   half-built.
-- **No debug/TestFlight in-app curation mode** — spec names this explicitly as an *optional
-  companion*, not required scope ("the CLI is the system of record").
+- **No debug/TestFlight in-app curation mode** — spec names this explicitly as an _optional
+  companion_, not required scope ("the CLI is the system of record").
 - **No periodic-sweep scheduler** (spec's "a scheduled job re-checks every curated id") — `verify`
   is the manual trigger for that sweep; wiring it to a cron/Cloud Scheduler job is an operator
   deployment concern, not this CLI's job, and no deployment infrastructure exists yet per 6d's
@@ -160,17 +170,19 @@ reasoning; summarized here)
   close this cleanly if a single global counter is ever wanted instead.
 
 ### New dependency (noted per CLAUDE.md)
+
 - **`google-cloud-firestore`** (pip, not in any `package.json` — this is a Python tool). Lazily
   imported inside `RealFirestoreVideoDbClient.__init__` only; not installed in this environment,
   not required to run `tools/video_db_test.py`. Operator installs it (`pip install
-  google-cloud-firestore`) alongside setting `GOOGLE_APPLICATION_CREDENTIALS` per the existing
+google-cloud-firestore`) alongside setting `GOOGLE_APPLICATION_CREDENTIALS` per the existing
   operator runbook in `STATUS-6d-sync-health.md`.
 - No new JS/TS/npm dependency — this track never touches any workspace's `package.json`.
 
 ### Is issue #30's loop fully closed?
-**Yes, for what the issue actually asked.** Issue #30's text: *"Local video-flag state... has no
+
+**Yes, for what the issue actually asked.** Issue #30's text: _"Local video-flag state... has no
 path to the operator. Closing §11.5's 'loop closes on user flags' needs 6d (sync it somewhere
-reachable) + 6e (`video_db.py flagged` reads it)."* 6d synced `exercise_state.video_flag_count`/
+reachable) + 6e (`video_db.py flagged` reads it)."_ 6d synced `exercise_state.video_flag_count`/
 `video_demoted_at` to Firestore per-uid; `video_db.py flagged` (this track) reads it back via a
 collection-group query and prints a ranked review queue. An operator can now see what got
 flagged, re-curate via `candidates`/`set`, and `set` resets the remote-config doc's own flag
@@ -183,6 +195,7 @@ once no user's `exercise_state` still carries a `video_demoted_at`/positive coun
 requires a fresh app pull cycle client-side; the CLI's job ends at Firestore).
 
 ### Carried-forward issues for the orchestrator to file
+
 1. **No real YouTube Data API or Firestore call has ever been made against this tool** — same
    class of gap as 6c/6d's untested-against-a-live-service caveats. Everything is proven at the
    `YouTubeClient`/`VideoDbClient` interface boundary. Needs a real API key + a real Firestore

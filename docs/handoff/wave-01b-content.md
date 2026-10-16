@@ -19,6 +19,7 @@ Copy the source into the repo; never mutate the skill directory.
 ## Goal
 
 `packages/data/` containing:
+
 1. `library/exercises.json` — all 196 records migrated to the §4.1 schema with every new field
    populated.
 2. `library/families.json` — the 8 §6.6 progression families with ordered, stably-identified
@@ -28,17 +29,17 @@ Copy the source into the repo; never mutate the skill directory.
 
 ## The new fields (§4.1)
 
-| Field | How to determine it |
-|---|---|
-| `anchor_class` | **Mechanically derived** from `anchor` per §13.1. `pullup-bar`/`body-support` → `bodyweight_bearing`; `none` → `none`; everything else → `band_tension`. Script this; do not hand-tag it. |
-| `metric` | `reps` \| `time` \| `amrap`. Judgment. Planks, holds, wall sits, dead hangs, carries → `time`. |
-| `default_seconds` | Required when `metric: time`, null otherwise. |
-| `role` | `warmup` \| `main` \| `cooldown`. Judgment. Every focus template needs a matched warmup and cooldown pool (§5.5), so check pool coverage per pattern when you are done — a focus with no eligible warmup is a bug. |
-| `contraindications[]` | Judgment, from the §4.1 tag list. Be **generous but precise**: this is a safety filter (§13.2), so a missing tag is a real hazard, and a spurious one silently shrinks the pool. Tag on the movement's actual demand — an overhead press is `shoulder_overhead`; a jumping variant is `knee_impact`; a loaded deep knee bend is `knee_flexion_loaded`; a full sit-up is `lower_back_flexion`. |
-| `aliases[]` | Search synonyms. Cheap; a few per record. |
-| `tier` | `core` \| `fill` \| `stretch` — carry over from the prototype if present, else assign. |
-| `progression_family` / `progression_level_id` | See below. Null for every accessory-pattern exercise. |
-| `demo_media` | Stub as `{ type: "figure", id: "<exercise_id>" }`. The figures themselves are Wave 6; the field just needs to exist and be consistent. |
+| Field                                         | How to determine it                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `anchor_class`                                | **Mechanically derived** from `anchor` per §13.1. `pullup-bar`/`body-support` → `bodyweight_bearing`; `none` → `none`; everything else → `band_tension`. Script this; do not hand-tag it.                                                                                                                                                                                                     |
+| `metric`                                      | `reps` \| `time` \| `amrap`. Judgment. Planks, holds, wall sits, dead hangs, carries → `time`.                                                                                                                                                                                                                                                                                                |
+| `default_seconds`                             | Required when `metric: time`, null otherwise.                                                                                                                                                                                                                                                                                                                                                 |
+| `role`                                        | `warmup` \| `main` \| `cooldown`. Judgment. Every focus template needs a matched warmup and cooldown pool (§5.5), so check pool coverage per pattern when you are done — a focus with no eligible warmup is a bug.                                                                                                                                                                            |
+| `contraindications[]`                         | Judgment, from the §4.1 tag list. Be **generous but precise**: this is a safety filter (§13.2), so a missing tag is a real hazard, and a spurious one silently shrinks the pool. Tag on the movement's actual demand — an overhead press is `shoulder_overhead`; a jumping variant is `knee_impact`; a loaded deep knee bend is `knee_flexion_loaded`; a full sit-up is `lower_back_flexion`. |
+| `aliases[]`                                   | Search synonyms. Cheap; a few per record.                                                                                                                                                                                                                                                                                                                                                     |
+| `tier`                                        | `core` \| `fill` \| `stretch` — carry over from the prototype if present, else assign.                                                                                                                                                                                                                                                                                                        |
+| `progression_family` / `progression_level_id` | See below. Null for every accessory-pattern exercise.                                                                                                                                                                                                                                                                                                                                         |
+| `demo_media`                                  | Stub as `{ type: "figure", id: "<exercise_id>" }`. The figures themselves are Wave 6; the field just needs to exist and be consistent.                                                                                                                                                                                                                                                        |
 
 **Never add a `video_id` field to the bundled library.** Curated ids are remote config only
 (§11.4). The validator must reject a bundled `video_id`.
@@ -78,7 +79,7 @@ focus, per role, per anchor class, and per family level.
 2. Write the validator against the schema, with the library still failing it. Commit.
 3. Hand-tag judgment fields (`role`, `metric`, `default_seconds`, `contraindications`, `aliases`)
    **in batches of ~25 exercises**, committing each batch. Update the status file with the batch
-   boundary *before* starting each batch.
+   boundary _before_ starting each batch.
 4. Author the 8 families **one family per commit**, adding any missing exercise records as you go.
 5. Green the validator. Write the coverage report into the status file.
 

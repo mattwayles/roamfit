@@ -1,7 +1,9 @@
 ## Track: 7-acceptance — Airplane-mode acceptance gate + instrumentation + polish
+
 Last updated: 2026-09-01
 
 ### Ramp-up notes
+
 - HEAD at start: `3a87416`, tree clean, `npm run check` green (app 87, engine 897, data 17,
   store 93, functions 29 tests; 0 lint errors, 2 fixable warnings; engine purity OK).
 - Environment has a real booted iOS Simulator (`iPhone 17 Pro`, iOS 26.5) with the app already
@@ -19,28 +21,29 @@ Last updated: 2026-09-01
   §13.3's "permanently in settings" + issues #20/#37), and real simulator evidence.
 
 ### Done
+
 - [x] `packages/store/src/acceptanceGate.test.ts` — literal §11.6 harness: cold-start coherence,
-  then 5 sessions across exactly 3 distinct local dates (two same-day, which the pre-existing
-  wave-3 `simulation.test.ts` never exercised — it spread 5 sessions one-per-day over 9 days).
-  Verifies generate/approve(edit)/run/complete/log/progression/exercise-state/stats/passport-
-  queue all behave, and same-day sessions don't collapse or double-count. Mutation-verified: I
-  temporarily gated off the passport-queue enqueue in `completion.ts` and reran — the test went
-  red (`Expected length: 5, Received length: 0`) — then reverted. Honest scope note is in the
-  file's own header: this proves the gate at the store/engine level (genuinely zero network,
-  by construction — nothing here is even async), NOT that a real device with airplane mode on
-  behaves this way. That gap is still open — see "What a human must still do" in the final report.
+      then 5 sessions across exactly 3 distinct local dates (two same-day, which the pre-existing
+      wave-3 `simulation.test.ts` never exercised — it spread 5 sessions one-per-day over 9 days).
+      Verifies generate/approve(edit)/run/complete/log/progression/exercise-state/stats/passport-
+      queue all behave, and same-day sessions don't collapse or double-count. Mutation-verified: I
+      temporarily gated off the passport-queue enqueue in `completion.ts` and reran — the test went
+      red (`Expected length: 5, Received length: 0`) — then reverted. Honest scope note is in the
+      file's own header: this proves the gate at the store/engine level (genuinely zero network,
+      by construction — nothing here is even async), NOT that a real device with airplane mode on
+      behaves this way. That gap is still open — see "What a human must still do" in the final report.
 - [x] `packages/store/src/completion.test.ts` — new "kill during the completion transaction"
-  test. Forces a real throw (via `jest.spyOn(statsRepo, 'recordSessionCompletion')`) strictly
-  after per-entry exercise-state/best_set_pr writes have already executed against the live
-  transaction connection, then asserts the session is still pending, zero milestones exist, and
-  `getStats` is still null — proving `completeSession`'s single `db.transaction(...)` wrapper
-  actually rolls back everything, not just the statement that threw. Addresses the wave brief's
-  "force-quit... during the completion transaction specifically."
+      test. Forces a real throw (via `jest.spyOn(statsRepo, 'recordSessionCompletion')`) strictly
+      after per-entry exercise-state/best_set_pr writes have already executed against the live
+      transaction connection, then asserts the session is still pending, zero milestones exist, and
+      `getStats` is still null — proving `completeSession`'s single `db.transaction(...)` wrapper
+      actually rolls back everything, not just the statement that threw. Addresses the wave brief's
+      "force-quit... during the completion transaction specifically."
 - `npm run check` green after both (app 87, engine 897, data 17, store 96, functions 29).
 
 - [x] `packages/store/src/repositories/instrumentation.ts` (+ `.test.ts`, 12 tests) — §15 local-
-  first instrumentation. All local reads, zero network, computed on demand (no batching/buffering
-  daemon to keep alive, no wire protocol). Covers every §15 bullet:
+      first instrumentation. All local reads, zero network, computed on demand (no batching/buffering
+      daemon to keep alive, no wire protocol). Covers every §15 bullet:
   - Funnel (generate/started/completed + both drop-off stages) and estimate-accuracy/completion-
     by-length were fully derivable from existing `sessions` columns — no new writes needed.
   - Swap/removal-rate-per-exercise and video-flag-rate were already tracked as running counters
@@ -65,12 +68,12 @@ Last updated: 2026-09-01
     an Apple Health write toggle (issue #37 — the store patch already existed, there was simply
     no UI), a notification quiet-hours on/off toggle (issue #20 — same shape: real column, no
     UI), and a read-only §15 diagnostics panel (`instrumentationRepo
-    .computeInstrumentationSnapshot`, purely local).
+.computeInstrumentationSnapshot`, purely local).
   - **Quiet-hours toggle is on/off only, not a custom-hours picker** — a deliberate scope cut,
     not a silent gap. `clampToQuietHours(hour, enabled=true)` in `motivationNotifications.ts`
     takes the flag; `HomeScreen.tsx` passes `user.notificationPrefs.quietHoursEnabled` through.
   - First-launch disclaimer: migration `0007_disclaimer.sql` adds `users
-    .has_acknowledged_disclaimer` (no CHECK constraints elsewhere in this table, straightforward
+.has_acknowledged_disclaimer` (no CHECK constraints elsewhere in this table, straightforward
     `ALTER TABLE`). `HomeScreen.tsx` blocks on it before rendering anything else when false;
     `usersRepo.acknowledgeDisclaimer` flips it one-way. Verified the migration sync test
     (`migrate.test.ts`, an existing byte-for-byte `.sql`-vs-`data.ts` check) catches a drifted
@@ -87,11 +90,11 @@ Last updated: 2026-09-01
 - `npm run check` green throughout (app 87, engine 897, data 17, store 112, functions 29).
 
 - [x] **Real simulator pass — found and fixed a genuine red-screen regression, then verified real
-  UI on-device.** This environment has a real booted iOS Simulator with the app already built and
-  installed from before this session. Pointing Metro at it and opening the dev-client deep link
-  (`exp+roamfit://expo-development-client/?url=...`) reproduced exactly Wave 4's own verification-
-  log pattern: `[runtime not ready] Invariant Violation: TurboModuleRegistry.getEnforcing(...):
-  'RNCWebViewModule' could not be found` — a real red screen (`evidence/06-wave7-boot.png`).
+      UI on-device.** This environment has a real booted iOS Simulator with the app already built and
+      installed from before this session. Pointing Metro at it and opening the dev-client deep link
+      (`exp+roamfit://expo-development-client/?url=...`) reproduced exactly Wave 4's own verification-
+      log pattern: `[runtime not ready] Invariant Violation: TurboModuleRegistry.getEnforcing(...):
+'RNCWebViewModule' could not be found` — a real red screen (`evidence/06-wave7-boot.png`).
   - **Root cause, confirmed by inspection, not guessing:** `app/ios/Podfile.lock` had zero
     entries for `react-native-webview`, `@kingstinct/react-native-healthkit`, `expo-location`, or
     `react-native-svg` — the native iOS project had never been regenerated since Wave 6 added
@@ -123,12 +126,14 @@ Last updated: 2026-09-01
     functions' deploy runbook).
 
 ### Final status
+
 Shas: `b98d410` (§11.6 harness + completion atomicity), `1a14f7f` (§15 instrumentation), `09e5e98`
 (Settings + disclaimer, closes #20/#37), `d4e2511` (real-device fix + evidence). `npm run check`
 green at every boundary (final: app 87, engine 897, data 17, store 112, functions 29; 0 lint
 errors).
 
 **Closed this wave, with real verification (not just "tests pass"):**
+
 - #20 (notification quiet-hours setting) and #37 (HealthKit write opt-in setting) — real toggles
   in a real new Settings screen, backed by store columns that already existed.
 - Completion-transaction atomicity under a forced mid-transaction throw — new test, mutation-
@@ -140,6 +145,7 @@ errors).
   `expo prebuild` + `expo run:ios`, then verified with real taps on a real rebuilt binary.
 
 **Not closed — left open, with exactly what's needed:**
+
 - **#1 contraindication review — still unsigned.** `docs/review/contraindications-review.md` has
   32 untagged + 18 suspected-missing-tag exercises. §13.2 makes this a hard safety filter and the
   pregnancy preset depends on it. **A human must review and sign off before this app ships.** I
@@ -183,6 +189,7 @@ or a CI check (e.g. diff `Podfile.lock` package names against `package.json` dep
 deps that were never linked before — not new deps, just linking deps that already existed.)
 
 **Deliberate cuts, stated plainly:**
+
 - Quiet-hours setting is on/off only, not a custom-hours time picker.
 - §15 instrumentation has no dedicated UI beyond the Settings diagnostics panel — no
   export/CSV/analytics-dashboard surface, which was never asked for and would be a real feature,
@@ -191,6 +198,7 @@ deps that were never linked before — not new deps, just linking deps that alre
   code-reading `daysBetween`, given the time budget was better spent on the real-device fix.
 
 ### Human checklist, in order
+
 1. Sign off `docs/review/contraindications-review.md` (§13.2 hard safety gate — blocks release).
 2. On a real device or the now-working simulator build: walk Generate → Approval → Workout
    (rep-based, timed, superset) → Summary, listening/feeling for audio+haptics (#16), and open a
@@ -205,4 +213,5 @@ deps that were never linked before — not new deps, just linking deps that alre
    this session found doesn't recur silently.
 
 ### Decisions / gotchas
+
 - (filled in as they arise)

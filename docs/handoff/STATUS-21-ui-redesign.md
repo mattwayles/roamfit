@@ -1,4 +1,5 @@
 ## Track: 21 — "Golden Hour" UI redesign
+
 Last updated: 2026-09-29 — **TRACK DONE (Phase G landed).** Only the device pass remains, owned by BACKLOG.
 
 User request: a complete, themed UI rewrite of **every** page to make the app approachable,
@@ -6,68 +7,72 @@ exciting and motivating. Design is fixed in `docs/DESIGN.md` — read it in full
 Presentation-only: store/engine/data behavior is frozen (DESIGN.md §7).
 
 ### Done
+
 - [x] Design spec written — `docs/DESIGN.md`
 - [x] A1 deps installed via `npx expo install` (react-native-svg 15.15.4, @expo/vector-icons 15.0.2,
-  @expo-google-fonts/barlow + barlow-condensed 0.4.1, @react-navigation/bottom-tabs 7.20.0) — eda9578
+      @expo-google-fonts/barlow + barlow-condensed 0.4.1, @react-navigation/bottom-tabs 7.20.0) — eda9578
 - [x] A2 theme tokens `app/src/theme/` (colors, typography, layout, fonts, navTheme) + tests — 590daee
 - [x] A3 fonts via `useFonts` in App.tsx, app.json dark/splash/bg, `app/__mocks__/expo-font.js`, `lib/hypeCopy.ts` + tests — 9f59347
 - [x] A4 ui primitives `app/src/ui/` + tests, `lib/haptics.ts`, `lib/seed.ts`, Jest mock for @expo/vector-icons — 0864abd
 - [x] A5 navigation shell: root stack -> `Tabs` (Today/Field Guide, custom `TabBar`), `NavigatorScreenParams` /
-  `CompositeScreenProps` types, `homeReset()`, dark nav theme, `StatusBar style="light"`; every
-  `navigate/reset` to Home fixed + tests updated — 19dd1fb
+      `CompositeScreenProps` types, `homeReset()`, dark nav theme, `StatusBar style="light"`; every
+      `navigate/reset` to Home fixed + tests updated — 19dd1fb
 
 - [x] B1 shared Workout components restyled to tokens (AnchorBadge, BandChip/Picker, FeedbackControls,
-  PinnedNote, DemoMedia, SpotifyControls, AbandonSessionButton -> Sheet) + tiny ui extensions — 0e05c27
+      PinnedNote, DemoMedia, SpotifyControls, AbandonSessionButton -> Sheet) + tiny ui extensions — 0e05c27
 - [x] B2 Workout shell: own top bar, session SegmentedBar, section/paused/Progress chips, nudge Sheet,
-  header hidden, legacy scene made opt-in per screen — f9c1b3c
+      header hidden, legacy scene made opt-in per screen — f9c1b3c
 - [x] B3-B5 reps hero, timed ring hero, lagoon rest hero + Up next, Disclosure/DemoMedia cards, coach
-  toast, `WorkoutScreen.presentation.test.tsx` — 959dac4, polish a440480
+      toast, `WorkoutScreen.presentation.test.tsx` — 959dac4, polish a440480
 - [x] C1 shared foundation: `lib/useDashboardData.ts`, `lib/dayMarkers.ts`, `weekContaining` + hero
-  `progress` in `lib/dashboard.ts`, `sessionCompletionFraction`, `DayCell` / `RungTrack` /
-  `EmptyState` / `IconBadge` / `SectionTitle` components, TabBar can hide itself — efeef13
+      `progress` in `lib/dashboard.ts`, `sessionCompletionFraction`, `DayCell` / `RungTrack` /
+      `EmptyState` / `IconBadge` / `SectionTitle` components, TabBar can hide itself — efeef13
 - [x] C2 Journey tab (`screens/JourneyScreen.tsx`, `TAB_META` row, `<Tab.Screen>`, Journey tests) — dbd06ff
 - [x] C3 HomeScreen -> Today (hero, tiles, week strip, next unlock, disclaimer gate), legacy light scene
-  removed from Home, Home tests moved/rewritten, `open-exercises` retired — 08acf37
+      removed from Home, Home tests moved/rewritten, `open-exercises` retired — 08acf37
 
 - [x] D1 Generate "Ignition" (`GenerateScreen.tsx`), OptionPicker deleted, Generate tests address options by
-  value, legacy light override removed for Generate — f9762b4
+      value, legacy light override removed for Generate — f9762b4
 - [x] D2 Plan / Approval "Your route" (`ApprovalScreen.tsx`, `components/KeyboardDoneBar.tsx`,
-  `lib/focusLabels.ts`, `Screen scrollEnabled`, `ApprovalScreen.presentation.test.tsx`), legacy light override
-  removed for Approval — 4eecc76
+      `lib/focusLabels.ts`, `Screen scrollEnabled`, `ApprovalScreen.presentation.test.tsx`), legacy light override
+      removed for Approval — 4eecc76
 
 - [x] E1 flake fix: Summary haptics test (root cause: one-word hype headline has no word ticks) — 1eea9cc
 - [x] E2 Completion re-skin (§5.9) + `CelebrationBackdrop` / `HypeHeadline` / `ConfettiBurst` / `HighlightCard` /
-  `AnimatedStatCounter` to tokens, `Chip wrap` — b6f34e3
+      `AnimatedStatCounter` to tokens, `Chip wrap` — b6f34e3
 - [x] E3 Debrief (§5.8): `SummaryScreen.tsx` header/tiles/legend/rows/squares/dots/Trail notes/footer + edit
-  `Sheet`, `Screen adjustForKeyboard`, legacy light override removed for Summary,
-  `SummaryScreen.presentation.test.tsx` — b53f55a
+      `Sheet`, `Screen adjustForKeyboard`, legacy light override removed for Summary,
+      `SummaryScreen.presentation.test.tsx` — b53f55a
 
 - [x] F1 Field Guide (`ExercisesScreen.tsx`, §5.3): own header, search, chip row + Filters `Sheet`, avatar rows, EmptyState;
-  `FOCUS_TONE` moved to `lib/focusLabels.ts`; Icon `up`/`down`/`fitness`; Tabs no longer show a header or the legacy
-  scene — 23d1c2a
+      `FOCUS_TONE` moved to `lib/focusLabels.ts`; Icon `up`/`down`/`fitness`; Tabs no longer show a header or the legacy
+      scene — 23d1c2a
 - [x] F2 Exercise detail (`ExerciseDetailScreen.tsx`, §5.4): hero + StatTiles + section cards + spec grid + Switch row;
-  `EmptyState` gained `bodyTestID`; stack header off for this route — a58e489
+      `EmptyState` gained `bodyTestID`; stack header off for this route — a58e489
 - [x] F3 Settings (`SettingsScreen.tsx`, §5.10) + `SettingsScreen.test.tsx`; `legacyLightScene` / `legacyLightContent` /
-  `LEGACY_SCENE` deleted from `navigation/screenOptions.ts` (nothing used them) — 08c9174
+      `LEGACY_SCENE` deleted from `navigation/screenOptions.ts` (nothing used them) — 08c9174
 
 - [x] G1 sweep: Workout loading spinners ember, intentional literals commented — bc25bbe
 - [x] G2 week strip always the 7 real days: `addDaysToLocalDate` / `monthWindow` / `weekWindow` + a `window` param on
-  `buildCalendarDays`, `DashboardData.weekDays`, `weekContaining` deleted, month-boundary tests, BACKLOG item removed — c976858
+      `buildCalendarDays`, `DashboardData.weekDays`, `weekContaining` deleted, month-boundary tests, BACKLOG item removed — c976858
 - [x] G3 `HypeHeadline` stamped punch restored: hard 3/4pt `emberDeep` copy layer (carries the ember glow) under each word, forward
-  `skewX` lean, `HypeHeadline.test.tsx` — 6324061
+      `skewX` lean, `HypeHeadline.test.tsx` — 6324061
 - [x] G4 one keyboard Done bar: `WorkoutScreen`'s `RepsAccessoryBar` and `PinnedNote`'s bar deleted, both use `KeyboardDoneBar`
-  (`rep-count-done`, `pinned-note-done`, `retrospective-done` unchanged); BACKLOG item removed — 31870bf
+      (`rep-count-done`, `pinned-note-done`, `retrospective-done` unchanged); BACKLOG item removed — 31870bf
 - [x] G5 consistency pass: title eyebrows follow the mood, Spotify browse loading is an ember spinner — 4786801
 - [x] G6 docs: BACKLOG consolidated (one "Golden Hour redesign — device pass owed" item, Completion native tier updated, Passport
-  replaced by its open questions, app icon/splash art added, landed/stale items deleted), this file closed
+      replaced by its open questions, app icon/splash art added, landed/stale items deleted), this file closed
 
 ### In progress
+
 - Nothing. The track is complete; the next action is the device pass (BACKLOG, first item under Desired Fixes).
 
 ### Next
+
 - Device pass (`npm run ios`), then fix whatever the checklist turns up as normal BACKLOG work, not as a new phase.
 
 ### Decisions / gotchas
+
 - `react-native-svg` is native: the app needs a dev-client rebuild (`npm run ios`) after phase A.
   Everything else added is JS/asset-only (expo-font was already linked).
 - Dark-only by design (DESIGN.md §1). No red anywhere (invariant 4).
@@ -84,7 +89,7 @@ install) before trying the redesign on a device/simulator. Not done in Phase A (
 no native build was attempted). Fonts/icons/tabs are JS-only. `app.json` also gained
 `userInterfaceStyle: dark`, `backgroundColor` and a `splash` block (bg `#0B0E13`) that only take
 effect after `expo prebuild`/rebuild. `expo-splash-screen` is not installed (no new deps), so
-`App.tsx` holds a blank `bg` `<View>` until `useFonts` resolves (a font *error* falls through to
+`App.tsx` holds a blank `bg` `<View>` until `useFonts` resolves (a font _error_ falls through to
 system fonts instead of bricking launch).
 
 **Imports.** Screens import tokens from `../theme` and components from `../ui` (one barrel each).
@@ -143,7 +148,7 @@ navigator has `headerShown: false` and a `bg` scene for all three tabs.)**
 **What the screen is now** (`WorkoutScreen.tsx`): `<Screen edges top/left/right padded={false}>` >
 top bar (home `IconButton` `workout-home` | `hero` clock `workout-elapsed`, `adjustsFontSizeToFit` |
 pause `pause-workout` + abandon `abandon-button`) > `SegmentedBar` (one segment per active entry,
-filled by *completed* sets, glow + color = current section) > `ScrollView` `workout-scroll`
+filled by _completed_ sets, glow + color = current section) > `ScrollView` `workout-scroll`
 (Spotify pill, section `Chip` + PAUSED chip + Progress/Done `Chip` `view-progress`/`review-done`,
 swap notice, PinnedNote, phase view, How-to `Disclosure` card, `DemoMedia` card) > `Toast` (absolute,
 bottom). Section tones: warm-up gold, main ember, cool-down lagoon (`SECTION_TONE`). The header
@@ -152,7 +157,7 @@ screen. The Progress/Done control is a sky `Chip` in the meta row, not a header 
 
 **Toast lives on the screen, not the set view.** A completed set swaps to the rest page in the same
 tick, so anything the set view owned would unmount before it could be read. `announceCompletion()`
-(in `commitSetAndRest`) picks the pool: the set *before* the session's final set -> `lastSet`
+(in `commitSetAndRest`) picks the pool: the set _before_ the session's final set -> `lastSet`
 ("Last set. Empty the tank." is a nudge for what's next, never said after the end); closing set of an
 exercise -> `exerciseComplete`; else `setComplete`. Seed `${entry.id}:${setIndex}`. Rest line seed
 is `${restingEntryId}:${restingSetIndex}` from the `rest` pool. Haptics: COMPLETE SET fires
@@ -166,6 +171,7 @@ rest hero (`rest-pips`), mounted unfilled and filled 150ms later so `Pips` pops 
 an empty dot).
 
 **Shared components — how they look/behave now (Approval/Summary/Detail/Home phases must account):**
+
 - All still default exports with unchanged props + testIDs. They now import tokens and `../ui`.
 - `BandChip`: dark `surface2` pill + a color **dot** (`band-chip-B2-dot` carries the tension color,
   `band-chip-B2` no longer has the band color as its background). `textColorOn`/`textToneOn` now
@@ -192,6 +198,7 @@ an empty dot).
   `external`.
 
 **Deviations from DESIGN.md §5.7** (all deliberate):
+
 - The rep counter is `mega` (112) and is bigger than the `hero` (64) elapsed clock. The clock is the
   biggest thing in the top bar and the biggest header type; the numeral is the centerpiece by spec.
 - Level chip reads `LVL 3/7 · HORIZONTAL PUSH` (kept the "of N" the old badge carried).
@@ -203,7 +210,7 @@ an empty dot).
 - Timed caption sits under the ring (spec), the flanking -/+ sit at the ring's lower corners (a
   240pt ring plus two 56pt buttons does not fit a 350pt card side by side).
 - Rest hero also shows pips for the set just done (the place the "pip pop" can actually be seen).
-- `SegmentedBar` fills on *completed* sets only, so skipped sets leave a segment quiet.
+- `SegmentedBar` fills on _completed_ sets only, so skipped sets leave a segment quiet.
 
 **Not verified on a device/simulator** (Jest only; `react-native-svg` still needs the dev-client
 rebuild). Layout was reasoned, not seen: top-bar clock width, hero height vs the fold on a 6.1"
@@ -241,6 +248,7 @@ returns the fresh data), `lib/dayMarkers.ts` (emoji + tint + labels shared by st
 while the §13.3 disclaimer gate is up, so the gate really blocks (nothing else reachable behind it).
 
 **Deviations from DESIGN.md §5.1/§5.2 (all deliberate)**:
+
 - `open-exercises` (Home's "Exercises" text link) is gone: the Field Guide tab does that job. The two
   tests that used it (`ExercisesScreen`, `ExerciseDetailScreen`) now press `tab-Exercises`.
 - The week strip is Sun-Sat (the Logbook's own week), not Mon-Sun. (Phase C also showed blank cells for days in the
@@ -299,7 +307,8 @@ Done accessory for every numeric field. Drag maths is unchanged (`CARD_GAP` 8, `
 'YOUR ROUTE'.
 
 **Deviations from DESIGN.md §5.5/§5.6 (all deliberate)**:
-- Generate's Equipment options are full-width toggle *rows* (check circle + label + hint caption), not wrapping
+
+- Generate's Equipment options are full-width toggle _rows_ (check circle + label + hint caption), not wrapping
   chips: each option carries a hint that would not fit inside a chip, and rows are 52pt targets.
 - Generate's native header title is empty (the screen draws its own eyebrow + title); Approval keeps a native
   header titled "YOUR ROUTE" so the back gesture/button still works.
@@ -336,11 +345,12 @@ felt"); tapping opens the `feedback-edit-sheet` `Sheet` ("{Exercise} — Set N",
 `FeedbackControls` labeled segments, `feedback-edit-done`). `editingFeedback` is kept after the sheet closes (only
 `editorOpen` flips) so the content survives the exit animation. The legacy whole-stage answer is a small `Chip`
 `summary-feedback-difficulty-${entryId}` under the name. Footer: `finish-button` ("FINISH", `haptic={false}` — see gotchas)
-+ `back-to-workout` quiet; mid-workout (frontier) there is no FINISH and "Back to workout" is the `lg` primary.
+
+- `back-to-workout` quiet; mid-workout (frontier) there is no FINISH and "Back to workout" is the `lg` primary.
 
 **Completion (after FINISH)**: `session-complete` = `bg` `View` + `CelebrationBackdrop` (ember / gold / sun orbs at
 0.10 / 0.09 / 0.07 ring opacity + a faint lagoon orb) + shaking `ScrollView`. The native header is hidden
-(`headerShown: false`, set by an effect declared *before* the back-override effect so that one stays the last
+(`headerShown: false`, set by an effect declared _before_ the back-override effect so that one stays the last
 `setOptions` call, which the tests read) and `useInsets()` supplies the safe-area padding. Hero (`minHeight` 132) =
 gold/sun `Sunburst` + `HypeHeadline` (`type.display`, `text` words, last word `sun`, ember glow + hard `emberDeep` stamp shadow
 (restored in Phase G), skewed lean — Barlow Condensed has no italic face loaded, so the lean is a `skewX`). `workout-count` is an `h2`; subtitle uses the focus label. Stat chips are
@@ -355,6 +365,7 @@ changed. No violet: `summit` is not imported by any completion component (`Summa
 whole rendered tree, confetti included, for every violet the old page and the palette contain).
 
 **Deviations from DESIGN.md §5.8/§5.9 (all deliberate)**:
+
 - The Debrief's third tile is "Reps" (total reps) — or "Hold time" (seconds) only for a session with no reps at all.
   Reps and timed holds are different units and three tiles are ~87pt of content each, so a session with both shows reps
   only there (the Completion page still shows both, as before).
@@ -377,10 +388,11 @@ whole rendered tree, confetti included, for every violet the old page and the pa
 - `Chip` gained `wrap`, `Screen` gained `adjustForKeyboard` (both tiny ui extensions).
 
 **Gotchas**:
+
 - **The Summary haptics flake was not load or leaked timers.** The fanfare test asserted a Light tick the moment the Heavy
-  slam arrived. Light ticks are the headline's word ticks (one per word except the last, all *before* the slam) — but a
+  slam arrived. Light ticks are the headline's word ticks (one per word except the last, all _before_ the slam) — but a
   ONE-word headline ("UNSTOPPABLE!", 1 of 8 in the pool, picked from the session's random id) has none, so its first
-  Light is a stat-tile tick ~450ms *after* Heavy. Reproduced deterministically by pinning that headline; the test now runs
+  Light is a stat-tile tick ~450ms _after_ Heavy. Reproduced deterministically by pinning that headline; the test now runs
   for a one-word and a multi-word headline (`pickHypeHeadline` is a `jest.fn` wrapper around the real picker), awaits
   Heavy, Light and the button's Success independently, and asserts exactly one Success on arrival.
 - Do **not** give FINISH (or Heck yes) a default `Button` haptic: the primary variant fires `light` on press, which would
@@ -400,7 +412,7 @@ number), the search well (`exercise-search`, `clear-search` only while there is 
 (ember-outlined when active, badge `filters-badge` = applied count), removable ember chips for applied filters the row has no
 chip for (`active-filter-${key}-${value}`), then quick toggles `quick-filter-focus-${focus}` (focus-toned), `quick-filter-needs-video`,
 `quick-filter-completed`; `clear-filters-inline` under the row when anything is applied. `Sheet testID="filter-panel"` holds every
-group with the *unchanged* `filter-video-*` / `filter-performed-*` / `filter-${key}-${value}` ids, `clear-filters` (Clear all, in the
+group with the _unchanged_ `filter-video-*` / `filter-performed-*` / `filter-${key}-${value}` ids, `clear-filters` (Clear all, in the
 sheet header, only when applied) and a primary `filters-done` ("Show N moves"). Rows `exercise-card-${id}` (`React.memo`, a
 `PressableScale haptic={false}`): 52pt `radius.md` avatar tinted `tints[FOCUS_TONE[exercise.focus[0]]]` with a `PATTERN_ICON` glyph (the
 single pattern -> icon map, `Record<Pattern, IconName>` so a new pattern is a compile error), `h3` name, `small` muscle,
@@ -417,7 +429,7 @@ ember, `detail-last-performed` gold — the second is now always shown, "Not yet
 sunrise-gradient bars, and `detail-gain-${label}` `Chip`s — improved = ember + trending-up icon, label "Best set · 6 reps → 8 reps"; or,
 with no history, an `EmptyState` whose body carries `detail-progress-summary`), Details (2-column grid of `surface2` `detail-field-${label}`
 tiles, `wide` for Progression / Contraindications, `detail-field-Library id` caption last), and the `toggle-exercise-disabled` row: a
-`PressableScale` (role switch, `accessibilityState.checked` = *enabled*) containing `toggle-exercise-disabled-switch`. The switch reads ON when the
+`PressableScale` (role switch, `accessibilityState.checked` = _enabled_) containing `toggle-exercise-disabled-switch`. The switch reads ON when the
 exercise is in workouts (the inverse of the stored `disabledAt`); copy keeps "Currently appears in workouts" / "Currently hidden from workouts".
 
 **Settings (`SettingsScreen.tsx`)**: header title is `''` (native header kept for back) and the screen draws an `h1` "Settings". Groups
@@ -433,6 +445,7 @@ of `Alert`). Every `toggle-*` id is on the ROW (`accessibilityState.checked` = v
 VoiceOver, so tests query it `{ hidden: true }`). The Settings screen had no tests before; `SettingsScreen.test.tsx` is new.
 
 **Deviations from DESIGN.md §5.3/§5.4/§5.10 (all deliberate)**:
+
 - Field Guide: the count reads "N moves" even when filtered (no "of 247"); the title block scrolls with the list rather than pinning (only the
   Filters chip row would be a candidate for sticking — left off so rows get the room on a small phone). A "Not done yet" row shows a caption,
   not a muted chip (a column of muted pills is the boring list being replaced); the spec's "muted chips" are the no-video / disabled ones.
@@ -447,6 +460,7 @@ VoiceOver, so tests query it `{ hidden: true }`). The Settings screen had no tes
 - Settings: Training/Motivation explanatory copy moved from under the row to under the group card (captions) — same text.
 
 **Gotchas**:
+
 - `Switch` here is a Pressable (`onPress` -> `onValueChange(!value)`), not the RN `Switch`: tests press it, there is no `valueChange` event.
 - A Sheet unmounts after its exit animation: tests that assert it "closed" `waitFor` (the reset test does).
 - The tab screens stay mounted under a pushed stack screen, so a test looking for `topo-pattern-*` / other shared testIDs after opening
@@ -459,16 +473,16 @@ VoiceOver, so tests query it `{ hidden: true }`). The Settings screen had no tes
 `lineHeight`, unicode icon glyphs, `Modal`/`Alert`/`ActivityIndicator`). Phases A-F had already migrated almost everything, so the sweep
 mostly proves it and annotates the rest.
 
-| Check | Before | After |
-| --- | --- | --- |
-| Raw hex / rgb colors | 1 (`SPOTIFY_GREEN`, brand dot, already commented) | 1 (same, intentional) |
-| `fontSize:` / `fontWeight:` literals | 0 (1 false positive: `screenOptions.ts` reads `type.h2.fontSize`, a token) | 0 (the token read now has a comment) |
-| `fontFamily` literals | 1 (`'Menlo'`, diagnostics well, §5.10) | 1, commented |
-| `letterSpacing` / `lineHeight` overrides on a `Txt` variant | 5, uncommented | 5, each with a one-line why |
-| Unicode glyphs used as icons (✈ ✕ ⇄ ⠿ ▸ ▶ ❚ ✓ ✔ ★ ⭐ ...) | 0 | 0 |
-| Emoji as content | day markers (`lib/dayMarkers.ts`), "Heck yes! 💪" | same, intentional |
-| `Modal` / `Alert` outside `ui/Sheet` | 0 | 0 |
-| Loading states not an ember spinner on `bg` | 3 (Workout x2 un-tinted; Spotify browse's "Loading..." text) | 0 |
+| Check                                                       | Before                                                                     | After                                |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------ |
+| Raw hex / rgb colors                                        | 1 (`SPOTIFY_GREEN`, brand dot, already commented)                          | 1 (same, intentional)                |
+| `fontSize:` / `fontWeight:` literals                        | 0 (1 false positive: `screenOptions.ts` reads `type.h2.fontSize`, a token) | 0 (the token read now has a comment) |
+| `fontFamily` literals                                       | 1 (`'Menlo'`, diagnostics well, §5.10)                                     | 1, commented                         |
+| `letterSpacing` / `lineHeight` overrides on a `Txt` variant | 5, uncommented                                                             | 5, each with a one-line why          |
+| Unicode glyphs used as icons (✈ ✕ ⇄ ⠿ ▸ ▶ ❚ ✓ ✔ ★ ⭐ ...)   | 0                                                                          | 0                                    |
+| Emoji as content                                            | day markers (`lib/dayMarkers.ts`), "Heck yes! 💪"                          | same, intentional                    |
+| `Modal` / `Alert` outside `ui/Sheet`                        | 0                                                                          | 0                                    |
+| Loading states not an ember spinner on `bg`                 | 3 (Workout x2 un-tinted; Spotify browse's "Loading..." text)               | 0                                    |
 
 **Week strip.** `buildCalendarDays` takes an optional `CalendarWindow` (`{from, to}` local_date strings; default `monthWindow(today)`, so the
 Logbook is unchanged). `weekWindow(today)` = the Sun-Sat week, month edges ignored. `loadDashboardData` builds `weekDays` with it and Today
@@ -491,6 +505,7 @@ summit -> gold, Debrief ember -> gold (Field Guide gold and Generate ember were 
 footers/heroes, `md` secondary, `sm` inside cards and empty states), card padding (`md` inside screens, `lg` only on the gate card), `Enter`
 stagger (every screen staggers its blocks; Workout has none by design), Sheet button hierarchy (safe choice primary `lg`, the action secondary `md`).
 **Left as-is, deliberately (report, not rewrite):**
+
 - Two section-heading tiers: `components/SectionTitle` (h2 + icon, Journey's major sections) and `ui/SectionHeader` (eyebrow, card-level labels on
   Today and Debrief); Generate/Settings/Approval draw bare `eyebrow text3` labels that look identical to `SectionHeader` without the icon. Detail's
   in-card `CardHeader` is eyebrow `text2` with a toned icon (matches `DemoMedia`). Collapsing these to one component is a cross-screen refactor.

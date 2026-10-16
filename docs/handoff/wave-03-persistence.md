@@ -64,7 +64,7 @@ deleted at approval; regenerate taps and consecutive count; demo-media expansion
 creation/edits; abandonment point (exercise and set); time of day and day of week; days since last
 session; **device timezone change** (§9.3 travel detection).
 
-§1.1: *"Explicit feedback is a bonus; implicit feedback is the system."* Assume the user rates
+§1.1: _"Explicit feedback is a bonus; implicit feedback is the system."_ Assume the user rates
 nothing — if a signal is not captured here, the engine can never learn from it.
 
 Explicit feedback (§8.1) is exactly two optional controls plus one session-level retrospective.

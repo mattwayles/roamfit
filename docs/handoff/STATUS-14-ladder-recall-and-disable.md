@@ -1,4 +1,5 @@
 ## Track: 14-ladder-recall-and-disable — Lower rungs stay eligible + explicit exercise disable
+
 Last updated: 2026-09-02
 Status: **Complete.** `npm run check` (typecheck + test + lint + engine-purity + library
 validation) is green across all five workspaces as of commit `f3c633d`.
@@ -10,6 +11,7 @@ detail screen + workout approval screen), distinct from the existing temporary
 `suppressedUntil`. Full design in the approved plan (this session; not persisted elsewhere).
 
 User decisions (already implemented, do not re-litigate):
+
 - 60/40 weighted pick between current rung and the union of all lower rungs, when both have
   eligible candidates — not "only fall back when current rung is exhausted."
 - Lower rungs = every level below current, down to level 1. No window.
@@ -22,6 +24,7 @@ User decisions (already implemented, do not re-litigate):
   from ever surfacing in a user-selected hard workout via the new lower-rung pool.
 
 ### Done — everything
+
 - **Schema**: `exercise_state.disabled_at` (nullable, permanent user veto, distinct from
   `suppressed_until`) — migration `0012_exercise_disabled.sql` + embedded copy in
   `migrations/data.ts`.
@@ -40,7 +43,7 @@ User decisions (already implemented, do not re-litigate):
   (`'current' | 'lower-weighted' | 'current-unavailable'`) so `resolveLadderSlot` can tag a
   deliberate variety pick as `ResolvedLadderSlot.pulledFromLevelId` and a hard-filter failure as
   the pre-existing `substitutedFrom` — these are NOT the same thing and must stay tagged
-  differently (see Decisions below; this was a real bug caught by the 60/40 test). 
+  differently (see Decisions below; this was a real bug caught by the 60/40 test).
   `ResolveSlotInput.includeLowerRungs` (default true) lets `levelUpFamily` opt out, since it needs
   the newly-unlocked rung's own eligibility, not a mastered lower one.
 - **UI**: `ExerciseDetailScreen.tsx` has a `Switch` toggle next to `PinnedNote`;
@@ -55,6 +58,7 @@ User decisions (already implemented, do not re-litigate):
   the UI.
 
 ### Concurrent-session note (resolved, keep for future reference)
+
 A peer session (`roamfit-5f`) was independently renaming the engine's session "effort"
 (easy/normal/hard) to "difficulty" (easy/medium/hard, unified with `Exercise.difficulty`) in the
 same working tree while this track's lower-rung logic was uncommitted. Both changesets landed
@@ -66,7 +70,9 @@ happens: stop, check `ListAgents`/`git status` for unexpected diffs, and ask bef
 rather than assuming a system note describing an unexpected file change is wrong.
 
 ### Next
+
 Nothing outstanding for this track. If picking this up again for a related request:
+
 - Manual/device verification was never done (no device available in this session) — run the app,
   disable an exercise from both screens, advance a ladder family and watch a lower rung recur
   over repeated generations, and confirm the hard-difficulty floor holds. Not blocking (unit/
@@ -78,6 +84,7 @@ Nothing outstanding for this track. If picking this up again for a related reque
   `f3c633d`.
 
 ### Decisions / gotchas
+
 - Do NOT conflate `disabledAt` with `suppressedUntil` — separate columns, separate concepts,
   separate call sites. `suppressedUntil` is unchanged (accessory-slot-only, system-managed,
   temporary).

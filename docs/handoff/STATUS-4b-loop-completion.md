@@ -1,16 +1,20 @@
 ## Track: 4b-loop-completion — Wave 4 closeout
+
 Last updated: 2026-08-31
 
 ### Read before starting
+
 CLAUDE.md, wave-04-workout-loop.md, STATUS-4-loop.md, ORCHESTRATION.md carried-forward #14-18,
 ADRs 0003/0004/0005, spec §10.3/§10.5/§10.6/§10.7/§10.8.
 
 ### In progress
+
 - **Next action**: issue #14 (`WorkoutScreen.rest.test.tsx` waitFor flake under concurrent CPU
   load) — not started this increment. After that: #17 (approval editing), #18 (timed-exercise
   interaction test), then the `expo run:ios` evidence pass.
 
 ### Done
+
 - [x] **Issue #15 closed** — §10.6 mid-workout swap, engine through UI:
   - `packages/engine/src/selection/swap.ts` — `alternativesForSlot(req)` and
     `buildSwapReplacementEntry(exercise, entry)`, exported from `packages/engine/src/index.ts`.
@@ -80,19 +84,19 @@ ADRs 0003/0004/0005, spec §10.3/§10.5/§10.6/§10.7/§10.8.
     which is the spec-compliant default; wiring a real toggle is future work.
 
 - [x] **Issue #14 closed** — `WorkoutScreen.rest.test.tsx`'s flake root cause (confirmed, not
-  guessed): `RestPhase`/`TimedExercise`'s displayed countdown only updates on their own internal
-  250ms `setInterval` re-render tick (`useCountdown.ts`'s `forceTick`) — pressing `+15s`/`-15s`
-  mutates the wall-clock controller synchronously, but the *screen* doesn't reflect it until that
-  next tick. Under real CPU contention the event loop can starve past the default `waitFor`
-  budget (1000ms, 50ms poll) before that tick fires, timing the assertion out even though the
-  underlying state was already correct — a real "wait budget sized for an idle CPU," not db
-  contention (per-worker db naming already fixed that in the prior track). Fixed: a shared
-  `WAIT_OPTS = { timeout: 5000, interval: 50 }` applied to all 10 `waitFor` calls in the file —
-  still polling the same real assertions (not a fixed sleep), just with headroom over the 250ms
-  tick under load. **Verified, not assumed**: ran the target test 3x solo, then 2x concurrently,
-  both while pinning all CPU cores at 100% with `yes > /dev/null` background processes (one per
-  core) — all passed, where the prior version was reported to fail under exactly this shape of
-  load.
+      guessed): `RestPhase`/`TimedExercise`'s displayed countdown only updates on their own internal
+      250ms `setInterval` re-render tick (`useCountdown.ts`'s `forceTick`) — pressing `+15s`/`-15s`
+      mutates the wall-clock controller synchronously, but the _screen_ doesn't reflect it until that
+      next tick. Under real CPU contention the event loop can starve past the default `waitFor`
+      budget (1000ms, 50ms poll) before that tick fires, timing the assertion out even though the
+      underlying state was already correct — a real "wait budget sized for an idle CPU," not db
+      contention (per-worker db naming already fixed that in the prior track). Fixed: a shared
+      `WAIT_OPTS = { timeout: 5000, interval: 50 }` applied to all 10 `waitFor` calls in the file —
+      still polling the same real assertions (not a fixed sleep), just with headroom over the 250ms
+      tick under load. **Verified, not assumed**: ran the target test 3x solo, then 2x concurrently,
+      both while pinning all CPU cores at 100% with `yes > /dev/null` background processes (one per
+      core) — all passed, where the prior version was reported to fail under exactly this shape of
+      load.
 
 - [x] **Issue #17 closed** — §10.3 approval-time editing, engine through UI:
   - `packages/engine`: exported `applyHardFilters`, `effortCapForExercise`, and
@@ -115,8 +119,8 @@ ADRs 0003/0004/0005, spec §10.3/§10.5/§10.6/§10.7/§10.8.
   - `npm run check` green (engine 870, store 34, data 2, app 21 across 9 suites).
 
 - [x] **Issue #18 closed, and it caught two real bugs in `TimedExercise` along the way** — this
-  screen previously had NO interaction test; both `WorkoutScreen.rest.test.tsx` and
-  `.resume.test.tsx` deliberately fast-forward past timed entries to reach a reps entry.
+      screen previously had NO interaction test; both `WorkoutScreen.rest.test.tsx` and
+      `.resume.test.tsx` deliberately fast-forward past timed entries to reach a reps entry.
   - New `app/src/screens/timedTestHelpers.ts` (shared, non-test-glob setup) +
     `WorkoutScreen.timedBilateral.test.tsx` / `WorkoutScreen.timedUnilateral.test.tsx` (split into
     two files — see below). Both patch the target entry's `durationSec`/`unilateral` directly on
@@ -154,10 +158,10 @@ ADRs 0003/0004/0005, spec §10.3/§10.5/§10.6/§10.7/§10.8.
     one file were observed to occasionally interfere with each other's real-timer assertions when
     run back to back — separate Jest module registries removed that. **Verified stable**: 3x solo
     each, 4x combined, and once combined while pinning all CPU cores at 100% (`yes > /dev/null`
-    per core) — all passed, and materially *faster* than the buggy chained-effects version (the
+    per core) — all passed, and materially _faster_ than the buggy chained-effects version (the
     unilateral test dropped from routinely needing >30s/timing out to a consistent ~13s).
   - Also added a `testID="timed-remaining"` on the countdown's own `<Text>` (previously only the
-    wrapping `<View>` had a testID) — needed to read the *primitive* rendered value in a test
+    wrapping `<View>` had a testID) — needed to read the _primitive_ rendered value in a test
     rather than comparing two separately-queried React elements with `toEqual` (unreliable:
     they can carry different internal fiber metadata across renders even with identical visible
     text — a real false-failure this surfaced, unrelated to the two bugs above).
@@ -169,20 +173,20 @@ ADRs 0003/0004/0005, spec §10.3/§10.5/§10.6/§10.7/§10.8.
     instruction to flag exactly this.
 
 - [x] **Issue #14 re-diagnosed and actually closed.** My first pass (generous `waitFor` timeouts)
-  was insufficient — the orchestrator independently re-tested with two truly concurrent
-  `npx jest` processes in `app/` and found 2-5 failures on every run, plus a smoking-gun error the
-  raised timeout let surface: `ReferenceError: You are trying to 'require' a file after the Jest
-  environment has been torn down`, from `WorkoutScreen.rest`/`timedBilateral`/`timedUnilateral`
-  (later reproduced independently here, isolated further to `WorkoutScreen.swap.test.tsx` and
-  `.resume.test.tsx` as the most consistent failures — both predate this track's `WAIT_OPTS` fix,
-  never having received it).
+      was insufficient — the orchestrator independently re-tested with two truly concurrent
+      `npx jest` processes in `app/` and found 2-5 failures on every run, plus a smoking-gun error the
+      raised timeout let surface: `ReferenceError: You are trying to 'require' a file after the Jest
+environment has been torn down`, from `WorkoutScreen.rest`/`timedBilateral`/`timedUnilateral`
+      (later reproduced independently here, isolated further to `WorkoutScreen.swap.test.tsx` and
+      `.resume.test.tsx` as the most consistent failures — both predate this track's `WAIT_OPTS` fix,
+      never having received it).
   - **Root cause, found and confirmed, not assumed**: `expo-notifications`'s own package code has
     a **module-import-time side effect** — `DevicePushTokenAutoRegistration.fx.ts` (pulled in by
     the package's own `index.ts`) calls `addPushTokenListener` the instant the module is
     `require`d, starting a background async push-token registration/listener chain that this
     app's code never asked for and has no handle to cancel. Under real contention (two Jest
     processes competing for the CPU), that chain can still be in flight when Jest tears down a
-    test *file's* module registry at the end of its run — its next continuation's module lookup
+    test _file's_ module registry at the end of its run — its next continuation's module lookup
     then throws exactly the "torn down" error. The (unrelated-looking) "unable to find element"
     failures in the same runs are the same starvation from the other side: real CPU contention
     slowing the whole render/db pipeline past the wait budget.
@@ -216,6 +220,7 @@ ADRs 0003/0004/0005, spec §10.3/§10.5/§10.6/§10.7/§10.8.
     data 2, app 23/11 suites).
 
 ### In progress (this increment)
+
 All five brief items (#14-#18) are now closed at the Jest/store/engine level, verified by
 `npm run check` green AND by the concurrency re-verification above. Last remaining step: a real
 `expo run:ios` pass with evidence of the WORKING loop. `pod install` re-run to pick up the three
@@ -226,40 +231,42 @@ new native modules link and the app boots with no red screen. Home screen render
 device with the new deps present (screenshot in progress — see Next for what's still owed).
 
 ### `expo run:ios` evidence — what's real device-verified vs. still Jest-only
+
 - [x] `pod install` picked up the three new native deps (ExpoAudio 57.0.4, ExpoHaptics 57.0.2,
-  ExpoNotifications 57.0.15) cleanly, 101 pods.
+      ExpoNotifications 57.0.15) cleanly, 101 pods.
 - [x] `expo run:ios --device "iPhone 17 Pro"` — **Build Succeeded**, installed, and launched
-  against a live Metro (`expo start --dev-client --port 8082`) with **no red screen** — the app
-  boots correctly with the new native modules linked.
-  `docs/handoff/evidence/04-home-screen-post-audio-deps.png` — Home screen rendering correctly.
+      against a live Metro (`expo start --dev-client --port 8082`) with **no red screen** — the app
+      boots correctly with the new native modules linked.
+      `docs/handoff/evidence/04-home-screen-post-audio-deps.png` — Home screen rendering correctly.
 - [x] **A real tap actually worked in this environment**, unlike the prior STATUS file's finding
-  (no accessibility permission) — `osascript`/System Events IS permitted here.
-  `docs/handoff/evidence/05-real-tap-home-to-generate.png` — tapping the "Generate a session"
-  card for real navigated to the Generate screen, pre-filled with the smart-default pickers
-  (30 min / all anchors / full / normal) exactly as §10.2 specifies. This is new: no prior wave-4
-  session got a real device tap to register.
+      (no accessibility permission) — `osascript`/System Events IS permitted here.
+      `docs/handoff/evidence/05-real-tap-home-to-generate.png` — tapping the "Generate a session"
+      card for real navigated to the Generate screen, pre-filled with the smart-default pickers
+      (30 min / all anchors / full / normal) exactly as §10.2 specifies. This is new: no prior wave-4
+      session got a real device tap to register.
 - [ ] **Could not get further than that one tap.** Coordinate calibration (Simulator window
-  offset + point-vs-pixel scale) turned out to be harder to pin down than expected — several
-  follow-up taps aimed at the Generate screen's own "Generate" button and its "hard" effort pill,
-  computed with the same formula that produced the one working tap, all landed on dead space
-  (screen unchanged, confirmed across 5 attempts with 3 different target elements including the
-  unambiguous back-chevron). I did not want to keep spending the remaining session budget on
-  trial-and-error coordinate guessing once it stopped being productive — recorded honestly rather
-  than papering over it with a screenshot sequence that implies more was verified than was.
-  **A future agent**: the one data point that worked was clicking at absolute screen coords
-  `(window_x + point_x, window_y + point_y)` where `point_x/y` are derived from a screenshot pixel
-  coordinate divided by the device's 3x scale factor — but a second, independent calibration
-  point is needed (e.g., deliberately tap two elements whose real point-coordinates can be
-  computed from the source `StyleSheet` values, not eyeballed from a screenshot) before trusting
-  the transform for a full walkthrough.
+      offset + point-vs-pixel scale) turned out to be harder to pin down than expected — several
+      follow-up taps aimed at the Generate screen's own "Generate" button and its "hard" effort pill,
+      computed with the same formula that produced the one working tap, all landed on dead space
+      (screen unchanged, confirmed across 5 attempts with 3 different target elements including the
+      unambiguous back-chevron). I did not want to keep spending the remaining session budget on
+      trial-and-error coordinate guessing once it stopped being productive — recorded honestly rather
+      than papering over it with a screenshot sequence that implies more was verified than was.
+      **A future agent**: the one data point that worked was clicking at absolute screen coords
+      `(window_x + point_x, window_y + point_y)` where `point_x/y` are derived from a screenshot pixel
+      coordinate divided by the device's 3x scale factor — but a second, independent calibration
+      point is needed (e.g., deliberately tap two elements whose real point-coordinates can be
+      computed from the source `StyleSheet` values, not eyeballed from a screenshot) before trusting
+      the transform for a full walkthrough.
 - [ ] Approval/Workout/rest-timer/Summary screens, the swap sheet, timed-exercise pause/end-early,
-  and the approval add-exercise/rep-target editing are **NOT** re-verified on-device this pass —
-  only Jest-verified (see each issue's section above). Same for audio ducking, haptic feel, the
-  silent-switch behavior, and the background rest-timer notification actually appearing while
-  backgrounded/locked — **none of this is screenshot-verifiable even with working taps**, and
-  remains explicitly Jest-only evidence, consistent with every prior status update in this file.
+      and the approval add-exercise/rep-target editing are **NOT** re-verified on-device this pass —
+      only Jest-verified (see each issue's section above). Same for audio ducking, haptic feel, the
+      silent-switch behavior, and the background rest-timer notification actually appearing while
+      backgrounded/locked — **none of this is screenshot-verifiable even with working taps**, and
+      remains explicitly Jest-only evidence, consistent with every prior status update in this file.
 
 ### Decisions / gotchas
+
 - `packages/engine` was flagged as owned by a concurrent track (`2b-timefit-slots`) in the prior
   STATUS file, but ORCHESTRATION.md shows that track closed (issue #7, "closed — track
   2b-timefit-slots"). Confirmed via `git log` this repo has one clean history with that work

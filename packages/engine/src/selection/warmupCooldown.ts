@@ -138,7 +138,11 @@ export function selectWarmupCooldownGroup(
     // from the focus preference; if no leg exercise survives the filters, fall back to normal.
     const legPick =
       input.legFirst && i === 0
-        ? selectWarmupCooldown({ ...input, pool: input.pool.filter(isLegPrep), excludeIds: usedIds })
+        ? selectWarmupCooldown({
+            ...input,
+            pool: input.pool.filter(isLegPrep),
+            excludeIds: usedIds,
+          })
         : null;
     const pick = legPick ?? selectWarmupCooldown({ ...input, excludeIds: usedIds });
     if (!pick) break;

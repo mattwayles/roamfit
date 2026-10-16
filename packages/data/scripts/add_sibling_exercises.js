@@ -54,7 +54,8 @@ function band(o) {
 }
 
 function bw(o) {
-  const bearing = o.anchor === 'pullup-bar' || o.anchor === 'body-support' || o.anchor === 'low-bar';
+  const bearing =
+    o.anchor === 'pullup-bar' || o.anchor === 'body-support' || o.anchor === 'low-bar';
   return {
     id: o.id,
     name: o.name,
@@ -96,7 +97,8 @@ const NEW = [
     family: 'vertical_push',
     level: 'vertical_push.l1',
     contraindications: ['shoulder_overhead'],
-    setup: 'Sit tall with legs straight, band under your seat, ends at shoulder height. Press straight overhead without leaning back.',
+    setup:
+      'Sit tall with legs straight, band under your seat, ends at shoulder height. Press straight overhead without leaning back.',
   }),
   band({
     id: 'tall-kneeling-ohp',
@@ -111,7 +113,8 @@ const NEW = [
     family: 'vertical_push',
     level: 'vertical_push.l2',
     contraindications: ['shoulder_overhead'],
-    setup: 'Kneel upright on both knees with the band under your shins. Squeeze glutes and press overhead, ribs down, no arching.',
+    setup:
+      'Kneel upright on both knees with the band under your shins. Squeeze glutes and press overhead, ribs down, no arching.',
   }),
   band({
     id: 'banded-arnold-press',
@@ -126,7 +129,8 @@ const NEW = [
     family: 'vertical_push',
     level: 'vertical_push.l3',
     contraindications: ['shoulder_overhead'],
-    setup: 'Stand mid-band, palms facing you at chest height. Rotate palms out as you press overhead, reverse on the way down.',
+    setup:
+      'Stand mid-band, palms facing you at chest height. Rotate palms out as you press overhead, reverse on the way down.',
   }),
   band({
     id: 'banded-push-press',
@@ -141,7 +145,8 @@ const NEW = [
     family: 'vertical_push',
     level: 'vertical_push.l4',
     contraindications: ['shoulder_overhead'],
-    setup: 'Stand mid-band, hands at shoulders. Dip a few inches at the knees and drive the band overhead, finishing with straight arms.',
+    setup:
+      'Stand mid-band, hands at shoulders. Dip a few inches at the knees and drive the band overhead, finishing with straight arms.',
   }),
   bw({
     id: 'bw-elevated-pike-push-up',
@@ -155,7 +160,8 @@ const NEW = [
     family: 'vertical_push',
     level: 'vertical_push.l5',
     contraindications: ['shoulder_overhead', 'wrist_extension'],
-    setup: 'Feet on a step or low bench, hips high in an inverted V. Lower the crown of your head toward the floor, then press back up.',
+    setup:
+      'Feet on a step or low bench, hips high in an inverted V. Lower the crown of your head toward the floor, then press back up.',
   }),
 
   // ---------------------------------------------------------------- vertical_pull (0 spares)
@@ -173,7 +179,8 @@ const NEW = [
     family: 'vertical_pull',
     level: 'vertical_pull.l1',
     contraindications: ['shoulder_overhead'],
-    setup: 'Grip a waist-height bar and walk your feet forward until your arms take some weight. Hang back with straight arms. Time-based.',
+    setup:
+      'Grip a waist-height bar and walk your feet forward until your arms take some weight. Hang back with straight arms. Time-based.',
   }),
   // ADR 0012 — with the cold start moved to level 1, vertical_pull.l1 became every new user's
   // first pull, and both its exercises (bw-dead-hang on `pullup-bar`, bw-low-bar-hang on
@@ -195,7 +202,8 @@ const NEW = [
     family: 'vertical_pull',
     level: 'vertical_pull.l1',
     contraindications: ['shoulder_overhead'],
-    setup: 'Anchor the band high, hold both ends and pull down to chest height. Hold that position, shoulders down and back. Time-based.',
+    setup:
+      'Anchor the band high, hold both ends and pull down to chest height. Hold that position, shoulders down and back. Time-based.',
   }),
   band({
     id: 'prone-band-pulldown',
@@ -210,7 +218,8 @@ const NEW = [
     family: 'vertical_pull',
     level: 'vertical_pull.l2',
     contraindications: ['shoulder_overhead'],
-    setup: 'Lie face down holding the band wide overhead. Pull the band down toward your upper back, lifting your chest slightly.',
+    setup:
+      'Lie face down holding the band wide overhead. Pull the band down toward your upper back, lifting your chest slightly.',
   }),
   band({
     id: 'single-arm-pulldown',
@@ -226,7 +235,8 @@ const NEW = [
     family: 'vertical_pull',
     level: 'vertical_pull.l3',
     contraindications: ['shoulder_overhead'],
-    setup: 'Anchor the band overhead and hold one end. Pull your elbow down to your ribs, keeping the torso still.',
+    setup:
+      'Anchor the band overhead and hold one end. Pull your elbow down to your ribs, keeping the torso still.',
   }),
   band({
     id: 'kneeling-lat-pulldown',
@@ -241,7 +251,8 @@ const NEW = [
     family: 'vertical_pull',
     level: 'vertical_pull.l4',
     contraindications: ['shoulder_overhead'],
-    setup: 'Kneel below an overhead anchor, both hands on the band. Pull down and out to your collarbones, elbows driving to your sides.',
+    setup:
+      'Kneel below an overhead anchor, both hands on the band. Pull down and out to your collarbones, elbows driving to your sides.',
   }),
 
   // ---------------------------------------------------------------- squat (no l2/l3 spares)
@@ -257,7 +268,8 @@ const NEW = [
     family: 'squat',
     level: 'squat.l2',
     contraindications: ['knee_flexion_loaded'],
-    setup: 'Bodyweight squat taking three slow seconds to descend, then stand normally. Chest up, knees tracking over the toes.',
+    setup:
+      'Bodyweight squat taking three slow seconds to descend, then stand normally. Chest up, knees tracking over the toes.',
   }),
   band({
     id: 'banded-sumo-squat',
@@ -272,7 +284,8 @@ const NEW = [
     family: 'squat',
     level: 'squat.l3',
     contraindications: ['knee_flexion_loaded'],
-    setup: 'Stand mid-band with a wide stance, toes turned out, hands at chest. Squat straight down between your heels.',
+    setup:
+      'Stand mid-band with a wide stance, toes turned out, hands at chest. Squat straight down between your heels.',
   }),
   band({
     id: 'banded-pause-squat',
@@ -287,7 +300,8 @@ const NEW = [
     family: 'squat',
     level: 'squat.l3',
     contraindications: ['knee_flexion_loaded'],
-    setup: 'Stand mid-band, hands at chest. Squat down, hold the bottom for two seconds without relaxing, then stand.',
+    setup:
+      'Stand mid-band, hands at chest. Squat down, hold the bottom for two seconds without relaxing, then stand.',
   }),
 
   // ------------------------------------------------------- anti_extension (no timed l3 spares)
@@ -305,7 +319,8 @@ const NEW = [
     family: 'anti_extension',
     level: 'anti_extension.l3',
     contraindications: ['core_pressure', 'wrist_extension'],
-    setup: 'Hands under shoulders, arms straight, body in one line from heels to head. Squeeze glutes, ribs down. Time-based.',
+    setup:
+      'Hands under shoulders, arms straight, body in one line from heels to head. Squeeze glutes, ribs down. Time-based.',
   }),
   bw({
     id: 'bw-bear-hold',
@@ -321,7 +336,8 @@ const NEW = [
     family: 'anti_extension',
     level: 'anti_extension.l3',
     contraindications: ['core_pressure', 'wrist_extension'],
-    setup: 'On hands and knees, toes tucked, knees hovering an inch off the floor. Keep a flat back and breathe. Time-based.',
+    setup:
+      'On hands and knees, toes tucked, knees hovering an inch off the floor. Keep a flat back and breathe. Time-based.',
   }),
 ];
 

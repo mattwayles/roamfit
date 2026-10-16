@@ -164,7 +164,13 @@ describe('final rest "Next" from a Summary round trip', () => {
       <StoreProvider>
         <WorkoutScreen
           navigation={navigation as never}
-          route={{ key: 'Workout', name: 'Workout', params: { sessionId, reviewFromSummary: true } } as never}
+          route={
+            {
+              key: 'Workout',
+              name: 'Workout',
+              params: { sessionId, reviewFromSummary: true },
+            } as never
+          }
         />
       </StoreProvider>,
     );

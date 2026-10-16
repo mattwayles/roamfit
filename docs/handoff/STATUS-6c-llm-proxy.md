@@ -1,7 +1,9 @@
 ## Track: 6c-llm-proxy — LLM proxy (§7.3)
+
 Last updated: 2026-09-01 — **track complete for its committed scope; see "What remains unverified"**
 
 ### Done
+
 - [x] Ramp-up: ORCHESTRATION.md, wave-06-network.md §3, spec §5.8/§7/§11.3, `claude-api` skill
       invoked before writing any model-facing code.
 - [x] `packages/engine/src/llm/validate.ts` — pure "validate anyway" module (§7.3), three
@@ -20,37 +22,39 @@ Last updated: 2026-09-01 — **track complete for its committed scope; see "What
       (`src/client.ts`) instead of a concrete Anthropic client, so all 23 tests run with zero
       network access. 23 tests across 6 suites. Commit `49a77e8`.
 - [x] `packages/store` — the §11.3 queue side:
-      - Migration `0005_llm_queue_backoff.sql` adds `deferred_work.next_attempt_at` (nullable —
-        NULL means eligible immediately).
-      - `schema.ts`: added `llm_coach_voice` to `deferred_work.kind` and `llm_distillation_result`
-        to `signal_events.type` — both are plain TS-level `text(..., {enum})` with **no SQL CHECK
-        constraint** (confirmed again by grepping `migrations/data.ts` for `CHECK` — none), so
-        these were pure code additions needing no migration.
-      - `repositories/queues.ts`: `getEligibleDeferredWork` (backoff-aware read),
-        `markDeferredWorkDone`, `recordDeferredWorkFailure` (exponential backoff: `2^attempts`
-        minutes, capped, permanent `failed` at `maxAttempts`, defaults 6 attempts / 240min cap).
-        7 tests in `queues.test.ts`, including the boundary-second eligibility checks and the
-        "never throws even for a missing id" guarantee.
-      - `repositories/sessions.ts`: `createPendingSession` now also enqueues `llm_coach_voice`
-        (payload `{}` — the worker reads the session directly); new `applyCoachVoiceResult`
-        setter (updates `explanation` + flips `generatedBy: 'engine+llm'`).
-      - `llmQueueWorker.ts` (new, exported from the package root): `processLlmQueue(db, now,
-        caller)` drains eligible `llm_coach_voice`/`llm_distillation` jobs via an injected
-        `LlmProxyCaller` interface — `packages/store` never imports `@roamfit/functions` or any
-        HTTP client; `app/` is expected to implement `LlmProxyCaller` against the deployed Cloud
-        Function. A caller throw (network failure) is the only thing that triggers backoff — a
-        Cloud Function response that *itself* used its internal deterministic fallback is still
-        a normal, successful queue outcome. 6 tests, including the "network failure leaves the
-        job pending for retry, never throws further" test and the "discarded session is a
-        terminal no-op, not a retry-forever" test.
-      - Full `npm run check` green at every commit boundary (897 engine + 58 store + 77 app + 14
-        data + 23 functions tests, typecheck, lint, `check:engine-purity`).
+  - Migration `0005_llm_queue_backoff.sql` adds `deferred_work.next_attempt_at` (nullable —
+    NULL means eligible immediately).
+  - `schema.ts`: added `llm_coach_voice` to `deferred_work.kind` and `llm_distillation_result`
+    to `signal_events.type` — both are plain TS-level `text(..., {enum})` with **no SQL CHECK
+    constraint** (confirmed again by grepping `migrations/data.ts` for `CHECK` — none), so
+    these were pure code additions needing no migration.
+  - `repositories/queues.ts`: `getEligibleDeferredWork` (backoff-aware read),
+    `markDeferredWorkDone`, `recordDeferredWorkFailure` (exponential backoff: `2^attempts`
+    minutes, capped, permanent `failed` at `maxAttempts`, defaults 6 attempts / 240min cap).
+    7 tests in `queues.test.ts`, including the boundary-second eligibility checks and the
+    "never throws even for a missing id" guarantee.
+  - `repositories/sessions.ts`: `createPendingSession` now also enqueues `llm_coach_voice`
+    (payload `{}` — the worker reads the session directly); new `applyCoachVoiceResult`
+    setter (updates `explanation` + flips `generatedBy: 'engine+llm'`).
+  - `llmQueueWorker.ts` (new, exported from the package root): `processLlmQueue(db, now,
+caller)` drains eligible `llm_coach_voice`/`llm_distillation` jobs via an injected
+    `LlmProxyCaller` interface — `packages/store` never imports `@roamfit/functions` or any
+    HTTP client; `app/` is expected to implement `LlmProxyCaller` against the deployed Cloud
+    Function. A caller throw (network failure) is the only thing that triggers backoff — a
+    Cloud Function response that _itself_ used its internal deterministic fallback is still
+    a normal, successful queue outcome. 6 tests, including the "network failure leaves the
+    job pending for retry, never throws further" test and the "discarded session is a
+    terminal no-op, not a retry-forever" test.
+  - Full `npm run check` green at every commit boundary (897 engine + 58 store + 77 app + 14
+    data + 23 functions tests, typecheck, lint, `check:engine-purity`).
 
 ### In progress
+
 Nothing mid-flight — this is a clean stopping point. What's left is out-of-scope-by-decision (see
 below), not incomplete work.
 
 ### Next (deliberately not done in this track — see "Deliberate cuts")
+
 - `app/`-side wiring: an `LlmProxyCaller` implementation that actually calls the deployed Cloud
   Function (fetch/HTTP), a connectivity-restored or app-foreground trigger to call
   `processLlmQueue`, and a natural-language intake text-entry UI. None of this exists yet.
@@ -60,6 +64,7 @@ below), not incomplete work.
 - 6d (`sync-health`)/6e (`video-cli`) are untouched, as instructed.
 
 ### Decisions / gotchas
+
 - **Zod version pinning was the single biggest time sink.** `@anthropic-ai/sdk`'s
   `zodOutputFormat` helper is built against zod's `zod/v4` core surface. This monorepo's root
   hoists `zod@3.25.76` (via `expo`'s own dependency chain), so `functions`'s own `zod` dependency
@@ -77,13 +82,14 @@ below), not incomplete work.
   applies). This means invariant 2 ("the LLM never selects exercises") is enforced by the type
   the LLM is asked to produce, not merely by validating its content after the fact.
 - **`Limitation.source: 'pain_report'`** (packages/engine/src/types.ts) already existed and is the
-  right value once a user *confirms* an intake- or distillation-suggested limitation tag — this
+  right value once a user _confirms_ an intake- or distillation-suggested limitation tag — this
   track never writes to the `limitations` table itself (no confirmation UI exists yet), it only
   ever returns/logs the suggestion as data.
 - New dependencies (added only to the new `functions` workspace, never to `app/` or
   `packages/*`): `@anthropic-ai/sdk@0.122.0`, `zod@3.25.76`, `firebase-functions@7.3.2`.
 
 ### What I verified, and how
+
 - **Invalid model output falls back deterministically — proven, not asserted.** Every job has a
   test where the (mocked) model returns something schema-shaped-but-semantically-wrong twice in a
   row (out-of-range `targetMinutes`, an exercise id not in the session, a fabricated limitation
@@ -108,7 +114,7 @@ below), not incomplete work.
   API key in this environment, and I'm saying so plainly rather than asserting it works.** What I
   built instead is the structural argument the brief calls a legitimate substitute:
   `functions/src/prompt.ts`'s `buildStableSystemBlock` puts the `cache_control: {type:
-  'ephemeral'}` breakpoint on the first (and only) system block, and every job's request
+'ephemeral'}` breakpoint on the first (and only) system block, and every job's request
   construction puts all per-user/volatile content (the untrusted freeform text) strictly after
   that block, in `messages`, never interpolated into the system text. `intake.test.ts`'s
   "keeps the system block byte-identical across different freeform inputs" test and
@@ -120,6 +126,7 @@ below), not incomplete work.
   function.
 
 ### Carried-forward issues (for the orchestrator to file)
+
 1. **No app-side wiring for any of this yet.** `functions/` and the store-side queue/worker exist
    and are fully unit-tested, but nothing in `app/` calls the deployed function, implements
    `LlmProxyCaller`, or triggers `processLlmQueue`. There is also no NL-intake text-entry screen.
