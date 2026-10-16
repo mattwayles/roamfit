@@ -492,6 +492,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       today: clock.today,
       rng,
       targetSec: warmupTargetSec,
+      legFirst: cardioAddOnEntries.length > 0,
       excludeIds: mainExerciseIds,
     });
     const cooldownExs = selectWarmupCooldownGroup({
@@ -502,6 +503,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       today: clock.today,
       rng,
       targetSec: cooldownTargetSec,
+      legFirst: cardioAddOnEntries.length > 0,
       excludeIds: new Set([...mainExerciseIds, ...warmupExs.map((e) => e.id)]),
     });
     warmupEntries = warmupExs.map((e) => prescribeWarmupCooldown(e, 'warmup'));

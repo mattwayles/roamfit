@@ -97,8 +97,27 @@ const GROUP_CEILING_RATIO = 1.3;
  */
 const WARMUP_COOLDOWN_GROUP_MIN = 2;
 
+/** Lower-body muscles that high-impact cardio loads; a warm-up/cool-down "leg" pick targets one. */
+const LEG_MUSCLES: ReadonlySet<string> = new Set([
+  'quads',
+  'hamstrings',
+  'calves',
+  'glutes',
+  'hip_flexors',
+  'adductors',
+  'abductors',
+]);
+
+export function isLegPrep(e: Exercise): boolean {
+  return e.primary.some((m) => LEG_MUSCLES.has(m));
+}
+
 export function selectWarmupCooldownGroup(
-  input: SelectWarmupCooldownInput & { targetSec: number },
+  input: SelectWarmupCooldownInput & {
+    targetSec: number;
+    /** Cardio add-on: guarantee the first pick works the legs, whatever the day's focus. */
+    legFirst?: boolean;
+  },
 ): Exercise[] {
   const chosen: Exercise[] = [];
   // Seeded with whatever the caller already excluded (the session's other sections) rather than
@@ -115,7 +134,13 @@ export function selectWarmupCooldownGroup(
     // one-exercise-too-many overrun.) Skipped below the guaranteed minimum: one long hold can
     // alone clear the floor, but warmup/cooldown are a safety floor, not just a time-fill target.
     if (!belowMin && totalSec >= floor) break;
-    const pick = selectWarmupCooldown({ ...input, excludeIds: usedIds });
+    // Impact cardio on cold legs is the injury risk, so the leg pick comes first and is exempt
+    // from the focus preference; if no leg exercise survives the filters, fall back to normal.
+    const legPick =
+      input.legFirst && i === 0
+        ? selectWarmupCooldown({ ...input, pool: input.pool.filter(isLegPrep), excludeIds: usedIds })
+        : null;
+    const pick = legPick ?? selectWarmupCooldown({ ...input, excludeIds: usedIds });
     if (!pick) break;
     const entrySec = prescribeWarmupCooldown(pick, input.role).estimatedSec;
     // Always take at least one, even if it alone exceeds the ceiling (a single warmup movement

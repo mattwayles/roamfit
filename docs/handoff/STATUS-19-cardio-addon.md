@@ -23,3 +23,11 @@ renamed "Cardio Only" and the add-on is disabled while it is selected.
 - Add-on is ignored for Quick Session and for focus 'cardio' (engine guards both).
 - Cardio count = clamp(round(targetMinutes / 20), 1, 5).
 - Only touches the RNG stream when the flag is on, so golden snapshots are unaffected when off.
+
+### Follow-up (2026-10-16): leg prep for the add-on
+- With the add-on on, the warm-up and cool-down groups each start with a leg exercise (primary in
+  quads/hamstrings/calves/glutes/hip flexors/adductors/abductors), exempt from the focus preference —
+  impact cardio on cold legs is the injury risk. Falls back to normal selection if none survives
+  the filters. `legFirst` in `selectWarmupCooldownGroup`; Quick Session untouched (add-on ignored).
+- Warm-up pool has dynamic leg moves (hip hinge, calf raise, squat), not static stretches; cool-down
+  has the real stretches (hamstring, hip flexor, calf, figure-four).

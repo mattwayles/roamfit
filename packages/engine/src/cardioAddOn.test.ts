@@ -6,6 +6,7 @@ import { baseStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
 import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
 import { cardioAddOnCount, interleaveEvenly } from './template/cardioAddOn';
+import { isLegPrep } from './selection/warmupCooldown';
 import type { ProgressionState, UserState } from './types';
 
 const library = exerciseLibrary.exercises;
@@ -70,6 +71,20 @@ describe('cardio add-on', () => {
       expect(flags[0]).toBe(false);
       expect(flags[flags.length - 1]).toBe(false);
       expect(new Set(p.main.map((e) => e.exerciseId)).size).toBe(p.main.length);
+    },
+  );
+
+  it.each(['upper', 'abs', 'full'] as const)(
+    '%s: warm-up and cool-down each include a leg exercise (impact cardio on cold legs)',
+    (focus) => {
+      for (const seed of [1, 2, 3, 7, 11]) {
+        const p = plan(focus, true, 45, seed);
+        for (const section of [p.warmup, p.cooldown]) {
+          expect(
+            section.some((e) => isLegPrep(library.find((x) => x.id === e.exerciseId)!)),
+          ).toBe(true);
+        }
+      }
     },
   );
 
