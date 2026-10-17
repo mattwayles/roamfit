@@ -26,7 +26,7 @@ renamed "Cardio Only" and the add-on is disabled while it is selected.
   tweaks, WorkoutScreen, store migration 0021) when this track started. Commit ONLY this track's
   files by explicit path; do not `git add -A`.
 - Add-on is ignored for Quick Session and for focus 'cardio' (engine guards both).
-- Cardio count = clamp(round(targetMinutes / 10), 2, 6) — see the 2026-10-17 follow-up.
+- Cardio count = clamp(round(targetMinutes / 15), 2, 4) — see the 2026-10-17 follow-up.
 - Only touches the RNG stream when the flag is on, so golden snapshots are unaffected when off.
 
 ### Follow-up (2026-10-16): leg prep for the add-on
@@ -45,3 +45,5 @@ renamed "Cardio Only" and the add-on is disabled while it is selected.
   `estimateEntrySec`); the count went from one per 20 min (1-5) to one per 10 min (2-6) since each
   is ~1 min. Even spacing and the leg-first warm-up/cool-down are unchanged. The Cardio focus is
   untouched (still multi-set). Jest only; not seen on a device.
+- Same day, after a 60-min core session got 6 bursts (one between every exercise): count cut to one
+  per 15 min, 2-4 (60 min -> 4).

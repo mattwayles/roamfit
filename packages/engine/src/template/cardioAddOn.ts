@@ -5,11 +5,11 @@
  */
 import type { TemplateSlot } from './focusTemplate';
 
-/** How many single-set cardio bursts a session of this length gets: roughly one per 10 minutes,
- *  at least two (so there is something to space), at most six. Each runs ~1 minute (one
+/** How many single-set cardio bursts a session of this length gets: roughly one per 15 minutes,
+ *  at least two (so there is something to space), at most four. Each runs ~1 minute (one
  *  `CARDIO_INTERVAL_TABLE` interval), so the add-on stays a small slice of the session. */
 export function cardioAddOnCount(targetMinutes: number): number {
-  return Math.min(6, Math.max(2, Math.round(targetMinutes / 10)));
+  return Math.min(4, Math.max(2, Math.round(targetMinutes / 15)));
 }
 
 export function cardioAddOnSlots(count: number): TemplateSlot[] {
