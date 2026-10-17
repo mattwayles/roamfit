@@ -439,16 +439,18 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
       equipmentPreference,
       requestedDifficulty: difficulty,
     });
-    cardioAddOnEntries = cardioSelection.picks.map((pick) =>
-      prescribeAccessory({
+    // Each add-on move is a single set: a burst that lifts the heart rate, not a cardio block.
+    cardioAddOnEntries = cardioSelection.picks.map((pick) => {
+      const entry = prescribeAccessory({
         exercise: pick.exercise,
         requestedDifficulty: difficulty,
         recoveryTreatment: pick.recoveryTreatment,
         bandRelaxedForPatternGap: pick.bandRelaxedForPatternGap,
         setsMultiplier,
         workingBand: userState.exerciseStates[pick.exercise.id]?.workingBand,
-      }),
-    );
+      });
+      return { ...entry, sets: 1, estimatedSec: estimateEntrySec({ ...entry, sets: 1 }) };
+    });
   }
   const cardioAddOnSec = cardioAddOnEntries.reduce((a, e) => a + e.estimatedSec, 0);
 

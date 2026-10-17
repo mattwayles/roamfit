@@ -1,15 +1,15 @@
 /**
- * Track 19 — the Cardio add-on: a few cardio (`conditioning`) exercises woven through a strength
+ * Track 19 — the Cardio add-on: a few single-set cardio (`conditioning`) exercises woven through a strength
  * session so the heart rate comes up between lifting blocks. Pure helpers only; `pipeline.ts`
  * does the selection and prescription through the same machinery the Cardio focus uses.
  */
 import type { TemplateSlot } from './focusTemplate';
 
-/** How many cardio exercises a session of this length gets: roughly one per 20 minutes, at least
- *  one, at most five. Cardio intervals run ~3 minutes an exercise (see `CARDIO_INTERVAL_TABLE`),
- *  so this keeps the add-on to well under a third of the session and strength the priority. */
+/** How many single-set cardio bursts a session of this length gets: roughly one per 10 minutes,
+ *  at least two (so there is something to space), at most six. Each runs ~1 minute (one
+ *  `CARDIO_INTERVAL_TABLE` interval), so the add-on stays a small slice of the session. */
 export function cardioAddOnCount(targetMinutes: number): number {
-  return Math.min(5, Math.max(1, Math.round(targetMinutes / 20)));
+  return Math.min(6, Math.max(2, Math.round(targetMinutes / 10)));
 }
 
 export function cardioAddOnSlots(count: number): TemplateSlot[] {

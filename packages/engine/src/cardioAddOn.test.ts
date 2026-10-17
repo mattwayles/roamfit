@@ -106,6 +106,14 @@ describe('cardio add-on', () => {
     expect(p.main.filter((e) => isCardioEntry(e.exerciseId)).length).toBe(cardioAddOnCount(60));
   });
 
+  it('every add-on cardio move is a single set', () => {
+    for (const focus of ['upper', 'legs', 'full'] as const) {
+      const cardio = plan(focus, true, 60).main.filter((e) => isCardioEntry(e.exerciseId));
+      expect(cardio.length).toBeGreaterThan(1);
+      expect(cardio.every((e) => e.sets === 1)).toBe(true);
+    }
+  });
+
   it('is ignored for the Cardio focus and for Quick Session', () => {
     expect(plan('cardio', true)).toEqual(plan('cardio', false));
     const quick = generateQuickSession({

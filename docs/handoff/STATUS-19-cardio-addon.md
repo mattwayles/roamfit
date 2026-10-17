@@ -26,7 +26,7 @@ renamed "Cardio Only" and the add-on is disabled while it is selected.
   tweaks, WorkoutScreen, store migration 0021) when this track started. Commit ONLY this track's
   files by explicit path; do not `git add -A`.
 - Add-on is ignored for Quick Session and for focus 'cardio' (engine guards both).
-- Cardio count = clamp(round(targetMinutes / 20), 1, 5).
+- Cardio count = clamp(round(targetMinutes / 10), 2, 6) — see the 2026-10-17 follow-up.
 - Only touches the RNG stream when the flag is on, so golden snapshots are unaffected when off.
 
 ### Follow-up (2026-10-16): leg prep for the add-on
@@ -37,3 +37,11 @@ renamed "Cardio Only" and the add-on is disabled while it is selected.
   the filters. `legFirst` in `selectWarmupCooldownGroup`; Quick Session untouched (add-on ignored).
 - Warm-up pool has dynamic leg moves (hip hinge, calf raise, squat), not static stretches; cool-down
   has the real stretches (hamstring, hip flexor, calf, figure-four).
+
+### Follow-up (2026-10-17): single-set bursts
+
+- Add-on entries were prescribed straight from `CARDIO_INTERVAL_TABLE` (3-4 sets), so a few of them
+  ate a large share of the session. Each is now forced to 1 set in `pipeline.ts` (re-estimated with
+  `estimateEntrySec`); the count went from one per 20 min (1-5) to one per 10 min (2-6) since each
+  is ~1 min. Even spacing and the leg-first warm-up/cool-down are unchanged. The Cardio focus is
+  untouched (still multi-set). Jest only; not seen on a device.
