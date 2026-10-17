@@ -35,4 +35,12 @@ describe('PinnedNote accessory bar', () => {
     fireEvent(screen.getByTestId('pinned-note-input'), 'blur');
     expect(onChange).toHaveBeenCalledWith('row to the chest');
   });
+
+  it('makes the return key a Done that blurs, independent of the accessory bar', async () => {
+    render(<PinnedNote note="row to the hips" onChange={jest.fn()} />);
+    await waitFor(() => expect(screen.getByTestId('pinned-note-input')).toBeTruthy(), WAIT_OPTS);
+    const props = screen.getByTestId('pinned-note-input').props;
+    expect(props.returnKeyType).toBe('done');
+    expect(props.submitBehavior).toBe('blurAndSubmit');
+  });
 });
