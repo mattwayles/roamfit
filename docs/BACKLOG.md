@@ -24,8 +24,6 @@ level-up offer from the active workout; the bundled demo loops/videos are the us
 local-device history / account persistence issue is the user's to handle (see Future Features →
 User Accounts).
 
-- **37m — Apple Health write.** Request authorization when the toggle turns on and on launch when
-  it is already on, so completed workouts are actually written.
 - **37n — Accessibility.** Text that scales with the iOS text size (not shrink-to-fit), VoiceOver labels
   and roles on every control, Reduce Motion respected everywhere, 44pt touch targets, and contrast.
 
@@ -107,6 +105,12 @@ User Accounts).
   Jest can't verify it. Check on a device: background mid-countdown, lock the screen, with and
   without Spotify playing; confirm no Now Playing entry appears and music isn't interrupted. If iOS
   still suspends, fall back to scheduled local notifications with bundled sounds.
+- **Apple Health write — device pass owed.** Track 37m: turning on "Write workouts to Apple Health"
+  requests write-only access, and the first write of each launch re-requests silently (the flag is
+  in-memory), so workouts queued before a relaunch are no longer dropped. Jest-verified with a mocked
+  module only. On a device: the iOS sheet appears once on enabling; a completed workout appears in
+  Health as Functional Strength Training with duration and energy; a denial is silent; relaunch
+  before the queue drains still writes.
 - **Midnight redesign — device pass owed.** Run `npm run ios` (react-native-svg is a new native
   dep: dev-client rebuild + pod install; `app.json`'s dark style and splash `bg` also only apply after
   the rebuild). Every screen of the redesign is Jest-verified only — layout was reasoned, never seen.

@@ -61,16 +61,21 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
       seated leg extension, two adduction moves) + new `adduction` pattern in the legs/full
       templates; reachability test simulates a rotating user (isolation.test.ts).
 
+- [x] 37m — Apple Health: Settings toggle requests write access when turned on; `writeWorkout`
+      requests on the first write of each launch (fixes dropped queued workouts after relaunch).
+
 ### In progress
 
-- 37m — Apple Health write. Plan: read `app/src/lib/healthKit.ts` and Settings' `toggleHealthWrite`;
-  call `requestHealthKitWritePermission()` when the toggle turns on (persist only if granted? decide
-  from the API), and once on launch when already on (App.tsx or Home focus), since the in-memory
-  `authorizationRequested` flag resets each start. Tests with the existing healthKit mocks.
+- 37n — accessibility. Plan, in increments: (1) `Button`: fixed `height` → `minHeight`, allow 2 lines
+  so labels aren't clipped at large Dynamic Type; (2) audit `numberOfLines={1}` / fixed heights
+  on text containers across screens; (3) icon-only controls without `accessibilityLabel` (grep
+  IconButton/PressableScale without labels); (4) touch targets < 44pt (grep width/height < 44 on
+  pressables, `hitSlop`); (5) Reduce Motion coverage (`useReduceMotion` on every animation);
+  (6) contrast — run the theme contrast tests on new tones. Tests per increment.
 
 ### Next
 
-- 37m → 37n (order in BACKLOG).
+- 37n (order in BACKLOG).
 
 ### Decisions / gotchas
 

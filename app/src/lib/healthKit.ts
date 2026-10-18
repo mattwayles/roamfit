@@ -36,8 +36,9 @@ function loadHealthKitModule(): HealthKitModule | null {
 
 let authorizationRequested = false;
 
-/** Call once, e.g. from a settings toggle when the user opts into HealthKit write — mirrors the
- *  passport opt-in toggle already in `HomeScreen.tsx`. Requests write-only ("toShare") access to
+/** Called by Settings when the user turns "Write workouts to Apple Health" on, and by
+ *  `writeWorkout` itself on the first write of each launch (track 37m).
+ *  iOS shows its permission sheet only the first time; after that this resolves without asking. Requests write-only ("toShare") access to
  *  workouts and active energy; never requests read access to anything (§13.4/§13.5). Never
  *  throws: a rejected/unavailable request just means every future `writeWorkout` call is the
  *  no-op path below. */
@@ -64,7 +65,12 @@ export const healthKitWriter: HealthKitWriter = {
   async writeWorkout(input) {
     const hk = loadHealthKitModule();
     if (!hk) return; // module unavailable (e.g. under Jest, or a non-iOS/misconfigured build).
-    if (!authorizationRequested) return; // never asked, or asking failed/was denied — silent no-op.
+    // Track 37m — `authorizationRequested` is in-memory and resets every launch, so a workout
+    // queued before a relaunch used to be dropped as "never asked". A job only exists when the user
+    // turned Health writing on (completion.ts gates the enqueue), so asking here is asking someone
+    // who already said yes; iOS answers silently after its first prompt.
+    if (!authorizationRequested) await requestHealthKitWritePermission();
+    if (!authorizationRequested) return; // unavailable, or asking failed — silent no-op.
 
     try {
       const available = await hk.isHealthDataAvailable();

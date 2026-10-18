@@ -29,6 +29,7 @@ import { trainingSummary } from '../lib/trainingOptions';
 import { instrumentationRepo, progressionStateRepo, usersRepo } from '@roamfit/store';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
+import { requestHealthKitWritePermission } from '../lib/healthKit';
 import {
   DEFAULT_QUIET_HOURS_END,
   DEFAULT_QUIET_HOURS_START,
@@ -127,6 +128,9 @@ export default function SettingsScreen(): React.JSX.Element {
   const toggleHealthWrite = useCallback(
     (value: boolean) => {
       usersRepo.updateUser(db, { healthWriteEnabled: value }, nowUtcInstant());
+      // Track 37m — turning it on is the moment to ask iOS for write access (never read access).
+      // Fire-and-forget: the switch reflects the choice at once; a denial just means writes no-op.
+      if (value) void requestHealthKitWritePermission();
       refresh();
     },
     [db, refresh],

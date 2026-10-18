@@ -19,6 +19,7 @@ import { getDb } from '../db';
 import { nowUtcInstant } from '../lib/localClock';
 import { daybreak, midnightTheme } from '../theme';
 import { DISCLAIMER_TEXT } from './SettingsScreen';
+import * as healthKit from '../lib/healthKit';
 import { WAIT, flat, ready } from '../ui/test-utils';
 
 beforeAll(() => {
@@ -369,5 +370,21 @@ describe('your bands (track 37i)', () => {
       { bandSettings: { owned: ['B1', 'B2', 'B3', 'B4', 'B5'], stacking: false } },
       nowUtcInstant(),
     );
+  });
+});
+
+describe('Apple Health (track 37m)', () => {
+  it('turning writing on asks iOS for write access; turning it off does not', async () => {
+    usersRepo.updateUser(getDb(), { healthWriteEnabled: false }, nowUtcInstant());
+    const request = jest
+      .spyOn(healthKit, 'requestHealthKitWritePermission')
+      .mockResolvedValue(undefined);
+    await openSettings();
+    await fireEvent.press(screen.getByTestId('toggle-healthkit-write'));
+    expect(usersRepo.getUser(getDb())!.healthWriteEnabled).toBe(true);
+    expect(request).toHaveBeenCalledTimes(1);
+    await fireEvent.press(screen.getByTestId('toggle-healthkit-write'));
+    expect(usersRepo.getUser(getDb())!.healthWriteEnabled).toBe(false);
+    expect(request).toHaveBeenCalledTimes(1);
   });
 });
