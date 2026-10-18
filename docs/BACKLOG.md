@@ -77,8 +77,7 @@ the record of what was completed and why.
   Midnight Completion stamp headline and Today hero pill text are gold, and the confetti, orbs and
   rays lost their pale yellow — check the celebration still feels warm enough;
   (2) the `trail` hero gradient with the sepia topo ink on Home and Completion; (3) the stamp's hard
-  `tealDeep` shadow; (4) the Spotify button (`#1db954`, `SpotifyControls.tsx`) next to teal controls;
-  (5) `assets/icon.png` and `assets/splash-icon.png` — still the old colors, never inspected.
+  `tealDeep` shadow; (4) the Spotify button (`#1db954`, `SpotifyControls.tsx`) next to teal controls.
 - **`lifetime_total_minutes` is now write-only.** The Journey tile moved from minutes to sets
   (`lifetimeSets` in `stats.ts`, derived from `set_logs`), so nothing reads the column
   (`rolled_up_stats`, migration 0003) or `lifetimeTotalMinutes` any more. Drop both with a
@@ -169,11 +168,7 @@ size="lg"`): check it reads at arm's length, the B3 near-black swatch stands off
   Plan focus. Watch for a one-frame flash of ellipsized text before the first fit (a clipped text
   is drawn at full size until its first layout reports the room). Re-run the generator if the fonts
   are upgraded: `python3 tools/font_metrics.py --check` exits 1 when stale.
-- **App icon and splash art to match Midnight — needs an artist.** The splash background is `bg` and
-  stays Midnight in both appearances (one static image; Daybreak does not get its own splash),
-  but `app/assets/icon.png` and `splash-icon.png` were not redrawn for the
-  redesign (the redesign spec put the art out of scope). Design brief: night-sky `bg`, Midnight Green trail, one travel motif (topographic
-  contours or a stamp), Barlow Condensed wordmark.
+- **Logo source is low-res.** `app/assets/logo-source.png` is 430x542; the icon and splash are upscaled from it by `tools/build_brand_assets.py` (alpha-mask re-render). Replace with a vector or 2x+ export and re-run the script for crisp edges.
 - **Show the app version in Settings' footer.** `expo-constants` is hoisted in by `expo` but not declared in
   `app/package.json`; add it (`npx expo install expo-constants`) and read `Constants.expoConfig?.version`.
 - **Ladder rungs with no sibling exercises**, so they repeat every session at that level: `horizontal_push` l7–l9, `horizontal_pull` l4–l8, `anti_extension` l4 and l6. All are high rungs nobody currently occupies — fill them when someone gets there.
