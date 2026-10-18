@@ -214,7 +214,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
         >
           <Enter index={0}>
             <Txt variant="hero" color="teal" style={styles.wordmark}>
-              ROAMFIT
+              WANDERLIFT
             </Txt>
             <Txt variant="eyebrow" color="gold">
               Train anywhere.
@@ -258,7 +258,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       <Enter index={next()} style={styles.header}>
         <View style={styles.headerText}>
           <Txt variant="h1" color="teal">
-            RoamFit
+            Wanderlift
           </Txt>
           <Txt variant="small" color="text2" testID="today-greeting">
             {greeting}

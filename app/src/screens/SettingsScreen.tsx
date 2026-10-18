@@ -49,7 +49,7 @@ import { IconBadge } from '../components/IconBadge';
 const DEFAULT_MOTIVATION_TIMES = ['18:00'];
 
 export const DISCLAIMER_TEXT =
-  'RoamFit is a fitness tool, not a medical device or a substitute for professional medical ' +
+  'Wanderlift is a fitness tool, not a medical device or a substitute for professional medical ' +
   'advice. It provides no diagnosis and makes no health claims. Consult a physician before ' +
   'starting any new exercise program, especially if you are pregnant, recovering from an ' +
   'injury, or have an existing health condition. Stop immediately if you feel pain.';
@@ -564,7 +564,7 @@ export default function SettingsScreen(): React.JSX.Element {
 
       <View style={styles.footer}>
         <Txt variant="eyebrow" color="text3">
-          RoamFit
+          Wanderlift
         </Txt>
         <Txt variant="caption" color="text3">
           Train anywhere.

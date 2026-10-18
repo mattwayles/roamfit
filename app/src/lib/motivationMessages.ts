@@ -31,7 +31,7 @@ interface Template {
   build: (ctx: MotivationContext) => { body: string };
 }
 
-const TITLE = 'RoamFit';
+const TITLE = 'Wanderlift';
 
 /** Always-applicable templates — no data dependency, safe from session zero onward. */
 const GENERIC_TEMPLATES: Template[] = [

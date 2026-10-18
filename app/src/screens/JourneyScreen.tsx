@@ -263,7 +263,7 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
   };
 
   /** §14.1.6 — a hand-set correction to one calendar day's marker: a workout that happened
-   *  outside RoamFit, or a travel day that went unlogged at the time. Purely a display override —
+   *  outside Wanderlift, or a travel day that went unlogged at the time. Purely a display override —
    *  it never creates or edits a `sessions` row or a `travel_day` signal, so it can't be confused
    *  with a real logged workout anywhere else in the app. */
   const handleSetDayMarker = (localDate: string, marker: DayMarker) => {
@@ -305,7 +305,7 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
     if (!data) return;
     const { places, countries } = data.passport;
     void Share.share({
-      message: `RoamFit — trained in ${places.length} ${places.length === 1 ? 'place' : 'places'} and ${countries.length} ${countries.length === 1 ? 'country' : 'countries'}.`,
+      message: `Wanderlift — trained in ${places.length} ${places.length === 1 ? 'place' : 'places'} and ${countries.length} ${countries.length === 1 ? 'country' : 'countries'}.`,
     });
   };
 
@@ -441,7 +441,7 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
       {/* §14.1.6 Logbook — untrained days are neutral cells, never omitted or red. A trained day
           shows the emoji for its focus on a focus-colored tint; a travel day is sky-tinted. Today's
           cell gets a ring, not a color, so it never reads as a workout state. Every marker is
-          hand-editable (tap opens the sheet below) so a workout logged outside RoamFit, or a
+          hand-editable (tap opens the sheet below) so a workout logged outside Wanderlift, or a
           travel day missed at the time, can still be reflected here. */}
       <View onLayout={onLogbookLayout}>
         <Enter index={next()} style={styles.section}>

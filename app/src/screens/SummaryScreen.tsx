@@ -142,13 +142,13 @@ function focusLabel(focus: string): string {
 }
 
 function stampShareText(s: NewStamp): string {
-  return `Just earned a new stamp in my RoamFit passport — ${s.label}.`;
+  return `Just earned a new stamp in my Wanderlift passport — ${s.label}.`;
 }
 
 function celebrationShareText(c: HighlightCelebration): string {
   return c.kind === 'level_up'
-    ? `Just leveled up in RoamFit — ${c.familyName}, now training ${c.newExerciseName}.`
-    : `New Mastery best set in RoamFit — ${c.familyName}: ${c.exerciseName}${
+    ? `Just leveled up in Wanderlift — ${c.familyName}, now training ${c.newExerciseName}.`
+    : `New Mastery best set in Wanderlift — ${c.familyName}: ${c.exerciseName}${
         c.value !== null ? ` (${c.value})` : ''
       }.`;
 }
@@ -607,7 +607,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
               ]}
             >
               <Txt variant="h2" align="center" testID="workout-count">
-                You just finished your {ordinal(workoutCount)} workout on RoamFit!
+                You just finished your {ordinal(workoutCount)} workout on Wanderlift!
               </Txt>
 
               <Txt variant="small" color="text2" align="center">

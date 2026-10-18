@@ -103,7 +103,7 @@ pod), so that build needs network. Later builds don't.
 
 ## 6. Check it on the phone
 
-1. Open Spotify, play something, then switch to RoamFit.
+1. Open Spotify, play something, then switch to Wanderlift.
 2. Start a workout. The bar sits under the stage label, above the exercise.
 3. Tap **Connect Spotify**. The first time, Spotify's authorization screen appears; after that it
    is a fast bounce out and back.

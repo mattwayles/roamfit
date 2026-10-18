@@ -909,7 +909,7 @@ describe('§10.9/§6.4 Summary completion, driven through SummaryScreen', () => 
     expect(screen.getByTestId('confetti-burst')).toBeTruthy();
     expect(screen.getByTestId('hype-headline')).toBeTruthy();
     expect(screen.getByTestId('workout-count')).toHaveTextContent(
-      `You just finished your ${expectedOrdinal} workout on RoamFit!`,
+      `You just finished your ${expectedOrdinal} workout on Wanderlift!`,
     );
   });
 

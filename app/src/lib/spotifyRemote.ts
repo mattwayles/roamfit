@@ -262,7 +262,7 @@ async function freshAccessToken(
   }
 }
 
-/** Delays before each extra silent `connect()` try. Right as RoamFit returns to the foreground,
+/** Delays before each extra silent `connect()` try. Right as Wanderlift returns to the foreground,
  *  Spotify's App Remote server is often not accepting connections yet (it was suspended while
  *  another app was in front), so the first attempt fails and a second one a moment later succeeds —
  *  which is what the manual button was doing for the user. */
@@ -793,7 +793,7 @@ export function useSpotifyPlayer(): SpotifyPlayer {
     // Unlike every other action, a failure here has nowhere else to go: the native
     // `connectionStateChange` event is what normally moves `connectionState` on, but a failed
     // authenticate/connect never fires it (Spotify never got far enough to have a state to
-    // report). Without this, a cancelled auth or a bounce back to RoamFit with no connection
+    // report). Without this, a cancelled auth or a bounce back to Wanderlift with no connection
     // leaves the button reading "Connecting…" forever — `run()` alone only sets `lastError`.
     userConnectInFlight.current = true;
     void connectSpotify().then((error) => {

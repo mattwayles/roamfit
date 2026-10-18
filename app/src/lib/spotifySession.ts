@@ -66,7 +66,7 @@ export async function saveStoredSpotifySession(session: StoredSpotifySession): P
 }
 
 /** Called when a refresh token is confirmed dead (Spotify's `REFRESH_TOKEN_EXPIRED`, or the user
- *  revoked RoamFit's access from their Spotify account) — keeping a token known not to work around
+ *  revoked Wanderlift's access from their Spotify account) — keeping a token known not to work around
  *  would just make every future launch retry it and fail the same way. */
 export async function clearStoredSpotifySession(): Promise<void> {
   try {

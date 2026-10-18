@@ -1,11 +1,11 @@
-# RoamFit Design System — "Midnight"
+# Wanderlift Design System — "Midnight"
 
 The visual language for the whole app. Every screen is built from the tokens and primitives here;
 a screen that reaches for a raw hex value, a raw font size, or a hand-rolled button is off-system.
 
 ## 1. The idea
 
-RoamFit is for people who train in hostel courtyards, beach parks, Airbnb living rooms and hotel
+Wanderlift is for people who train in hostel courtyards, beach parks, Airbnb living rooms and hotel
 stairwells, with a loop band in their backpack. The app should feel like **the best part of
 travel**: the midnight when you step outside, the stamp in your passport, the trail you're
 halfway up. Not a spreadsheet. Not a gym membership.
@@ -184,7 +184,7 @@ changes how things look and where they sit, not what the app decides.
 
 Top to bottom:
 
-1. **Header row** — `ROAMFIT` wordmark (`h1`, teal) with a time-of-day greeting under it
+1. **Header row** — `WANDERLIFT` wordmark (`h1`, teal) with a time-of-day greeting under it
    ("Good morning" / "Good afternoon" / "Good evening", `small`, text2). Gear `IconButton` right.
 2. **Banners** (comeback / travel-suggest / recovery week) as compact `Card`s with a leading
    icon in a tinted circle (sky for travel, fern for recovery/comeback). Same copy & actions.
@@ -413,7 +413,7 @@ here at all.
 - **Hype headline**: keeps the stamp-in, word-by-word slam and bounce. Barlow Condensed 800,
   `display`/`hero` scale, uppercase; words in `text` with the accent word in `gold` (`stamp.fill`), and a teal
   text-shadow glow so it looks stamped in light.
-- "You just finished your 12th workout on RoamFit!" in `h2`, then "32 min · upper" in `small`.
+- "You just finished your 12th workout on Wanderlift!" in `h2`, then "32 min · upper" in `small`.
 - **Stat chips**: keep the tile-by-tile pop-in and count-up. 2×2 grid of `StatTile`-style
   chips: `surface` at ~85% opacity over the glow, 1px `line` border, numerals in `hero`
   condensed `text`, labels in `eyebrow` gold. Tighten vertical spacing so headline + stats +
@@ -449,7 +449,7 @@ Grouped iOS-style list on `bg`, reordered so what people change most comes first
    `Sheet`).
    Every row: 52pt min height, leading 32pt icon tile tinted in its group's accent, `h3` label,
    `Switch` or chevron on the right, hairline separators inset past the icon. `surface` group
-   cards, radius `lg`. Group eyebrows above each card. Footer: small `ROAMFIT` wordmark + version in
+   cards, radius `lg`. Group eyebrows above each card. Footer: small `WANDERLIFT` wordmark + version in
    `caption` text3 — a quiet sign-off.
 
 ### 5.11 Every other surface
@@ -457,7 +457,7 @@ Grouped iOS-style list on `bg`, reordered so what people change most comes first
 Nothing ships on the old look. Beyond the screens above, the redesign covers:
 
 - **Disclaimer gate** (first launch, on Home): full-screen `bg` with the TopoPattern texture at
-  low opacity, `ROAMFIT` wordmark in `hero` teal, tagline "TRAIN ANYWHERE." in `eyebrow` gold,
+  low opacity, `WANDERLIFT` wordmark in `hero` teal, tagline "TRAIN ANYWHERE." in `eyebrow` gold,
   the disclaimer in a `Card`, and `Button lg primary` "I UNDERSTAND".
 - **Loading states**: a centered teal `ActivityIndicator` on `bg` — never a white screen. Screen
   bodies that load synchronously fade in with `enter`.
@@ -526,7 +526,7 @@ are stable):
 ## 8. Daybreak — the light mode
 
 Midnight is unreadable in direct sun: dim surfaces and mid-luminance text drown in glare.
-Daybreak keeps everything that makes the app _RoamFit_ — Barlow highway-sign type, the travel
+Daybreak keeps everything that makes the app _Wanderlift_ — Barlow highway-sign type, the travel
 motifs, the trail CTA, the three moods, the copy — and changes only the light it is seen in.
 
 **The metaphor:** a paper trail map in your hand at noon. Warm paper ground, near-black ink, contour
