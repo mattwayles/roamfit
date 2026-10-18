@@ -20,15 +20,19 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
       138 tag edits (131 added, 7 removed); guards in `packages/data/src/contraindications.test.ts`;
       every choice × focus × equipment still yields a full session (limitationChoices.test.ts).
 
+- [x] 37d + 37e — `lib/anchorSafety.ts` + `components/AnchorSafetyGuide.tsx` + `AnchorSafetyScreen`;
+      `lib/glossary.ts` + `GlossaryScreen` (search); Settings → Learn group.
+
 ### In progress
 
-- 37d — anchor safety guide: content module `app/src/lib/anchorSafety.ts` (sections + bullets), a
-  reusable `AnchorSafetyGuide` component, `AnchorSafetyScreen` route, Settings row under a new
-  "Learn" group (Glossary joins it in 37e).
+- 37f — training preferences. Engine: a `TrainingPreferences` type on `UserProfile` (optional;
+  absent = today's constants), read by progression ranges, rest, cooldown windows, recovery window,
+  progression pace, warm-up/cool-down minutes, changeover time. Store: one JSON column
+  `users.training_prefs` (migration 0030). App: Settings → Training → "Training preferences" screen.
 
 ### Next
 
-- 37e → 37f → 37g → 37h → 37i → 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
+- 37f → 37g → 37h → 37i → 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
 
 ### Decisions / gotchas
 
@@ -51,3 +55,5 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
 - `packages/data/scripts/migrate_library.py` still contains the old travel copy — it is a historical
   one-shot migration, not a generator; exercises.json is edited directly (python json.dump indent=2 +
   trailing newline reproduces the file byte-for-byte).
+- Glossary terms to add when their features land: "Band stacking" (37i), naming/colouring bands in
+  Settings (37i, the "Band (B1 to B5)" entry), Push and Pull in the "Focus" entry (37j).

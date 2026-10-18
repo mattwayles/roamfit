@@ -24,12 +24,6 @@ level-up offer from the active workout; the bundled demo loops/videos are the us
 local-device history / account persistence issue is the user's to handle (see Future Features →
 User Accounts).
 
-- **37d — Anchor safety guide.** A short guide (door anchors on the hinge side vs the latch side,
-  closing the door toward you, checking bands for nicks, eye-level snap-back, never anchoring to
-  anything that can roll or tip). Shown during onboarding and always reachable from Settings.
-- **37e — Glossary.** Every term the app uses (anchor, band B1–B5, stacking, rung/level, trail/family,
-  tempo, set/rep, hold, unilateral, warm-up/cool-down, comeback, Recovery Week, Quick Session…),
-  reachable from Settings.
 - **37f — Training preferences (configurable parameters, beginner-safe defaults).** One stored
   preferences record the engine reads instead of its constants: training goal (rep/hold range: General
   default, Strength, Muscle, Endurance), rest length, variety (cooldown windows), recovery window,

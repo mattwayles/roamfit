@@ -418,6 +418,27 @@ export default function SettingsScreen(): React.JSX.Element {
       </Enter>
 
       <Enter index={7}>
+        <Group title="Learn">
+          <NavRow
+            testID="settings-anchor-safety"
+            icon="anchor"
+            tone="sky"
+            label="Anchor safety"
+            hint="Opens the guide to anchoring bands safely"
+            onPress={() => navigation.navigate('AnchorSafety')}
+          />
+          <NavRow
+            testID="settings-glossary"
+            icon="guide"
+            tone="teal"
+            label="Glossary"
+            hint="Opens plain-language definitions of the terms the app uses"
+            onPress={() => navigation.navigate('Glossary')}
+          />
+        </Group>
+      </Enter>
+
+      <Enter index={8}>
         <Card padding="md" style={styles.disclaimer} testID="settings-section-Medical disclaimer">
           <IconBadge icon="shield" tone="gold" size={40} />
           <View style={styles.disclaimerBody}>
@@ -431,7 +452,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </Card>
       </Enter>
 
-      <Enter index={8}>
+      <Enter index={9}>
         <Group title="Advanced">
           <Pressable
             testID="settings-advanced-toggle"

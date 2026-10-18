@@ -83,7 +83,7 @@ describe('appearance', () => {
 });
 
 describe('settings', () => {
-  it('lays the groups out in order: Appearance, Your body, Training, Motivation, Travel & privacy, Apple Health, disclaimer, Advanced', async () => {
+  it('lays the groups out in order: Appearance, Your body, Training, Motivation, Travel & privacy, Apple Health, Learn, disclaimer, Advanced', async () => {
     await openSettings();
     const order = screen
       .getAllByTestId(/^settings-section-/)
@@ -95,6 +95,7 @@ describe('settings', () => {
       'Motivation',
       'Travel & privacy',
       'Apple Health',
+      'Learn',
       'Medical disclaimer',
       'Advanced',
     ]);
@@ -250,5 +251,27 @@ describe('limitations (track 37a)', () => {
   it('reads None when nothing is ticked', async () => {
     await openSettings();
     expect(screen.getByTestId('settings-limitations-value')).toHaveTextContent('None');
+  });
+});
+
+describe('learn (tracks 37d, 37e)', () => {
+  it('opens the anchor safety guide', async () => {
+    await openSettings();
+    await fireEvent.press(screen.getByTestId('settings-anchor-safety'));
+    await ready('anchor-safety-screen');
+    expect(screen.getByText('Using a door anchor')).toBeTruthy();
+    expect(screen.getByTestId('safety-check')).toBeTruthy();
+  });
+
+  it('opens the glossary, and its search filters terms and definitions', async () => {
+    await openSettings();
+    await fireEvent.press(screen.getByTestId('settings-glossary'));
+    await ready('glossary-screen');
+    expect(screen.getByTestId('glossary-term-Tempo')).toBeTruthy();
+    await fireEvent.changeText(screen.getByTestId('glossary-search'), 'snapped');
+    expect(screen.getByTestId('glossary-empty')).toBeTruthy();
+    await fireEvent.changeText(screen.getByTestId('glossary-search'), 'hinge');
+    expect(screen.getByTestId('glossary-term-Hinge')).toBeTruthy();
+    expect(screen.queryByTestId('glossary-term-Tempo')).toBeNull();
   });
 });

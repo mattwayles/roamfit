@@ -34,6 +34,10 @@ export type RootStackParamList = {
   Settings: undefined;
   /** Track 37a — Settings → Limitations (the injury hard filter's input). */
   Limitations: undefined;
+  /** Track 37d — Settings → Learn → Anchor safety (also an onboarding step). */
+  AnchorSafety: undefined;
+  /** Track 37e — Settings → Learn → Glossary. */
+  Glossary: undefined;
   /** Reached from the library list. Keyed by the stable library id, never a list index, so the
    *  route survives the list being re-sorted or re-filtered underneath it. */
   ExerciseDetail: { exerciseId: string };
