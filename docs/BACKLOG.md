@@ -12,6 +12,65 @@ the record of what was completed and why.
 
 ---
 
+## General-audience release plan (Track 37)
+
+Requested 2026-10-18 after a general-access audit: make the app work for anyone from a complete
+beginner to an advanced lifter, not only the user it was built around. Running log:
+`docs/handoff/STATUS-37-general-audience.md`. Sub-tracks in build order. Each one leaves `npm run check`
+green and is deleted from here when it lands.
+
+**Explicitly out of scope (user decisions):** no "this hurts" button on the active workout (yet); no
+level-up offer from the active workout; the bundled demo loops/videos are the user's to produce; the
+local-device history / account persistence issue is the user's to handle (see Future Features →
+User Accounts).
+
+- **37a — Limitations: Settings section + injury filter.** Engine and store already filter on
+  `limitations[]` (`buildUserProfile` → `applyHardFilters`), but no screen could add one. Build
+  plain-language limitation choices (body areas, plus "pregnant / postpartum" and "no jumping / low
+  impact" as named conditions that map to tag sets) in Settings, with store add/remove/list, so every
+  generation, swap and add-exercise filters on them. Onboarding reuses the same picker (37h).
+- **37b — Empty equipment default; no travel-specific hints.** `DEFAULT_ANCHORS_AVAILABLE` becomes `[]`
+  for a new user (existing users keep their stored list). Remove the "RV ladder / picnic table / low
+  branch / top of a door" style hints from the equipment picker: a low/mid/high anchor is anything
+  the user trusts.
+- **37c — Contraindication tag review (CSCS lens).** A full pass over `contraindications[]` in
+  `packages/data/library/exercises.json`, written up in `docs/reviews/contraindications-2026-10.md`
+  with every change and its reasoning. **This does not replace a qualified human review** (physical
+  therapist or CSCS), which is still owed before public release, with the pregnancy filter
+  (`core_pressure`, `lower_back_extension`, supine work) the highest-stakes part.
+- **37d — Anchor safety guide.** A short guide (door anchors on the hinge side vs the latch side,
+  closing the door toward you, checking bands for nicks, eye-level snap-back, never anchoring to
+  anything that can roll or tip). Shown during onboarding and always reachable from Settings.
+- **37e — Glossary.** Every term the app uses (anchor, band B1–B5, stacking, rung/level, trail/family,
+  tempo, set/rep, hold, unilateral, warm-up/cool-down, comeback, Recovery Week, Quick Session…),
+  reachable from Settings.
+- **37f — Training preferences (configurable parameters, beginner-safe defaults).** One stored
+  preferences record the engine reads instead of its constants: training goal (rep/hold range: General
+  default, Strength, Muscle, Endurance), rest length, variety (cooldown windows), recovery window,
+  progression pace, warm-up/cool-down length, training days per week (`weeklyTarget`, never shown as a
+  streak or a miss), quiet hours window, and the per-exercise changeover time learned from real
+  sessions rather than asked for. Unused `units` is removed from Settings scope (left in the schema).
+  The §13.1 bodyweight-bearing cap stays non-configurable.
+- **37g — Placement: starting level on every ladder.** An optional, self-reported placement
+  (experience level, plus a few "can you do X?" checks) that sets each family's starting rung. Explicit
+  and repeatable, not the removed automatic calibration. Skipping keeps level 1.
+- **37h — First-launch onboarding, reviewable any time.** Welcome + disclaimer → goal → experience &
+  placement → equipment and bands owned → limitations → days per week → anchor safety guide. Every
+  step skippable with beginner defaults. Replaces the Home disclaimer gate; re-openable from Settings.
+- **37i — Bands owned, band editor, band stacking above B5.** Which bands the user owns (prescriptions
+  only use owned bands), a label/colour editor for each, and stacking two bands for tension above B5.
+- **37j — Push / Pull focus.** New Push and Pull foci next to Upper / Legs / Full.
+- **37k — In-between ladder levels for beginners.** Rungs that close the big jumps (e.g. squat jump →
+  pistol, assisted pull-up → chin-up, push-up → diamond), plus the high rungs that currently have no
+  sibling exercises.
+- **37l — More isolation exercises.** Arms, rear delts, calves, adductors, and others.
+- **37m — Apple Health write.** Request authorization when the toggle turns on and on launch when
+  it is already on, so completed workouts are actually written.
+- **37n — Accessibility.** Text that scales with the iOS text size (not shrink-to-fit), VoiceOver labels
+  and roles on every control, Reduce Motion respected everywhere, 44pt touch targets, and contrast.
+
+---
+
 ## Desired Fixes
 
 - **Next Unlock → Journey scroll — device pass owed.** Tapping the Next Unlock card on Today now opens
@@ -171,7 +230,6 @@ size="lg"`): check it reads at arm's length, the B3 near-black swatch stands off
 - **Logo source is low-res.** `app/assets/logo-source.png` is 430x542; the icon and splash are upscaled from it by `tools/build_brand_assets.py` (alpha-mask re-render). Replace with a vector or 2x+ export and re-run the script for crisp edges.
 - **Show the app version in Settings' footer.** `expo-constants` is hoisted in by `expo` but not declared in
   `app/package.json`; add it (`npx expo install expo-constants`) and read `Constants.expoConfig?.version`.
-- **Ladder rungs with no sibling exercises**, so they repeat every session at that level: `horizontal_push` l7–l9, `horizontal_pull` l4–l8, `anti_extension` l4 and l6. All are high rungs nobody currently occupies — fill them when someone gets there.
 
 ---
 
@@ -179,7 +237,6 @@ size="lg"`): check it reads at arm's length, the B3 near-black swatch stands off
 
 _Use this section to backlog changes to individual exercise details_
 
-- **Do scapular push-ups warrant a** `shoulder_overhead` **tag?** The library carried the same movement twice with different tagging — the purpose-built warm-up record had only `wrist_extension`, `bw-scap-push-up` also has `shoulder_overhead`. Merging the duplicates (track 13) kept the stricter one, deliberately: loosening a §13.2 safety tag is not a refactor's call. If it is over-cautious, dropping it gives a shoulder-limited user one more upper warm-up.
 
 ---
 
@@ -262,18 +319,10 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   plain-text line — a rendered stamp-sheet image is the natural share, but needs `react-native-view-shot`
   (see the Completion item above).
 - **User Accounts** - **Anonymous Firebase Auth session isn't persisted.** No RN AsyncStorage backing, so cross-device continuity silently doesn't work. Zero impact on the core loop — nothing reads it on the critical path.
-- **Get a second opinion on** `contraindications[]` **tagging**, especially `core_pressure` and `lower_back_extension` across the hinge, plank and hollow-hold families. This is the pregnancy hard filter — the highest-stakes judgment call in the content set, and it was made by one pass with no review.
-- **Band tensions have no editor.** `DEFAULT_BAND_TENSIONS` ships sensible colours and labels and the data model is user-editable, but Settings has no UI to change them. Band brands genuinely differ.
 - **LLM integration is not fully written:** `functions/` is written; no `LlmProxyCaller` implementation calls
   the deployed function, nothing triggers `processLlmQueue`, and there is no natural-language intake
   UI. `docs/RUNBOOK-functions-deploy.md` has never been run against a real Firebase project.
   - Using AI in workout generation based on previous retrospective input **(hold on this until we see how current progression is working)**
-- **HealthKit write is never authorized.** Settings has the "Write workouts" toggle (it persists
-  `healthWriteEnabled`), but nothing calls `requestHealthKitWritePermission()`, and
-  `healthKitWriter.writeWorkout` no-ops until that in-memory flag is set, so no workout is ever
-  written. Call it from `toggleHealthWrite` when turned on (and re-request on launch when already on:
-  `authorizationRequested` resets each app start). Found in the Phase G sweep; left alone because the
-  redesign froze behavior.
 - **Sync trigger is weak.** `runOpportunisticSync` fires only when the Home screen regains focus. A
   real connectivity-restored or app-foreground trigger would be better.
 - `progression_state` **/** `users` **/** `limitations` **/** `spotify_playlists` **(and `users.spotify_vibes`) don't sync.** Cut for scope. Would reuse the exact  
