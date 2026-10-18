@@ -16,15 +16,19 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
       `FIXED_POINT_ANCHORS` (engine tests' "has everything"); travel hints gone from Generate's
       equipment picker and from 14 exercise `setup` lines (RV / truck / tree / tailgate / picnic table).
 
+- [x] 37c — contraindication review: `docs/review/contraindications-review-2026-10.md`; 93 exercises,
+      138 tag edits (131 added, 7 removed); guards in `packages/data/src/contraindications.test.ts`;
+      every choice × focus × equipment still yields a full session (limitationChoices.test.ts).
+
 ### In progress
 
-- 37c — contraindication review. Write `docs/review/contraindications-review-2026-10.md` (next to the
-  older `contraindications-review.md`), apply tag changes to exercises.json, tag `lying_supine` /
-  `lying_prone`, add data tests that pin the high-stakes calls.
+- 37d — anchor safety guide: content module `app/src/lib/anchorSafety.ts` (sections + bullets), a
+  reusable `AnchorSafetyGuide` component, `AnchorSafetyScreen` route, Settings row under a new
+  "Learn" group (Glossary joins it in 37e).
 
 ### Next
 
-- 37d → 37e → 37f → 37g → 37h → 37i → 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
+- 37e → 37f → 37g → 37h → 37i → 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
 
 ### Decisions / gotchas
 

@@ -3,7 +3,14 @@
  * filter on every generation.
  */
 import { eq } from 'drizzle-orm';
-import { exerciseLibrary, familyLibrary, tagsForLimitationChoices } from '@roamfit/data';
+import {
+  LIMITATION_CHOICES,
+  exerciseLibrary,
+  familyLibrary,
+  tagsForLimitationChoices,
+} from '@roamfit/data';
+import type { Focus } from '@roamfit/data';
+import { FIXED_POINT_ANCHORS } from '@roamfit/engine';
 import { createTestDb } from '../testHarness';
 import { schema } from '../db';
 import { generate } from '../generation';
@@ -13,6 +20,7 @@ import {
   ensureUser,
   getUser,
   setLimitationChoices,
+  updateUser,
 } from './users';
 import { clockFor, rngFor, utcInstantFor } from '../testFixtures';
 
@@ -101,4 +109,50 @@ describe('limitation choices (migration 0029)', () => {
       close();
     }
   });
+});
+
+describe('every limitation choice still leaves a workout for every focus (track 37c)', () => {
+  const FOCI: Focus[] = ['upper', 'legs', 'abs', 'full', 'cardio'];
+  const byId = new Map(exerciseLibrary.exercises.map((e) => [e.id, e]));
+  for (const choice of LIMITATION_CHOICES) {
+    for (const equipped of [false, true]) {
+      it(`${choice.id}, ${equipped ? 'all equipment' : 'no equipment'}`, () => {
+        const { db, close } = createTestDb();
+        try {
+          if (equipped) {
+            updateUser(
+              db,
+              { anchorsAvailable: [...FIXED_POINT_ANCHORS] },
+              utcInstantFor('2026-10-01'),
+            );
+          }
+          setLimitationChoices(db, [choice.id], '2026-10-01', utcInstantFor('2026-10-01'));
+          for (const focus of FOCI) {
+            const { plan } = generate(db, {
+              library: exerciseLibrary,
+              families: familyLibrary,
+              request: { focus, difficulty: 'medium', targetMinutes: 30 },
+              clock: clockFor('2026-10-02'),
+              rng: rngFor(3),
+              utcInstant: utcInstantFor('2026-10-02'),
+            });
+            expect({ focus, main: plan.main.length >= 3 }).toEqual({ focus, main: true });
+            expect({
+              focus,
+              warmup: plan.warmup.length > 0,
+              cooldown: plan.cooldown.length > 0,
+            }).toEqual({ focus, warmup: true, cooldown: true });
+            for (const entry of [...plan.warmup, ...plan.main, ...plan.cooldown]) {
+              const hit = byId
+                .get(entry.exerciseId)!
+                .contraindications.filter((t) => choice.tags.includes(t));
+              expect({ id: entry.exerciseId, hit }).toEqual({ id: entry.exerciseId, hit: [] });
+            }
+          }
+        } finally {
+          close();
+        }
+      });
+    }
+  }
 });

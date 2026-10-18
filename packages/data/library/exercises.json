@@ -311,7 +311,8 @@
       "progression_level_id": "horizontal_push.l2",
       "contraindications": [
         "shoulder_horizontal",
-        "wrist_extension"
+        "wrist_extension",
+        "lying_supine"
       ],
       "setup": "Lie on back, band under your upper back, ends in each hand. Press up until arms lock.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Floor+Press+proper+form+tutorial"
@@ -1016,7 +1017,8 @@
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l6",
       "contraindications": [
-        "shoulder_overhead"
+        "shoulder_overhead",
+        "elbow"
       ],
       "setup": "Loop band over bar, knee or foot in the loop. Requires a pull-up bar - skip if unavailable.",
       "video_search": "https://www.youtube.com/results?search_query=how+to+use+a+pull+up+assist+band+beginner+tutorial"
@@ -1126,7 +1128,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "shoulder_overhead"
+        "shoulder_overhead",
+        "neck"
       ],
       "setup": "Stand mid-band, arms straight down. Shrug shoulders to ears, pause, lower slowly.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Shrug+proper+form+tutorial"
@@ -1166,7 +1169,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "shoulder_overhead"
+        "shoulder_overhead",
+        "lying_prone"
       ],
       "setup": "Hold band with light tension. Trace Y, then T, then W shapes. Great for shoulder health.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Prone+Y-T-W+Raise+proper+form+tutorial"
@@ -1422,7 +1426,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "elbow"
+        "elbow",
+        "lower_back_flexion"
       ],
       "setup": "Stand mid-band, hinge forward, upper arms parallel to torso. Extend elbows straight back.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Tricep+Kickback+proper+form+tutorial"
@@ -1457,7 +1462,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "elbow"
+        "elbow",
+        "lying_supine"
       ],
       "setup": "Anchor low, lie on floor with head toward anchor. Elbows fixed and vertical, extend hands to ceiling.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Skull+Crusher+proper+form+tutorial"
@@ -2012,7 +2018,8 @@
       "progression_family": "hinge",
       "progression_level_id": "hinge.l4",
       "contraindications": [
-        "lower_back_extension"
+        "lower_back_extension",
+        "core_pressure"
       ],
       "setup": "Anchor low behind you, band between legs. Hinge and snap hips forward, kettlebell-swing style.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Hip+Swing+proper+form+tutorial"
@@ -2051,7 +2058,8 @@
       "progression_family": "hinge",
       "progression_level_id": "hinge.l2",
       "contraindications": [
-        "lower_back_extension"
+        "lower_back_extension",
+        "lying_supine"
       ],
       "setup": "Lie on back, band over hips with ends pinned under your hands on the floor. Drive hips up, squeeze glutes.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Glute+Bridge+proper+form+tutorial"
@@ -2090,7 +2098,8 @@
       "progression_family": "hinge",
       "progression_level_id": "hinge.l6",
       "contraindications": [
-        "lower_back_extension"
+        "lower_back_extension",
+        "lying_supine"
       ],
       "setup": "Glute bridge with one foot off the floor. Keep hips level throughout.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Single-Leg+Glute+Bridge+proper+form+tutorial"
@@ -2166,7 +2175,8 @@
       "progression_level_id": "hinge.l2",
       "contraindications": [
         "hip",
-        "lower_back_extension"
+        "lower_back_extension",
+        "lying_supine"
       ],
       "setup": "Lie on back, soles of feet together and knees wide, band over hips. Pulse hips up.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Frog+Pump+proper+form+tutorial"
@@ -2201,7 +2211,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "knee_flexion_loaded"
+        "knee_flexion_loaded",
+        "lying_prone"
       ],
       "setup": "Anchor low behind you. Lie face down with the band looped around one ankle. Curl the heel toward your glutes.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Hamstring+Curl+proper+form+tutorial"
@@ -2240,7 +2251,8 @@
       "progression_family": "hinge",
       "progression_level_id": "hinge.l1",
       "contraindications": [
-        "lower_back_extension"
+        "lower_back_extension",
+        "wrist_extension"
       ],
       "setup": "Quadruped, band looped around one foot with the ends pinned under both hands. Drive the leg back to full hip extension.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Kneeling+Glute+Kickback+proper+form+tutorial"
@@ -2762,7 +2774,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "core_pressure"
       ],
       "setup": "Anchor high, kneel facing away, hands at ears. Crunch ribs toward hips - flex the spine, do not hinge.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Kneeling+Band+Crunch+proper+form+tutorial"
@@ -2879,7 +2892,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "core_pressure"
       ],
       "setup": "Sit leaned back, band around both feet, ends in both hands. Rotate hands across the body under control.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Russian+Twist+proper+form+tutorial"
@@ -2916,7 +2930,8 @@
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l1",
       "contraindications": [
-        "core_pressure"
+        "core_pressure",
+        "lying_supine"
       ],
       "setup": "Lie on your back, band looped around both feet with the ends in your hands, arms straight up. Extend opposite arm and leg, keep the low back flat.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Dead+Bug+proper+form+tutorial"
@@ -2953,7 +2968,9 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "core_pressure"
       ],
       "setup": "Lie on your back, band around both feet, ends gripped in your hands pressed into the floor behind your head. Curl knees to chest, lifting the hips.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Reverse+Crunch+proper+form+tutorial"
@@ -2992,7 +3009,10 @@
       "progression_level_id": null,
       "contraindications": [
         "hip",
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "core_pressure",
+        "lower_back_extension"
       ],
       "setup": "Lie on your back, band around both feet, ends pinned under your hands overhead. Raise straight legs to vertical, lower slowly without arching.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Leg+Raise+proper+form+tutorial"
@@ -3029,7 +3049,9 @@
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l2",
       "contraindications": [
-        "core_pressure"
+        "core_pressure",
+        "lying_supine",
+        "lower_back_extension"
       ],
       "setup": "Lie on your back, band around both feet, ends pinned overhead under your hands. Small alternating kicks, low back flat. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Flutter+Kick+proper+form+tutorial"
@@ -3109,7 +3131,8 @@
       "progression_level_id": null,
       "contraindications": [
         "shoulder_horizontal",
-        "wrist_extension"
+        "wrist_extension",
+        "core_pressure"
       ],
       "setup": "High plank, band looped around one hand and pinned under the opposite palm. Row one arm without letting the hips rotate.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Plank+Band+Row+proper+form+tutorial"
@@ -3149,7 +3172,8 @@
       "contraindications": [
         "knee_impact",
         "lower_back_flexion",
-        "wrist_extension"
+        "wrist_extension",
+        "core_pressure"
       ],
       "setup": "Band around both feet in a high plank. Drive knees to chest alternately. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Mountain+Climber+proper+form+tutorial"
@@ -3228,7 +3252,6 @@
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l2",
       "contraindications": [
-        "core_pressure",
         "wrist_extension"
       ],
       "setup": "Quadruped, band looped from one hand to the opposite foot. Extend both, pause, return.",
@@ -3268,7 +3291,9 @@
       "progression_level_id": null,
       "contraindications": [
         "core_pressure",
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck"
       ],
       "setup": "Lie on your back, band around both feet, ends held overhead. Lift legs and torso to meet in a V.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+V-Up+proper+form+tutorial"
@@ -3306,7 +3331,9 @@
       "progression_level_id": "anti_extension.l7",
       "contraindications": [
         "core_pressure",
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck"
       ],
       "setup": "Hollow-body position, band around both feet with ends held overhead, arms locked. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Hollow+Hold+proper+form+tutorial"
@@ -3795,7 +3822,7 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "core_pressure"
+        "wrist_extension"
       ],
       "setup": "Quadruped spinal flexion and extension, slow and breathing.",
       "video_search": "https://www.youtube.com/results?search_query=Cat-Cow+warm+up+how+to"
@@ -3836,7 +3863,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "knee_flexion_loaded"
+        "knee_flexion_loaded",
+        "hip"
       ],
       "setup": "Deep lunge, elbow to instep, then rotate the top arm to the ceiling.",
       "video_search": "https://www.youtube.com/results?search_query=World%27s+Greatest+Stretch+warm+up+how+to"
@@ -4028,7 +4056,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_extension"
+        "lower_back_extension",
+        "lying_supine"
       ],
       "setup": "Lie on back, band around one foot, draw the straight leg toward you. 30s per side.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Hamstring+Stretch+how+to+stretch"
@@ -4108,7 +4137,8 @@
       "progression_level_id": null,
       "contraindications": [
         "hip",
-        "lower_back_extension"
+        "lower_back_extension",
+        "lying_supine"
       ],
       "setup": "On your back, ankle over opposite knee, pull the thigh in. 30s per side.",
       "video_search": "https://www.youtube.com/results?search_query=Figure-Four+Glute+Stretch+how+to+stretch"
@@ -4147,9 +4177,7 @@
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [
-        "core_pressure"
-      ],
+      "contraindications": [],
       "setup": "Sit hips to heels, arms long, breathe.",
       "video_search": "https://www.youtube.com/results?search_query=Child%27s+Pose+how+to+stretch"
     },
@@ -4187,7 +4215,8 @@
       "progression_level_id": null,
       "contraindications": [
         "core_pressure",
-        "lower_back_extension"
+        "lower_back_extension",
+        "lying_prone"
       ],
       "setup": "Prone, press chest up with soft elbows to lengthen the abs. 30s.",
       "video_search": "https://www.youtube.com/results?search_query=Cobra+Stretch+how+to+stretch"
@@ -4416,7 +4445,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "wrist_extension"
+        "wrist_extension",
+        "core_pressure"
       ],
       "setup": "Anchor low or at mid height to one side. High plank, perpendicular to the anchor, band in the far hand. Reach across and pull the band through underneath your body to the near hand, then return it without rocking the hips.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Plank+Pull-Through+proper+form+tutorial"
@@ -4455,7 +4485,8 @@
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l2",
       "contraindications": [
-        "core_pressure"
+        "core_pressure",
+        "shoulder_overhead"
       ],
       "setup": "Stand on the band, press both hands overhead and hold. March knees to hip height without letting the ribs flare. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Overhead+March+proper+form+tutorial"
@@ -4495,7 +4526,10 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck",
+        "core_pressure"
       ],
       "setup": "Anchor low behind your head, lie on your back facing away from the anchor, band ends held at your chest. Crunch the ribs toward the hips against the band.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Crunch+proper+form+tutorial"
@@ -4574,7 +4608,8 @@
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l3",
       "contraindications": [
-        "shoulder_overhead"
+        "shoulder_overhead",
+        "lying_supine"
       ],
       "setup": "Lie on your back with the band pinned under your hips, ends in both hands. Sweep straight arms from overhead down to your thighs.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Floor+Band+Pullover+proper+form+tutorial"
@@ -4803,7 +4838,10 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck",
+        "core_pressure"
       ],
       "setup": "Lie on your back, knees bent, hands at your ears. Curl the shoulder blades off the ground, chin off chest. Lower slowly.",
       "video_search": "https://www.youtube.com/results?search_query=Crunch+proper+form+tutorial"
@@ -4840,7 +4878,10 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck",
+        "core_pressure"
       ],
       "setup": "Lie on your back, knees bent, feet flat. Sit all the way up until your chest meets your thighs, lower under control.",
       "video_search": "https://www.youtube.com/results?search_query=Sit-Up+proper+form+tutorial"
@@ -4912,8 +4953,7 @@
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l5",
       "contraindications": [
-        "core_pressure",
-        "wrist_extension"
+        "core_pressure"
       ],
       "setup": "On one forearm, elbow under shoulder, feet stacked. Drive the hip up so the body makes a straight line. Time-based per side.",
       "video_search": "https://www.youtube.com/results?search_query=Side+Plank+proper+form+tutorial"
@@ -4948,8 +4988,7 @@
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l5",
       "contraindications": [
-        "core_pressure",
-        "wrist_extension"
+        "core_pressure"
       ],
       "setup": "From a side plank, lower the hip toward the ground and drive it back up without rotating.",
       "video_search": "https://www.youtube.com/results?search_query=Side+Plank+Hip+Dip+proper+form+tutorial"
@@ -4985,7 +5024,10 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck",
+        "core_pressure"
       ],
       "setup": "On your back, hands at ears. Bring one elbow toward the opposite knee while the other leg extends. Rotate the torso, not just the elbow.",
       "video_search": "https://www.youtube.com/results?search_query=Bicycle+Crunch+proper+form+tutorial"
@@ -5020,7 +5062,9 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "core_pressure"
       ],
       "setup": "On your back, knees bent over hips, hands flat beside you. Curl the hips off the floor to bring knees to chest.",
       "video_search": "https://www.youtube.com/results?search_query=Reverse+Crunch+proper+form+tutorial"
@@ -5059,7 +5103,10 @@
       "progression_level_id": null,
       "contraindications": [
         "hip",
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "core_pressure",
+        "lower_back_extension"
       ],
       "setup": "On your back, hands under your glutes. Raise straight legs to vertical, lower slowly and stop before the low back arches.",
       "video_search": "https://www.youtube.com/results?search_query=Lying+Leg+Raise+proper+form+tutorial"
@@ -5094,7 +5141,9 @@
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l1",
       "contraindications": [
-        "core_pressure"
+        "core_pressure",
+        "lying_supine",
+        "lower_back_extension"
       ],
       "setup": "On your back, legs straight and just off the ground, hands under your glutes. Small alternating kicks. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=Flutter+Kick+proper+form+tutorial"
@@ -5129,7 +5178,9 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck"
       ],
       "setup": "On your back, knees bent, shoulders slightly off the floor. Bend side to side tapping each heel.",
       "video_search": "https://www.youtube.com/results?search_query=Heel+Tap+proper+form+tutorial"
@@ -5164,7 +5215,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "core_pressure"
       ],
       "setup": "Sit with knees bent, torso leaned back to ~45 deg, feet hovering. Rotate the shoulders side to side under control.",
       "video_search": "https://www.youtube.com/results?search_query=Russian+Twist+proper+form+tutorial"
@@ -5198,7 +5250,8 @@
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l1",
       "contraindications": [
-        "core_pressure"
+        "core_pressure",
+        "lying_supine"
       ],
       "setup": "On your back, arms up and knees over hips. Lower the opposite arm and leg toward the floor keeping the low back flat, then switch.",
       "video_search": "https://www.youtube.com/results?search_query=Dead+Bug+proper+form+tutorial"
@@ -5235,7 +5288,6 @@
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l2",
       "contraindications": [
-        "core_pressure",
         "wrist_extension"
       ],
       "setup": "On hands and knees, extend the opposite arm and leg to full length. Keep the hips level and pause at the top.",
@@ -5272,7 +5324,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "wrist_extension"
+        "wrist_extension",
+        "core_pressure"
       ],
       "setup": "High plank, feet wide. Tap the opposite shoulder with each hand while refusing to let the hips rock.",
       "video_search": "https://www.youtube.com/results?search_query=Plank+Shoulder+Tap+proper+form+tutorial"
@@ -5313,7 +5366,8 @@
       "progression_level_id": null,
       "contraindications": [
         "elbow",
-        "wrist_extension"
+        "wrist_extension",
+        "core_pressure"
       ],
       "setup": "From a forearm plank, press up to a high plank one arm at a time, then back down. Keep the hips still.",
       "video_search": "https://www.youtube.com/results?search_query=Plank+Up-Down+proper+form+tutorial"
@@ -5351,7 +5405,9 @@
       "progression_level_id": null,
       "contraindications": [
         "core_pressure",
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck"
       ],
       "setup": "On your back, arms overhead. Lift legs and torso at once to touch hands to feet, then lower with control.",
       "video_search": "https://www.youtube.com/results?search_query=V-Up+proper+form+tutorial"
@@ -5388,7 +5444,9 @@
       "progression_level_id": "anti_extension.l7",
       "contraindications": [
         "core_pressure",
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck"
       ],
       "setup": "On your back, low back pressed flat, arms and legs extended and hovering. Time-based. Bend the knees to make it easier.",
       "video_search": "https://www.youtube.com/results?search_query=Hollow+Body+Hold+proper+form+tutorial"
@@ -5460,7 +5518,9 @@
       "progression_level_id": null,
       "contraindications": [
         "hip",
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "core_pressure"
       ],
       "setup": "On your back, arms out wide, legs up. Lower both legs to one side under control, then the other. Shoulders stay pinned.",
       "video_search": "https://www.youtube.com/results?search_query=Windshield+Wiper+proper+form+tutorial"
@@ -5497,7 +5557,9 @@
       "progression_family": "anti_extension",
       "progression_level_id": "anti_extension.l1",
       "contraindications": [
-        "core_pressure"
+        "core_pressure",
+        "lying_prone",
+        "lower_back_extension"
       ],
       "setup": "Face down, arms extended. Lift chest, arms and legs off the ground, pause, lower. Balances all the forward flexion work.",
       "video_search": "https://www.youtube.com/results?search_query=Superman+proper+form+tutorial"
@@ -5536,7 +5598,8 @@
       "progression_family": "horizontal_push",
       "progression_level_id": "horizontal_push.l1",
       "contraindications": [
-        "wrist_extension"
+        "wrist_extension",
+        "shoulder_horizontal"
       ],
       "setup": "Hands at shoulder height on a wall or any solid vertical surface. Lower the chest to it and press back. The easiest push-up regression.",
       "video_search": "https://www.youtube.com/results?search_query=Wall+Push-Up+proper+form+tutorial"
@@ -5887,7 +5950,6 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "shoulder_overhead",
         "wrist_extension"
       ],
       "setup": "High plank, arms locked. Move only the shoulder blades \u2014 pinch them together, then push the floor away. Great warm-up.",
@@ -5927,7 +5989,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "shoulder_overhead"
+        "shoulder_overhead",
+        "lying_prone"
       ],
       "setup": "Face down, arms making a Y, then a T, then a W. Lift the hands a few inches and squeeze the shoulder blades.",
       "video_search": "https://www.youtube.com/results?search_query=Prone+Y-T-W+proper+form+tutorial"
@@ -5967,7 +6030,8 @@
       "contraindications": [
         "elbow",
         "shoulder_horizontal",
-        "shoulder_overhead"
+        "shoulder_overhead",
+        "wrist_extension"
       ],
       "setup": "Hands on a sturdy bench or step behind you, legs out front. Lower until the elbows reach about 90 degrees, press back up. Keep the shoulders down.",
       "video_search": "https://www.youtube.com/results?search_query=Bench+Dip+proper+form+tutorial"
@@ -6049,7 +6113,8 @@
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l8",
       "contraindications": [
-        "shoulder_overhead"
+        "shoulder_overhead",
+        "elbow"
       ],
       "setup": "Overhand grip on a pull-up bar, hang at full stretch. Pull until the chin clears the bar. Use a band under one foot to assist.",
       "video_search": "https://www.youtube.com/results?search_query=Pull-Up+proper+form+tutorial"
@@ -6614,7 +6679,8 @@
       "progression_family": "hinge",
       "progression_level_id": "hinge.l2",
       "contraindications": [
-        "lower_back_extension"
+        "lower_back_extension",
+        "lying_supine"
       ],
       "setup": "On your back, knees bent, feet flat and close to your glutes. Drive the hips up, squeeze hard at the top.",
       "video_search": "https://www.youtube.com/results?search_query=Glute+Bridge+proper+form+tutorial"
@@ -6652,7 +6718,8 @@
       "progression_family": "hinge",
       "progression_level_id": "hinge.l5",
       "contraindications": [
-        "lower_back_extension"
+        "lower_back_extension",
+        "lying_supine"
       ],
       "setup": "Glute bridge with one foot off the floor and that knee hugged in. Keep the hips level.",
       "video_search": "https://www.youtube.com/results?search_query=Single-Leg+Glute+Bridge+proper+form+tutorial"
@@ -6909,7 +6976,9 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "hip"
+        "hip",
+        "wrist_extension",
+        "lower_back_extension"
       ],
       "setup": "On hands and knees, band looped around the kicking foot with the ends held in both hands. Drive that heel toward the sky, keeping the knee bent at 90 deg. Do not arch the low back.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Donkey+Kick+proper+form+tutorial"
@@ -6945,7 +7014,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "hip"
+        "hip",
+        "wrist_extension"
       ],
       "setup": "On hands and knees, lift one knee out to the side keeping it bent. Keep the hips square.",
       "video_search": "https://www.youtube.com/results?search_query=Fire+Hydrant+proper+form+tutorial"
@@ -7059,7 +7129,8 @@
       "progression_level_id": null,
       "contraindications": [
         "lower_back_flexion",
-        "wrist_extension"
+        "wrist_extension",
+        "core_pressure"
       ],
       "setup": "High plank, drive the knees to the chest alternately at pace. Hips stay low. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=Mountain+Climber+proper+form+tutorial"
@@ -7136,7 +7207,8 @@
       "contraindications": [
         "knee_flexion_loaded",
         "knee_impact",
-        "wrist_extension"
+        "wrist_extension",
+        "lying_prone"
       ],
       "setup": "Squat down, jump back to a plank, chest to the ground, jump the feet in, jump up with hands overhead.",
       "video_search": "https://www.youtube.com/results?search_query=Burpee+proper+form+tutorial"
@@ -7174,7 +7246,8 @@
       "contraindications": [
         "knee_flexion_loaded",
         "knee_impact",
-        "wrist_extension"
+        "wrist_extension",
+        "lower_back_extension"
       ],
       "setup": "Burpee without the jump \u2014 drop to the plank and snap the hips down, then pop straight back up. Easier on the shoulders.",
       "video_search": "https://www.youtube.com/results?search_query=Sprawl+proper+form+tutorial"
@@ -7249,7 +7322,8 @@
       "progression_level_id": null,
       "contraindications": [
         "core_pressure",
-        "wrist_extension"
+        "wrist_extension",
+        "shoulder_horizontal"
       ],
       "setup": "Sit, hands behind you, hips lifted. Walk forward and back on hands and feet. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=Crab+Walk+proper+form+tutorial"
@@ -7286,7 +7360,8 @@
       "progression_level_id": null,
       "contraindications": [
         "core_pressure",
-        "wrist_extension"
+        "wrist_extension",
+        "lower_back_flexion"
       ],
       "setup": "Hinge and walk the hands out to a plank, hold a beat, walk the feet up to the hands, stand.",
       "video_search": "https://www.youtube.com/results?search_query=Inchworm+proper+form+tutorial"
@@ -7366,7 +7441,9 @@
       "contraindications": [
         "core_pressure",
         "lower_back_extension",
-        "shoulder_overhead"
+        "shoulder_overhead",
+        "lying_supine",
+        "wrist_extension"
       ],
       "setup": "From lying on your back, stand up one deliberate step at a time with one arm held straight overhead, then reverse it.",
       "video_search": "https://www.youtube.com/results?search_query=Get-Up+proper+form+tutorial"
@@ -7871,7 +7948,8 @@
       "progression_family": "vertical_pull",
       "progression_level_id": "vertical_pull.l2",
       "contraindications": [
-        "shoulder_overhead"
+        "shoulder_overhead",
+        "lying_prone"
       ],
       "setup": "Lie face down holding the band wide overhead. Pull the band down toward your upper back, lifting your chest slightly.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Prone+Band+Pulldown+proper+form+tutorial"
@@ -8372,7 +8450,10 @@
       "difficulty": "easy",
       "progression_family": null,
       "progression_level_id": null,
-      "contraindications": [],
+      "contraindications": [
+        "ankle",
+        "knee_impact"
+      ],
       "setup": "Quick, light shuffle steps side to side on the balls of the feet, like a boxer staying loose between rounds. Stay low and relaxed through the knees.",
       "video_search": "https://www.youtube.com/results?search_query=Boxer+Shuffle+footwork+cardio+tutorial"
     },
@@ -8556,7 +8637,8 @@
       "progression_level_id": null,
       "contraindications": [
         "knee_impact",
-        "ankle"
+        "ankle",
+        "knee_flexion_loaded"
       ],
       "setup": "Squat down, then jump up explosively, throwing arms and legs out wide into a star shape at the peak. Land soft and reset before the next rep.",
       "video_search": "https://www.youtube.com/results?search_query=Star+Jump+proper+form+tutorial"
@@ -8669,7 +8751,9 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "knee_impact"
+        "knee_impact",
+        "ankle",
+        "knee_flexion_loaded"
       ],
       "setup": "Squat down, then hop the feet out wide and back to narrow, popping up slightly between each. Stay light on the feet.",
       "video_search": "https://www.youtube.com/results?search_query=Pop+Squat+proper+form+tutorial"
@@ -8743,7 +8827,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "knee_impact"
+        "knee_impact",
+        "ankle"
       ],
       "setup": "Run in place as fast as you can hold form, driving the knees and pumping the arms hard. Stay on the balls of the feet.",
       "video_search": "https://www.youtube.com/results?search_query=Sprint+in+Place+cardio+proper+form+tutorial"
@@ -8780,7 +8865,8 @@
       "progression_level_id": null,
       "contraindications": [
         "wrist_extension",
-        "core_pressure"
+        "core_pressure",
+        "knee_impact"
       ],
       "setup": "High plank, hands under shoulders. Jump the feet apart and back together like a jumping jack while the hands stay planted and the hips stay level.",
       "video_search": "https://www.youtube.com/results?search_query=Plank+Jack+proper+form+tutorial"
@@ -8891,7 +8977,8 @@
       "progression_level_id": null,
       "contraindications": [
         "knee_flexion_loaded",
-        "ankle"
+        "ankle",
+        "knee_impact"
       ],
       "setup": "Jog in place, kicking the heels up to tap the glutes on each stride. Stay tall through the torso rather than leaning forward.",
       "video_search": "https://www.youtube.com/results?search_query=Butt+Kick+proper+form+tutorial"
@@ -9001,7 +9088,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "knee_flexion_loaded"
+        "knee_flexion_loaded",
+        "ankle"
       ],
       "setup": "Band around the thighs, quarter-squat stance. Shuffle quickly several steps one direction, then reverse, keeping tension on the band throughout.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Lateral+Shuffle+proper+form+tutorial"
@@ -9039,7 +9127,9 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "knee_flexion_loaded"
+        "knee_flexion_loaded",
+        "ankle",
+        "knee_impact"
       ],
       "setup": "Band anchored low behind you at the waist, facing away into tension. Drive the knees fast in a sprint-in-place rhythm against the pull.",
       "video_search": "https://www.youtube.com/results?search_query=resistance+band+Resisted+Sprint+in+Place+proper+form+tutorial"
@@ -9371,7 +9461,10 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck",
+        "core_pressure"
       ],
       "setup": "On your back, knees bent, hands at your ears. Crunch up and across toward one knee, lower, then the other side. Keep the elbows wide and the neck long.",
       "video_search": "https://www.youtube.com/results?search_query=Alternating+Crunch+proper+form+tutorial"
@@ -9408,7 +9501,8 @@
       "progression_level_id": null,
       "contraindications": [
         "lower_back_flexion",
-        "core_pressure"
+        "core_pressure",
+        "lying_supine"
       ],
       "setup": "On your back, legs straight up. Circle both legs together in a small corkscrew, letting the hips roll slightly off the floor, then reverse direction. Keep the shoulders down and move from the abs.",
       "video_search": "https://www.youtube.com/results?search_query=Corkscrew+proper+form+tutorial"
@@ -9445,7 +9539,10 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck",
+        "core_pressure"
       ],
       "setup": "On your back, calves resting on a chair or bench with the hips and knees at about 90 deg, hands at your ears. Curl the shoulder blades off the ground, then lower slowly.",
       "video_search": "https://www.youtube.com/results?search_query=Elevated+Crunch+proper+form+tutorial"
@@ -9520,7 +9617,9 @@
       "progression_level_id": null,
       "contraindications": [
         "core_pressure",
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck"
       ],
       "setup": "Lie flat, arms overhead, legs straight. Fold up, bringing the hands and straight legs together over the hips, then lower with control. Bend the knees to make it easier.",
       "video_search": "https://www.youtube.com/results?search_query=Jackknife+proper+form+tutorial"
@@ -9559,7 +9658,9 @@
       "progression_level_id": null,
       "contraindications": [
         "core_pressure",
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck"
       ],
       "setup": "Lie on your back, arms overhead, legs angled slightly to one side. Fold up and reach the hands toward the opposite foot, lowering with control. Finish all reps on one side, then switch.",
       "video_search": "https://www.youtube.com/results?search_query=Oblique+V-Up+proper+form+tutorial"
@@ -9596,7 +9697,8 @@
       "progression_level_id": null,
       "contraindications": [
         "lower_back_flexion",
-        "core_pressure"
+        "core_pressure",
+        "lying_supine"
       ],
       "setup": "On your back, arms out to the sides, legs straight up. Lower both legs toward one side without letting the opposite shoulder lift, then swing them over the top to the other side.",
       "video_search": "https://www.youtube.com/results?search_query=Pendulum+proper+form+tutorial"
@@ -9636,7 +9738,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "wrist_extension"
+        "wrist_extension",
+        "core_pressure"
       ],
       "setup": "High plank, hands under shoulders. Drive one knee out and up toward the same-side elbow, return, and alternate. Keep the hips level.",
       "video_search": "https://www.youtube.com/results?search_query=Plank+Knee+to+Elbow+proper+form+tutorial"
@@ -9675,7 +9778,8 @@
       "progression_level_id": null,
       "contraindications": [
         "lower_back_flexion",
-        "core_pressure"
+        "core_pressure",
+        "lying_supine"
       ],
       "setup": "On your back, legs straight up toward the ceiling, hands by your sides. Pulse the feet toward the ceiling by lifting the hips a few centimeters, lower under control, and repeat.",
       "video_search": "https://www.youtube.com/results?search_query=Pulse+Up+proper+form+tutorial"
@@ -9713,7 +9817,10 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck",
+        "core_pressure"
       ],
       "setup": "On your back, knees in tabletop, hands at your chest. Crunch up and push the hands forward past the knees as the legs extend, then draw everything back in.",
       "video_search": "https://www.youtube.com/results?search_query=Push+Through+proper+form+tutorial"
@@ -9752,7 +9859,10 @@
       "progression_level_id": null,
       "contraindications": [
         "lower_back_flexion",
-        "hip"
+        "hip",
+        "lying_supine",
+        "neck",
+        "core_pressure"
       ],
       "setup": "On your back, shoulders lifted, lower back pressed down. Cross straight legs over each other in a scissor motion, alternating the top leg.",
       "video_search": "https://www.youtube.com/results?search_query=Scissors+proper+form+tutorial"
@@ -9789,7 +9899,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "neck"
       ],
       "setup": "Lie on your side, knees bent, top hand behind your head. Lift the ribs toward the hip, pause, and lower. Finish all reps on one side, then switch.",
       "video_search": "https://www.youtube.com/results?search_query=Side+Crunch+proper+form+tutorial"
@@ -9865,7 +9976,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine"
       ],
       "setup": "On your back, arms out to the sides, knees bent over the hips. Lower both knees to one side without lifting the opposite shoulder, then bring them over to the other side.",
       "video_search": "https://www.youtube.com/results?search_query=Twist+proper+form+tutorial"
@@ -9903,7 +10015,10 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck",
+        "core_pressure"
       ],
       "setup": "On your back, loop band around both feet, ends held at your ears. Rotate one elbow toward the opposite knee while the other leg extends against the band.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Bicycle+Crunch+proper+form+tutorial"
@@ -9941,7 +10056,9 @@
       "progression_level_id": null,
       "contraindications": [
         "core_pressure",
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck"
       ],
       "setup": "Lie flat, band around both feet, ends held overhead. Fold up so the hands and straight legs meet over the hips, then lower with control.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Jackknife+proper+form+tutorial"
@@ -9980,7 +10097,9 @@
       "progression_level_id": null,
       "contraindications": [
         "core_pressure",
-        "lower_back_flexion"
+        "lower_back_flexion",
+        "lying_supine",
+        "neck"
       ],
       "setup": "Lie on your back with legs angled slightly to one side, band around both feet, ends in one hand overhead. Fold up and reach toward the opposite foot, lowering with control. Finish one side, then switch.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Oblique+V-Up+proper+form+tutorial"
@@ -10018,7 +10137,10 @@
       "progression_level_id": null,
       "contraindications": [
         "lower_back_flexion",
-        "hip"
+        "hip",
+        "lying_supine",
+        "neck",
+        "core_pressure"
       ],
       "setup": "On your back, shoulders lifted, loop band around both feet. Cross straight legs over each other against the band, alternating the top leg.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Scissors+proper+form+tutorial"
@@ -10056,7 +10178,8 @@
       "progression_level_id": null,
       "contraindications": [
         "lower_back_flexion",
-        "core_pressure"
+        "core_pressure",
+        "lying_supine"
       ],
       "setup": "On your back, legs straight up, loop band around both feet with ends held overhead. Pulse the feet toward the ceiling by lifting the hips slightly, lower under control, repeat.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Pulse+Up+proper+form+tutorial"
@@ -10095,7 +10218,8 @@
       "progression_family": null,
       "progression_level_id": null,
       "contraindications": [
-        "wrist_extension"
+        "wrist_extension",
+        "core_pressure"
       ],
       "setup": "High plank with a loop band around both feet. Drive one knee out and up toward the same-side elbow against the band, return, alternate. Keep the hips level.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Plank+Knee+to+Elbow+proper+form+tutorial"

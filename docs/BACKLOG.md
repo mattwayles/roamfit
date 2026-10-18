@@ -24,11 +24,6 @@ level-up offer from the active workout; the bundled demo loops/videos are the us
 local-device history / account persistence issue is the user's to handle (see Future Features →
 User Accounts).
 
-- **37c — Contraindication tag review (CSCS lens).** A full pass over `contraindications[]` in
-  `packages/data/library/exercises.json`, written up in `docs/review/contraindications-review-2026-10.md`
-  with every change and its reasoning. **This does not replace a qualified human review** (physical
-  therapist or CSCS), which is still owed before public release, with the pregnancy filter
-  (`core_pressure`, `lower_back_extension`, supine work) the highest-stakes part.
 - **37d — Anchor safety guide.** A short guide (door anchors on the hinge side vs the latch side,
   closing the door toward you, checking bands for nicks, eye-level snap-back, never anchoring to
   anything that can roll or tip). Shown during onboarding and always reachable from Settings.
@@ -309,6 +304,12 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   milestones (level-ups, best sets) do not get stamps yet, only cities; (2) the Share button sends a
   plain-text line — a rendered stamp-sheet image is the natural share, but needs `react-native-view-shot`
   (see the Completion item above).
+- **Human review of `contraindications[]` — owed before public release.** Track 37c
+  (`docs/review/contraindications-review-2026-10.md`) re-tagged all 267 exercises in a CSCS role and
+  added `lying_supine` / `lying_prone`, but it is an AI pass, not the review. A physical therapist (or
+  a CSCS working with one) should sign it off, starting with the pregnancy/postpartum filter, and
+  decide its four open questions (brief supine work, fall risk, inversions, splitting postpartum from
+  pregnancy).
 - **User Accounts** - **Anonymous Firebase Auth session isn't persisted.** No RN AsyncStorage backing, so cross-device continuity silently doesn't work. Zero impact on the core loop — nothing reads it on the critical path.
 - **LLM integration is not fully written:** `functions/` is written; no `LlmProxyCaller` implementation calls
   the deployed function, nothing triggers `processLlmQueue`, and there is no natural-language intake

@@ -109,8 +109,8 @@ describe('warm-up variety for a shoulder_overhead limitation (issue #33, track 6
     // contraindications for one movement — the purpose-built warm-up was tagged only
     // `wrist_extension`, the library record `shoulder_overhead` too — and merging them kept the
     // stricter tagging. Loosening a §13.2 safety tag is not something a refactor gets to do as a
-    // side effect (invariant 3); if scapular push-ups really are shoulder-overhead-safe, that is a
-    // content decision to make deliberately, and it is parked in the backlog.
+    // side effect (invariant 3). The 2026-10 review (track 37c) then made that content decision
+    // deliberately and dropped the tag; this list is left as authored for track 6g.
     const shoulderSafeWarmups = [
       'wu-band-external-rotation',
       'wu-thread-the-needle',
