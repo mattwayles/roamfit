@@ -66,7 +66,10 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
 
 ### In progress
 
-- 37n — accessibility. Plan, in increments: (1) `Button`: fixed `height` → `minHeight`, allow 2 lines
+- 37n — accessibility. [x] increment 1 committed: Button minHeight + 2-line labels; Chip role +
+  44pt hitSlop; Debrief set squares 44pt tall; Summary headline + Spotify rows get role/label;
+  Reduce Motion now covers stat counters, confetti and the headline bounce. Remaining below.
+  Original plan: (1) `Button`: fixed `height` → `minHeight`, allow 2 lines
   so labels aren't clipped at large Dynamic Type; (2) audit `numberOfLines={1}` / fixed heights
   on text containers across screens; (3) icon-only controls without `accessibilityLabel` (grep
   IconButton/PressableScale without labels); (4) touch targets < 44pt (grep width/height < 44 on

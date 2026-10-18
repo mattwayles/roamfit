@@ -307,11 +307,16 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     };
   }, []);
 
-  const addBurst = useCallback((variant: ConfettiVariant, origin?: { x: number; y: number }) => {
-    burstKey.current += 1;
-    const key = burstKey.current;
-    setBursts((prev) => [...prev.slice(-5), { key, variant, origin }]);
-  }, []);
+  const addBurst = useCallback(
+    (variant: ConfettiVariant, origin?: { x: number; y: number }) => {
+      // Reduce Motion (track 37n): no flying confetti; the haptics still celebrate.
+      if (reduceMotion) return;
+      burstKey.current += 1;
+      const key = burstKey.current;
+      setBursts((prev) => [...prev.slice(-5), { key, variant, origin }]);
+    },
+    [reduceMotion],
+  );
 
   const shakeScreen = useCallback(
     (strength: number) => {
@@ -510,6 +515,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     hapticHeavy();
     shakeScreen(5);
     addBurst('pop', { x: windowWidth / 2, y: 150 - scrollY.current });
+    if (reduceMotion) return;
     headlineBounce.setValue(1);
     Animated.spring(headlineBounce, {
       toValue: 0,
@@ -584,6 +590,8 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
               <Pressable
                 testID="hype-headline"
                 onPress={handleHeadlinePress}
+                accessibilityRole="button"
+                accessibilityLabel={hypeHeadline}
                 accessibilityHint="Fires more confetti"
               >
                 <HypeHeadline text={hypeHeadline} bounce={headlineBounce} />
@@ -1062,7 +1070,9 @@ function EntryRow({
                 haptic={false}
                 accessibilityRole="button"
                 accessibilityLabel={`Set ${setIndex + 1} — ${status.replace('_', ' ')}`}
-                hitSlop={{ top: 6, left: 5, right: 5 }}
+                // 30pt squares: 7pt above and below reach the 44pt minimum; sideways stays at 5pt
+                // so a square never steals its neighbour's tap (track 37n).
+                hitSlop={{ top: 7, bottom: 7, left: 5, right: 5 }}
                 onPress={() => onJump(setIndex)}
                 style={[styles.square, squareStyle(styles, status)]}
               >

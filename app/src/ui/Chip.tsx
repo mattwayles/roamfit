@@ -26,6 +26,9 @@ export interface ChipProps {
   accessibilityLabel?: string;
 }
 
+/** Vertical slop that brings each chip size's touch target to 44pt (horizontal is ample). */
+const CHIP_HIT_SLOP = { md: { top: 7, bottom: 7 }, sm: { top: 10, bottom: 10 } } as const;
+
 export function Chip({
   label,
   tone = 'neutral',
@@ -74,8 +77,11 @@ export function Chip({
       <PressableScale
         testID={testID}
         onPress={onPress}
+        accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? label}
         accessibilityState={{ selected }}
+        // Track 37n — the chip is drawn 24-30pt tall; the touch area reaches the 44pt minimum.
+        hitSlop={CHIP_HIT_SLOP[size]}
         style={containerStyle}
       >
         {body}

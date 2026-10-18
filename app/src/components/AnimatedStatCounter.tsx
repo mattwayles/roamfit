@@ -12,7 +12,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { makeStyles, radius, space, withAlpha } from '../theme';
-import { Txt } from '../ui';
+import { Txt, useReduceMotion } from '../ui';
 
 interface Props {
   value: number;
@@ -44,8 +44,16 @@ export default function AnimatedStatCounter({
   const progress = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(0)).current;
   const [displayValue, setDisplayValue] = useState(0);
+  const still = useReduceMotion();
 
   useEffect(() => {
+    // Reduce Motion (track 37n): the number is simply there, no count-up and no pop.
+    if (still) {
+      progress.setValue(value);
+      pop.setValue(1);
+      setDisplayValue(value);
+      return;
+    }
     setDisplayValue(0);
     progress.setValue(0);
     pop.setValue(0);
@@ -77,7 +85,7 @@ export default function AnimatedStatCounter({
     // `progress`/`pop` are stable refs for the component's lifetime — value/delay/duration are the
     // only real inputs to this effect (no react-hooks lint plugin is configured in this project to
     // flag the omission).
-  }, [value, delay, duration]);
+  }, [value, delay, duration, still]);
 
   return (
     <Animated.View

@@ -246,7 +246,7 @@ describe('Button', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('primary is a 64pt gradient pill at lg; secondary has no gradient', async () => {
+  it('primary is (at least) a 64pt gradient pill at lg; secondary has no gradient', async () => {
     await render(
       <>
         <Button label="Go" testID="p" />
@@ -254,8 +254,11 @@ describe('Button', () => {
       </>,
     );
     await ready('p');
-    expect(StyleSheet.flatten(screen.getByTestId('p').props.style).height).toBe(64);
-    expect(StyleSheet.flatten(screen.getByTestId('s').props.style).height).toBe(52);
+    // A minimum height (track 37n): large Dynamic Type grows the button rather than clipping it.
+    expect(StyleSheet.flatten(screen.getByTestId('p').props.style).minHeight).toBe(64);
+    expect(StyleSheet.flatten(screen.getByTestId('s').props.style).minHeight).toBe(52);
+    expect(StyleSheet.flatten(screen.getByTestId('p').props.style).height).toBeUndefined();
+    expect(screen.getByText('Go').props.numberOfLines).toBe(2);
     expect(screen.getAllByTestId('gradient')).toHaveLength(1);
   });
 

@@ -290,6 +290,9 @@ export default function SpotifyControls(): React.JSX.Element | null {
       <View style={styles.browseRow}>
         <PressableScale
           testID={`spotify-browse-item-${item.identifier}`}
+          accessibilityRole="button"
+          accessibilityLabel={item.subtitle ? `${name}, ${item.subtitle}` : name}
+          accessibilityHint={item.isPlayable ? 'Plays it' : 'Opens it'}
           style={styles.browseRowMain}
           onPress={() => (item.isPlayable ? play(item) : drillIn(item))}
         >

@@ -74,11 +74,14 @@ export function Button({
       ) : icon && !iconRight ? (
         <Icon name={icon} size={ICON[size]} color={textColor} style={styles.before} />
       ) : null}
+      {/* Two lines, not one: at the largest iOS text sizes a one-line label was clipped to "Sta…".
+          The label grows with Dynamic Type and wraps; the button grows with it (`minHeight`). */}
       <Txt
         variant="button"
         color={textColor}
-        numberOfLines={1}
-        style={{ fontSize: FONT[size], lineHeight: FONT[size] + 4 }}
+        numberOfLines={2}
+        align="center"
+        style={[styles.label, { fontSize: FONT[size], lineHeight: FONT[size] + 4 }]}
       >
         {label}
       </Txt>
@@ -100,7 +103,9 @@ export function Button({
       accessibilityState={{ disabled: inactive, busy: loading }}
       style={[
         styles.base,
-        { height: HEIGHT[size], paddingHorizontal: PAD[size] },
+        // Track 37n — a minimum, not a fixed height, so larger text makes a taller button instead of
+        // a clipped one. At default text size every button is exactly as tall as before.
+        { minHeight: HEIGHT[size], paddingHorizontal: PAD[size], paddingVertical: space.xs },
         stretch && styles.stretch,
         variant === 'primary' && !inactive && theme.glow(theme.colors.teal),
         variant === 'secondary' && styles.secondary,
@@ -125,7 +130,8 @@ const useStyles = makeStyles((t) =>
       alignSelf: 'flex-start',
     },
     stretch: { alignSelf: 'stretch' },
-    row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+    row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', maxWidth: '100%' },
+    label: { flexShrink: 1 },
     before: { marginRight: space.sm },
     after: { marginLeft: space.sm },
     secondary: {

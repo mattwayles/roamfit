@@ -232,3 +232,24 @@ describe('Daybreak (controls)', () => {
     expect(flat('p-1-dot').backgroundColor).toBe(daybreak.surface3);
   });
 });
+
+describe('Chip as a control (track 37n)', () => {
+  it('is a button whose touch area reaches 44pt at both sizes', async () => {
+    await render(
+      <>
+        <Chip testID="md" label="Medium" onPress={() => {}} />
+        <Chip testID="sm" label="Small" size="sm" onPress={() => {}} />
+      </>,
+    );
+    await ready('md');
+    for (const [id, height] of [
+      ['md', 30],
+      ['sm', 24],
+    ] as const) {
+      const node = screen.getByTestId(id);
+      expect(node.props.accessibilityRole).toBe('button');
+      const slop = node.props.hitSlop as { top: number; bottom: number };
+      expect(height + slop.top + slop.bottom).toBeGreaterThanOrEqual(44);
+    }
+  });
+});

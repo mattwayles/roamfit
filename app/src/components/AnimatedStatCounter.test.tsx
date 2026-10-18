@@ -5,6 +5,7 @@
  * other animation in this file (`ConfettiBurst`, the completion banner spring).
  */
 import React from 'react';
+import { AccessibilityInfo } from 'react-native';
 import { render, screen, waitFor } from '@testing-library/react-native';
 import AnimatedStatCounter from './AnimatedStatCounter';
 
@@ -51,5 +52,24 @@ describe('AnimatedStatCounter', () => {
       () => expect(screen.getByTestId('zero-counter-value')).toHaveTextContent('0'),
       WAIT_OPTS,
     );
+  });
+
+  it('track 37n: with Reduce Motion on, shows the final value at once — no count-up', async () => {
+    const spy = jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
+    render(
+      <AnimatedStatCounter
+        testID="still-counter"
+        value={42}
+        label="Total reps"
+        duration={60000}
+        delay={60000}
+      />,
+    );
+    // A 60s delay + duration would leave it at 0 for a minute if it were still animating.
+    await waitFor(
+      () => expect(screen.getByTestId('still-counter-value')).toHaveTextContent('42'),
+      WAIT_OPTS,
+    );
+    spy.mockRestore();
   });
 });
