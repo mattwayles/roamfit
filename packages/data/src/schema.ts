@@ -7,7 +7,11 @@
  * validator (`validate.ts`) rejects any library record carrying `video_id`.
  */
 
-export type Focus = 'upper' | 'abs' | 'legs' | 'full' | 'cardio';
+/** The focus tags an exercise record carries: which kinds of session it suits. */
+export type LibraryFocus = 'upper' | 'abs' | 'legs' | 'full' | 'cardio';
+/** What a session trains. Track 37j adds the Push and Pull splits, which draw on the library's
+ *  `upper` exercises by movement pattern (see `splits.ts`) rather than needing tags of their own. */
+export type Focus = LibraryFocus | 'push' | 'pull';
 
 export type Pattern =
   | 'horizontal_push'
@@ -106,7 +110,7 @@ export interface Exercise {
   name: string;
   aliases: string[];
 
-  focus: Focus[];
+  focus: LibraryFocus[];
   pattern: Pattern;
   primary: string[];
   secondary: string[];

@@ -10,6 +10,8 @@ export const FOCUS_LABELS: Record<Focus, string> = {
   legs: 'Legs',
   full: 'Full body',
   cardio: 'Cardio Only',
+  push: 'Push',
+  pull: 'Pull',
 };
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
@@ -27,4 +29,6 @@ export const FOCUS_TONE: Record<Focus, AccentName> = {
   legs: 'summit',
   full: 'fern',
   cardio: 'rose',
+  push: 'sky',
+  pull: 'tealDeep',
 };

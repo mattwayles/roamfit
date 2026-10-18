@@ -36,7 +36,15 @@ export interface Theme {
   /** Gradient for an accent color (teal, gold, fern, summit, sky have one). */
   accentGradient: Partial<Record<AccentName, GradientColors>>;
   section: { warmup: string; main: string; cooldown: string };
-  focus: { upper: string; legs: string; abs: string; full: string; cardio: string };
+  focus: {
+    upper: string;
+    legs: string;
+    abs: string;
+    full: string;
+    cardio: string;
+    push: string;
+    pull: string;
+  };
   /** `skipped` is an outline only, `not_reached` a dashed `line` outline. */
   setState: { completed: string; skipped: string; not_reached: string };
   /** `trained` is the session's focus color, resolved via `trainedColor`. */
@@ -103,7 +111,15 @@ export function buildTheme(scheme: Scheme): Theme {
     ? { fill: withAlpha('#B8BEC8', 0.18), border: withAlpha('#B8BEC8', 0.45) }
     : { fill: '#E4E5E9', border: '#B4B7C0' };
 
-  const focus = { upper: c.teal, legs: c.summit, abs: c.gold, full: c.fern, cardio: c.rose };
+  const focus = {
+    upper: c.teal,
+    legs: c.summit,
+    abs: c.gold,
+    full: c.fern,
+    cardio: c.rose,
+    push: c.sky,
+    pull: c.tealDeep,
+  };
 
   const base = dark ? DarkTheme : DefaultTheme;
   const navTheme: NavTheme = {
