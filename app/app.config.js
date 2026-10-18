@@ -5,7 +5,7 @@
  *
  * **The Spotify client ID cannot be checked in.** It identifies *this developer's* app in the
  * Spotify Developer dashboard, and the dashboard entry has to carry the matching redirect URI
- * (`roamfit://spotify-auth`) before auth will resolve at all. Since `app.json` is static JSON and
+ * (`wanderlift://spotify-auth`) before auth will resolve at all. Since `app.json` is static JSON and
  * cannot read an env var, the plugin is appended here instead, and only when `SPOTIFY_CLIENT_ID`
  * is actually set. With it unset the config is byte-for-byte what `app.json` already said: the
  * plugin injects nothing, no Spotify keys reach `Info.plist`, and the app builds and runs exactly
@@ -29,8 +29,8 @@ module.exports = ({ config }) => {
         {
           clientID: SPOTIFY_CLIENT_ID,
           // Must match the redirect URI registered in the Spotify dashboard *exactly*:
-          // `{scheme}://{host}` — i.e. `roamfit://spotify-auth`.
-          scheme: 'roamfit',
+          // `{scheme}://{host}` — i.e. `wanderlift://spotify-auth`.
+          scheme: 'wanderlift',
           host: 'spotify-auth',
         },
       ],

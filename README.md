@@ -1,4 +1,4 @@
-# RoamFit
+# Wanderlift
 
 Offline-first iOS training app for band + bodyweight training, for people who travel and can't
 rely on a gym.

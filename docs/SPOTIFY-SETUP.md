@@ -23,7 +23,7 @@ present), so nothing here is urgent and nothing is broken while it waits.
 3. Add this **exact** redirect URI:
 
    ```
-   roamfit://spotify-auth
+   wanderlift://spotify-auth
    ```
 
    It has to match character for character. It is `{scheme}://{host}` from `app/app.config.js`,
@@ -62,7 +62,7 @@ exchanged for a token server-side (the app can never hold that secret) — that'
    firebase functions:secrets:set SPOTIFY_CLIENT_SECRET
    ```
 3. `SPOTIFY_CLIENT_ID` (the same Client ID from step 1) and `SPOTIFY_REDIRECT_URI` (already
-   defaults to `roamfit://spotify-auth`; only needs setting if you changed the scheme) are Cloud
+   defaults to `wanderlift://spotify-auth`; only needs setting if you changed the scheme) are Cloud
    Functions v2 `defineString` params — `firebase deploy` prompts for any that are unset and, if
    you say yes, saves them to `functions/.env.<project-id>` for next time. Not secret, but not
    nothing either: confirm that file lands in `.gitignore` (it should match the existing

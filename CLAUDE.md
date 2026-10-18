@@ -1,4 +1,4 @@
-# RoamFit — Project Conventions
+# Wanderlift — Project Conventions
 
 Offline-first iOS training app for band + bodyweight training.
 

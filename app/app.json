@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "RoamFit",
-    "slug": "roamfit",
+    "name": "Wanderlift",
+    "slug": "wanderlift",
     "version": "1.0.0",
-    "scheme": "roamfit",
+    "scheme": "wanderlift",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -15,12 +15,12 @@
     },
     "platforms": ["ios"],
     "ios": {
-      "bundleIdentifier": "com.mattwayles.roamfit",
+      "bundleIdentifier": "com.mattwayles.wanderlift",
       "appleTeamId": "XRUA6GUDR8",
       "supportsTablet": false,
       "infoPlist": {
         "UIBackgroundModes": ["audio"],
-        "NSLocationWhenInUseUsageDescription": "RoamFit uses your location once, at the end of a workout, to pin the city and country on your Passport. It's never tracked in the background."
+        "NSLocationWhenInUseUsageDescription": "Wanderlift uses your location once, at the end of a workout, to pin the city and country on your Passport. It's never tracked in the background."
       }
     },
     "plugins": [
@@ -32,8 +32,8 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "RoamFit does not read any Health data — this permission is unused.",
-          "NSHealthUpdateUsageDescription": "RoamFit writes each completed workout to Health. It never reads your health data.",
+          "NSHealthShareUsageDescription": "Wanderlift does not read any Health data — this permission is unused.",
+          "NSHealthUpdateUsageDescription": "Wanderlift writes each completed workout to Health. It never reads your health data.",
           "background": false
         }
       ]
