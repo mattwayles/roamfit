@@ -39,7 +39,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { exerciseStateRepo, remoteConfigRepo, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
 import { alternativesForSlot } from '@roamfit/engine';
-import type { BandId } from '@roamfit/engine';
+import type { BandId, SingleBandId } from '@roamfit/engine';
 import type { SwapAlternative } from '@roamfit/engine';
 import type { Anchor, AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
 import {
@@ -1489,7 +1489,7 @@ function ExerciseHeader({
    *  every safe option while they're the one deciding what to rig, not just the first one. */
   anchorAlt: Anchor | null;
   bandUsed: BandId | null;
-  bandTensions: Record<BandId, usersRepo.BandTension>;
+  bandTensions: Record<SingleBandId, usersRepo.BandTension>;
   onPickBand: (band: BandId) => void;
 }): React.JSX.Element {
   const styles = useStyles();
@@ -1624,7 +1624,7 @@ function RepsExercise({
   /** The band this set starts on — the prescription, or whatever the last set actually used. */
   band: BandId | null;
   /** The user's own band colours/labels (spec §1140), for `BandPicker`. */
-  bandTensions: Record<BandId, usersRepo.BandTension>;
+  bandTensions: Record<SingleBandId, usersRepo.BandTension>;
   onBandChange: (band: BandId) => void;
   /** Session-level pause. Nothing here runs on a clock, so this only shows the state — the set
    *  stays fully usable, which is the point of not hiding the workout while paused. */
@@ -1795,7 +1795,7 @@ function TimedExercise({
   /** The band this set starts on — the prescription, or whatever the last set actually used. */
   band: BandId | null;
   /** The user's own band colours/labels (spec §1140), for `BandPicker`. */
-  bandTensions: Record<BandId, usersRepo.BandTension>;
+  bandTensions: Record<SingleBandId, usersRepo.BandTension>;
   onBandChange: (band: BandId) => void;
   /** Session-level pause. Unlike the reps view this one really is on a clock, so pausing the
    *  session has to stop the hold countdown too — otherwise "paused" would still run the set out
@@ -2368,7 +2368,7 @@ function RestPhase({
    *  rest so a band swap is something to do here, not something discovered after standing up. */
   nextBand: BandId | null;
   /** The user's own band colours/labels (spec §1140), for the `BandChip` above. */
-  bandTensions: Record<BandId, usersRepo.BandTension>;
+  bandTensions: Record<SingleBandId, usersRepo.BandTension>;
   /** The next exercise's demo video, so rest doubles as prep time — rig the anchor or check form
    *  before the set starts, rather than only after. Null when there is no upcoming exercise (the
    *  workout is ending) or nothing to demo (`DemoMedia` already returns null in that case; this is

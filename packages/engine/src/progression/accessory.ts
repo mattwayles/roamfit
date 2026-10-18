@@ -81,13 +81,16 @@ export function progressesAsAccessory(exercise: Exercise): boolean {
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
 const LIGHTEST_BAND = BAND_ORDER[0];
-const HEAVIEST_BAND = BAND_ORDER[BAND_ORDER.length - 1];
+/** The heaviest single band — where a passed rung's seed caps, whatever the user owns. */
+const HEAVIEST_SINGLE_BAND: BandId = 'B5';
+const HEAVIEST_STEP = BAND_ORDER[BAND_ORDER.length - 1];
 
-/** The exercise as this ladder sees it: a band exercise's range opened to the whole band set, so
- *  `microAdvance`/`microRegress`/`isAtBottomMicroStep` step bands B1-B5. */
+/** The exercise as this ladder sees it: a band exercise's range opened to every band step, so
+ *  `microAdvance`/`microRegress`/`isAtBottomMicroStep` step through whichever bands the user can be
+ *  given (Track 37i): B1-B5 by default, on into stacked pairs once stacking is on. */
 function onOpenBandRange(exercise: Exercise): Exercise {
   return exercise.equipment === 'band'
-    ? { ...exercise, band: `${LIGHTEST_BAND}-${HEAVIEST_BAND}` }
+    ? { ...exercise, band: `${LIGHTEST_BAND}-${HEAVIEST_STEP}` }
     : exercise;
 }
 
@@ -117,7 +120,7 @@ export function seedPassedRungMicro(
   workingBand: BandId | null | undefined,
 ): ProgressionMicroState {
   const top = parseBandRange(exercise.band)?.[1] ?? LIGHTEST_BAND;
-  const nextIdx = Math.min(BAND_ORDER.indexOf(top) + 1, BAND_ORDER.length - 1);
+  const nextIdx = Math.min(BAND_ORDER.indexOf(top) + 1, BAND_ORDER.indexOf(HEAVIEST_SINGLE_BAND));
   const idx = Math.max(nextIdx, workingBand ? BAND_ORDER.indexOf(workingBand) : -1);
   return {
     repTarget: rangeForExercise(exercise).low,
@@ -196,6 +199,8 @@ export function applyAccessorySessionResult(
   perf: AccessoryPerformance,
   /** Track 37f — qualifying sessions per step (`sessionsPerStepFor(pace)`); default 1. */
   sessionsPerStep = 1,
+  /** Track 37i — bands the user can be given (`usableBands`); default the five singles. */
+  usable?: readonly BandId[],
 ): ApplyAccessoryResult {
   const ladder = onOpenBandRange(exercise);
   const micro = adoptFinalBand(input.micro, exercise, perf);
@@ -214,7 +219,7 @@ export function applyAccessorySessionResult(
   }
 
   if (shouldAdvance) {
-    const step = microAdvance(micro, ladder);
+    const step = microAdvance(micro, ladder, usable);
     // Past the top only on the heaviest band with every pace knob spent: nothing heavier exists.
     return {
       state: { micro: step.micro, consecutiveMisses: 0 },
@@ -225,11 +230,11 @@ export function applyAccessorySessionResult(
   if (shouldRegress) {
     // At B1 (or bodyweight) with every knob at its floor there is nothing left to give back, and
     // no lower rung to drop to: hold.
-    if (isAtBottomMicroStep(micro, ladder)) {
+    if (isAtBottomMicroStep(micro, ladder, usable)) {
       return { state: { micro, consecutiveMisses: misses + 1 }, event: { kind: 'hold' } };
     }
     return {
-      state: { micro: microRegress(micro, ladder).micro, consecutiveMisses: misses + 1 },
+      state: { micro: microRegress(micro, ladder, usable).micro, consecutiveMisses: misses + 1 },
       event: { kind: 'micro_regress' },
     };
   }

@@ -39,7 +39,7 @@ import type {
   ProgressionFamilyId,
   Role,
 } from '@roamfit/data';
-import type { BandId, Difficulty } from '@roamfit/engine';
+import type { BandId, Difficulty, SingleBandId } from '@roamfit/engine';
 import type { RootStackParamList } from '../navigation/types';
 import { homeReset } from '../navigation/routes';
 import { useStore } from '../state/StoreContext';
@@ -829,7 +829,7 @@ function EntryCard({
   railColor: string;
   exerciseName: string;
   /** The user's own band colours/labels (spec §1140), for `BandChip`. */
-  bandTensions: Record<BandId, usersRepo.BandTension>;
+  bandTensions: Record<SingleBandId, usersRepo.BandTension>;
   dragging: boolean;
   displacement: number;
   /** Reports this card's laid-out height so the drag gesture can work in real distances. */

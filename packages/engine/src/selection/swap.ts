@@ -22,7 +22,8 @@ import { applyHardFilters, difficultyCapForExercise } from '../filters/hardFilte
 import { repExerciseSec, timedExerciseSec } from '../timefit/formulas';
 import { CARDIO_INTERVAL_TABLE, DIFFICULTY_TABLE } from '../prescription/difficultyTable';
 import { buildCandidates, type CandidateContext } from './candidates';
-import { BAND_ORDER } from '../types';
+import { BAND_ORDER, SINGLE_BANDS, clampToUsableBand, usableBands } from '../types';
+import type { BandSettings } from '../types';
 import type {
   BandId,
   Candidate,
@@ -60,6 +61,8 @@ export interface SwapSlotRequest {
   excludeAnchor?: Anchor;
   /** Default 5 (spec: "3-5 alternatives"). */
   maxResults?: number;
+  /** Track 37i — the user's bands; absent = every single band owned, no stacking. */
+  bands?: BandSettings;
 }
 
 export interface SwapAlternative {
@@ -103,12 +106,17 @@ function bandForExercise(exercise: Exercise, target: BandId | null): BandId | nu
  * difficulty-driven interval duration (30/40/45s), silently resetting a medium or hard cardio
  * swap back to the easy interval length.
  */
-export function buildSwapReplacementEntry(exercise: Exercise, entry: SessionEntry): SessionEntry {
+export function buildSwapReplacementEntry(
+  exercise: Exercise,
+  entry: SessionEntry,
+  /** Track 37i — the bands this user can be given; default the five singles. */
+  usable: readonly BandId[] = SINGLE_BANDS,
+): SessionEntry {
   const difficulty = difficultyCapForExercise(exercise, entry.difficulty);
   const row = DIFFICULTY_TABLE[difficulty];
   const isCardio = isCardioExercise(exercise);
   const isTimed = isCardio || exercise.metric === 'time';
-  const band = bandForExercise(exercise, entry.band);
+  const band = clampToUsableBand(bandForExercise(exercise, entry.band), usable);
   const sets = entry.sets;
   const repTarget = isTimed ? undefined : (entry.repTarget ?? row.reps);
   const durationSec = isCardio
@@ -181,6 +189,7 @@ export function alternativesForSlot(req: SwapSlotRequest): SwapAlternative[] {
     limitations: req.limitations,
     disabledExerciseIds: new Set(req.disabledExerciseIds),
     today: req.today,
+    ownsBands: (req.bands?.owned ?? SINGLE_BANDS).length > 0,
   });
 
   const pattern: Pattern = req.entry.pattern;
@@ -212,6 +221,6 @@ export function alternativesForSlot(req: SwapSlotRequest): SwapAlternative[] {
 
   return ranked.slice(0, maxResults).map((c) => ({
     exercise: c.exercise,
-    replacement: buildSwapReplacementEntry(c.exercise, req.entry),
+    replacement: buildSwapReplacementEntry(c.exercise, req.entry, usableBands(req.bands)),
   }));
 }

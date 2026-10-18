@@ -50,12 +50,19 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
 
 ### In progress
 
-- 37i — bands. Plan: (1) `users.bands_owned` JSON (BandId[]; default all five so existing users and
-  the engine's open range are unchanged); engine `UserProfile.bandsOwned?` → prescription clamps a
-  band to the nearest owned one (heavier owned band at or below the prescribed one; if none lower,
-  the lightest owned) — progression state untouched. (2) Band editor screen (label + colour per band,
-  `usersRepo.updateBandTension`). (3) Stacking: band ids extended past B5 as stacked pairs, e.g.
-  'B5+B1'… — decide representation first (see gotchas). Onboarding gets a "Your bands" step.
+- 37i — bands, in 3 increments. DECIDED representation:
+  - `BAND_ORDER` becomes the full 9-step order: B1..B5 then stacked 'B5+B1','B5+B2','B5+B3','B5+B4'
+    (B5 plus a lighter band, tensions roughly add). `SINGLE_BANDS` = B1..B5, `STACKED_BANDS` = the 4.
+  - `UserProfile.bands?: { owned: SingleBandId[]; stacking: boolean }`; absent = all five owned, no
+    stacking = pre-37i behaviour exactly. `usableBands(bands)` = owned singles + stacked pairs whose
+    two bands are owned (only when stacking is on).
+  - Progression skips unusable bands (`microAdvance`/`microRegress` take `usable?`), so a ladder can
+    never loop between an unowned band and the owned one below it. Open-range (accessory) ladders top
+    out at the heaviest usable band (B5 by default, a stacked pair with stacking on).
+  - Prescription clamps every entry's band to usable (nearest at or below, else lightest above).
+  - Owning no bands at all excludes band exercises (hard filter), like equipment preference.
+  - [x] (1) engine (this commit) → (2) store users.bands + completion/generation/swap → (3) app Bands screen, stacked
+    display in BandChip/BandPicker, onboarding "Your bands" step, glossary terms.
 
 ### Next
 

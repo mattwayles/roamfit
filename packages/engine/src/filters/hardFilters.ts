@@ -133,12 +133,17 @@ export interface HardFilterInput {
   limitations: readonly Limitation[];
   disabledExerciseIds: ReadonlySet<string>;
   today: LocalDate;
+  /** Track 37i — false when the user owns no bands at all: every band exercise is removed, whatever
+   *  the session's equipment preference (there is nothing to do it with). Default true. */
+  ownsBands?: boolean;
 }
 
 /** Returns the subset of the library that survives all four hard filters. */
 export function applyHardFilters(input: HardFilterInput): Exercise[] {
+  const ownsBands = input.ownsBands ?? true;
   return input.library.filter(
     (e) =>
+      (ownsBands || e.equipment !== 'band') &&
       isEquipmentEligible(e, input.request.equipmentPreference) &&
       isAnchorEligible(e, input.anchorsAvailable) &&
       isInjuryEligible(e, input.limitations, input.today) &&

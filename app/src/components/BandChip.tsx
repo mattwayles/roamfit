@@ -21,7 +21,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { BandId } from '@roamfit/engine';
-import type { BandTension } from '@roamfit/store';
+import { bandAppearance, type BandTensions } from '../lib/bandDisplay';
 import {
   midnight,
   makeStyles,
@@ -72,26 +72,34 @@ export default function BandChip({
 }: {
   band: BandId;
   /** The user's own band settings. */
-  tensions: Record<BandId, BandTension>;
+  tensions: BandTensions;
   /** `sm`: neutral pill with a colour dot. `lg`: a swatch filled with the band's own colour. */
   size?: 'sm' | 'lg';
 }): React.JSX.Element {
   const styles = useStyles();
   const theme = useTheme();
-  const tension = tensions[band];
-  const dot = tension?.color ?? neutralBandColor(theme);
-  const label = tension?.label ?? band;
+  const look = bandAppearance(band, tensions);
+  const dot = look.color ?? neutralBandColor(theme);
+  const second = look.stacked ? (look.secondColor ?? neutralBandColor(theme)) : undefined;
+  const label = look.label;
+  const spoken = look.stacked ? `Bands ${label}, stacked` : `Band ${label}`;
   if (size === 'lg') {
     const tone = textToneOn(dot);
     return (
       <View
         testID={`band-chip-${band}`}
         accessible
-        accessibilityLabel={`Band ${label}`}
+        accessibilityLabel={spoken}
         style={[styles.swatch, { backgroundColor: dot }]}
       >
+        {second ? (
+          <View
+            testID={`band-chip-${band}-second`}
+            style={[styles.stripe, { backgroundColor: second }]}
+          />
+        ) : null}
         <Txt variant="caption" color={tone} upper style={styles.swatchCaption}>
-          Band
+          {look.stacked ? 'Bands' : 'Band'}
         </Txt>
         <Txt variant="h2" color={tone} numberOfLines={1} style={styles.swatchLabel}>
           {label}
@@ -100,13 +108,14 @@ export default function BandChip({
     );
   }
   return (
-    <View
-      testID={`band-chip-${band}`}
-      accessible
-      accessibilityLabel={`Band ${label}`}
-      style={styles.chip}
-    >
+    <View testID={`band-chip-${band}`} accessible accessibilityLabel={spoken} style={styles.chip}>
       <View testID={`band-chip-${band}-dot`} style={[styles.dot, { backgroundColor: dot }]} />
+      {second ? (
+        <View
+          testID={`band-chip-${band}-second`}
+          style={[styles.dot, styles.secondDot, { backgroundColor: second }]}
+        />
+      ) : null}
       <Txt variant="eyebrow" color="text" numberOfLines={1}>
         {label}
       </Txt>
@@ -146,6 +155,16 @@ const useStyles = makeStyles((t) =>
       borderRadius: radius.md,
       paddingHorizontal: space.md,
       paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: t.colors.lineStrong,
+    },
+    secondDot: { marginLeft: -12 },
+    // A stacked pair's lighter band, as a stripe down the swatch's leading edge.
+    stripe: {
+      width: 10,
+      alignSelf: 'stretch',
+      borderRadius: radius.sm,
+      marginRight: space.sm,
       borderWidth: 1,
       borderColor: t.colors.lineStrong,
     },

@@ -18,7 +18,7 @@ import {
   defaultMicroForExercise as defaultMicro,
 } from './micro';
 import { isMaxLevel, nextLevel, prevLevel } from './ladder';
-import type { ProgressionState } from '../types';
+import type { BandId, ProgressionState } from '../types';
 import { CONSECUTIVE_BOTTOM_REGRESSIONS_TO_DROP_LEVEL } from './constants';
 import type { SessionPerformance } from './rules.types';
 
@@ -48,6 +48,8 @@ export interface ApplySessionOptions {
   /** Track 37f — qualifying sessions each ladder step takes (`sessionsPerStepFor(pace)`).
    *  Default 1: one qualifying session moves the ladder one step, the rule as it always was. */
   sessionsPerStep?: number;
+  /** Track 37i — the bands this user can be given (`usableBands`); default the five singles. */
+  usableBands?: readonly BandId[];
 }
 
 export function applySessionResult(
@@ -100,7 +102,7 @@ export function applySessionResult(
   }
 
   if (shouldAdvance) {
-    const step = microAdvance(state.micro, exercise);
+    const step = microAdvance(state.micro, exercise, options.usableBands);
     if (step.levelChange !== 'up') {
       return {
         state: {
@@ -143,7 +145,7 @@ export function applySessionResult(
   }
 
   if (shouldRegress) {
-    const atBottom = isAtBottomMicroStep(state.micro, exercise);
+    const atBottom = isAtBottomMicroStep(state.micro, exercise, options.usableBands);
     if (atBottom) {
       // Two consecutive regressions while already at the bottom micro-step drops a level.
       if (state.consecutiveMisses + 1 >= CONSECUTIVE_BOTTOM_REGRESSIONS_TO_DROP_LEVEL) {
@@ -171,7 +173,7 @@ export function applySessionResult(
         event: { kind: 'hold' },
       };
     }
-    const step = microRegress(state.micro, exercise);
+    const step = microRegress(state.micro, exercise, options.usableBands);
     return {
       state: {
         ...state,

@@ -4,7 +4,7 @@
  * leaves unstated.
  */
 import type { Exercise } from '@roamfit/data';
-import { BAND_ORDER } from '../types';
+import { BAND_ORDER, SINGLE_BANDS } from '../types';
 import type { BandId, ProgressionMicroState } from '../types';
 import {
   BODYWEIGHT_REST_FLOOR_SEC,
@@ -100,9 +100,41 @@ function advancePace(micro: ProgressionMicroState): MicroStepResult {
   return { micro, levelChange: 'up' };
 }
 
+/** The next band up from `band`, no heavier than `maxBand`, that the user can be given; null when
+ *  there is none. `usable` defaults to the five single bands, which is every band step there was
+ *  before stacking and band ownership existed (Track 37i). */
+function nextUsableBand(
+  band: BandId,
+  maxBand: BandId,
+  usable: readonly BandId[] = SINGLE_BANDS,
+): BandId | null {
+  const from = BAND_ORDER.indexOf(band);
+  const to = BAND_ORDER.indexOf(maxBand);
+  for (let i = from + 1; i <= to; i++) if (usable.includes(BAND_ORDER[i])) return BAND_ORDER[i];
+  return null;
+}
+
+/** The next band down from `band`, no lighter than `minBand`, that the user can be given. */
+function prevUsableBand(
+  band: BandId,
+  minBand: BandId,
+  usable: readonly BandId[] = SINGLE_BANDS,
+): BandId | null {
+  const from = BAND_ORDER.indexOf(band);
+  const to = BAND_ORDER.indexOf(minBand);
+  for (let i = from - 1; i >= to; i--) if (usable.includes(BAND_ORDER[i])) return BAND_ORDER[i];
+  return null;
+}
+
 /** One micro-progression step forward, per §6.2's order: reps (or hold +5s) → band+1 (reps reset, band
- *  exercises only) → tempo+1s → rest−15s → sets+1 → next level. */
-export function microAdvance(micro: ProgressionMicroState, exercise: Exercise): MicroStepResult {
+ *  exercises only) → tempo+1s → rest−15s → sets+1 → next level. "band+1" is the next band the user
+ *  can actually be given (`usable`, Track 37i): a band they don't own is stepped over, never
+ *  prescribed, so a ladder can't stall on it. */
+export function microAdvance(
+  micro: ProgressionMicroState,
+  exercise: Exercise,
+  usable?: readonly BandId[],
+): MicroStepResult {
   const { high, low } = rangeForExercise(exercise);
   if (micro.repTarget < high) {
     // Clamped, so a target left off the step grid (a hold stored before the step was 5s) still
@@ -114,8 +146,8 @@ export function microAdvance(micro: ProgressionMicroState, exercise: Exercise): 
     const range = parseBandRange(exercise.band);
     const band = bandForExercise(micro, exercise);
     const maxBand = range?.[1] ?? band;
-    if (band && maxBand && BAND_ORDER.indexOf(band) < BAND_ORDER.indexOf(maxBand)) {
-      const nextBand = BAND_ORDER[BAND_ORDER.indexOf(band) + 1];
+    const nextBand = band && maxBand ? nextUsableBand(band, maxBand, usable) : null;
+    if (nextBand) {
       return { micro: { ...micro, band: nextBand, repTarget: low }, levelChange: null };
     }
   }
@@ -123,7 +155,11 @@ export function microAdvance(micro: ProgressionMicroState, exercise: Exercise): 
 }
 
 /** One micro-progression step backward — the exact reverse order of `microAdvance`. */
-export function microRegress(micro: ProgressionMicroState, exercise: Exercise): MicroStepResult {
+export function microRegress(
+  micro: ProgressionMicroState,
+  exercise: Exercise,
+  usable?: readonly BandId[],
+): MicroStepResult {
   const { low, high } = rangeForExercise(exercise);
   if (micro.sets > DEFAULT_SETS) {
     return { micro: { ...micro, sets: micro.sets - 1 }, levelChange: null };
@@ -141,8 +177,8 @@ export function microRegress(micro: ProgressionMicroState, exercise: Exercise): 
     const range = parseBandRange(exercise.band);
     const band = bandForExercise(micro, exercise);
     const minBand = range?.[0] ?? band;
-    if (band && minBand && BAND_ORDER.indexOf(band) > BAND_ORDER.indexOf(minBand)) {
-      const prevBand = BAND_ORDER[BAND_ORDER.indexOf(band) - 1];
+    const prevBand = band && minBand ? prevUsableBand(band, minBand, usable) : null;
+    if (prevBand) {
       return { micro: { ...micro, band: prevBand, repTarget: high }, levelChange: null };
     }
   }
@@ -227,7 +263,11 @@ export function reconcileMicroToObservedBand(
 
 /** True once every micro knob is at its floor for this level (used to detect the "two
  *  consecutive regressions at the bottom micro-step" drop-a-level trigger, §6.3). */
-export function isAtBottomMicroStep(micro: ProgressionMicroState, exercise: Exercise): boolean {
+export function isAtBottomMicroStep(
+  micro: ProgressionMicroState,
+  exercise: Exercise,
+  usable?: readonly BandId[],
+): boolean {
   const { low } = rangeForExercise(exercise);
   if (
     micro.repTarget > low ||
@@ -243,7 +283,7 @@ export function isAtBottomMicroStep(micro: ProgressionMicroState, exercise: Exer
     const band = bandForExercise(micro, exercise);
     const range = parseBandRange(exercise.band);
     const minBand = range?.[0] ?? band;
-    return !band || !minBand || band === minBand;
+    return !band || !minBand || band === minBand || !prevUsableBand(band, minBand, usable);
   }
   return true;
 }
@@ -265,10 +305,11 @@ const NEXT_LEVEL_SIMULATION_STEP_CAP = 100;
 export function microStepsToNextLevel(
   micro: ProgressionMicroState,
   exercise: Exercise,
+  usable?: readonly BandId[],
 ): number | null {
   let current = micro;
   for (let steps = 1; steps <= NEXT_LEVEL_SIMULATION_STEP_CAP; steps += 1) {
-    const step = microAdvance(current, exercise);
+    const step = microAdvance(current, exercise, usable);
     if (step.levelChange === 'up') return steps;
     current = step.micro;
   }

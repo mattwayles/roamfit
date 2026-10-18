@@ -23,9 +23,66 @@ export type { Difficulty };
 /** §8.1 difficulty feedback, 3-position control. Unset means `just_right`. */
 export type DifficultyFeedback = 'too_easy' | 'just_right' | 'too_hard';
 
-/** Band identifiers, lightest to heaviest (§5.7). */
-export type BandId = 'B1' | 'B2' | 'B3' | 'B4' | 'B5';
-export const BAND_ORDER: readonly BandId[] = ['B1', 'B2', 'B3', 'B4', 'B5'];
+/** A single band, lightest to heaviest (§5.7). */
+export type SingleBandId = 'B1' | 'B2' | 'B3' | 'B4' | 'B5';
+/** Track 37i — two bands used together for more tension than the heaviest alone: B5 plus a
+ *  lighter one. Tensions in parallel roughly add, so each pairing is a step above the last. */
+export type StackedBandId = 'B5+B1' | 'B5+B2' | 'B5+B3' | 'B5+B4';
+/** Any band prescription: a single band, or (with stacking on) a stacked pair. */
+export type BandId = SingleBandId | StackedBandId;
+
+export const SINGLE_BANDS: readonly SingleBandId[] = ['B1', 'B2', 'B3', 'B4', 'B5'];
+export const STACKED_BANDS: readonly StackedBandId[] = ['B5+B1', 'B5+B2', 'B5+B3', 'B5+B4'];
+/** Every band step, lightest to heaviest — single bands, then the stacked pairs above B5. All band
+ *  arithmetic (next/previous band, steps across a range) reads this one order. A stacked pair is
+ *  only ever reached when the user has turned stacking on (see `usableBands`). */
+export const BAND_ORDER: readonly BandId[] = [...SINGLE_BANDS, ...STACKED_BANDS];
+
+export function isStackedBand(band: BandId): band is StackedBandId {
+  return (STACKED_BANDS as readonly string[]).includes(band);
+}
+
+/** The single bands a band prescription physically is: one, or the two of a stacked pair. */
+export function bandParts(band: BandId): SingleBandId[] {
+  return isStackedBand(band) ? (band.split('+') as SingleBandId[]) : [band];
+}
+
+/** Track 37i — the bands this user can actually be prescribed. */
+export interface BandSettings {
+  /** Single bands the user owns. Empty = no bands at all: band exercises are left out. */
+  owned: SingleBandId[];
+  /** Use stacked pairs above B5 (needs B5 and the partner band). */
+  stacking: boolean;
+}
+
+/** Absent band settings mean every single band owned and no stacking: the app before 37i. */
+export const DEFAULT_BAND_SETTINGS: Readonly<BandSettings> = {
+  owned: [...SINGLE_BANDS],
+  stacking: false,
+};
+
+/** Every band step this user can be given, in `BAND_ORDER`: owned single bands, plus — with
+ *  stacking on — each stacked pair whose two bands are both owned. */
+export function usableBands(settings: BandSettings | null | undefined): BandId[] {
+  const s = settings ?? DEFAULT_BAND_SETTINGS;
+  const owned = new Set<BandId>(s.owned);
+  return BAND_ORDER.filter((b) =>
+    isStackedBand(b) ? s.stacking && bandParts(b).every((p) => owned.has(p)) : owned.has(b),
+  );
+}
+
+/**
+ * The usable band to hand the user for a prescribed `band`: itself if usable, else the nearest
+ * usable band below it (a lighter band is always safe to give), else the lightest usable band
+ * above it. Unchanged when `band` is null (bodyweight) or nothing is usable.
+ */
+export function clampToUsableBand(band: BandId | null, usable: readonly BandId[]): BandId | null {
+  if (!band || usable.length === 0 || usable.includes(band)) return band;
+  const idx = BAND_ORDER.indexOf(band);
+  const below = usable.filter((b) => BAND_ORDER.indexOf(b) < idx);
+  if (below.length > 0) return below[below.length - 1];
+  return usable[0];
+}
 
 /** `local_date` string, `YYYY-MM-DD`. Invariant 6: all calendar math uses this, never UTC. */
 export type LocalDate = string;
@@ -68,6 +125,9 @@ export interface UserProfile {
   /** Exercises the user has explicitly disabled — permanently excluded from all eligibility
    *  until re-enabled. Distinct from `ExerciseState.suppressedUntil` (temporary, system-managed). */
   disabledExerciseIds: string[];
+  /** Track 37i — the bands this user owns and whether they stack them. Absent = every band owned,
+   *  no stacking. */
+  bands?: BandSettings;
   /** Track 37f — the user's training preferences. Absent (or any field absent) = the defaults,
    *  which reproduce the engine's behaviour before preferences existed. */
   training?: Partial<TrainingPreferences>;

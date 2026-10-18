@@ -24,9 +24,9 @@
  */
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { BAND_ORDER } from '@roamfit/engine';
+import { SINGLE_BANDS } from '@roamfit/engine';
 import type { BandId } from '@roamfit/engine';
-import type { BandTension } from '@roamfit/store';
+import { bandAppearance, type BandTensions } from '../lib/bandDisplay';
 import { makeStyles, radius, space, useTheme } from '../theme';
 import { Icon, PressableScale, Txt } from '../ui';
 import BandChip, { neutralBandColor, textToneOn } from './BandChip';
@@ -47,9 +47,13 @@ export default function BandPicker({
    *  whatever card comes next in the list (see `ApprovalScreen`'s `cardElevated`). */
   open: openProp,
   onOpenChange,
+  options = SINGLE_BANDS,
 }: {
   band: BandId;
-  tensions: Record<BandId, BandTension>;
+  tensions: BandTensions;
+  /** Track 37i — the bands to offer: the user's usable bands (owned, plus stacked pairs with
+   *  stacking on). Defaults to the five single bands. The current band is always offered. */
+  options?: readonly BandId[];
   onChange: (band: BandId) => void;
   testID?: string;
   accessibilityLabel: string;
@@ -64,10 +68,11 @@ export default function BandPicker({
   const [internalOpen, setInternalOpen] = useState(false);
   const open = openProp ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
-  const tension = tensions[band];
   // Band colours are user data (real-world tension colours), not a palette this file invents.
-  const background = tension?.color ?? neutralBandColor(theme);
-  const label = tension?.label ?? band;
+  const look = bandAppearance(band, tensions);
+  const background = look.color ?? neutralBandColor(theme);
+  const label = look.label;
+  const offered = options.includes(band) ? options : [...options, band];
   const tone = textToneOn(background);
   const isField = variant === 'field';
 
@@ -110,9 +115,9 @@ export default function BandPicker({
 
       {open && (
         <View style={[styles.options, isField && styles.optionsField]} testID={`${testID}-options`}>
-          {BAND_ORDER.map((id) => {
-            const optionTension = tensions[id];
-            const optionBackground = optionTension?.color ?? neutralBandColor(theme);
+          {offered.map((id) => {
+            const optionLook = bandAppearance(id, tensions);
+            const optionBackground = optionLook.color ?? neutralBandColor(theme);
             const selected = id === band;
             return (
               <PressableScale
@@ -121,7 +126,9 @@ export default function BandPicker({
                 haptic="selection"
                 accessibilityRole="radio"
                 accessibilityState={{ selected }}
-                accessibilityLabel={optionTension?.label ?? id}
+                accessibilityLabel={
+                  optionLook.stacked ? `${optionLook.label}, stacked` : optionLook.label
+                }
                 style={[
                   styles.option,
                   { backgroundColor: optionBackground },
@@ -133,7 +140,7 @@ export default function BandPicker({
                 }}
               >
                 <Txt variant="eyebrow" color={textToneOn(optionBackground)}>
-                  {optionTension?.label ?? id}
+                  {optionLook.label}
                 </Txt>
               </PressableScale>
             );

@@ -50,6 +50,7 @@ import {
   longSessionSetsMultiplier,
   mainExerciseCountRange,
 } from './timefit/formulas';
+import { SINGLE_BANDS, clampToUsableBand, usableBands } from './types';
 import {
   applyTrainingToMainEntry,
   cooldownMinutesFor,
@@ -134,6 +135,10 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   // Track 37f — the user's training preferences (goal, rest, variety, recovery, warm-up). Every
   // field defaults to the engine's behaviour before preferences existed.
   const training = resolveTrainingPreferences(userState.profile.training);
+  // Track 37i — the bands this user can be given. Every entry's band is clamped to these at the end,
+  // and owning none at all removes band exercises in the hard filters.
+  const usable = usableBands(userState.profile.bands);
+  const ownsBands = (userState.profile.bands?.owned ?? SINGLE_BANDS).length > 0;
   // §9.4's comeback cut and ADR 0013's long-session volume are the same lever pulled in opposite
   // directions, so they compose rather than override: a comeback session at a 90-minute target is
   // still lighter than a normal one at that length.
@@ -148,6 +153,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     limitations: userState.profile.limitations,
     disabledExerciseIds,
     today: clock.today,
+    ownsBands,
   });
   const poolIgnoringEquipment = applyHardFilters({
     library: allExercises,
@@ -156,6 +162,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     limitations: userState.profile.limitations,
     disabledExerciseIds,
     today: clock.today,
+    ownsBands,
   });
 
   // Track 14 — MAIN-work pool scoping, belt-and-braces. `focus === 'cardio'` gets conditioning
@@ -354,6 +361,10 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   // short-target case: trim sets via prescription rather than drop a required pattern slot).
   // Track 37f — the goal (rep/hold offset, rest, sets) and rest preference, applied to every main
   // working entry after the ladder or table prescribed it and before time fit sums it.
+  const withUsableBand = (entry: SessionEntry): SessionEntry => {
+    const band = clampToUsableBand(entry.band, usable);
+    return band === entry.band ? entry : { ...entry, band };
+  };
   const withTraining = (exercise: Exercise, entry: SessionEntry) =>
     applyTrainingToMainEntry(entry, exercise, training, userState.profile.changeoverSec);
 
@@ -696,9 +707,11 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     isQuick,
     targetMinutes,
     estimatedMinutes: fit.estimatedMinutes,
-    warmup: warmupEntries,
-    main: mainWithCardio,
-    cooldown: cooldownEntries,
+    // Track 37i — every band handed to the user is one they own (stacked pairs only with stacking
+    // on). Bands don't enter the time estimate, so this changes nothing time fit decided.
+    warmup: warmupEntries.map(withUsableBand),
+    main: mainWithCardio.map(withUsableBand),
+    cooldown: cooldownEntries.map(withUsableBand),
     explanation,
     patternGaps,
     timeBudgetDeviation,

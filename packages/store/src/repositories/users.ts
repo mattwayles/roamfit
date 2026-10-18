@@ -6,8 +6,8 @@
 import { eq } from 'drizzle-orm';
 import { DEFAULT_ANCHORS_AVAILABLE, resolveTrainingPreferences } from '@roamfit/engine';
 import type {
-  BandId,
   Limitation as EngineLimitation,
+  SingleBandId,
   TrainingPreferences,
   UserProfile,
 } from '@roamfit/engine';
@@ -59,7 +59,7 @@ export interface BandTension {
  * progression (yellow → red → black → purple → green, lightest to heaviest); a user whose set is
  * different edits them and nothing here has to change.
  */
-export const DEFAULT_BAND_TENSIONS: Record<BandId, BandTension> = {
+export const DEFAULT_BAND_TENSIONS: Record<SingleBandId, BandTension> = {
   B1: { label: 'B1', color: '#facc15' },
   B2: { label: 'B2', color: '#dc2626' },
   B3: { label: 'B3', color: '#1f2937' },
@@ -86,7 +86,7 @@ export interface UserRecord {
   /** Always complete: `DEFAULT_BAND_TENSIONS` is merged under whatever the row holds, so an
    *  existing `'{}'` row (every row, until Settings gains an editor) still yields five usable
    *  bands and no migration is needed. */
-  bandTensions: Record<BandId, BandTension>;
+  bandTensions: Record<SingleBandId, BandTension>;
   passportEnabled: boolean;
   healthWriteEnabled: boolean;
   cueSoundsEnabled: boolean;
@@ -166,10 +166,10 @@ function parseTrainingPreferences(raw: string): TrainingPreferences {
 /** Per band, the user's stored fields over the defaults — so a row that customises only a colour
  *  keeps the default label, and a row that stores nothing at all is still complete. */
 function mergeBandTensions(
-  stored: Partial<Record<BandId, Partial<BandTension>>>,
-): Record<BandId, BandTension> {
-  const out = {} as Record<BandId, BandTension>;
-  for (const id of Object.keys(DEFAULT_BAND_TENSIONS) as BandId[]) {
+  stored: Partial<Record<SingleBandId, Partial<BandTension>>>,
+): Record<SingleBandId, BandTension> {
+  const out = {} as Record<SingleBandId, BandTension>;
+  for (const id of Object.keys(DEFAULT_BAND_TENSIONS) as SingleBandId[]) {
     out[id] = { ...DEFAULT_BAND_TENSIONS[id], ...(stored?.[id] ?? {}) };
   }
   return out;
@@ -193,7 +193,7 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
     weeklyTarget: row.weeklyTarget,
     anchorsAvailable: JSON.parse(row.anchorsAvailable) as Anchor[],
     bandTensions: mergeBandTensions(
-      JSON.parse(row.bandTensions) as Partial<Record<BandId, Partial<BandTension>>>,
+      JSON.parse(row.bandTensions) as Partial<Record<SingleBandId, Partial<BandTension>>>,
     ),
     passportEnabled: row.passportEnabled,
     healthWriteEnabled: row.healthWriteEnabled,

@@ -9,6 +9,7 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { createRng, seedFromString } from '@roamfit/engine';
+import type { SingleBandId } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import { DEFAULT_BAND_TENSIONS, generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import WorkoutScreen from './WorkoutScreen';
@@ -168,14 +169,15 @@ describe('band chip on the active workout screen', () => {
     );
     // The colour is the user's, read from their row — not a palette the screen invented.
     const stored = usersRepo.ensureUser(db, nowUtcInstant()).bandTensions;
-    expect(stored[banded!.band!].color).toBe(DEFAULT_BAND_TENSIONS[banded!.band!].color);
+    const single = banded!.band! as SingleBandId; // generation without stacking prescribes single bands
+    expect(stored[single].color).toBe(DEFAULT_BAND_TENSIONS[single].color);
     // Mid-set the chip is the large swatch: the whole chip wears the band's colour, not a dot.
     expect(
       StyleSheet.flatten(screen.getByTestId(`band-chip-${banded!.band}`).props.style)
         ?.backgroundColor,
-    ).toBe(stored[banded!.band!].color);
+    ).toBe(stored[single].color);
     // ...and the label is still there, so the chip never depends on colour alone.
-    expect(screen.getByLabelText(`Band ${stored[banded!.band!].label}`)).toBeTruthy();
+    expect(screen.getByLabelText(`Band ${stored[single].label}`)).toBeTruthy();
   });
 
   it('the chip is a picker: the band actually used is recorded on that set, and carries into the next one', async () => {
