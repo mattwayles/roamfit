@@ -25,7 +25,8 @@ const horizontalPush = findFamily(families, 'horizontal_push')!;
 describe('§6.1/§4.2 ladder lookups (stable level_id, never a positional index)', () => {
   it('finds a family by id', () => {
     expect(horizontalPush).toBeDefined();
-    expect(horizontalPush.levels.length).toBe(9);
+    // 9 authored rungs plus the two track 37k in-between rungs (l3b, l8b).
+    expect(horizontalPush.levels.length).toBe(11);
   });
 
   it('resolves the exercise for a level_id', () => {
@@ -44,11 +45,15 @@ describe('§6.1/§4.2 ladder lookups (stable level_id, never a positional index)
     expect(nextLevel(horizontalPush, 'horizontal_push.l1')?.level_id).toBe('horizontal_push.l2');
     expect(prevLevel(horizontalPush, 'horizontal_push.l1')).toBeUndefined();
     expect(nextLevel(horizontalPush, 'horizontal_push.l9')).toBeUndefined();
-    expect(prevLevel(horizontalPush, 'horizontal_push.l9')?.level_id).toBe('horizontal_push.l8');
+    expect(prevLevel(horizontalPush, 'horizontal_push.l9')?.level_id).toBe('horizontal_push.l8b');
+    // An inserted rung sits between its neighbours by id, not by renumbering them (invariant 5).
+    expect(nextLevel(horizontalPush, 'horizontal_push.l3')?.level_id).toBe('horizontal_push.l3b');
+    expect(nextLevel(horizontalPush, 'horizontal_push.l3b')?.level_id).toBe('horizontal_push.l4');
   });
 
   it('levelOrdinal is 1-based "Level N of M" for display only', () => {
-    expect(levelOrdinal(horizontalPush, 'horizontal_push.l5')).toEqual({ n: 5, of: 9 });
+    // l5 is the sixth rung since l3b was inserted below it — ordinals are positions, ids are not.
+    expect(levelOrdinal(horizontalPush, 'horizontal_push.l5')).toEqual({ n: 6, of: 11 });
   });
 
   it('cold start places every family at level 1 (ADR 0012)', () => {

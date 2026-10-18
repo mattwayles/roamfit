@@ -30,6 +30,13 @@
           ]
         },
         {
+          "level_id": "horizontal_push.l3b",
+          "anchor_exercise_id": "bw-negative-push-up",
+          "exercise_ids": [
+            "bw-negative-push-up"
+          ]
+        },
+        {
           "level_id": "horizontal_push.l4",
           "anchor_exercise_id": "bw-push-up",
           "exercise_ids": [
@@ -59,7 +66,8 @@
           "level_id": "horizontal_push.l7",
           "anchor_exercise_id": "bw-decline-push-up",
           "exercise_ids": [
-            "bw-decline-push-up"
+            "bw-decline-push-up",
+            "bw-pseudo-planche-push-up"
           ]
         },
         {
@@ -67,6 +75,13 @@
           "anchor_exercise_id": "bw-archer-push-up",
           "exercise_ids": [
             "bw-archer-push-up"
+          ]
+        },
+        {
+          "level_id": "horizontal_push.l8b",
+          "anchor_exercise_id": "bw-incline-one-arm-push-up",
+          "exercise_ids": [
+            "bw-incline-one-arm-push-up"
           ]
         },
         {
@@ -111,35 +126,40 @@
           "level_id": "horizontal_pull.l4",
           "anchor_exercise_id": "bent-over-row",
           "exercise_ids": [
-            "bent-over-row"
+            "bent-over-row",
+            "banded-underhand-row"
           ]
         },
         {
           "level_id": "horizontal_pull.l5",
           "anchor_exercise_id": "bw-inverted-row",
           "exercise_ids": [
-            "bw-inverted-row"
+            "bw-inverted-row",
+            "bw-bent-knee-inverted-row"
           ]
         },
         {
           "level_id": "horizontal_pull.l6",
           "anchor_exercise_id": "wide-high-row",
           "exercise_ids": [
-            "wide-high-row"
+            "wide-high-row",
+            "banded-rear-delt-row"
           ]
         },
         {
           "level_id": "horizontal_pull.l7",
           "anchor_exercise_id": "single-arm-row",
           "exercise_ids": [
-            "single-arm-row"
+            "single-arm-row",
+            "banded-single-arm-standing-row"
           ]
         },
         {
           "level_id": "horizontal_pull.l8",
           "anchor_exercise_id": "banded-archer-row",
           "exercise_ids": [
-            "banded-archer-row"
+            "banded-archer-row",
+            "bw-feet-elevated-inverted-row"
           ]
         }
       ]
@@ -194,6 +214,13 @@
           "anchor_exercise_id": "pike-push-up",
           "exercise_ids": [
             "pike-push-up"
+          ]
+        },
+        {
+          "level_id": "vertical_push.l6b",
+          "anchor_exercise_id": "bw-wall-walk",
+          "exercise_ids": [
+            "bw-wall-walk"
           ]
         },
         {
@@ -258,6 +285,13 @@
           ]
         },
         {
+          "level_id": "vertical_pull.l6b",
+          "anchor_exercise_id": "bw-negative-chin-up",
+          "exercise_ids": [
+            "bw-negative-chin-up"
+          ]
+        },
+        {
           "level_id": "vertical_pull.l7",
           "anchor_exercise_id": "bw-chin-up",
           "exercise_ids": [
@@ -285,6 +319,13 @@
       "name": "Squat",
       "pattern": "squat",
       "levels": [
+        {
+          "level_id": "squat.l0",
+          "anchor_exercise_id": "bw-box-squat",
+          "exercise_ids": [
+            "bw-box-squat"
+          ]
+        },
         {
           "level_id": "squat.l1",
           "anchor_exercise_id": "bw-squat",
@@ -330,6 +371,14 @@
             "bw-jump-squat",
             "squat-jump",
             "bw-broad-jump"
+          ]
+        },
+        {
+          "level_id": "squat.l6b",
+          "anchor_exercise_id": "bw-assisted-pistol-squat",
+          "exercise_ids": [
+            "bw-assisted-pistol-squat",
+            "bw-box-pistol-squat"
           ]
         },
         {
@@ -398,6 +447,14 @@
           ]
         },
         {
+          "level_id": "hinge.l6b",
+          "anchor_exercise_id": "bw-hamstring-slider-curl",
+          "exercise_ids": [
+            "bw-hamstring-slider-curl",
+            "bw-nordic-negative"
+          ]
+        },
+        {
           "level_id": "hinge.l7",
           "anchor_exercise_id": "bw-nordic-curl",
           "exercise_ids": [
@@ -411,6 +468,13 @@
       "name": "Lunge",
       "pattern": "lunge",
       "levels": [
+        {
+          "level_id": "lunge.l0",
+          "anchor_exercise_id": "bw-supported-split-squat",
+          "exercise_ids": [
+            "bw-supported-split-squat"
+          ]
+        },
         {
           "level_id": "lunge.l1",
           "anchor_exercise_id": "bw-reverse-lunge",
@@ -505,7 +569,8 @@
           "level_id": "anti_extension.l4",
           "anchor_exercise_id": "banded-plank",
           "exercise_ids": [
-            "banded-plank"
+            "banded-plank",
+            "bw-long-lever-plank"
           ]
         },
         {
@@ -521,7 +586,8 @@
           "level_id": "anti_extension.l6",
           "anchor_exercise_id": "side-plank-abduction",
           "exercise_ids": [
-            "side-plank-abduction"
+            "side-plank-abduction",
+            "bw-side-plank-leg-lift"
           ]
         },
         {

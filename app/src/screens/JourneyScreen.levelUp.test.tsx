@@ -138,11 +138,19 @@ describe('ADR 0012 — level up from the Trails on Journey', () => {
     // The rung above whatever the trail is currently on must not appear anywhere on the row —
     // not in the copy, not in the level-up button label.
     const currentN = Number(/Level (\d+) of/.exec(row)?.[1]);
+    const currentRung = family.levels[currentN - 1];
     const nextRung = family.levels[currentN];
+    // The current rung's own names are allowed (and may contain a next-rung name, e.g. "Negative
+    // Push-Up" contains "Push-Up"), so they are blanked out before looking for the next rung's.
+    let rest = row;
+    for (const id of currentRung?.exercise_ids ?? []) {
+      const name = exerciseLibrary.exercises.find((e) => e.id === id)?.name;
+      if (name) rest = rest.split(name).join('');
+    }
     if (nextRung) {
       for (const id of nextRung.exercise_ids) {
         const name = exerciseLibrary.exercises.find((e) => e.id === id)?.name;
-        if (name) expect(row).not.toContain(name);
+        if (name) expect(rest).not.toContain(name);
       }
     }
 

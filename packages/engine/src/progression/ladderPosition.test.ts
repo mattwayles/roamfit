@@ -8,9 +8,10 @@ const push = findFamily(familyLibrary.families, 'horizontal_push')!;
 const plank = findFamily(familyLibrary.families, 'anti_extension')!;
 const hang = findFamily(familyLibrary.families, 'vertical_pull')!;
 
-// horizontal_push: l1-l4 are bodyweight rungs of 8 steps each (4 reps, tempo, rest, sets, level-up);
-// l5 is banded-push-up B1-B2 (13 steps); l6-l9 bodyweight again (8 each).
-const L5_FLOOR = 4 * 8;
+// horizontal_push: l1, l2, l3, l3b (track 37k) and l4 are bodyweight rungs of 8 steps each (4 reps,
+// tempo, rest, sets, level-up); l5 is banded-push-up B1-B2 (13 steps); l6, l7, l8, l8b (track 37k)
+// and l9 bodyweight again (8 each).
+const L5_FLOOR = 5 * 8;
 const L6_FLOOR = L5_FLOOR + 13;
 
 const base: PerformedSession = {
@@ -140,9 +141,9 @@ describe('ladderPosition', () => {
       restSec: 30,
       setsCompleted: 4,
     })!;
-    // l1-l4 (4 x 8) + l5 (13) + l6-l8 (3 x 8) = 69 below the mastery rung.
-    expect(top.position).toBe(69 + 7);
-    expect(top.rung).toBe(9);
+    // l1-l4 with l3b (5 x 8) + l5 (13) + l6-l8 with l8b (4 x 8) = 85 below the mastery rung.
+    expect(top.position).toBe(85 + 7);
+    expect(top.rung).toBe(11);
     expect(top.stepsInRung).toBe(7);
   });
 

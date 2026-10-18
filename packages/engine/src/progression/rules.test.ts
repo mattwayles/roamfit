@@ -139,7 +139,8 @@ describe('§6.3 advance / regress / drop-a-level', () => {
       state = r.state;
     }
     const levelUp = applySessionResult(state, family, library, perf({ allSetsMetTarget: true }));
-    expect(levelUp.event).toEqual({ kind: 'level_up', levelId: 'horizontal_push.l4' });
+    // The next rung by id: knee push-ups lead to negatives (track 37k's l3b), then full push-ups.
+    expect(levelUp.event).toEqual({ kind: 'level_up', levelId: 'horizontal_push.l3b' });
   });
 
   it('§6.7 mastery — at the max level, an exhausted micro-progression is a PR check, never a dead end', () => {
@@ -223,7 +224,8 @@ describe('levelUpForTooEasy (ADR 0012)', () => {
     for (let i = 0; i < 5; i++) {
       state = levelUpForTooEasy(state, horizontalPush, library)!.state;
     }
-    expect(state.levelId).toBe('horizontal_push.l6');
+    // l1 → l2 → l3 → l3b → l4 → l5: five rungs, counting the inserted l3b.
+    expect(state.levelId).toBe('horizontal_push.l5');
   });
 
   it('resets micro-state to the new level default', () => {
@@ -291,7 +293,8 @@ describe('levelDownForTooHard', () => {
     for (let i = 0; i < 3; i++) {
       state = levelDownForTooHard(state, horizontalPush, library)!.state;
     }
-    expect(state.levelId).toBe('horizontal_push.l1');
+    // l4 → l3b → l3 → l2: three rungs, counting the inserted l3b.
+    expect(state.levelId).toBe('horizontal_push.l2');
   });
 
   it('resets micro-state to the new (lower) level default', () => {

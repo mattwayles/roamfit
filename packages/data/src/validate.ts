@@ -271,8 +271,8 @@ function main() {
       fail(`family ${fam.id}: not one of the 8 v1 ladder families`);
     }
 
-    if (fam.levels.length < 6 || fam.levels.length > 9) {
-      fail(`family ${fam.id}: has ${fam.levels.length} levels, expected 6-9`);
+    if (fam.levels.length < 6 || fam.levels.length > 12) {
+      fail(`family ${fam.id}: has ${fam.levels.length} levels, expected 6-12`);
     }
 
     const levelIdsInFamily = new Set<string>();

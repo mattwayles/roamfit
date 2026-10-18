@@ -24,9 +24,6 @@ level-up offer from the active workout; the bundled demo loops/videos are the us
 local-device history / account persistence issue is the user's to handle (see Future Features →
 User Accounts).
 
-- **37k — In-between ladder levels for beginners.** Rungs that close the big jumps (e.g. squat jump →
-  pistol, assisted pull-up → chin-up, push-up → diamond), plus the high rungs that currently have no
-  sibling exercises.
 - **37l — More isolation exercises.** Arms, rear delts, calves, adductors, and others.
 - **37m — Apple Health write.** Request authorization when the toggle turns on and on launch when
   it is already on, so completed workouts are actually written.
@@ -191,6 +188,12 @@ size="lg"`): check it reads at arm's length, the B3 near-black swatch stands off
   Plan focus. Watch for a one-frame flash of ellipsized text before the first fit (a clipped text
   is drawn at full size until its first layout reports the room). Re-run the generator if the fonts
   are upgraded: `python3 tools/font_metrics.py --check` exits 1 when stale.
+- **Rungs with a single exercise.** Track 37k gave siblings to the high rungs the old backlog item
+  named (horizontal_push l7, horizontal_pull l4-l8, anti_extension l4/l6), but 23 rungs still hold
+  one exercise, so at that level the current-rung draw (~60%) always repeats it: horizontal_push
+  l3b, l8, l8b, l9; horizontal_pull l2; vertical_push l6, l6b, l7; vertical_pull l5-l9 and l6b;
+  squat l0, l1, l4, l5, l7; hinge l7; lunge l0, l1, l7. Lower-rung recall softens it. Add siblings
+  as people reach them; keep the 37c tagging standard and the text guards green.
 - **Logo source is low-res.** `app/assets/logo-source.png` is 430x542; the icon and splash are upscaled from it by `tools/build_brand_assets.py` (alpha-mask re-render). Replace with a vector or 2x+ export and re-run the script for crisp edges.
 - **Show the app version in Settings' footer.** `expo-constants` is hoisted in by `expo` but not declared in
   `app/package.json`; add it (`npx expo install expo-constants`) and read `Constants.expoConfig?.version`.
@@ -283,7 +286,7 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   plain-text line — a rendered stamp-sheet image is the natural share, but needs `react-native-view-shot`
   (see the Completion item above).
 - **Push / Pull foci — deferred by user decision (2026-10-18).** Built as Track 37j (9db32c0) and
-  reverted (e94d0e9): "I do not want separate push/pull focus areas at this time." The reverted
+  reverted (bf13210): "I do not want separate push/pull focus areas at this time." The reverted
   commit is a working reference (split templates, `suitsFocus`, `TemplateSlot.primaryAny`).
 - **Human review of `contraindications[]` — owed before public release.** Track 37c
   (`docs/review/contraindications-review-2026-10.md`) re-tagged all 267 exercises in a CSCS role and

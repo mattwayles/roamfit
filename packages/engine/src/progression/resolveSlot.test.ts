@@ -239,7 +239,7 @@ describe('resolveLadderSlot — sibling selection (ADR 0010)', () => {
 
 // Track 14 — an achieved rung stays eligible instead of being retired. `close-grip-push-up` is a
 // real `hard`-difficulty horizontal_push exercise; `bw-incline-push-up` is a real `easy` one.
-// Levels 1-4 are overridden to resolve to that single easy exercise so "the lower pool" is a
+// Every rung below l5 is overridden to resolve to that single easy exercise so "the lower pool" is a
 // known, fixed quantity rather than whatever the real ladder's lower rungs happen to contain.
 describe('resolveLadderSlot — lower-rung recall (track 14)', () => {
   const CURRENT = 'close-grip-push-up'; // hard
@@ -259,6 +259,7 @@ describe('resolveLadderSlot — lower-rung recall (track 14)', () => {
                 'horizontal_push.l1',
                 'horizontal_push.l2',
                 'horizontal_push.l3',
+                'horizontal_push.l3b', // track 37k's inserted rung, also below l5
                 'horizontal_push.l4',
               ].includes(l.level_id)
             ) {

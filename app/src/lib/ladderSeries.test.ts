@@ -40,8 +40,9 @@ describe('buildLadderSeries (Progress)', () => {
 
   it('a band step-up with fewer reps rises on Progress', () => {
     const l = buildLadderSeries(push, library, sessions);
-    expect(l.points.map((p) => p.value)).toEqual([36, 37]);
-    expect(l.labels).toEqual(['Rung 5 · B1 × 12 reps · 3 sets', 'Rung 5 · B2 × 8 reps · 3 sets']);
+    // l5's floor is 40 since track 37k inserted l3b below it (five 8-step rungs).
+    expect(l.points.map((p) => p.value)).toEqual([44, 45]);
+    expect(l.labels).toEqual(['Rung 6 · B1 × 12 reps · 3 sets', 'Rung 6 · B2 × 8 reps · 3 sets']);
     expect(l.pointExercise).toEqual(['Banded push-up', 'Banded push-up']);
   });
 
@@ -61,7 +62,8 @@ describe('buildLadderSeries (Progress)', () => {
       ['2026-02-01', false],
       ['2026-02-15', true],
     ]);
-    expect(l.markers).toEqual([{ localDate: '2026-02-15', label: 'L6', kind: 'rung' }]);
+    // Labels are rung ordinals: l6 is the 7th rung now that l3b sits below it.
+    expect(l.markers).toEqual([{ localDate: '2026-02-15', label: 'L7', kind: 'rung' }]);
   });
 
   it('is empty when nothing can be placed', () => {
@@ -147,7 +149,7 @@ describe('buildBestSetSeries (band-aware)', () => {
       push,
     );
     expect(b.markers).toEqual([
-      { localDate: '2026-01-08', label: 'L5', kind: 'rung' },
+      { localDate: '2026-01-08', label: 'L6', kind: 'rung' }, // l5 is the 6th rung (l3b)
       { localDate: '2026-01-15', label: 'B2', kind: 'band' },
     ]);
     expect(b.points.map((p) => p.segment)).toEqual([0, 1, 2]);
@@ -273,7 +275,7 @@ describe('exercise detail series', () => {
       familyLibrary.families,
       library,
     );
-    expect(l?.points.map((p) => p.value)).toEqual([36, 37]);
+    expect(l?.points.map((p) => p.value)).toEqual([44, 45]); // see the l3b note above
   });
 
   it('is null for an exercise off any ladder (warm-ups), or with nothing placeable', () => {

@@ -52,13 +52,23 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
       (5a79bd4), (3) `components/BandSetup.tsx` (owned, rename/recolour from a palette, stacking),
       Settings → Training → Your bands, onboarding "Your bands" step, glossary "Band stacking".
 
+- [x] 37k — in-between levels: 18 exercises, 8 new rungs (squat.l0 / lunge.l0 supported first
+      rungs; l3b negatives, l6b / l8b steps toward pistol, chin-up, HSPU, Nordic, one-arm push-up),
+      siblings for the named high rungs; family level cap 9 → 12; tests pin positions by id.
+
 ### In progress
 
-- 37k — in-between ladder levels (resuming from the stash; see below once it is popped).
+- 37l — more isolation exercises. Plan: new records for arms (concentration / drag curls, a
+  self-anchored single-arm pushdown, a wall triceps extension), rear delts (banded W pull), calves
+  (bent-knee/soleus raise, seated banded calf raise, tibialis raise), hamstrings / quads (standing
+  banded hamstring curl, banded seated leg extension), and adductors — which needs a new
+  `adduction` pattern (schema Pattern + validate PATTERN list + legs TEMPLATE_PATTERNS +
+  ACCESSORY_PATTERNS_BY_FOCUS legs/full). Tag to the 37c standard. Written as a scratchpad content
+  script like content_37k.py.
 
 ### Next
 
-- 37k → 37l → 37m → 37n (order in BACKLOG).
+- 37l → 37m → 37n (order in BACKLOG).
 
 ### Decisions / gotchas
 
@@ -88,6 +98,6 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
   directly are unaffected (onboarding_state stays NULL).
 - Band representation (37i): stacked pairs are real `BandId`s ('B5+B2'), stored as text like any
   band. `bandTensions` stays keyed by single bands; `lib/bandDisplay.ts` renders a pair as both.
-- 37j (Push / Pull foci) was built (9db32c0) and then REVERTED at the user's request (e94d0e9):
+- 37j (Push / Pull foci) was built (9db32c0) and then REVERTED at the user's request (bf13210):
   "I do not want separate push/pull focus areas at this time." Parked in BACKLOG Future Features.
   Do not rebuild it unless asked; 9db32c0 is the reference implementation if it comes back.

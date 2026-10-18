@@ -10297,6 +10297,671 @@
       ],
       "setup": "Lie on your side, loop band around both ankles, legs stacked and straight. Lift both legs together against the band, keeping the hips stacked, and lower slowly. Finish one side, then switch.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Banded+Side+Lift+proper+form+tutorial"
+    },
+    {
+      "id": "bw-box-squat",
+      "name": "Box Squat (Sit to Stand)",
+      "aliases": [],
+      "focus": [
+        "legs",
+        "full"
+      ],
+      "pattern": "squat",
+      "primary": [
+        "quads"
+      ],
+      "secondary": [
+        "glutes"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": "squat",
+      "progression_level_id": "squat.l0",
+      "contraindications": [
+        "knee_flexion_loaded"
+      ],
+      "setup": "Stand in front of a sturdy chair or box, feet shoulder width. Sit back until you lightly touch the seat, then stand up without rocking. Use a higher seat to make it easier.",
+      "video_search": "https://www.youtube.com/results?search_query=Box+Squat+%28Sit+to+Stand%29+proper+form+tutorial"
+    },
+    {
+      "id": "bw-assisted-pistol-squat",
+      "name": "Assisted Pistol Squat",
+      "aliases": [],
+      "focus": [
+        "legs"
+      ],
+      "pattern": "squat",
+      "primary": [
+        "quads"
+      ],
+      "secondary": [
+        "glutes",
+        "abs"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": "squat",
+      "progression_level_id": "squat.l6b",
+      "contraindications": [
+        "ankle",
+        "hip",
+        "knee_flexion_loaded"
+      ],
+      "setup": "Hold a door frame or sturdy upright with one hand. Reach one leg forward and lower on the other as deep as you control, using the hand only as much as you need, then stand.",
+      "video_search": "https://www.youtube.com/results?search_query=Assisted+Pistol+Squat+proper+form+tutorial"
+    },
+    {
+      "id": "bw-box-pistol-squat",
+      "name": "Box Pistol Squat",
+      "aliases": [],
+      "focus": [
+        "legs"
+      ],
+      "pattern": "squat",
+      "primary": [
+        "quads"
+      ],
+      "secondary": [
+        "glutes",
+        "abs"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": "squat",
+      "progression_level_id": "squat.l6b",
+      "contraindications": [
+        "ankle",
+        "hip",
+        "knee_flexion_loaded"
+      ],
+      "setup": "Stand on one leg in front of a chair or box, the other leg reaching forward. Lower slowly until you sit, then stand back up on the same leg. A lower seat is harder.",
+      "video_search": "https://www.youtube.com/results?search_query=Box+Pistol+Squat+proper+form+tutorial"
+    },
+    {
+      "id": "bw-supported-split-squat",
+      "name": "Supported Split Squat",
+      "aliases": [],
+      "focus": [
+        "legs"
+      ],
+      "pattern": "lunge",
+      "primary": [
+        "quads"
+      ],
+      "secondary": [
+        "glutes"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": "lunge",
+      "progression_level_id": "lunge.l0",
+      "contraindications": [
+        "knee_flexion_loaded"
+      ],
+      "setup": "Hold a wall or chair back for balance. Stand in a long split stance, lower the back knee toward the floor, and push up through the front heel. Keep the front knee over the foot.",
+      "video_search": "https://www.youtube.com/results?search_query=Supported+Split+Squat+proper+form+tutorial"
+    },
+    {
+      "id": "bw-negative-push-up",
+      "name": "Negative Push-Up",
+      "aliases": [],
+      "focus": [
+        "upper",
+        "full"
+      ],
+      "pattern": "horizontal_push",
+      "primary": [
+        "chest"
+      ],
+      "secondary": [
+        "triceps",
+        "front_delts"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l3b",
+      "contraindications": [
+        "shoulder_horizontal",
+        "wrist_extension"
+      ],
+      "setup": "Start at the top of a push-up. Lower your chest to the floor as slowly as you can, about four seconds, then drop to your knees to push back up. Builds the strength for full push-ups.",
+      "video_search": "https://www.youtube.com/results?search_query=Negative+Push-Up+proper+form+tutorial"
+    },
+    {
+      "id": "bw-pseudo-planche-push-up",
+      "name": "Pseudo Planche Push-Up",
+      "aliases": [],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "horizontal_push",
+      "primary": [
+        "chest"
+      ],
+      "secondary": [
+        "front_delts",
+        "triceps",
+        "abs"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l7",
+      "contraindications": [
+        "elbow",
+        "shoulder_horizontal",
+        "wrist_extension",
+        "core_pressure"
+      ],
+      "setup": "High plank with hands turned out and placed beside your lower ribs. Lean your shoulders forward past your hands, then lower and press keeping that lean. Brace hard through the midline.",
+      "video_search": "https://www.youtube.com/results?search_query=Pseudo+Planche+Push-Up+proper+form+tutorial"
+    },
+    {
+      "id": "bw-incline-one-arm-push-up",
+      "name": "Incline One-Arm Push-Up",
+      "aliases": [],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "horizontal_push",
+      "primary": [
+        "chest"
+      ],
+      "secondary": [
+        "triceps",
+        "abs"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "body-support",
+      "anchor_alt": null,
+      "anchor_class": "bodyweight_bearing",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": "horizontal_push",
+      "progression_level_id": "horizontal_push.l8b",
+      "contraindications": [
+        "core_pressure",
+        "elbow",
+        "shoulder_horizontal",
+        "wrist_extension"
+      ],
+      "setup": "One hand on a sturdy bench, step or table edge, feet wide, other hand behind your back. Lower your chest toward the hand and press back up. Use a higher surface to make it easier.",
+      "video_search": "https://www.youtube.com/results?search_query=Incline+One-Arm+Push-Up+proper+form+tutorial"
+    },
+    {
+      "id": "banded-underhand-row",
+      "name": "Banded Underhand Bent-Over Row",
+      "aliases": [],
+      "focus": [
+        "upper",
+        "full"
+      ],
+      "pattern": "horizontal_pull",
+      "primary": [
+        "lats"
+      ],
+      "secondary": [
+        "biceps",
+        "upper_back"
+      ],
+      "equipment": "band",
+      "band": "B2-B3",
+      "anchor": "stance",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l4",
+      "contraindications": [
+        "lower_back_flexion"
+      ],
+      "setup": "Stand mid-band, palms facing forward. Hinge to about 45 degrees with a flat back and row the band to your lower ribs, elbows close.",
+      "video_search": "https://www.youtube.com/results?search_query=Banded+Underhand+Bent-Over+Row+proper+form+tutorial"
+    },
+    {
+      "id": "bw-bent-knee-inverted-row",
+      "name": "Bent-Knee Inverted Row",
+      "aliases": [],
+      "focus": [
+        "upper",
+        "full"
+      ],
+      "pattern": "horizontal_pull",
+      "primary": [
+        "upper_back"
+      ],
+      "secondary": [
+        "lats",
+        "biceps"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "low-bar",
+      "anchor_alt": null,
+      "anchor_class": "bodyweight_bearing",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l5",
+      "contraindications": [
+        "elbow",
+        "shoulder_horizontal"
+      ],
+      "setup": "Hang under a sturdy waist-height bar with knees bent and feet flat. Keep hips in line with shoulders and pull your chest to the bar.",
+      "video_search": "https://www.youtube.com/results?search_query=Bent-Knee+Inverted+Row+proper+form+tutorial"
+    },
+    {
+      "id": "banded-rear-delt-row",
+      "name": "Banded Rear-Delt Row",
+      "aliases": [],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "horizontal_pull",
+      "primary": [
+        "upper_back"
+      ],
+      "secondary": [
+        "rear_delts"
+      ],
+      "equipment": "band",
+      "band": "B2-B3",
+      "anchor": "anchor-mid",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l6",
+      "contraindications": [],
+      "setup": "Anchor at chest height. Row with elbows flared out at shoulder height until your hands reach your chest, squeezing the shoulder blades.",
+      "video_search": "https://www.youtube.com/results?search_query=Banded+Rear-Delt+Row+proper+form+tutorial"
+    },
+    {
+      "id": "banded-single-arm-standing-row",
+      "name": "Banded Single-Arm Standing Row",
+      "aliases": [],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "horizontal_pull",
+      "primary": [
+        "lats"
+      ],
+      "secondary": [
+        "upper_back",
+        "biceps"
+      ],
+      "equipment": "band",
+      "band": "B2-B4",
+      "anchor": "anchor-mid",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l7",
+      "contraindications": [],
+      "setup": "Anchor at chest height, staggered stance. Row one hand to your ribs without twisting the torso, pause, return slowly.",
+      "video_search": "https://www.youtube.com/results?search_query=Banded+Single-Arm+Standing+Row+proper+form+tutorial"
+    },
+    {
+      "id": "bw-feet-elevated-inverted-row",
+      "name": "Feet-Elevated Inverted Row",
+      "aliases": [],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "horizontal_pull",
+      "primary": [
+        "upper_back"
+      ],
+      "secondary": [
+        "lats",
+        "biceps",
+        "abs"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "low-bar",
+      "anchor_alt": null,
+      "anchor_class": "bodyweight_bearing",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": "horizontal_pull",
+      "progression_level_id": "horizontal_pull.l8",
+      "contraindications": [
+        "elbow",
+        "shoulder_horizontal"
+      ],
+      "setup": "Under a sturdy waist-height bar with your heels up on a step or bench, body in one straight line. Pull your chest to the bar and lower with control.",
+      "video_search": "https://www.youtube.com/results?search_query=Feet-Elevated+Inverted+Row+proper+form+tutorial"
+    },
+    {
+      "id": "bw-negative-chin-up",
+      "name": "Negative Chin-Up",
+      "aliases": [],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "vertical_pull",
+      "primary": [
+        "lats"
+      ],
+      "secondary": [
+        "biceps",
+        "upper_back"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "pullup-bar",
+      "anchor_alt": null,
+      "anchor_class": "bodyweight_bearing",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": "vertical_pull",
+      "progression_level_id": "vertical_pull.l6b",
+      "contraindications": [
+        "elbow",
+        "shoulder_overhead"
+      ],
+      "setup": "Step or jump up to the top of a chin-up, chin over the bar, palms facing you. Lower yourself as slowly as you can, about five seconds, to a full hang.",
+      "video_search": "https://www.youtube.com/results?search_query=Negative+Chin-Up+proper+form+tutorial"
+    },
+    {
+      "id": "bw-wall-walk",
+      "name": "Wall Walk",
+      "aliases": [],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "vertical_push",
+      "primary": [
+        "front_delts"
+      ],
+      "secondary": [
+        "triceps",
+        "abs"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": "vertical_push",
+      "progression_level_id": "vertical_push.l6b",
+      "contraindications": [
+        "core_pressure",
+        "neck",
+        "shoulder_overhead",
+        "wrist_extension"
+      ],
+      "setup": "Start in a plank with your feet against a wall. Walk your feet up the wall and your hands toward it as far as you control, then walk back down. Stop well short of anything shaky.",
+      "video_search": "https://www.youtube.com/results?search_query=Wall+Walk+proper+form+tutorial"
+    },
+    {
+      "id": "bw-hamstring-slider-curl",
+      "name": "Hamstring Slider Curl",
+      "aliases": [],
+      "focus": [
+        "legs"
+      ],
+      "pattern": "hinge",
+      "primary": [
+        "hamstrings"
+      ],
+      "secondary": [
+        "glutes"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l6b",
+      "contraindications": [
+        "knee_flexion_loaded",
+        "lower_back_extension",
+        "lying_supine"
+      ],
+      "setup": "Lie on your back with heels on a towel on a smooth floor. Lift your hips, then slide your heels out until your legs are nearly straight and pull them back in, hips up throughout.",
+      "video_search": "https://www.youtube.com/results?search_query=Hamstring+Slider+Curl+proper+form+tutorial"
+    },
+    {
+      "id": "bw-nordic-negative",
+      "name": "Partial Nordic Negative",
+      "aliases": [],
+      "focus": [
+        "legs"
+      ],
+      "pattern": "hinge",
+      "primary": [
+        "hamstrings"
+      ],
+      "secondary": [
+        "glutes"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "body-support",
+      "anchor_alt": null,
+      "anchor_class": "bodyweight_bearing",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": "hinge",
+      "progression_level_id": "hinge.l6b",
+      "contraindications": [
+        "knee_flexion_loaded",
+        "lower_back_extension"
+      ],
+      "setup": "Kneel on something soft with your heels hooked under a secure, heavy anchor (or held by a partner). Lower your torso forward slowly only as far as you can control, then push back up with your hands.",
+      "video_search": "https://www.youtube.com/results?search_query=Partial+Nordic+Negative+proper+form+tutorial"
+    },
+    {
+      "id": "bw-long-lever-plank",
+      "name": "Long-Lever Plank",
+      "aliases": [],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "anti_extension",
+      "primary": [
+        "abs"
+      ],
+      "secondary": [
+        "front_delts",
+        "glutes"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "time",
+      "default_seconds": 30,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l4",
+      "contraindications": [
+        "core_pressure"
+      ],
+      "setup": "Forearm plank with your elbows a hand-width in front of your shoulders. Squeeze your glutes and keep your ribs down. Time-based.",
+      "video_search": "https://www.youtube.com/results?search_query=Long-Lever+Plank+proper+form+tutorial"
+    },
+    {
+      "id": "bw-side-plank-leg-lift",
+      "name": "Side Plank Leg Lift",
+      "aliases": [],
+      "focus": [
+        "abs"
+      ],
+      "pattern": "anti_extension",
+      "primary": [
+        "obliques"
+      ],
+      "secondary": [
+        "abductors",
+        "glutes"
+      ],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": true,
+      "metric": "time",
+      "default_seconds": 20,
+      "tier": "core",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "hard",
+      "progression_family": "anti_extension",
+      "progression_level_id": "anti_extension.l6",
+      "contraindications": [
+        "core_pressure"
+      ],
+      "setup": "Side plank on one forearm, elbow under shoulder. Lift the top leg a hand-width and hold it there with the hips high. Time-based per side.",
+      "video_search": "https://www.youtube.com/results?search_query=Side+Plank+Leg+Lift+proper+form+tutorial"
     }
   ]
 }

@@ -180,8 +180,9 @@ describe('the exercise detail page', () => {
 
   it('names the ladder rung from the stable level id, never a list position', async () => {
     await openDetail(PUSH_UP.name);
-    // banded-push-up sits on horizontal_push.l5 in the bundled ladders.
-    expect(screen.getByText('Horizontal Push · level 5 of 9')).toBeTruthy();
+    // banded-push-up sits on horizontal_push.l5, the 6th of 11 rungs since track 37k added l3b
+    // and l8b — the id stays put while the displayed position follows the ladder.
+    expect(screen.getByText('Horizontal Push · level 6 of 11')).toBeTruthy();
   });
 
   it('offers the same demo controls the workout screen does', async () => {
