@@ -44,11 +44,18 @@ function currentExercise(
   return level && library.find((e) => e.id === level.anchor_exercise_id);
 }
 
+export interface ApplySessionOptions {
+  /** Track 37f — qualifying sessions each ladder step takes (`sessionsPerStepFor(pace)`).
+   *  Default 1: one qualifying session moves the ladder one step, the rule as it always was. */
+  sessionsPerStep?: number;
+}
+
 export function applySessionResult(
   inputState: ProgressionState,
   family: ProgressionFamily,
   library: readonly Exercise[],
   perf: SessionPerformance,
+  options: ApplySessionOptions = {},
 ): ApplySessionResult {
   // Reconcile to what actually happened *before* judging it. `perf.observedBand` is the band the
   // user logged having used, which may not be the one that was prescribed; every verdict below is
@@ -81,6 +88,17 @@ export function applySessionResult(
     perf.anySetBelowTarget &&
     (state.consecutiveMisses >= 1 || perf.difficultyFeedback === 'too_hard');
 
+  // A "patient" pace banks qualifying sessions until it has enough for one step. `consecutiveHits`
+  // counts them; a miss or a level change resets it as before. Pace 1 never takes this branch, so
+  // the default behaviour (and its stored hit counts) is unchanged.
+  const sessionsPerStep = Math.max(1, options.sessionsPerStep ?? 1);
+  if (shouldAdvance && sessionsPerStep > 1 && state.consecutiveHits + 1 < sessionsPerStep) {
+    return {
+      state: { ...state, consecutiveHits: state.consecutiveHits + 1, consecutiveMisses: 0 },
+      event: { kind: 'hold' },
+    };
+  }
+
   if (shouldAdvance) {
     const step = microAdvance(state.micro, exercise);
     if (step.levelChange !== 'up') {
@@ -88,7 +106,7 @@ export function applySessionResult(
         state: {
           ...state,
           micro: step.micro,
-          consecutiveHits: state.consecutiveHits + 1,
+          consecutiveHits: sessionsPerStep > 1 ? 0 : state.consecutiveHits + 1,
           consecutiveMisses: 0,
         },
         event: { kind: 'micro_advance' },

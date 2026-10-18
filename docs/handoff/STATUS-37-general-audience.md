@@ -23,9 +23,18 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
 - [x] 37d + 37e — `lib/anchorSafety.ts` + `components/AnchorSafetyGuide.tsx` + `AnchorSafetyScreen`;
       `lib/glossary.ts` + `GlossaryScreen` (search); Settings → Learn group.
 
+- [x] 37f engine — `src/preferences.ts`: goal / rest / variety / recovery / pace / warm-up, defaults =
+      pre-37f behaviour exactly; goal applied at prescription (`applyTrainingToMainEntry`), never to
+      stored progression state; pace via `applySessionResult(..., { sessionsPerStep })` and
+      `applyAccessorySessionResult(..., sessionsPerStep)`.
+
 ### In progress
 
-- 37f — training preferences. Engine: a `TrainingPreferences` type on `UserProfile` (optional;
+- 37f store/app — next: migration 0030 (`users.training_prefs` JSON + `exercise_state.micro_consecutive_hits`),
+  `UserRecord.trainingPreferences`, `buildUserProfile` passes `training`, completion passes
+  `sessionsPerStepFor(pace)` to both verdicts, ApprovalScreen add-exercise applies
+  `applyTrainingToMainEntry`. Then the Settings screen, then the learned changeover time.
+- (superseded plan text) 37f — training preferences. Engine: a `TrainingPreferences` type on `UserProfile` (optional;
   absent = today's constants), read by progression ranges, rest, cooldown windows, recovery window,
   progression pace, warm-up/cool-down minutes, changeover time. Store: one JSON column
   `users.training_prefs` (migration 0030). App: Settings → Training → "Training preferences" screen.
@@ -57,3 +66,5 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
   trailing newline reproduces the file byte-for-byte).
 - Glossary terms to add when their features land: "Band stacking" (37i), naming/colouring bands in
   Settings (37i, the "Band (B1 to B5)" entry), Push and Pull in the "Focus" entry (37j).
+- Goal ranges are OFFSETS on the 8-12 / 20-45s ladder (strength -3 reps/-5s, endurance +7/+10s,
+  muscle +1 set), so each rung stays a one-step change and switching goal never re-denominates state.

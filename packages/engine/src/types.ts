@@ -16,6 +16,7 @@ import type {
   ProgressionFamilyId,
   Role,
 } from '@roamfit/data';
+import type { TrainingPreferences } from './preferences';
 
 export type { Difficulty };
 
@@ -67,6 +68,9 @@ export interface UserProfile {
   /** Exercises the user has explicitly disabled — permanently excluded from all eligibility
    *  until re-enabled. Distinct from `ExerciseState.suppressedUntil` (temporary, system-managed). */
   disabledExerciseIds: string[];
+  /** Track 37f — the user's training preferences. Absent (or any field absent) = the defaults,
+   *  which reproduce the engine's behaviour before preferences existed. */
+  training?: Partial<TrainingPreferences>;
 }
 
 /** §4.4 — per user × exercise. Never on the shared library table (invariant 7). */

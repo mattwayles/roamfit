@@ -44,8 +44,12 @@ import {
   LIGHT_MUSCLE_BONUS,
   PREFERRED_MIN_RATIO,
   TARGET_MUSCLE_BONUS,
-  RECOVERY_WINDOW_DAYS,
 } from './constants';
+import {
+  cooldownWindowsFor,
+  recoveryWindowDaysFor,
+  resolveTrainingPreferences,
+} from '../preferences';
 
 /** For a `medium`/`hard` request, the pool already includes one neighboring tier (§ eligibility
  *  in `hardFilters.ts`'s `isDifficultyEligible`) — this is which of the two eligible tiers the
@@ -210,13 +214,24 @@ export function selectMain(input: SelectMainInput): MainSelectionResult {
     input;
   const { requestedDifficulty } = input;
   const history = userState.history;
-  const ctx = { history, exerciseStates: userState.exerciseStates, today };
+  const training = resolveTrainingPreferences(userState.profile.training);
+  const ctx = {
+    history,
+    exerciseStates: userState.exerciseStates,
+    today,
+    cooldowns: cooldownWindowsFor(training.variety),
+  };
 
   // OVER-WORKED / recovery are about which muscles the pool can train, not about difficulty, so
   // they read the full (difficulty-unfiltered), UNscoped pool — see `volumePool`'s doc comment.
   const volumePool = input.volumePool ?? pool;
   const overWorked = overWorkedMuscles(history, volumePool, today);
-  const recoveryMuscles = recentHardMuscles(history, volumePool, today, RECOVERY_WINDOW_DAYS);
+  const recoveryMuscles = recentHardMuscles(
+    history,
+    volumePool,
+    today,
+    recoveryWindowDaysFor(training.recovery),
+  );
 
   const difficultyEligiblePool = pool.filter((e) => isDifficultyEligible(e, requestedDifficulty));
   const difficultyEligiblePoolIgnoringEquipment = poolIgnoringEquipment.filter((e) =>

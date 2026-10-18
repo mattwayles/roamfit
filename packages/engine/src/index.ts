@@ -121,3 +121,24 @@ export type {
 
 export { recommendFocus, lightestMuscles } from './selection/lightMuscle';
 export type { FocusRecommendation } from './selection/lightMuscle';
+export {
+  DEFAULT_TRAINING_PREFERENCES,
+  GOAL_ADJUSTMENTS,
+  applyTrainingToMainEntry,
+  cooldownMinutesFor,
+  cooldownWindowsFor,
+  recoveryWindowDaysFor,
+  resolveTrainingPreferences,
+  sessionsPerStepFor,
+  warmupMinutesFor,
+} from './preferences';
+export type {
+  ProgressionPace,
+  RecoveryPreference,
+  RestPreference,
+  TrainingGoal,
+  TrainingPreferences,
+  VarietyPreference,
+  WarmupPreference,
+} from './preferences';
+export type { ApplySessionOptions } from './progression/rules';

@@ -44,6 +44,9 @@ import {
 export interface AccessoryProgressionState {
   micro: ProgressionMicroState;
   consecutiveMisses: number;
+  /** Track 37f — qualifying sessions banked toward the next step under a "patient" pace. Absent
+   *  = 0; never written above 0 at the default pace. */
+  consecutiveHits?: number;
 }
 
 /** What completion reports about one accessory entry's working sets — the accessory twin of
@@ -191,6 +194,8 @@ export function applyAccessorySessionResult(
   input: AccessoryProgressionState,
   exercise: Exercise,
   perf: AccessoryPerformance,
+  /** Track 37f — qualifying sessions per step (`sessionsPerStepFor(pace)`); default 1. */
+  sessionsPerStep = 1,
 ): ApplyAccessoryResult {
   const ladder = onOpenBandRange(exercise);
   const micro = adoptFinalBand(input.micro, exercise, perf);
@@ -199,6 +204,14 @@ export function applyAccessorySessionResult(
   const shouldAdvance = perf.allSetsMetTarget && perf.difficultyFeedback !== 'too_hard';
   const shouldRegress =
     perf.anySetBelowTarget && (misses >= 1 || perf.difficultyFeedback === 'too_hard');
+
+  const hits = input.consecutiveHits ?? 0;
+  if (shouldAdvance && sessionsPerStep > 1 && hits + 1 < sessionsPerStep) {
+    return {
+      state: { micro, consecutiveMisses: 0, consecutiveHits: hits + 1 },
+      event: { kind: 'hold' },
+    };
+  }
 
   if (shouldAdvance) {
     const step = microAdvance(micro, ladder);

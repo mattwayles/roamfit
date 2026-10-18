@@ -31,7 +31,6 @@ import { lightestMuscles, muscleDeficits, musclesForFocus } from './selection/li
 import type { SelectedMain } from './selection/mainSelection';
 import { selectWarmupCooldown, selectWarmupCooldownGroup } from './selection/warmupCooldown';
 import { recentHardMuscles } from './selection/volume';
-import { RECOVERY_WINDOW_DAYS } from './selection/constants';
 import { resolveLadderSlot } from './progression/resolveSlot';
 import type { ResolvedLadderSlot } from './progression/resolveSlot';
 import { exerciseForLevel, levelOrdinal } from './progression/ladder';
@@ -47,12 +46,17 @@ import { fitMainEntries } from './timefit/fitSession';
 import type { FitResult, SlotEntry } from './timefit/fitSession';
 import {
   cardioMainExerciseCountRange,
-  cooldownMinutes,
   MINIMUM_SUPPORTED_TARGET_MINUTES,
   longSessionSetsMultiplier,
   mainExerciseCountRange,
-  warmupMinutes,
 } from './timefit/formulas';
+import {
+  applyTrainingToMainEntry,
+  cooldownMinutesFor,
+  recoveryWindowDaysFor,
+  resolveTrainingPreferences,
+  warmupMinutesFor,
+} from './preferences';
 import { composeExplanation } from './explain/explain';
 import type { LevelUpFact, PatternGapFact, SubstitutionFact } from './explain/explain';
 import { ENGINE_VERSION } from './version';
@@ -127,6 +131,9 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
           comeback.tier,
         );
   const userState: UserState = { ...input.userState, progressionStates };
+  // Track 37f — the user's training preferences (goal, rest, variety, recovery, warm-up). Every
+  // field defaults to the engine's behaviour before preferences existed.
+  const training = resolveTrainingPreferences(userState.profile.training);
   // §9.4's comeback cut and ADR 0013's long-session volume are the same lever pulled in opposite
   // directions, so they compose rather than override: a comeback session at a 90-minute target is
   // still lighter than a normal one at that length.
@@ -240,7 +247,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     userState.history,
     pool,
     clock.today,
-    RECOVERY_WINDOW_DAYS,
+    recoveryWindowDaysFor(training.recovery),
   );
 
   // Split slots: laddered (§6) vs. accessory (§5.2 selectMain, cardio's conditioning slots included).
@@ -345,55 +352,66 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   // §5.1 step 5 — prescription, parameterized by the sets multiplier so it can be re-run once
   // with a corrective multiplier if required-only entries alone overshoot the time budget (the
   // short-target case: trim sets via prescription rather than drop a required pattern slot).
+  // Track 37f — the goal (rep/hold offset, rest, sets) and rest preference, applied to every main
+  // working entry after the ladder or table prescribed it and before time fit sums it.
+  const withTraining = (exercise: Exercise, entry: SessionEntry) =>
+    applyTrainingToMainEntry(entry, exercise, training);
+
   function prescribeEntries(multiplier: number): Map<string, SessionEntry> {
     const map = new Map<string, SessionEntry>();
     for (const { slot, familyId, resolved } of ladderResolutions) {
       const touchesRecovery = resolved.exercise.primary.some((m) => recoveryMuscles.has(m));
       map.set(
         slot.id,
-        prescribeLaddered({
-          exercise: resolved.exercise,
-          // The rung the micro-state belongs to, which is `state.levelId` even when the exercise
-          // itself was drawn from a lower rung for variety (`pulledFromLevelId`) or because the
-          // current rung was hard-filtered out (`substitutedFrom`).
-          anchorExercise:
-            exerciseForLevel(resolved.family, resolved.state.levelId, allExercises) ??
-            resolved.exercise,
-          familyId,
-          levelId: resolved.state.levelId,
-          micro: resolved.state.micro,
-          ownMicro: isPassedRungBandExercise(
-            resolved.exercise,
-            resolved.family,
-            resolved.state.levelId,
-          )
-            ? (userState.exerciseStates[resolved.exercise.id]?.accessoryMicro ??
-              seedPassedRungMicro(
-                resolved.exercise,
-                userState.exerciseStates[resolved.exercise.id]?.workingBand,
-              ))
-            : undefined,
-          requestedDifficulty: difficulty,
-          recoveryTreatment: touchesRecovery,
-          setsMultiplier: multiplier,
-          substitutedFor: resolved.substitutedFrom
-            ? allExercises.find((e) => e.id === resolved.substitutedFrom!.exerciseId)?.id
-            : undefined,
-        }),
+        withTraining(
+          resolved.exercise,
+          prescribeLaddered({
+            exercise: resolved.exercise,
+            // The rung the micro-state belongs to, which is `state.levelId` even when the exercise
+            // itself was drawn from a lower rung for variety (`pulledFromLevelId`) or because the
+            // current rung was hard-filtered out (`substitutedFrom`).
+            anchorExercise:
+              exerciseForLevel(resolved.family, resolved.state.levelId, allExercises) ??
+              resolved.exercise,
+            familyId,
+            levelId: resolved.state.levelId,
+            micro: resolved.state.micro,
+            ownMicro: isPassedRungBandExercise(
+              resolved.exercise,
+              resolved.family,
+              resolved.state.levelId,
+            )
+              ? (userState.exerciseStates[resolved.exercise.id]?.accessoryMicro ??
+                seedPassedRungMicro(
+                  resolved.exercise,
+                  userState.exerciseStates[resolved.exercise.id]?.workingBand,
+                ))
+              : undefined,
+            requestedDifficulty: difficulty,
+            recoveryTreatment: touchesRecovery,
+            setsMultiplier: multiplier,
+            substitutedFor: resolved.substitutedFrom
+              ? allExercises.find((e) => e.id === resolved.substitutedFrom!.exerciseId)?.id
+              : undefined,
+          }),
+        ),
       );
     }
     for (const pick of mainSelection.picks as SelectedMain[]) {
       map.set(
         pick.slotId,
-        prescribeAccessory({
-          exercise: pick.exercise,
-          requestedDifficulty: difficulty,
-          recoveryTreatment: pick.recoveryTreatment,
-          bandRelaxedForPatternGap: pick.bandRelaxedForPatternGap,
-          setsMultiplier: multiplier,
-          workingBand: userState.exerciseStates[pick.exercise.id]?.workingBand,
-          micro: userState.exerciseStates[pick.exercise.id]?.accessoryMicro,
-        }),
+        withTraining(
+          pick.exercise,
+          prescribeAccessory({
+            exercise: pick.exercise,
+            requestedDifficulty: difficulty,
+            recoveryTreatment: pick.recoveryTreatment,
+            bandRelaxedForPatternGap: pick.bandRelaxedForPatternGap,
+            setsMultiplier: multiplier,
+            workingBand: userState.exerciseStates[pick.exercise.id]?.workingBand,
+            micro: userState.exerciseStates[pick.exercise.id]?.accessoryMicro,
+          }),
+        ),
       );
     }
     return map;
@@ -499,8 +517,8 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     warmupEntries = warmupEx ? [prescribeWarmupCooldown(warmupEx, 'warmup')] : [];
     cooldownEntries = cooldownEx ? [prescribeWarmupCooldown(cooldownEx, 'cooldown')] : [];
   } else {
-    const warmupTargetSec = warmupMinutes(targetMinutes) * 60;
-    const cooldownTargetSec = cooldownMinutes(targetMinutes) * 60;
+    const warmupTargetSec = warmupMinutesFor(targetMinutes, training.warmup) * 60;
+    const cooldownTargetSec = cooldownMinutesFor(targetMinutes, training.warmup) * 60;
     const warmupExs = selectWarmupCooldownGroup({
       role: 'warmup',
       pool,

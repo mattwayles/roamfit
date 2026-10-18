@@ -5,6 +5,7 @@
 import type { Exercise, Role } from '@roamfit/data';
 import { daysBetween } from '../dates';
 import { HARD_COOLDOWN_SESSIONS, SOFT_COOLDOWN_SESSIONS } from './constants';
+import type { CooldownWindows } from '../preferences';
 import type {
   Candidate,
   ExerciseState,
@@ -29,9 +30,18 @@ export function sessionsAgo(
   return null;
 }
 
-export function recencyTier(ago: number | null): RecencyTier {
-  if (ago !== null && ago <= HARD_COOLDOWN_SESSIONS) return 'blocked';
-  if (ago !== null && ago <= SOFT_COOLDOWN_SESSIONS) return 'soft';
+const DEFAULT_COOLDOWNS: CooldownWindows = {
+  hard: HARD_COOLDOWN_SESSIONS,
+  soft: SOFT_COOLDOWN_SESSIONS,
+};
+
+/** `windows` — the user's variety preference (`cooldownWindowsFor`); default = the §5.2 rule. */
+export function recencyTier(
+  ago: number | null,
+  windows: CooldownWindows = DEFAULT_COOLDOWNS,
+): RecencyTier {
+  if (ago !== null && ago <= windows.hard) return 'blocked';
+  if (ago !== null && ago <= windows.soft) return 'soft';
   return 'preferred';
 }
 
@@ -44,6 +54,8 @@ export interface CandidateContext {
   history: readonly SessionHistoryRecord[];
   exerciseStates: Readonly<Record<string, ExerciseState>>;
   today: LocalDate;
+  /** Track 37f — variety preference; omitted = the §5.2 windows. */
+  cooldowns?: CooldownWindows;
 }
 
 export function buildCandidate(exercise: Exercise, role: Role, ctx: CandidateContext): Candidate {
@@ -53,7 +65,7 @@ export function buildCandidate(exercise: Exercise, role: Role, ctx: CandidateCon
   return {
     exercise,
     sessionsAgo: ago,
-    tier: recencyTier(ago),
+    tier: recencyTier(ago, ctx.cooldowns),
     performCount,
     isNovel: performCount === 0,
     isSuppressed: isSuppressed(state, ctx.today),
