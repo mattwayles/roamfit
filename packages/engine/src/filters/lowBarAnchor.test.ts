@@ -1,5 +1,5 @@
 import { exerciseLibrary } from '@roamfit/data';
-import { DEFAULT_ANCHORS_AVAILABLE, difficultyCapForExercise } from './hardFilters';
+import { FIXED_POINT_ANCHORS, difficultyCapForExercise } from './hardFilters';
 
 const row = exerciseLibrary.exercises.find((e) => e.id === 'bw-inverted-row')!;
 const pullup = exerciseLibrary.exercises.find((e) => e.id === 'bw-pull-up')!;
@@ -9,11 +9,11 @@ it('every bodyweight_bearing anchor is available by default, including pull-ups'
   // library, not a pre-narrowed one — so bodyweight_bearing exercises are no longer held back
   // pending an opt-in. Safety instead lives entirely in the §13.1 difficulty cap below, which
   // does not depend on this list at all.
-  expect(DEFAULT_ANCHORS_AVAILABLE).toContain(row.anchor);
-  expect(DEFAULT_ANCHORS_AVAILABLE).toContain(pullup.anchor);
+  expect(FIXED_POINT_ANCHORS).toContain(row.anchor);
+  expect(FIXED_POINT_ANCHORS).toContain(pullup.anchor);
   const bearing = exerciseLibrary.exercises.filter((e) => e.anchor_class === 'bodyweight_bearing');
   for (const e of bearing) {
-    expect(DEFAULT_ANCHORS_AVAILABLE).toContain(e.anchor);
+    expect(FIXED_POINT_ANCHORS).toContain(e.anchor);
   }
 });
 

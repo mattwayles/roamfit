@@ -9,7 +9,7 @@ import { generateSession } from './pipeline';
 import { createRng } from './rng';
 import { baseStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
-import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
+import { FIXED_POINT_ANCHORS } from './filters/hardFilters';
 import { sessionsAgo, recencyTier } from './selection/candidates';
 import { overWorkedMuscles, recentHardMuscles } from './selection/volume';
 import { assessComeback } from './progression/comeback';
@@ -38,7 +38,7 @@ function userState(history: SessionHistoryRecord[]): UserState {
       units: 'lb',
       weeklyTarget: 3,
       limitations: [],
-      anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+      anchorsAvailable: [...FIXED_POINT_ANCHORS],
       disabledExerciseIds: [],
     },
     exerciseStates: {},

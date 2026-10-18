@@ -13,7 +13,7 @@ import { addDays } from './dates';
 import { baseStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
 import { applySessionResult } from './progression/rules';
-import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
+import { FIXED_POINT_ANCHORS } from './filters/hardFilters';
 import { overWorkedMuscles } from './selection/volume';
 import type { ExerciseState, ProgressionState, SessionHistoryRecord, UserState } from './types';
 
@@ -39,7 +39,7 @@ function freshUserState(): UserState {
       units: 'lb',
       weeklyTarget: 3,
       limitations: [],
-      anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+      anchorsAvailable: [...FIXED_POINT_ANCHORS],
       disabledExerciseIds: [],
     },
     exerciseStates: {},

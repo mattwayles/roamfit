@@ -193,3 +193,16 @@ describe('feedbackPromptEnabled (migration 0025)', () => {
     }
   });
 });
+
+describe('anchorsAvailable for a new user (track 37b)', () => {
+  it('starts empty, so nothing needing a fixed point, bar or bench is programmed until chosen', () => {
+    const { db, close } = createTestDb();
+    try {
+      expect(ensureUser(db, utcInstantFor('2026-10-18')).anchorsAvailable).toEqual([]);
+      updateUser(db, { anchorsAvailable: ['anchor-mid'] }, utcInstantFor('2026-10-18'));
+      expect(getUser(db)!.anchorsAvailable).toEqual(['anchor-mid']);
+    } finally {
+      close();
+    }
+  });
+});

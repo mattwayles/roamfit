@@ -10,7 +10,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { exerciseLibrary, isCardioExercise } from '@roamfit/data';
 import { sessionsRepo, usersRepo } from '@roamfit/store';
-import { DEFAULT_ANCHORS_AVAILABLE } from '@roamfit/engine';
+import { FIXED_POINT_ANCHORS } from '@roamfit/engine';
 import GenerateScreen from './GenerateScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 
@@ -28,7 +28,7 @@ function Setup({ onReady }: { onReady: (db: ReturnType<typeof useStore>['db']) =
   // `getDb()` is a module-level singleton shared by every test in this file, and these tests
   // deliberately mutate the user's sticky anchors (§5.3). Reset to the default so each test
   // starts from the same state instead of inheriting the previous one's toggles.
-  usersRepo.updateUser(db, { anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE] }, now);
+  usersRepo.updateUser(db, { anchorsAvailable: [...FIXED_POINT_ANCHORS] }, now);
   onReady(db);
   return null;
 }
@@ -291,7 +291,7 @@ describe('§10.2 Generate screen', () => {
     await waitFor(() => expect(screen.getByTestId('anchor-anchor-low')).toBeTruthy(), WAIT_OPTS);
     expect(screen.getByText('Needs something to anchor to')).toBeTruthy();
     // Plain-language labels, not raw enum values.
-    expect(screen.getByText('Low Band Anchor Point')).toBeTruthy();
+    expect(screen.getByText('Low band anchor point')).toBeTruthy();
     expect(screen.queryByText('anchor-low')).toBeNull();
     // Bodyweight/no-fixed-point band exercises are always eligible, so that group is gone.
     expect(screen.queryByText('No fixed point needed')).toBeNull();

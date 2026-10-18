@@ -13,7 +13,7 @@ import { generateSession } from './pipeline';
 import { createRng } from './rng';
 import { baseStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
-import { ALWAYS_AVAILABLE_ANCHORS, DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
+import { ALWAYS_AVAILABLE_ANCHORS, FIXED_POINT_ANCHORS } from './filters/hardFilters';
 import type { Difficulty, EquipmentPreference, ProgressionState, UserState } from './types';
 
 const library = exerciseLibrary.exercises;
@@ -40,7 +40,7 @@ function coldStart(overrides: Partial<UserState> = {}): UserState {
       units: 'lb',
       weeklyTarget: 3,
       limitations: [],
-      anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+      anchorsAvailable: [...FIXED_POINT_ANCHORS],
       disabledExerciseIds: [],
     },
     exerciseStates: {},
@@ -82,7 +82,7 @@ const userStates: [string, () => UserState][] = [
           units: 'lb',
           weeklyTarget: 3,
           limitations: [{ tag: 'shoulder_overhead', createdAt: '2026-01-01', source: 'user' }],
-          anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+          anchorsAvailable: [...FIXED_POINT_ANCHORS],
           disabledExerciseIds: [],
         },
       }),
@@ -95,7 +95,7 @@ const userStates: [string, () => UserState][] = [
           units: 'lb',
           weeklyTarget: 3,
           limitations: [],
-          anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE, 'pullup-bar', 'body-support'],
+          anchorsAvailable: [...FIXED_POINT_ANCHORS, 'pullup-bar', 'body-support'],
           disabledExerciseIds: [],
         },
       }),

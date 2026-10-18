@@ -4,7 +4,7 @@ import { generateSession, generateQuickSession } from './pipeline';
 import { createRng } from './rng';
 import { baseStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
-import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
+import { FIXED_POINT_ANCHORS } from './filters/hardFilters';
 import { cardioAddOnCount, interleaveEvenly } from './template/cardioAddOn';
 import { isLegPrep } from './selection/warmupCooldown';
 import type { ProgressionState, UserState } from './types';
@@ -31,7 +31,7 @@ function coldStart(overrides: Partial<UserState['profile']> = {}): UserState {
       units: 'lb',
       weeklyTarget: 3,
       limitations: [],
-      anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+      anchorsAvailable: [...FIXED_POINT_ANCHORS],
       disabledExerciseIds: [],
       ...overrides,
     },

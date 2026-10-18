@@ -9,13 +9,13 @@ import {
   nextLevel,
   prevLevel,
 } from './ladder';
-import { ALWAYS_AVAILABLE_ANCHORS, DEFAULT_ANCHORS_AVAILABLE } from '../filters/hardFilters';
+import { ALWAYS_AVAILABLE_ANCHORS, FIXED_POINT_ANCHORS } from '../filters/hardFilters';
 import type { Anchor } from '@roamfit/data';
 
 /** Default-eligible: either always-available (bodyweight, no-fixed-point band) or in the
  *  default anchorsAvailable list — mirrors `isAnchorEligible` in `hardFilters.ts`. */
 function isDefaultEligible(anchor: Anchor): boolean {
-  return ALWAYS_AVAILABLE_ANCHORS.includes(anchor) || DEFAULT_ANCHORS_AVAILABLE.includes(anchor);
+  return ALWAYS_AVAILABLE_ANCHORS.includes(anchor) || FIXED_POINT_ANCHORS.includes(anchor);
 }
 
 const families = familyLibrary.families;

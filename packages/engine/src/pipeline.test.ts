@@ -4,7 +4,11 @@ import { generateSession, generateQuickSession } from './pipeline';
 import { createRng } from './rng';
 import { baseStartLevel } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
-import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
+import {
+  ALWAYS_AVAILABLE_ANCHORS,
+  DEFAULT_ANCHORS_AVAILABLE,
+  FIXED_POINT_ANCHORS,
+} from './filters/hardFilters';
 import type { ProgressionState, SessionHistoryRecord, UserState } from './types';
 
 const library = exerciseLibrary.exercises;
@@ -31,7 +35,7 @@ function coldStartUserState(overrides: Partial<UserState> = {}): UserState {
       units: 'lb',
       weeklyTarget: 3,
       limitations: [],
-      anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+      anchorsAvailable: [...FIXED_POINT_ANCHORS],
       disabledExerciseIds: [],
     },
     exerciseStates: {},
@@ -43,6 +47,31 @@ function coldStartUserState(overrides: Partial<UserState> = {}): UserState {
 }
 
 describe('generateSession — pipeline wiring', () => {
+  it('track 37b: a new user owns nothing, and still gets a full session for every focus', () => {
+    expect(DEFAULT_ANCHORS_AVAILABLE).toEqual([]);
+    const byId = new Map(library.map((e) => [e.id, e]));
+    const ownsNothing = coldStartUserState();
+    ownsNothing.profile.anchorsAvailable = [...DEFAULT_ANCHORS_AVAILABLE];
+    for (const focus of ['upper', 'legs', 'abs', 'full', 'cardio'] as const) {
+      const plan = generateSession({
+        library: exerciseLibrary,
+        families: familyLibrary,
+        userState: ownsNothing,
+        request: { focus, difficulty: 'medium', targetMinutes: 30 },
+        clock: { today: TODAY, tzId: 'UTC' },
+        rng: createRng(1),
+      });
+      expect(plan.main.length).toBeGreaterThanOrEqual(3);
+      for (const entry of [...plan.warmup, ...plan.main, ...plan.cooldown]) {
+        const ex = byId.get(entry.exerciseId)!;
+        const usable = [ex.anchor, ex.anchor_alt].some(
+          (a) => a !== null && ALWAYS_AVAILABLE_ANCHORS.includes(a),
+        );
+        expect({ id: ex.id, usable }).toEqual({ id: ex.id, usable: true });
+      }
+    }
+  });
+
   it('produces a valid session for a brand-new user, every focus, with zero configuration', () => {
     for (const focus of ['upper', 'legs', 'abs', 'full'] as const) {
       const plan = generateSession({
@@ -62,7 +91,7 @@ describe('generateSession — pipeline wiring', () => {
       expect(plan.engineVersion).toBeTruthy();
       expect(plan.focus).toBe(focus);
       // §13.1 default. This used to assert no `bodyweight_bearing` entry appeared at all, which
-      // was never the actual rule — ADR 0007 put `low-bar` in DEFAULT_ANCHORS_AVAILABLE precisely
+      // was never the actual rule — ADR 0007 put `low-bar` in FIXED_POINT_ANCHORS precisely
       // so bar-supported work could be programmed. It only held because every family used to be
       // seeded at the 30th percentile, where no bearing exercise happened to sit. ADR 0012 moved
       // the cold start to level 1, and `vertical_pull.l1` is a hang, so the real rule is what is
@@ -71,7 +100,7 @@ describe('generateSession — pipeline wiring', () => {
       for (const entry of [...plan.warmup, ...plan.main, ...plan.cooldown]) {
         if (entry.anchorClass !== 'bodyweight_bearing') continue;
         const exercise = exerciseLibrary.exercises.find((e) => e.id === entry.exerciseId)!;
-        expect(DEFAULT_ANCHORS_AVAILABLE).toContain(exercise.anchor);
+        expect(FIXED_POINT_ANCHORS).toContain(exercise.anchor);
         expect(entry.difficulty).not.toBe('hard');
       }
     }
@@ -109,7 +138,7 @@ describe('generateSession — pipeline wiring', () => {
         units: 'lb',
         weeklyTarget: 3,
         limitations: [{ tag: 'shoulder_overhead', createdAt: '2026-01-01', source: 'user' }],
-        anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+        anchorsAvailable: [...FIXED_POINT_ANCHORS],
         disabledExerciseIds: [],
       },
     });
@@ -484,7 +513,7 @@ describe('Track 14 — cardio focus, ~40-exercise fixture library', () => {
         units: 'lb',
         weeklyTarget: 3,
         limitations: [],
-        anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+        anchorsAvailable: [...FIXED_POINT_ANCHORS],
         disabledExerciseIds: [],
       },
       hasEverCompletedSession: true,
@@ -551,7 +580,7 @@ describe('Track 14 — cardio focus, ~40-exercise fixture library', () => {
         units: 'lb',
         weeklyTarget: 3,
         limitations: [{ tag: 'knee_impact', createdAt: '2026-01-01', source: 'user' }],
-        anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+        anchorsAvailable: [...FIXED_POINT_ANCHORS],
         disabledExerciseIds: [],
       },
     });
@@ -586,7 +615,7 @@ describe('Track 14 — cardio focus, ~40-exercise fixture library', () => {
         const plan = generateSession({
           library: fixtureLibrary,
           families: familyLibrary,
-          userState: cardioUserState(), // DEFAULT_ANCHORS_AVAILABLE has no 'jump-rope'
+          userState: cardioUserState(), // FIXED_POINT_ANCHORS has no 'jump-rope'
           request: { focus: 'cardio', difficulty: 'medium', targetMinutes: 60 },
           clock: { today: TODAY, tzId: 'UTC' },
           rng: createRng(seed),
@@ -607,7 +636,7 @@ describe('Track 14 — cardio focus, ~40-exercise fixture library', () => {
               units: 'lb',
               weeklyTarget: 3,
               limitations: [],
-              anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE, 'jump-rope'],
+              anchorsAvailable: [...FIXED_POINT_ANCHORS, 'jump-rope'],
               disabledExerciseIds: [],
             },
           }),

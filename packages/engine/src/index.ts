@@ -15,6 +15,7 @@ export { generateSession, generateQuickSession } from './pipeline';
 export {
   applyHardFilters,
   DEFAULT_ANCHORS_AVAILABLE,
+  FIXED_POINT_ANCHORS,
   difficultyCapForExercise,
   isDifficultyEligible,
 } from './filters/hardFilters';

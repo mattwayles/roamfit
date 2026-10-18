@@ -42,17 +42,14 @@ export const ALWAYS_AVAILABLE_ANCHORS: readonly Anchor[] = [
   'thigh-loop',
 ];
 
-/** §5.3 defaults for the anchors that *do* need to be picked — band exercises anchored to a
- *  low/mid/high point, plus bar/bench equipment. Every anchor option the "Available Equipment"
- *  picker (`GenerateScreen`) offers is checked by default — a new user should see the full
- *  library, not a pre-narrowed one. The one deliberate exception is `jump-rope` (the picker's
- *  "Cardio gear"): it is left out, so a rope move is never programmed for someone who hasn't said
- *  they own one. Each toggle persists back through `usersRepo`, so what the user
- *  actually has stays remembered rather than re-defaulting on every visit. This does not weaken
- *  §13.1: `pullup-bar` and `body-support` stay `bodyweight_bearing`, so `difficultyCapForExercise`
- *  still caps them at `medium` regardless of whether the user has them enabled. Callers
- *  (app/settings layer) own the persisted list; this is a convenience for tests and cold start. */
-export const DEFAULT_ANCHORS_AVAILABLE: readonly Anchor[] = [
+/** §5.3 — every fixed point and piece of bar/bench equipment the "Available Equipment" picker
+ *  offers: band exercises anchored to a low/mid/high point, plus a waist-height bar, a pull-up bar
+ *  and a bench. `jump-rope` (the picker's "Cardio gear") is deliberately not in it — it is gear,
+ *  not a fixed point. Engine tests use this as "a user who has everything"; it is no longer what a
+ *  new user starts with (see `DEFAULT_ANCHORS_AVAILABLE`). This does not weaken §13.1:
+ *  `pullup-bar` and `body-support` stay `bodyweight_bearing`, so `difficultyCapForExercise` still
+ *  caps them at `medium` whenever they are enabled. */
+export const FIXED_POINT_ANCHORS: readonly Anchor[] = [
   'anchor-low',
   'anchor-mid',
   'anchor-high',
@@ -60,6 +57,14 @@ export const DEFAULT_ANCHORS_AVAILABLE: readonly Anchor[] = [
   'pullup-bar',
   'body-support',
 ];
+
+/** Track 37b — what a brand-new user starts with: nothing. The engine only programs an exercise
+ *  that needs a fixed point, a bar or a bench once the user has said they have one (onboarding's
+ *  equipment step, or Generate's "Available equipment"), so a beginner with one loop band is never
+ *  handed a dead hang from a bar they don't own. Bodyweight work and band work that anchors to the
+ *  user's own body (`ALWAYS_AVAILABLE_ANCHORS`) stay available regardless, so a session is always
+ *  possible. Each toggle persists through `usersRepo`; callers own the stored list. */
+export const DEFAULT_ANCHORS_AVAILABLE: readonly Anchor[] = [];
 
 function isEquipmentEligible(exercise: Exercise, pref: EquipmentPreference | undefined): boolean {
   if (!pref || pref === 'any') return true;

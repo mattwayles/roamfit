@@ -16,7 +16,7 @@ import { generateSession } from '../pipeline';
 import { createRng, seedFromString } from '../rng';
 import { baseStartLevel } from '../progression/ladder';
 import { defaultMicroForExercise } from '../progression/micro';
-import { DEFAULT_ANCHORS_AVAILABLE } from '../filters/hardFilters';
+import { FIXED_POINT_ANCHORS } from '../filters/hardFilters';
 import { longSessionSetsMultiplier, mainExerciseCountRange } from './formulas';
 import { COMEBACK_VOLUME_MULTIPLIER } from '../progression/constants';
 import type { Difficulty, ProgressionState, UserState } from '../types';
@@ -44,7 +44,7 @@ function coldStart(overrides: Partial<UserState> = {}): UserState {
       units: 'lb',
       weeklyTarget: 3,
       limitations: [],
-      anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+      anchorsAvailable: [...FIXED_POINT_ANCHORS],
       disabledExerciseIds: [],
     },
     exerciseStates: {},

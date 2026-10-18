@@ -12,14 +12,19 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
       Limitations screen; shared `components/SettingsList.tsx` (Group/SwitchRow/NavRow/CheckRow). New tags
       `lying_supine`/`lying_prone` added to the union, not yet on any exercise (37c tags them).
 
+- [x] 37b — `DEFAULT_ANCHORS_AVAILABLE = []` (new users own nothing); the old full list is now
+      `FIXED_POINT_ANCHORS` (engine tests' "has everything"); travel hints gone from Generate's
+      equipment picker and from 14 exercise `setup` lines (RV / truck / tree / tailgate / picnic table).
+
 ### In progress
 
-- 37b — empty `DEFAULT_ANCHORS_AVAILABLE` for new users; strip travel hints from GenerateScreen's
-  equipment picker (`hint:` strings around GenerateScreen.tsx:86-110).
+- 37c — contraindication review. Write `docs/review/contraindications-review-2026-10.md` (next to the
+  older `contraindications-review.md`), apply tag changes to exercises.json, tag `lying_supine` /
+  `lying_prone`, add data tests that pin the high-stakes calls.
 
 ### Next
 
-- 37c → 37d → 37e → 37f → 37g → 37h → 37i → 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
+- 37d → 37e → 37f → 37g → 37h → 37i → 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
 
 ### Decisions / gotchas
 
@@ -36,3 +41,9 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
   `limitations` table stays for dated tag-level rows (pain reports, if they ever come).
 - Onboarding gate = `!hasAcknowledgedDisclaimer` (first launch only). Existing installs skip it and can
   re-run it from Settings; this keeps every existing test's `acknowledgeDisclaimer` bypass valid.
+- Existing users keep their stored `anchors_available`; only `ensureUser` for a new row changed. Any test
+  that seeds a plan and depends on its first exercise must set `FIXED_POINT_ANCHORS` itself (see
+  WorkoutScreen.restResume.test.tsx).
+- `packages/data/scripts/migrate_library.py` still contains the old travel copy — it is a historical
+  one-shot migration, not a generator; exercises.json is edited directly (python json.dump indent=2 +
+  trailing newline reproduces the file byte-for-byte).

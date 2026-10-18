@@ -14,9 +14,9 @@
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { createRng, seedFromString } from '@roamfit/engine';
+import { FIXED_POINT_ANCHORS, createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import { generate, sessionsRepo } from '@roamfit/store';
+import { generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { Db } from '@roamfit/store';
 import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
@@ -38,6 +38,9 @@ function Setup({ onReady }: { onReady: (db: Db) => void }) {
   const { db } = useStore();
   const pending = sessionsRepo.getPendingSession(db);
   if (pending) sessionsRepo.discardSession(db, pending.id, {}, new Date().toISOString());
+  // The seeded plan this test was written against assumes every fixed point is available (the
+  // pre-37b default); a new user now owns nothing, which changes the plan's first exercise.
+  usersRepo.updateUser(db, { anchorsAvailable: [...FIXED_POINT_ANCHORS] }, nowUtcInstant());
   onReady(db);
   return null;
 }

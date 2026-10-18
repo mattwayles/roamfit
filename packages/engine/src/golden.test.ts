@@ -11,7 +11,7 @@ import { generateSession, generateQuickSession } from './pipeline';
 import { createRng } from './rng';
 import { baseStartLevel, findFamily } from './progression/ladder';
 import { defaultMicroForExercise } from './progression/micro';
-import { DEFAULT_ANCHORS_AVAILABLE } from './filters/hardFilters';
+import { FIXED_POINT_ANCHORS } from './filters/hardFilters';
 import type { ProgressionState, UserState } from './types';
 
 const library = exerciseLibrary.exercises;
@@ -37,7 +37,7 @@ function coldStartUserState(overrides: Partial<UserState> = {}): UserState {
       units: 'lb',
       weeklyTarget: 3,
       limitations: [],
-      anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE],
+      anchorsAvailable: [...FIXED_POINT_ANCHORS],
       disabledExerciseIds: [],
     },
     exerciseStates: {},

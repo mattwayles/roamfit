@@ -24,17 +24,8 @@ level-up offer from the active workout; the bundled demo loops/videos are the us
 local-device history / account persistence issue is the user's to handle (see Future Features →
 User Accounts).
 
-- **37a — Limitations: Settings section + injury filter.** Engine and store already filter on
-  `limitations[]` (`buildUserProfile` → `applyHardFilters`), but no screen could add one. Build
-  plain-language limitation choices (body areas, plus "pregnant / postpartum" and "no jumping / low
-  impact" as named conditions that map to tag sets) in Settings, with store add/remove/list, so every
-  generation, swap and add-exercise filters on them. Onboarding reuses the same picker (37h).
-- **37b — Empty equipment default; no travel-specific hints.** `DEFAULT_ANCHORS_AVAILABLE` becomes `[]`
-  for a new user (existing users keep their stored list). Remove the "RV ladder / picnic table / low
-  branch / top of a door" style hints from the equipment picker: a low/mid/high anchor is anything
-  the user trusts.
 - **37c — Contraindication tag review (CSCS lens).** A full pass over `contraindications[]` in
-  `packages/data/library/exercises.json`, written up in `docs/reviews/contraindications-2026-10.md`
+  `packages/data/library/exercises.json`, written up in `docs/review/contraindications-review-2026-10.md`
   with every change and its reasoning. **This does not replace a qualified human review** (physical
   therapist or CSCS), which is still owed before public release, with the pregnancy filter
   (`core_pressure`, `lower_back_extension`, supine work) the highest-stakes part.

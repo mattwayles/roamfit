@@ -71,7 +71,7 @@ const DIFFICULTY_FLAMES: Record<Difficulty, number> = { easy: 1, medium: 2, hard
  *
  * Two problems with the old presentation, all fixed here:
  *  - the labels were raw enum values (`self-low`, `thigh-loop`, `anchor-mid`), which mean nothing
- *    to a user standing in a car park deciding what they can tie a band to;
+ *    to a user deciding what they can safely tie a band to;
  *  - multi-select chips looked identical to the single-select Time/Focus/Difficulty controls above,
  *    so nothing signalled that these behave differently (those are now scrolling pickers, which
  *    separates the two kinds of choice further still).
@@ -88,20 +88,22 @@ const ANCHOR_GROUPS: {
   {
     title: 'Needs something to anchor to',
     anchors: [
+      // Track 37b — no suggested objects. A low, mid or high anchor point is anything the user
+      // trusts to hold a band under tension; the safety guide (Settings) covers how to choose one.
+      { value: 'anchor-low', label: 'Low band anchor point', hint: 'around ankle height' },
+      { value: 'anchor-mid', label: 'Mid band anchor point', hint: 'around waist to chest height' },
+      { value: 'anchor-high', label: 'High band anchor point', hint: 'above head height' },
       {
-        value: 'anchor-low',
-        label: 'Low Band Anchor Point',
-        hint: 'door base, post, heavy furniture',
+        value: 'low-bar',
+        label: 'Waist-height bar',
+        hint: 'strong enough to hang your weight from',
       },
-      {
-        value: 'anchor-mid',
-        label: 'Mid Band Anchor Point',
-        hint: 'rail, handle, waist-height fixing',
-      },
-      { value: 'anchor-high', label: 'High Band Anchor Point', hint: 'bar, beam, top of a door' },
-      { value: 'low-bar', label: 'Waist-height bar', hint: 'picnic table, RV ladder, low branch' },
       { value: 'pullup-bar', label: 'Pull-up bar', hint: 'takes your full hanging weight' },
-      { value: 'body-support', label: 'Bench or step', hint: 'something to dip or press off' },
+      {
+        value: 'body-support',
+        label: 'Bench or step',
+        hint: 'stable enough to press or step up on',
+      },
     ],
   },
   {

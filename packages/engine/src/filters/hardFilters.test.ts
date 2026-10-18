@@ -3,7 +3,7 @@ import { exerciseLibrary } from '@roamfit/data';
 import {
   ALWAYS_AVAILABLE_ANCHORS,
   applyHardFilters,
-  DEFAULT_ANCHORS_AVAILABLE,
+  FIXED_POINT_ANCHORS,
   difficultyCapForExercise,
 } from './hardFilters';
 
@@ -45,7 +45,7 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
     const out = applyHardFilters({
       library: lib,
       request: {},
-      anchorsAvailable: DEFAULT_ANCHORS_AVAILABLE,
+      anchorsAvailable: FIXED_POINT_ANCHORS,
       limitations: [],
       disabledExerciseIds: new Set(),
       today: '2026-08-30',
@@ -56,8 +56,7 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
     expect(
       out.every(
         (e) =>
-          DEFAULT_ANCHORS_AVAILABLE.includes(e.anchor) ||
-          ALWAYS_AVAILABLE_ANCHORS.includes(e.anchor),
+          FIXED_POINT_ANCHORS.includes(e.anchor) || ALWAYS_AVAILABLE_ANCHORS.includes(e.anchor),
       ),
     ).toBe(true);
     // §5.3: every anchor the "Available Equipment" picker offers is checked by default, so
@@ -70,7 +69,7 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
   });
 
   it('excludes bodyweight_bearing exercises once the user disables that anchor', () => {
-    const withoutBarAndBench = DEFAULT_ANCHORS_AVAILABLE.filter(
+    const withoutBarAndBench = FIXED_POINT_ANCHORS.filter(
       (a) => a !== 'pullup-bar' && a !== 'body-support',
     );
     const out = applyHardFilters({
@@ -117,7 +116,7 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
     const out = applyHardFilters({
       library: lib,
       request: {},
-      anchorsAvailable: DEFAULT_ANCHORS_AVAILABLE,
+      anchorsAvailable: FIXED_POINT_ANCHORS,
       limitations: [{ tag: 'shoulder_overhead', createdAt: '2026-01-01', source: 'user' }],
       disabledExerciseIds: new Set(),
       today: '2026-08-30',
@@ -130,7 +129,7 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
     const out = applyHardFilters({
       library: lib,
       request: {},
-      anchorsAvailable: DEFAULT_ANCHORS_AVAILABLE,
+      anchorsAvailable: FIXED_POINT_ANCHORS,
       limitations: [
         {
           tag: 'shoulder_overhead',
@@ -151,7 +150,7 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
     const out = applyHardFilters({
       library: lib,
       request: { equipmentPreference: 'bodyweight' },
-      anchorsAvailable: DEFAULT_ANCHORS_AVAILABLE,
+      anchorsAvailable: FIXED_POINT_ANCHORS,
       limitations: [],
       disabledExerciseIds: new Set(),
       today: '2026-08-30',
@@ -176,7 +175,7 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
     const out = applyHardFilters({
       library: lib,
       request: {},
-      anchorsAvailable: DEFAULT_ANCHORS_AVAILABLE,
+      anchorsAvailable: FIXED_POINT_ANCHORS,
       limitations: [],
       disabledExerciseIds: new Set([target.id]),
       today: '2026-08-30',
@@ -185,7 +184,7 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
   });
 
   it('never enables jump-rope by default (track 14: gear, not always-available)', () => {
-    expect(DEFAULT_ANCHORS_AVAILABLE).not.toContain('jump-rope');
+    expect(FIXED_POINT_ANCHORS).not.toContain('jump-rope');
     expect(ALWAYS_AVAILABLE_ANCHORS).not.toContain('jump-rope');
   });
 
@@ -194,7 +193,7 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
     const out = applyHardFilters({
       library: [rope],
       request: {},
-      anchorsAvailable: DEFAULT_ANCHORS_AVAILABLE,
+      anchorsAvailable: FIXED_POINT_ANCHORS,
       limitations: [],
       disabledExerciseIds: new Set(),
       today: '2026-08-30',
@@ -207,7 +206,7 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
     const out = applyHardFilters({
       library: [rope],
       request: {},
-      anchorsAvailable: [...DEFAULT_ANCHORS_AVAILABLE, 'jump-rope'],
+      anchorsAvailable: [...FIXED_POINT_ANCHORS, 'jump-rope'],
       limitations: [],
       disabledExerciseIds: new Set(),
       today: '2026-08-30',
@@ -220,13 +219,13 @@ describe('hard filters (§5.1 step 1 / §13.2)', () => {
     const out = applyHardFilters({
       library: lib,
       request: {},
-      anchorsAvailable: DEFAULT_ANCHORS_AVAILABLE,
+      anchorsAvailable: FIXED_POINT_ANCHORS,
       limitations: [],
       disabledExerciseIds: new Set(),
       today: '2026-08-30',
     });
     expect(out.some((e) => e.id === target.id)).toBe(
-      DEFAULT_ANCHORS_AVAILABLE.includes(target.anchor) ||
+      FIXED_POINT_ANCHORS.includes(target.anchor) ||
         ALWAYS_AVAILABLE_ANCHORS.includes(target.anchor),
     );
   });
