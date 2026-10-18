@@ -11,6 +11,7 @@ import type { Db } from '@roamfit/store';
 import { runMigrations, newId } from '@roamfit/store';
 import type { MigrationExecutor } from '@roamfit/store';
 import { drizzleOpSqlite } from './opSqliteSyncDriver';
+import { migrateLegacyDb } from './legacyDb';
 
 /**
  * Test isolation (see docs/handoff/STATUS-4-loop.md — "npm run check hung when run concurrently
@@ -19,7 +20,7 @@ import { drizzleOpSqlite } from './opSqliteSyncDriver';
  * op-sqlite driver against a real file — that's what caught the `node:fs` Metro bug and the
  * feedback-clear bug — but a *fixed* filename meant every test file, and every concurrently
  * running Jest process (two agents, or a watch process plus a CI run), raced on the one physical
- * `roamfit.sqlite`. `maxWorkers: 1` in `app/jest.config.js` only serialized files within a single
+ * `wanderlift.sqlite`. `maxWorkers: 1` in `app/jest.config.js` only serialized files within a single
  * Jest *process*; it could not and did not prevent two separate processes from colliding.
  *
  * Under Jest, `process.env.JEST_WORKER_ID` is always set — this branch gives every test file its
@@ -33,7 +34,10 @@ import { drizzleOpSqlite } from './opSqliteSyncDriver';
 const DB_NAME =
   process.env.JEST_WORKER_ID !== undefined
     ? `roamfit-test-${process.env.JEST_WORKER_ID}-${newId()}.sqlite`
-    : 'roamfit.sqlite';
+    : 'wanderlift.sqlite';
+
+/** The pre-rename production filename; see `migrateLegacyDb`. */
+const LEGACY_DB_NAME = 'roamfit.sqlite';
 
 let dbInstance: Db | null = null;
 
@@ -66,6 +70,8 @@ function execMultiStatement(client: ReturnType<typeof open>, sql: string): void 
  *  handle rather than re-invoking this on every render. */
 export function getDb(): Db {
   if (dbInstance) return dbInstance;
+
+  if (process.env.JEST_WORKER_ID === undefined) migrateLegacyDb(LEGACY_DB_NAME, DB_NAME);
 
   const client = open({ name: DB_NAME });
   client.executeSync('PRAGMA journal_mode = WAL');

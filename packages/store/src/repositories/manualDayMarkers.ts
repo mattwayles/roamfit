@@ -1,7 +1,7 @@
 /**
  * §14.1.6 manual day-marker overrides for the calendar heatmap — per user x local_date
  * (invariant 7's per-user-state shape, keyed by date rather than exercise/family). Lets a day be
- * re-tagged by hand: a workout done outside RoamFit, or a travel day that went unlogged at the
+ * re-tagged by hand: a workout done outside Wanderlift, or a travel day that went unlogged at the
  * time, or a planned rest day. Last-write-wins per day — this corrects what the calendar shows, it is not a history of
  * edits — and never touches `sessions` or `signal_events`: the marker is display-only.
  */

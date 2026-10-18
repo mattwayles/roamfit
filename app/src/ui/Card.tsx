@@ -44,7 +44,7 @@ export function Card({
   variant = 'plain',
   gradient,
   tone,
-  seed = 'roamfit',
+  seed = 'wanderlift',
   padding = 'lg',
   onPress,
   style,

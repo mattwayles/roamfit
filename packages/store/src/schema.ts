@@ -173,7 +173,7 @@ export const progressionState = sqliteTable(
 // ------------------------------------------------------------------------------------------
 // §14.1.6 Manual day marker — per user x local_date (invariant 7's per-user-state shape, keyed
 // by date rather than exercise/family). Lets the calendar heatmap be corrected by hand for a
-// workout RoamFit never saw (done outside the app) or a travel day that went unlogged at the
+// workout Wanderlift never saw (done outside the app) or a travel day that went unlogged at the
 // time. Last-write-wins per day — a correction to what the calendar shows, not a history of
 // edits — and deliberately never touches `sessions` or `signal_events`: the marker is
 // display-only and represents no real session or travel-day tap.

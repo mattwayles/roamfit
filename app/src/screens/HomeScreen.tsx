@@ -205,7 +205,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   if (!user.hasAcknowledgedDisclaimer) {
     return (
       <View style={styles.gate} testID="disclaimer-gate">
-        <TopoPattern seed="roamfit-gate" strength={0.6} />
+        <TopoPattern seed="wanderlift-gate" strength={0.6} />
         <Screen
           scroll
           edges={['top', 'left', 'right', 'bottom']}
