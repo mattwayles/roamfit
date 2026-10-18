@@ -282,6 +282,9 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   milestones (level-ups, best sets) do not get stamps yet, only cities; (2) the Share button sends a
   plain-text line — a rendered stamp-sheet image is the natural share, but needs `react-native-view-shot`
   (see the Completion item above).
+- **Push / Pull foci — deferred by user decision (2026-10-18).** Built as Track 37j (9db32c0) and
+  reverted (e94d0e9): "I do not want separate push/pull focus areas at this time." The reverted
+  commit is a working reference (split templates, `suitsFocus`, `TemplateSlot.primaryAny`).
 - **Human review of `contraindications[]` — owed before public release.** Track 37c
   (`docs/review/contraindications-review-2026-10.md`) re-tagged all 267 exercises in a CSCS role and
   added `lying_supine` / `lying_prone`, but it is an AI pass, not the review. A physical therapist (or

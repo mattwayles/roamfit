@@ -20,8 +20,6 @@ export const FOCUS_EMOJI: Record<Focus, string> = {
   abs: '🔥',
   legs: '🦵',
   cardio: '🏃',
-  push: '🤜',
-  pull: '🧗',
 };
 export const QUICK_EMOJI = '⏱️';
 export const TRAVEL_EMOJI = '✈️';
@@ -40,8 +38,6 @@ export const DAY_MARKER_OPTIONS: { marker: DayMarker; label: string; emoji: stri
   { marker: 'upper', label: 'Upper-body workout', emoji: FOCUS_EMOJI.upper },
   { marker: 'abs', label: 'Abs workout', emoji: FOCUS_EMOJI.abs },
   { marker: 'legs', label: 'Legs workout', emoji: FOCUS_EMOJI.legs },
-  { marker: 'push', label: 'Push workout', emoji: FOCUS_EMOJI.push },
-  { marker: 'pull', label: 'Pull workout', emoji: FOCUS_EMOJI.pull },
   { marker: 'cardio', label: 'Cardio workout', emoji: FOCUS_EMOJI.cardio },
 ];
 

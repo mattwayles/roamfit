@@ -8,7 +8,6 @@
  * recovery: it only reorders what selection was already allowed to pick (invariant 2/3).
  */
 import type { Exercise, Focus } from '@roamfit/data';
-import { suitsFocus } from '@roamfit/data';
 import type { LocalDate, LoggedSet, SessionHistoryEntry, SessionHistoryRecord } from '../types';
 import { BAND_ORDER } from '../types';
 import { daysBetween } from '../dates';
@@ -65,8 +64,7 @@ export function musclesForFocus(focus: Focus, library: readonly Exercise[]): Set
   if (focus === 'full') return new Set(candidates.keys());
   const out = new Set<string>();
   for (const e of strength(library)) {
-    // A split (Push / Pull) counts only the upper exercises on its side (track 37j).
-    if (!suitsFocus(e, focus)) continue;
+    if (!e.focus.includes(focus)) continue;
     for (const m of e.primary) if (candidates.has(m)) out.add(m);
   }
   return out;

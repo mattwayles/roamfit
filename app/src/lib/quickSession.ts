@@ -20,25 +20,13 @@ const ALL_FOCI: readonly Focus[] = ['full', 'upper', 'abs', 'legs', 'cardio'];
 export function pickQuickSessionFocus(history: readonly SessionHistoryRecord[]): Focus {
   if (history.length === 0) return 'full';
 
-  // Push and Pull sessions are counted (they are in history) but never picked: Quick Session
-  // rotates through the five whole-area foci.
-  const counts: Record<Focus, number> = {
-    full: 0,
-    upper: 0,
-    abs: 0,
-    legs: 0,
-    cardio: 0,
-    push: 0,
-    pull: 0,
-  };
+  const counts: Record<Focus, number> = { full: 0, upper: 0, abs: 0, legs: 0, cardio: 0 };
   const lastSeenIndex: Record<Focus, number> = {
     full: -1,
     upper: -1,
     abs: -1,
     legs: -1,
     cardio: -1,
-    push: -1,
-    pull: -1,
   };
   history.forEach((session, i) => {
     counts[session.focus] += 1;

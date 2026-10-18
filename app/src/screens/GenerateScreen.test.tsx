@@ -106,7 +106,7 @@ describe('§10.2 Generate screen', () => {
         ).toBe(true),
       WAIT_OPTS,
     );
-    for (const other of ['upper', 'abs', 'full', 'push', 'pull', 'cardio']) {
+    for (const other of ['upper', 'abs', 'full', 'cardio']) {
       expect(
         screen.getByTestId(`focus-picker-option-${other}`).props.accessibilityState.selected,
       ).toBe(false);
@@ -428,30 +428,5 @@ describe('§10.2 Generate screen', () => {
       const next = screen.getByTestId('anchors-summary').props.children.join('');
       expect(next).not.toBe(initial);
     }, WAIT_OPTS);
-  });
-
-  it('track 37j: Push and Pull sit before Cardio and build a split session', async () => {
-    const { navigation, getDb } = renderScreen();
-    await waitFor(() => expect(screen.getByTestId('focus-picker')).toBeTruthy(), WAIT_OPTS);
-    const order = screen
-      .getAllByTestId(/^focus-picker-option-/)
-      .map((n) => (n.props.testID as string).replace('focus-picker-option-', ''));
-    expect(order).toEqual(['upper', 'abs', 'legs', 'full', 'push', 'pull', 'cardio']);
-    expect(screen.getByText('Chest, shoulders, triceps')).toBeTruthy();
-    expect(screen.getByText('Back, biceps, rear delts')).toBeTruthy();
-
-    fireEvent.press(screen.getByTestId('focus-picker-option-pull'));
-    await waitFor(
-      () => expect(screen.getByTestId('generate-recap').props.children).toContain('Pull'),
-      WAIT_OPTS,
-    );
-    fireEvent.press(screen.getByTestId('generate-button'));
-    await waitFor(() => expect(navigation.replace).toHaveBeenCalled(), WAIT_OPTS);
-    const { sessionId } = navigation.replace.mock.calls[0][1] as { sessionId: string };
-    const session = sessionsRepo.getSession(getDb(), sessionId)!;
-    expect(session.focus).toBe('pull');
-    const main = session.entries.filter((e) => e.section === 'main').map((e) => e.pattern);
-    expect(main).not.toContain('horizontal_push');
-    expect(main).not.toContain('vertical_push');
   });
 });

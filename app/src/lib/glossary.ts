@@ -102,8 +102,7 @@ export const GLOSSARY: readonly GlossaryGroup[] = [
     terms: [
       {
         term: 'Focus',
-        definition:
-          'What a workout trains: Upper, Legs, Core, Full body, Cardio Only, or the Push and Pull splits (chest, shoulders and triceps; back, biceps and rear delts).',
+        definition: 'What a workout trains: Upper, Legs, Core, Full body or Cardio Only.',
       },
       {
         term: 'Trail',

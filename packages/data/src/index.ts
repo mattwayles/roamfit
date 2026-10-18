@@ -26,4 +26,3 @@ export function isCardioExercise(e: Exercise): boolean {
 // There is deliberately no bundled figure/demo-image registry — see ADR 0008. Offline demo
 // guidance is the `setup` cue text on each exercise record, rendered as the "How to" block.
 export * from './placement';
-export * from './splits';

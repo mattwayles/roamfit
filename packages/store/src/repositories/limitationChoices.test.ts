@@ -112,7 +112,7 @@ describe('limitation choices (migration 0029)', () => {
 });
 
 describe('every limitation choice still leaves a workout for every focus (track 37c)', () => {
-  const FOCI: Focus[] = ['upper', 'legs', 'abs', 'full', 'cardio', 'push', 'pull'];
+  const FOCI: Focus[] = ['upper', 'legs', 'abs', 'full', 'cardio'];
   const byId = new Map(exerciseLibrary.exercises.map((e) => [e.id, e]));
   for (const choice of LIMITATION_CHOICES) {
     for (const equipped of [false, true]) {
@@ -136,11 +136,7 @@ describe('every limitation choice still leaves a workout for every focus (track 
               rng: rngFor(3),
               utcInstant: utcInstantFor('2026-10-02'),
             });
-            // A Push or Pull day is half the upper body, so the narrowest limitations leave it
-            // fewer moves (overhead-limited, no anchors: a push and a triceps move). Track 37l's
-            // added accessories are meant to lift this back to 3 — see STATUS-37.
-            const minMain = focus === 'push' || focus === 'pull' ? 2 : 3;
-            expect({ focus, main: plan.main.length >= minMain }).toEqual({ focus, main: true });
+            expect({ focus, main: plan.main.length >= 3 }).toEqual({ focus, main: true });
             expect({
               focus,
               warmup: plan.warmup.length > 0,

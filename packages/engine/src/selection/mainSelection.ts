@@ -117,9 +117,6 @@ function eligibleForSlot(
     // is excluded outright, not merely deprioritized.
     if (overlaps(c.exercise.primary, overWorked)) return false;
     if (usedExercises.some((u) => isMovementTwin(c.exercise, u))) return false;
-    if (slot.primaryAny && !c.exercise.primary.some((m) => slot.primaryAny!.includes(m))) {
-      return false;
-    }
     return slot.patterns.includes(c.exercise.pattern);
   });
 }

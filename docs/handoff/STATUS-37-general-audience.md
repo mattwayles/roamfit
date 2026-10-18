@@ -52,24 +52,13 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
       (5a79bd4), (3) `components/BandSetup.tsx` (owned, rename/recolour from a palette, stacking),
       Settings → Training → Your bands, onboarding "Your bands" step, glossary "Band stacking".
 
-- [x] 37j — Push / Pull: `Focus` = `LibraryFocus | 'push' | 'pull'`; `packages/data/src/splits.ts`
-      (`suitsFocus`, `libraryFocus`, split patterns, shoulder-isolation muscles); templates +
-      `TemplateSlot.primaryAny`; warm-ups read `upper`; app tiles, labels, tones, day markers.
-
 ### In progress
 
-- 37k — in-between ladder levels. Plan: new exercise records + new rungs in families.json, keyed by
-  new stable level_ids (e.g. 'squat.l6b' between l6 and l7 — never renumber, invariant 5). Gaps to
-  close: squat jump→pistol (box/assisted pistol), assisted pull-up→chin-up (negatives / band-light
-  assisted), push-up→diamond/decline (close-hand incline?), vertical push banded pike→wall HSPU
-  (wall walk / pike hold), hinge SL-RDL→nordic (eccentric hamstring slider/band-assisted nordic),
-  lunge bulgarian→cossack (assisted cossack). Plus sibling exercises for the backlog's empty high
-  rungs (horizontal_push l7-l9, horizontal_pull l4-l8, anti_extension l4/l6). Each new record needs
-  setup cue, tags (apply the 37c standard + guards), band range. Check validate.ts ladder rules.
+- 37k — in-between ladder levels (resuming from the stash; see below once it is popped).
 
 ### Next
 
-- 37l → 37m → 37n (order in BACKLOG).
+- 37k → 37l → 37m → 37n (order in BACKLOG).
 
 ### Decisions / gotchas
 
@@ -99,9 +88,6 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
   directly are unaffected (onboarding_state stays NULL).
 - Band representation (37i): stacked pairs are real `BandId`s ('B5+B2'), stored as text like any
   band. `bandTensions` stays keyed by single bands; `lib/bandDisplay.ts` renders a pair as both.
-- Push/Pull under the narrowest limitations (e.g. shoulder_overhead + no anchors) give 2 main
-  exercises, not 3: every vertical press, overhead extension and front/side raise carries
-  shoulder_overhead and the rest need anchors. limitationChoices.test.ts accepts 2 for splits; 37l
-  should add overhead-free, self-anchored push/pull accessories and restore the >= 3 expectation.
-- Never chain `git commit` after `npm run check` with `;` — use `&&`. (8063cb5 was amended once for
-  exactly this.)
+- 37j (Push / Pull foci) was built (9db32c0) and then REVERTED at the user's request (e94d0e9):
+  "I do not want separate push/pull focus areas at this time." Parked in BACKLOG Future Features.
+  Do not rebuild it unless asked; 9db32c0 is the reference implementation if it comes back.

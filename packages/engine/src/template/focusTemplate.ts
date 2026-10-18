@@ -6,7 +6,6 @@
  * no eligible exercise, that's a PATTERN GAP (§5.2), not a silently shorter template.
  */
 import type { Exercise, Focus, Pattern } from '@roamfit/data';
-import { SPLIT_SHOULDER_MUSCLES, isSplitFocus } from '@roamfit/data';
 import type { Difficulty, SessionHistoryRecord } from '../types';
 
 export interface TemplateSlot {
@@ -14,9 +13,6 @@ export interface TemplateSlot {
   /** Candidate patterns for this slot, in preference order. Selection tries them in order. */
   patterns: Pattern[];
   required: boolean;
-  /** Track 37j — only exercises whose primary movers include one of these fill the slot. Used where
-   *  a pattern serves two splits (shoulder isolation: front/side delts push, rear delts pull). */
-  primaryAny?: readonly string[];
 }
 
 export interface FocusTemplateResult {
@@ -90,40 +86,6 @@ function upperSlots(
     { id: 'upper.isolation_1', patterns: [UPPER_ISOLATION[0]], required: false },
     { id: 'upper.isolation_2', patterns: [UPPER_ISOLATION[1]], required: false },
     { id: 'upper.isolation_3', patterns: [UPPER_ISOLATION[2]], required: false },
-  ];
-}
-
-/**
- * Track 37j — the Push and Pull splits. Each trains its two laddered patterns (horizontal and
- * vertical) plus the arm muscle that assists them, with shoulder isolation for the delts on that
- * side of the body. Longer sessions add volume through `expandOptionalSlots`' split accessories and
- * `longSessionSetsMultiplier`, as every other focus does.
- */
-function pushSlots(): TemplateSlot[] {
-  return [
-    { id: 'push.horizontal', patterns: ['horizontal_push'], required: true },
-    { id: 'push.vertical', patterns: ['vertical_push'], required: true },
-    { id: 'push.triceps', patterns: ['elbow_extension'], required: true },
-    {
-      id: 'push.delts',
-      patterns: ['shoulder_isolation'],
-      required: false,
-      primaryAny: SPLIT_SHOULDER_MUSCLES.push,
-    },
-  ];
-}
-
-function pullSlots(): TemplateSlot[] {
-  return [
-    { id: 'pull.horizontal', patterns: ['horizontal_pull'], required: true },
-    { id: 'pull.vertical', patterns: ['vertical_pull'], required: true },
-    { id: 'pull.biceps', patterns: ['elbow_flexion'], required: true },
-    {
-      id: 'pull.rear_delts',
-      patterns: ['shoulder_isolation'],
-      required: false,
-      primaryAny: SPLIT_SHOULDER_MUSCLES.pull,
-    },
   ];
 }
 
@@ -223,10 +185,6 @@ const ACCESSORY_PATTERNS_BY_FOCUS: Record<Focus, Pattern[]> = {
   // same slot type. This is what lets a 60-minute cardio session fill with 11-14 conditioning
   // exercises instead of stopping at the base template's 3.
   cardio: ['conditioning'],
-  // Track 37j — a split's isolation work; shoulder isolation is narrowed to that split's delts
-  // (`SPLIT_SHOULDER_MUSCLES`) when the slot is built.
-  push: ['elbow_extension', 'shoulder_isolation'],
-  pull: ['elbow_flexion', 'shoulder_isolation'],
 };
 
 /**
@@ -264,14 +222,7 @@ export function expandOptionalSlots(
   let i = 0;
   while (slots.length < ceiling) {
     const pattern = patterns[(offset + i) % patterns.length];
-    slots.push({
-      id: `${focus}.extra.${i}`,
-      patterns: [pattern],
-      required: false,
-      ...(isSplitFocus(focus) && pattern === 'shoulder_isolation'
-        ? { primaryAny: SPLIT_SHOULDER_MUSCLES[focus] }
-        : {}),
-    });
+    slots.push({ id: `${focus}.extra.${i}`, patterns: [pattern], required: false });
     i++;
   }
   return { slots, leadPattern: base.leadPattern };
@@ -361,10 +312,6 @@ export function buildFocusTemplate(input: BuildTemplateInput): FocusTemplateResu
       return { slots: fullSlots(history, library) };
     case 'cardio':
       return { slots: cardioSlots() };
-    case 'push':
-      return { slots: pushSlots() };
-    case 'pull':
-      return { slots: pullSlots() };
   }
 }
 

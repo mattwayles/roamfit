@@ -4,7 +4,6 @@
  * respects REPEATEDLY-SKIPPED suppression, a per-exercise-state fact independent of pool size.
  */
 import type { Exercise, Focus, Role } from '@roamfit/data';
-import { libraryFocus } from '@roamfit/data';
 import type { Rng, UserState, LocalDate } from '../types';
 import { buildCandidates } from './candidates';
 import { rngIndex } from '../rng';
@@ -39,8 +38,7 @@ export function selectWarmupCooldown(input: SelectWarmupCooldownInput): Exercise
   // the warm-up took it, the session ended up with no cool-down at all.)
   const rolePool = pool.filter((e) => e.roles.includes(role));
   const available = excludeIds ? rolePool.filter((e) => !excludeIds.has(e.id)) : rolePool;
-  // Push and Pull warm up and cool down like any upper-body session (track 37j).
-  const focusPool = available.filter((e) => e.focus.includes(libraryFocus(focus)));
+  const focusPool = available.filter((e) => e.focus.includes(focus));
   // A leg day must not warm up shoulders, and an upper day must not stretch quads — falling all
   // the way back to the unfiltered role pool (as this used to) can hand a legs session an
   // upper-only movement the moment the legs pool is thin (rotation exclusion, REPEATEDLY-SKIPPED

@@ -223,9 +223,6 @@ describe('multi-session simulation', () => {
       // `foci` above doesn't simulate cardio (track 14 increment 3), so this is never checked —
       // present only so the Record<Focus, ...> literal stays exhaustive.
       cardio: [],
-      // Not simulated here either (track 37j has its own suite, splits.test.ts).
-      push: [],
-      pull: [],
     };
     for (const [focus, required] of Object.entries(REQUIRED_PATTERNS) as [Focus, string[]][]) {
       const seen = patternsSeenByFocus.get(focus);

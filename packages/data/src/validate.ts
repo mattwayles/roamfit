@@ -18,7 +18,7 @@ import type {
   Role,
   Difficulty,
   Equipment,
-  LibraryFocus,
+  Focus,
   Contraindication,
 } from './schema';
 
@@ -26,7 +26,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const LIB_DIR = path.join(__dirname, '..', 'library');
 
-const FOCUS_VALUES: LibraryFocus[] = ['upper', 'abs', 'legs', 'full', 'cardio'];
+const FOCUS_VALUES: Focus[] = ['upper', 'abs', 'legs', 'full', 'cardio'];
 const PATTERN_VALUES: Pattern[] = [
   'horizontal_push',
   'vertical_push',
@@ -379,7 +379,7 @@ function main() {
   // too (jumping jack/high knees keep a warmup role; calf/hip-flexor/hamstring cooldown
   // stretches and a couple of dynamic warmups picked up the `cardio` focus), so this is back to
   // a plain `Record<Focus, Pattern[]>` now that every focus has an entry.
-  const TEMPLATE_PATTERNS: Record<LibraryFocus, Pattern[]> = {
+  const TEMPLATE_PATTERNS: Record<Focus, Pattern[]> = {
     upper: [
       'horizontal_push',
       'horizontal_pull',

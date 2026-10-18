@@ -49,8 +49,7 @@ const TIME_OPTIONS = [15, 20, 30, 45, 60, 90, 120]; // ADR 0002 floor, ADR 0013 
 // Cardio last: it's the newest, least-habitual choice, and putting it after the four
 // muscle-group focuses keeps their relative order (and therefore existing muscle memory for
 // where a focus sits in the picker) unchanged.
-// Track 37j: Push and Pull sit after the original four, before Cardio, for the same reason.
-const FOCUS_OPTIONS: Focus[] = ['upper', 'abs', 'legs', 'full', 'push', 'pull', 'cardio'];
+const FOCUS_OPTIONS: Focus[] = ['upper', 'abs', 'legs', 'full', 'cardio'];
 /** Tile icon + one-line flavor per focus (DESIGN.md §5.5). Color comes from the semantic `focus`
  *  map; `FOCUS_TONE` (lib/focusLabels) is the same mapping by accent name. */
 const FOCUS_FLAVOR: Record<Focus, { icon: IconName; flavor: string }> = {
@@ -59,8 +58,6 @@ const FOCUS_FLAVOR: Record<Focus, { icon: IconName; flavor: string }> = {
   legs: { icon: 'walk', flavor: 'Squats, lunges, hinges' },
   full: { icon: 'body', flavor: 'Head to toe' },
   cardio: { icon: 'pulse', flavor: 'Heart rate up' },
-  push: { icon: 'push', flavor: 'Chest, shoulders, triceps' },
-  pull: { icon: 'pull', flavor: 'Back, biceps, rear delts' },
 };
 const DIFFICULTY_OPTIONS: Difficulty[] = ['easy', 'medium', 'hard'];
 /** Flames shown over each intensity label (text labels stay: emoji-alone was rejected earlier). */
