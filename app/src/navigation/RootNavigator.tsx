@@ -13,6 +13,7 @@ import GlossaryScreen from '../screens/GlossaryScreen';
 import TrainingPreferencesScreen from '../screens/TrainingPreferencesScreen';
 import PlacementScreen from '../screens/PlacementScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
+import BandsScreen from '../screens/BandsScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import SessionHistoryScreen from '../screens/SessionHistoryScreen';
 import { useTheme } from '../theme';
@@ -45,6 +46,7 @@ export default function RootNavigator(): React.JSX.Element {
       <Stack.Screen name="AnchorSafety" component={AnchorSafetyScreen} options={{ title: '' }} />
       <Stack.Screen name="Glossary" component={GlossaryScreen} options={{ title: '' }} />
       <Stack.Screen name="Placement" component={PlacementScreen} options={{ title: '' }} />
+      <Stack.Screen name="Bands" component={BandsScreen} options={{ title: '' }} />
       {/* Setup draws its own step header and footer, like the first-launch gate it reuses. */}
       <Stack.Screen
         name="Onboarding"

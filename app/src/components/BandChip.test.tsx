@@ -12,7 +12,7 @@ import { StyleSheet } from 'react-native';
 import { render, screen, waitFor } from '@testing-library/react-native';
 import { DEFAULT_BAND_TENSIONS } from '@roamfit/store';
 import { daybreak, midnight } from '../theme';
-import { inDaybreak } from '../ui/test-utils';
+import { flat, inDaybreak, ready } from '../ui/test-utils';
 import BandChip, { textColorOn, textToneOn } from './BandChip';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
@@ -94,5 +94,15 @@ describe('BandChip', () => {
   it('every default band is distinguishable from its neighbours', () => {
     const colors = Object.values(DEFAULT_BAND_TENSIONS).map((b) => b.color);
     expect(new Set(colors).size).toBe(colors.length);
+  });
+});
+
+describe('a stacked pair (track 37i)', () => {
+  it('shows both bands, by name, and says it is stacked', async () => {
+    await render(<BandChip band="B5+B2" tensions={DEFAULT_BAND_TENSIONS} size="lg" />);
+    await ready('band-chip-B5+B2');
+    expect(screen.getByText('B5 + B2')).toBeTruthy();
+    expect(screen.getByLabelText('Bands B5 + B2, stacked')).toBeTruthy();
+    expect(flat('band-chip-B5+B2-second').backgroundColor).toBe(DEFAULT_BAND_TENSIONS.B2.color);
   });
 });

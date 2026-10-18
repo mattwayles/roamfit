@@ -24,8 +24,6 @@ level-up offer from the active workout; the bundled demo loops/videos are the us
 local-device history / account persistence issue is the user's to handle (see Future Features →
 User Accounts).
 
-- **37i — Bands owned, band editor, band stacking above B5.** Which bands the user owns (prescriptions
-  only use owned bands), a label/colour editor for each, and stacking two bands for tension above B5.
 - **37j — Push / Pull focus.** New Push and Pull foci next to Upper / Legs / Full.
 - **37k — In-between ladder levels for beginners.** Rungs that close the big jumps (e.g. squat jump →
   pistol, assisted pull-up → chin-up, push-up → diamond), plus the high rungs that currently have no

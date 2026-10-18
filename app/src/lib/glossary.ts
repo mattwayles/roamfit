@@ -73,7 +73,12 @@ export const GLOSSARY: readonly GlossaryGroup[] = [
       {
         term: 'Band (B1 to B5)',
         definition:
-          'Your bands, lightest (B1) to heaviest (B5). Each has a colour, so a prescription matches the band in your bag.',
+          'Your bands, lightest (B1) to heaviest (B5). Name and colour each one in Settings → Your bands, so a prescription matches the band in your bag.',
+      },
+      {
+        term: 'Band stacking',
+        definition:
+          'Using your heaviest band together with a lighter one, side by side, for more tension than either alone. Turn it on in Settings → Your bands once B5 is no longer enough.',
       },
       {
         term: 'Anchor point',

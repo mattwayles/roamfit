@@ -25,6 +25,7 @@ import { DISCLAIMER_TEXT } from '../lib/disclaimer';
 import { makeStyles, space } from '../theme';
 import { Button, Card, Screen, TopoPattern, Txt } from '../ui';
 import { AnchorSafetyGuide } from './AnchorSafetyGuide';
+import { BandSetup } from './BandSetup';
 import { DAYS_PER_WEEK_CAPTION, DaysPerWeekStepper } from './DaysPerWeekStepper';
 import { LimitationPicker } from './LimitationPicker';
 import { DEFAULT_PLACEMENT, PlacementPicker } from './PlacementPicker';
@@ -32,13 +33,15 @@ import type { PlacementValue } from './PlacementPicker';
 import { CheckRow, Group } from './SettingsList';
 import { TrainingOptionPicker } from './TrainingOptionPicker';
 
-type StepId = 'welcome' | 'goal' | 'placement' | 'equipment' | 'limitations' | 'days' | 'safety';
+type StepId =
+  'welcome' | 'goal' | 'placement' | 'equipment' | 'bands' | 'limitations' | 'days' | 'safety';
 
 const STEP_TITLES: Record<StepId, string> = {
   welcome: 'Welcome to Wanderlift',
   goal: 'What are you training for?',
   placement: 'Where are you starting from?',
   equipment: 'What do you have to train with?',
+  bands: 'Your bands',
   limitations: 'Anything to work around?',
   days: 'How often do you want to train?',
   safety: 'Anchoring bands safely',
@@ -50,6 +53,8 @@ const STEP_INTROS: Partial<Record<StepId, string>> = {
     'Answer what you can and each trail starts at a level that fits. Skip it and everything starts at the first level, which is right for most beginners.',
   equipment:
     'Tick what you can use. Bodyweight moves, and band moves that anchor under your feet or around your body, are always included.',
+  bands:
+    'Untick any bands you do not have, and name or recolour them to match yours. No bands is fine too.',
   limitations:
     'Wanderlift will leave out anything that loads what you tick. You can change this any time in Settings.',
   days: 'A rough number is fine. Train on whichever days suit you.',
@@ -67,8 +72,8 @@ export function OnboardingFlow({
   const steps: StepId[] = useMemo(
     () =>
       mode === 'first'
-        ? ['welcome', 'goal', 'placement', 'equipment', 'limitations', 'days', 'safety']
-        : ['goal', 'placement', 'equipment', 'limitations', 'days', 'safety'],
+        ? ['welcome', 'goal', 'placement', 'equipment', 'bands', 'limitations', 'days', 'safety']
+        : ['goal', 'placement', 'equipment', 'bands', 'limitations', 'days', 'safety'],
     [mode],
   );
   const [user, setUser] = useState(() => usersRepo.ensureUser(db, nowUtcInstant()));
@@ -277,6 +282,18 @@ export function OnboardingFlow({
             </Group>
           ))
         : null}
+
+      {step === 'bands' ? (
+        <BandSetup
+          settings={user.bandSettings}
+          tensions={user.bandTensions}
+          onChangeSettings={(bandSettings) => save({ bandSettings })}
+          onChangeTension={(band, patch) => {
+            usersRepo.updateBandTension(db, band, patch, nowUtcInstant());
+            refresh();
+          }}
+        />
+      ) : null}
 
       {step === 'limitations' ? (
         <LimitationPicker

@@ -48,25 +48,23 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
       options moved to `lib/equipment.ts`, disclaimer to `lib/disclaimer.ts`; `DaysPerWeekStepper`
       shared; Button gained `accessibilityHint`.
 
+- [x] 37i — bands: (1) engine stacked pairs + usable bands (9909de2), (2) store `users.band_settings`
+      (5a79bd4), (3) `components/BandSetup.tsx` (owned, rename/recolour from a palette, stacking),
+      Settings → Training → Your bands, onboarding "Your bands" step, glossary "Band stacking".
+
 ### In progress
 
-- 37i — bands, in 3 increments. DECIDED representation:
-  - `BAND_ORDER` becomes the full 9-step order: B1..B5 then stacked 'B5+B1','B5+B2','B5+B3','B5+B4'
-    (B5 plus a lighter band, tensions roughly add). `SINGLE_BANDS` = B1..B5, `STACKED_BANDS` = the 4.
-  - `UserProfile.bands?: { owned: SingleBandId[]; stacking: boolean }`; absent = all five owned, no
-    stacking = pre-37i behaviour exactly. `usableBands(bands)` = owned singles + stacked pairs whose
-    two bands are owned (only when stacking is on).
-  - Progression skips unusable bands (`microAdvance`/`microRegress` take `usable?`), so a ladder can
-    never loop between an unowned band and the owned one below it. Open-range (accessory) ladders top
-    out at the heaviest usable band (B5 by default, a stacked pair with stacking on).
-  - Prescription clamps every entry's band to usable (nearest at or below, else lightest above).
-  - Owning no bands at all excludes band exercises (hard filter), like equipment preference.
-  - [x] (1) engine → [x] (2) store `users.band_settings` (migration 0033), `updateBandTension`, completion + completion/generation/swap → (3) app Bands screen, stacked
-    display in BandChip/BandPicker, onboarding "Your bands" step, glossary terms.
+- 37j — Push / Pull focus. Plan: `Focus` gains 'push' | 'pull' (packages/data schema + validate +
+  engine llm validate FOCUS_VALUES); templates in `focusTemplate.ts` (push: horizontal_push,
+  vertical_push, elbow_extension/shoulder_isolation; pull: horizontal_pull, vertical_pull,
+  elbow_flexion/rear delts); exercises need `focus` tags? — NO: check how templates pick (by pattern
+  slots), so library focus tags may not matter for main; warm-up/cool-down selection keys on
+  `exercise.focus` — map push/pull to 'upper' there. App: FOCUS_LABELS/FOCUS_TONE, Generate tiles,
+  day markers, recommendFocus (keep it to the existing areas). Glossary "Focus" entry gains Push, Pull.
 
 ### Next
 
-- 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
+- 37k → 37l → 37m → 37n (order in BACKLOG).
 
 ### Decisions / gotchas
 
@@ -89,11 +87,11 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
 - `packages/data/scripts/migrate_library.py` still contains the old travel copy — it is a historical
   one-shot migration, not a generator; exercises.json is edited directly (python json.dump indent=2 +
   trailing newline reproduces the file byte-for-byte).
-- Glossary terms to add when their features land: "Band stacking" (37i), naming/colouring bands in
-  Settings (37i, the "Band (B1 to B5)" entry), Push and Pull in the "Focus" entry (37j).
+- Glossary term still to update when its feature lands: Push and Pull in the "Focus" entry (37j).
 - Goal ranges are OFFSETS on the 8-12 / 20-45s ladder (strength -3 reps/-5s, endurance +7/+10s,
   muscle +1 set), so each rung stays a one-step change and switching goal never re-denominates state.
 - Gate tests that acknowledge the disclaimer via the UI must now press `onboarding-skip` after it
   (see HomeScreen.dashboard / JourneyScreen.* tests). Tests that call `usersRepo.acknowledgeDisclaimer`
   directly are unaffected (onboarding_state stays NULL).
-- Onboarding's bands step is not built yet — it lands with 37i.
+- Band representation (37i): stacked pairs are real `BandId`s ('B5+B2'), stored as text like any
+  band. `bandTensions` stays keyed by single bands; `lib/bandDisplay.ts` renders a pair as both.

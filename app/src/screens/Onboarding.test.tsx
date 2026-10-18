@@ -37,7 +37,7 @@ describe('first-launch setup', () => {
     expect(screen.queryByTestId('tab-Journey')).toBeNull();
     await press('disclaimer-acknowledge');
     await step('goal');
-    expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('2 of 7');
+    expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('2 of 8');
     expect(usersRepo.getUser(getDb())!.onboardingInProgress).toBe(true);
 
     await screen.unmount();
@@ -62,6 +62,11 @@ describe('first-launch setup', () => {
     await step('equipment');
     expect(checked('onboarding-anchor-anchor-mid')).toBe(false); // nothing is assumed (37b)
     await press('onboarding-anchor-anchor-mid');
+    await press('onboarding-next');
+
+    await step('bands');
+    await press('band-owned-B1');
+    await press('toggle-band-stacking');
     await press('onboarding-next');
 
     await step('limitations');
@@ -90,6 +95,7 @@ describe('first-launch setup', () => {
     expect(user.anchorsAvailable).toEqual(['anchor-mid']);
     expect(user.limitationChoices.map((c) => c.id)).toEqual(['knee']);
     expect(user.weeklyTarget).toBe(4);
+    expect(user.bandSettings).toEqual({ owned: ['B2', 'B3', 'B4', 'B5'], stacking: true });
     expect(progressionStateRepo.getAllProgressionStates(getDb()).horizontal_push.levelId).toBe(
       'horizontal_push.l6',
     );
@@ -103,7 +109,7 @@ describe('first-launch setup', () => {
     await ready('settings-run-setup');
     await press('settings-run-setup');
     await step('goal');
-    expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('1 of 6');
+    expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('1 of 7');
     expect(checked('pref-goal-muscle')).toBe(true);
     await press('onboarding-next');
     await step('placement');
@@ -111,6 +117,9 @@ describe('first-launch setup', () => {
     await press('onboarding-next');
     await step('equipment');
     expect(checked('onboarding-anchor-anchor-mid')).toBe(true);
+    await press('onboarding-next');
+    await step('bands');
+    expect(checked('band-owned-B1')).toBe(false);
     await press('onboarding-skip'); // "Close"
     await ready('settings-screen');
     expect(progressionStateRepo.getAllProgressionStates(getDb())).toEqual(before);

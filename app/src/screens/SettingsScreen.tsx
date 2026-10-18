@@ -311,6 +311,19 @@ export default function SettingsScreen(): React.JSX.Element {
             hint="Opens the placement questions to move every trail to a level that fits"
             onPress={() => navigation.navigate('Placement')}
           />
+          <NavRow
+            testID="settings-bands"
+            icon="anchor"
+            tone="sky"
+            label="Your bands"
+            value={
+              user.bandSettings.owned.length === 0
+                ? 'No bands'
+                : `${user.bandSettings.owned.length} of 5${user.bandSettings.stacking ? ' · stacking' : ''}`
+            }
+            hint="Opens which bands you own, their names and colours, and stacking"
+            onPress={() => navigation.navigate('Bands')}
+          />
           <SwitchRow
             testID="toggle-cue-sounds"
             icon="volume"

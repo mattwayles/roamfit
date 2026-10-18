@@ -36,6 +36,8 @@ export type RootStackParamList = {
   Limitations: undefined;
   /** Track 37f — Settings → Training → Training preferences. */
   TrainingPreferences: undefined;
+  /** Track 37i — Settings → Your bands. */
+  Bands: undefined;
   /** Track 37h — Settings → Run setup again (onboarding in review mode). */
   Onboarding: undefined;
   /** Track 37g — Settings → Training → Starting levels (placement). */

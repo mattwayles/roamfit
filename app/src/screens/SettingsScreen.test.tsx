@@ -346,3 +346,28 @@ describe('starting levels (track 37g)', () => {
     );
   });
 });
+
+describe('your bands (track 37i)', () => {
+  it('owned bands, stacking, and renaming and recolouring a band all save', async () => {
+    await openSettings();
+    expect(screen.getByTestId('settings-bands-value')).toHaveTextContent('5 of 5');
+    await fireEvent.press(screen.getByTestId('settings-bands'));
+    await ready('bands-screen');
+    await fireEvent.press(screen.getByTestId('band-owned-B5'));
+    expect(checked('band-owned-B5')).toBe(false);
+    await fireEvent.press(screen.getByTestId('toggle-band-stacking'));
+    expect(screen.getByTestId('bands-stacking-note')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('band-edit-B2'));
+    await fireEvent.changeText(screen.getByTestId('band-label-B2'), 'Red loop');
+    await fireEvent(screen.getByTestId('band-label-B2'), 'endEditing');
+    await fireEvent.press(screen.getByTestId('band-color-B2-Blue'));
+    const user = usersRepo.getUser(getDb())!;
+    expect(user.bandSettings).toEqual({ owned: ['B1', 'B2', 'B3', 'B4'], stacking: true });
+    expect(user.bandTensions.B2).toEqual({ label: 'Red loop', color: '#2563eb' });
+    usersRepo.updateUser(
+      getDb(),
+      { bandSettings: { owned: ['B1', 'B2', 'B3', 'B4', 'B5'], stacking: false } },
+      nowUtcInstant(),
+    );
+  });
+});
