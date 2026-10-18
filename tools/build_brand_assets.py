@@ -12,21 +12,32 @@ solid = a[lum > np.percentile(lum, 97)]
 teal = np.median(solid, axis=0)
 print('bg', bg, 'teal', teal)
 alpha = np.clip((a[...,1]-bg[1])/(teal[1]-bg[1]), 0, 1)
-# upscale alpha smoothly
-def render(scale_h, size, out, opaque_bg=None):
-    h = int(size*scale_h); w = int(h*src.width/src.height)
+# Tight box around the mark (glow excluded), so the fractions below are of the mark itself.
+ys, xs = np.where(alpha > 0.35)
+x0, x1, y0, y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+pad = 40  # source px kept around the mark so the glow is not clipped
+x0, y0 = max(x0 - pad, 0), max(y0 - pad, 0)
+x1, y1 = min(x1 + pad, alpha.shape[1]), min(y1 + pad, alpha.shape[0])
+alpha = alpha[y0:y1, x0:x1].copy()
+# Fade the glow to nothing at the crop edge so it cannot show as a rectangle.
+def ramp(n, f=24):
+    r = np.ones(n); t = np.linspace(0, 1, f)
+    r[:f] = np.minimum(r[:f], t); r[-f:] = np.minimum(r[-f:], t[::-1]); return r
+alpha *= ramp(alpha.shape[0])[:, None] * ramp(alpha.shape[1])[None, :]
+mark_h = (ys.max() + 1 - ys.min())  # unpadded mark height, source px
+
+def render(mark_frac, size, out, opaque_bg=None):
+    # scale so the mark (not the padded crop) is `mark_frac` of the canvas height
+    k = size * mark_frac / mark_h
+    h = int(alpha.shape[0] * k); w = int(alpha.shape[1] * k)
     al = Image.fromarray((alpha*255).astype('uint8')).resize((w,h), Image.LANCZOS)
-    # tighten the soft edge a little after upscale, keep glow
     arr = np.asarray(al).astype(float)/255
     arr = np.clip((arr-0.04)/0.96,0,1)
     rgba = np.zeros((h,w,4),'uint8'); rgba[...,:3]=teal.astype('uint8'); rgba[...,3]=(arr*255).astype('uint8')
     logo = Image.fromarray(rgba,'RGBA')
-    if opaque_bg:
-        canvas = Image.new('RGBA',(size,size),opaque_bg)
-    else:
-        canvas = Image.new('RGBA',(size,size),(0,0,0,0))
+    canvas = Image.new('RGBA',(size,size),opaque_bg or (0,0,0,0))
     canvas.alpha_composite(logo, ((size-w)//2,(size-h)//2))
     if opaque_bg: canvas = canvas.convert('RGB')
     canvas.save(out)
-render(0.74, 1024, 'app/assets/icon.png', (11,14,19,255))
-render(0.62, 1024, 'app/assets/splash-icon.png')
+render(0.78, 1024, 'app/assets/icon.png', (11,14,19,255))
+render(0.50, 1024, 'app/assets/splash-icon.png')
