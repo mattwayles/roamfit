@@ -64,6 +64,8 @@ export const users = sqliteTable('users', {
   spotifyVibes: text('spotify_vibes').notNull().default('[]'),
   /** Track 37a — JSON `[{ id, since }]` of `LIMITATION_CHOICES` ids (migration 0029). */
   limitationChoices: text('limitation_choices').notNull().default('[]'),
+  /** Track 37f — JSON `Partial<TrainingPreferences>`; `{}` = every default (migration 0030). */
+  trainingPrefs: text('training_prefs').notNull().default('{}'),
   /** JSON: { enabled, quiet_hours, observed_training_window }. */
   notificationPrefs: text('notification_prefs').notNull().default('{}'),
   /** §12 — the tz_id last observed for this device; compared against a new session's tz_id to
@@ -119,6 +121,8 @@ export const exerciseState = sqliteTable(
     microRestSec: integer('micro_rest_sec'),
     microSets: integer('micro_sets'),
     microConsecutiveMisses: integer('micro_consecutive_misses').notNull().default(0),
+    /** Track 37f — qualifying sessions banked under a "patient" pace (migration 0030). */
+    microConsecutiveHits: integer('micro_consecutive_hits').notNull().default(0),
     /** -1..+1, too_hard..too_easy. EMA over explicit difficulty feedback (§8.1). */
     difficultyEma: real('difficulty_ema').notNull().default(0),
     skipCount: integer('skip_count').notNull().default(0),

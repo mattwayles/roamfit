@@ -63,6 +63,7 @@ function rowToState(row: typeof schema.exerciseState.$inferSelect): EngineExerci
           }
         : null,
     accessoryMisses: row.microConsecutiveMisses,
+    accessoryHits: row.microConsecutiveHits,
     difficultyEma: row.difficultyEma,
     skipCount: row.skipCount,
     swapAwayCount: row.swapAwayCount,
@@ -194,6 +195,7 @@ export function recordAccessoryProgression(
       microRestSec: state.micro.restSec,
       microSets: state.micro.sets,
       microConsecutiveMisses: state.consecutiveMisses,
+      microConsecutiveHits: state.consecutiveHits ?? 0,
       updatedAt: now,
     })
     .where(

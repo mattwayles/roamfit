@@ -1,4 +1,4 @@
-import { clampToQuietHours, shiftTime } from './motivationNotifications';
+import { clampToQuietHours, quietHoursLabel, shiftTime } from './motivationNotifications';
 
 describe('§9.8 quiet hours — never dropped, moved to a gentle default instead', () => {
   it('leaves a daytime time untouched', () => {
@@ -32,5 +32,20 @@ describe('shiftTime — the Settings time stepper, wraps around midnight', () =>
 
   it('wraps backward past midnight', () => {
     expect(shiftTime('00:10', -15)).toBe('23:55');
+  });
+});
+
+describe('a user-set quiet window (track 37f)', () => {
+  it('clamps into the chosen window, wrapping midnight or not, and an empty window clamps nothing', () => {
+    expect(clampToQuietHours('21:30', true, 21, 6)).toBe('06:00');
+    expect(clampToQuietHours('06:30', true, 21, 6)).toBe('06:30');
+    expect(clampToQuietHours('13:00', true, 12, 14)).toBe('14:00');
+    expect(clampToQuietHours('11:59', true, 12, 14)).toBe('11:59');
+    expect(clampToQuietHours('03:00', true, 9, 9)).toBe('03:00');
+  });
+
+  it('labels the window', () => {
+    expect(quietHoursLabel(22, 7)).toBe('10pm–7am');
+    expect(quietHoursLabel(0, 12)).toBe('12am–12pm');
   });
 });

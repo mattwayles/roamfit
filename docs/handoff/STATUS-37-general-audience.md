@@ -28,20 +28,20 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
       stored progression state; pace via `applySessionResult(..., { sessionsPerStep })` and
       `applyAccessorySessionResult(..., sessionsPerStep)`.
 
+- [x] 37f store/app — migration 0030 (`users.training_prefs`, `exercise_state.micro_consecutive_hits`);
+      completion passes the pace to both verdicts; Approval's add-exercise applies the goal;
+      Settings → Training → Training preferences screen (goal, rest, variety, recovery, pace, warm-up,
+      days per week); quiet-hours window editable (`notificationPrefs.quietHoursStart/End`).
+
 ### In progress
 
-- 37f store/app — next: migration 0030 (`users.training_prefs` JSON + `exercise_state.micro_consecutive_hits`),
-  `UserRecord.trainingPreferences`, `buildUserProfile` passes `training`, completion passes
-  `sessionsPerStepFor(pace)` to both verdicts, ApprovalScreen add-exercise applies
-  `applyTrainingToMainEntry`. Then the Settings screen, then the learned changeover time.
-- (superseded plan text) 37f — training preferences. Engine: a `TrainingPreferences` type on `UserProfile` (optional;
-  absent = today's constants), read by progression ranges, rest, cooldown windows, recovery window,
-  progression pace, warm-up/cool-down minutes, changeover time. Store: one JSON column
-  `users.training_prefs` (migration 0030). App: Settings → Training → "Training preferences" screen.
+- 37f last piece — learned changeover time: replace the flat 60s `TRANSITION_BUFFER_SEC` with a
+  per-user value learned from completed sessions (store computes it; engine takes it on
+  `TrainingPreferences`-adjacent profile field), clamped, default 60s.
 
 ### Next
 
-- 37f → 37g → 37h → 37i → 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
+- 37g → 37h → 37i → 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
 
 ### Decisions / gotchas
 

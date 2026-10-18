@@ -22,9 +22,9 @@ function appliedIds(client: Client): string[] | null {
     "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '_migrations'",
   ).rows;
   if (hasTable.length === 0) return null;
-  return (client.executeSync('SELECT id FROM _migrations ORDER BY id').rows as { id: string }[]).map(
-    (r) => r.id,
-  );
+  return (
+    client.executeSync('SELECT id FROM _migrations ORDER BY id').rows as { id: string }[]
+  ).map((r) => r.id);
 }
 
 /** Moves `legacyName` to `newName` if `legacyName` holds data. Throws (leaving the legacy file

@@ -11,6 +11,7 @@ import {
   addDays,
   applyAccessorySessionResult,
   applySessionResult,
+  sessionsPerStepFor,
   BAND_ORDER,
   isPassedRungBandExercise,
   progressesAsAccessory,
@@ -193,6 +194,7 @@ function progressAccessoryEntry(
   summary: WorkingSetSummary,
   now: string,
   seedFrom: 'remembered' | 'prescribed',
+  sessionsPerStep: number,
 ): void {
   const stored = getExerciseState(db, entry.exerciseId);
   const micro =
@@ -207,7 +209,11 @@ function progressAccessoryEntry(
     });
   const changedBand = summary.finalBand !== entry.band;
   const result = applyAccessorySessionResult(
-    { micro, consecutiveMisses: stored?.accessoryMisses ?? 0 },
+    {
+      micro,
+      consecutiveMisses: stored?.accessoryMisses ?? 0,
+      consecutiveHits: stored?.accessoryHits ?? 0,
+    },
     exercise,
     {
       allSetsMetTarget: summary.allAtOrAboveTarget,
@@ -216,6 +222,7 @@ function progressAccessoryEntry(
       finalBand: changedBand ? summary.finalBand : undefined,
       finalBandHeldThroughout: summary.finalBandHeldThroughout,
     },
+    sessionsPerStep,
   );
   recordAccessoryProgression(db, entry.exerciseId, result.state, now);
 }
@@ -264,7 +271,9 @@ export function seedAccessoryProgressionFromHistory(
     const summary = summarizeEntry(entry);
     if (!summary.anyCompleted) continue; // nothing performed here — try an older session
     settled.add(row.exerciseId);
-    progressAccessoryEntry(db, entry, exercise, summary, now, 'prescribed');
+    // A one-time catch-up replaying a verdict from before accessories had a ladder: it earns its
+    // one step, as documented above, whatever pace the user has since chosen.
+    progressAccessoryEntry(db, entry, exercise, summary, now, 'prescribed', 1);
   }
 }
 
@@ -316,6 +325,10 @@ export function completeSession(
     const muscleVolume: MuscleVolumeEntry[] = [];
 
     const progressionStates = getAllProgressionStates(txDb);
+    // Track 37f — the user's progression pace: how many qualifying sessions one step takes.
+    const sessionsPerStep = sessionsPerStepFor(
+      (getUser(txDb) ?? ensureUser(txDb, now)).trainingPreferences.pace,
+    );
     // Group entries by family so a family with more than one entry in the session (not expected
     // by current templates, but not structurally forbidden) still gets one performance verdict.
     const byFamily = new Map<string, SessionEntryRecord[]>();
@@ -353,7 +366,15 @@ export function completeSession(
           now,
         );
         if (climbsOwnLadder(entry, exercise, input.families)) {
-          progressAccessoryEntry(txDb, entry, exercise!, summary, now, 'remembered');
+          progressAccessoryEntry(
+            txDb,
+            entry,
+            exercise!,
+            summary,
+            now,
+            'remembered',
+            sessionsPerStep,
+          );
         }
         if (improvedBestSet) {
           milestoneTypes.push('best_set_pr');
@@ -425,7 +446,9 @@ export function completeSession(
         programmedExerciseId: entries[0].exerciseId,
       };
 
-      const result = applySessionResult(state, family, input.library.exercises, perf);
+      const result = applySessionResult(state, family, input.library.exercises, perf, {
+        sessionsPerStep,
+      });
       upsertProgressionState(txDb, result.state, now);
       progressionEvents.push({ familyId, event: result.event });
 

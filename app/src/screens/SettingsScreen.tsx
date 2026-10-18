@@ -25,10 +25,17 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { limitationSummary } from '../components/LimitationPicker';
+import { trainingSummary } from '../lib/trainingOptions';
 import { instrumentationRepo, progressionStateRepo, usersRepo } from '@roamfit/store';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
-import { MAX_DAILY_MOTIVATION_TIMES, shiftTime } from '../lib/motivationNotifications';
+import {
+  DEFAULT_QUIET_HOURS_END,
+  DEFAULT_QUIET_HOURS_START,
+  MAX_DAILY_MOTIVATION_TIMES,
+  quietHoursLabel,
+  shiftTime,
+} from '../lib/motivationNotifications';
 import { makeStyles, radius, space } from '../theme';
 import { useThemePreference } from '../state/ThemeProvider';
 import type { ThemePreference } from '@roamfit/store';
@@ -224,6 +231,20 @@ export default function SettingsScreen(): React.JSX.Element {
   }, [db, families, library]);
 
   const quietHoursEnabled = user.notificationPrefs.quietHoursEnabled ?? true;
+  const quietStart = user.notificationPrefs.quietHoursStart ?? DEFAULT_QUIET_HOURS_START;
+  const quietEnd = user.notificationPrefs.quietHoursEnd ?? DEFAULT_QUIET_HOURS_END;
+  const adjustQuietHour = (which: 'start' | 'end', delta: number) => {
+    const current = which === 'start' ? quietStart : quietEnd;
+    const next = (current + delta + 24) % 24;
+    usersRepo.updateUser(
+      db,
+      {
+        notificationPrefs: which === 'start' ? { quietHoursStart: next } : { quietHoursEnd: next },
+      },
+      nowUtcInstant(),
+    );
+    refresh();
+  };
   const motivationEnabled = user.notificationPrefs.motivationEnabled ?? true;
 
   const diagnosticsLines = useMemo(() => {
@@ -276,6 +297,15 @@ export default function SettingsScreen(): React.JSX.Element {
           title="Training"
           caption="Timer sounds: the 3-2-1 count, the halfway chime and the end-of-rest tone. They mix with whatever else is playing rather than pausing it. Vibration cues are unaffected either way, so a silent workout still tells you when a hold or a rest is up. There is also a mute button on the workout itself, for one session at a time. “Ask how each exercise felt” opens a quick Too easy / Just right / Too hard question over the rest timer after an exercise’s last set; off, the same question sits on that rest page instead."
         >
+          <NavRow
+            testID="settings-training-preferences"
+            icon="barbell"
+            tone="teal"
+            label="Training preferences"
+            value={`${trainingSummary(user.trainingPreferences)} · ${user.weeklyTarget} days a week`}
+            hint="Opens goal, rest, variety, recovery, pace and warm-up settings"
+            onPress={() => navigation.navigate('TrainingPreferences')}
+          />
           <SwitchRow
             testID="toggle-cue-sounds"
             icon="volume"
@@ -314,10 +344,46 @@ export default function SettingsScreen(): React.JSX.Element {
             testID="toggle-quiet-hours"
             icon="moon"
             tone="teal"
-            label="Quiet hours (10pm–7am)"
+            label={`Quiet hours (${quietHoursLabel(quietStart, quietEnd)})`}
             value={quietHoursEnabled}
             onValueChange={toggleQuietHours}
           />
+          {quietHoursEnabled ? (
+            <View style={styles.times} testID="quiet-hours-window">
+              {(
+                [
+                  ['start', 'Quiet from', quietStart],
+                  ['end', 'Until', quietEnd],
+                ] as const
+              ).map(([which, label, hour]) => (
+                <View key={which} style={styles.timeRow}>
+                  <Txt variant="bodyStrong">{label}</Txt>
+                  <View style={styles.timePill}>
+                    <IconButton
+                      testID={`quiet-${which}-minus`}
+                      icon="remove"
+                      accessibilityLabel={`${label} one hour earlier`}
+                      onPress={() => adjustQuietHour(which, -1)}
+                    />
+                    <Txt
+                      variant="h2"
+                      style={styles.timeValue}
+                      testID={`quiet-${which}-value`}
+                      accessibilityLabel={`${label} ${quietHoursLabel(hour, hour).split('–')[0]}`}
+                    >
+                      {quietHoursLabel(hour, hour).split('–')[0]}
+                    </Txt>
+                    <IconButton
+                      testID={`quiet-${which}-plus`}
+                      icon="add"
+                      accessibilityLabel={`${label} one hour later`}
+                      onPress={() => adjustQuietHour(which, 1)}
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
           {motivationEnabled ? (
             <View style={styles.times} testID="motivation-times">
               {motivationTimes.map((time, index) => (

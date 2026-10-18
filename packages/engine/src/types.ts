@@ -92,6 +92,9 @@ export interface ExerciseState {
   /** Consecutive sessions below target on the accessory ladder (`ProgressionState`'s
    *  `consecutiveMisses`, per exercise). */
   accessoryMisses?: number;
+  /** Track 37f — qualifying sessions banked toward the accessory ladder's next step under a
+   *  "patient" pace (`AccessoryProgressionState.consecutiveHits`). */
+  accessoryHits?: number;
   /** -1..+1, too_hard .. too_easy. */
   difficultyEma: number;
   skipCount: number;

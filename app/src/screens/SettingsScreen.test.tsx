@@ -275,3 +275,49 @@ describe('learn (tracks 37d, 37e)', () => {
     expect(screen.queryByTestId('glossary-term-Tempo')).toBeNull();
   });
 });
+
+describe('training preferences (track 37f)', () => {
+  beforeEach(() => {
+    usersRepo.updateUser(
+      getDb(),
+      {
+        weeklyTarget: 3,
+        trainingPreferences: { goal: 'general', pace: 'steady' },
+        notificationPrefs: { quietHoursEnabled: true, quietHoursStart: 22, quietHoursEnd: 7 },
+      },
+      nowUtcInstant(),
+    );
+  });
+
+  it('the row summarises the goal and days, and the screen saves each choice', async () => {
+    await openSettings();
+    expect(screen.getByTestId('settings-training-preferences-value')).toHaveTextContent(
+      'General fitness · 3 days a week',
+    );
+    await fireEvent.press(screen.getByTestId('settings-training-preferences'));
+    await ready('training-preferences-screen');
+    expect(checked('pref-goal-general')).toBe(true);
+    await fireEvent.press(screen.getByTestId('pref-goal-strength'));
+    await fireEvent.press(screen.getByTestId('pref-pace-patient'));
+    await fireEvent.press(screen.getByTestId('pref-days-plus'));
+    expect(checked('pref-goal-strength')).toBe(true);
+    expect(checked('pref-goal-general')).toBe(false);
+    expect(screen.getByTestId('pref-goal-strength').props.accessibilityRole).toBe('radio');
+    expect(screen.getByTestId('pref-days-value')).toHaveTextContent('4');
+    const user = usersRepo.getUser(getDb())!;
+    expect(user.trainingPreferences).toMatchObject({ goal: 'strength', pace: 'patient' });
+    expect(user.weeklyTarget).toBe(4);
+  });
+
+  it('the quiet window moves by the hour and the label follows', async () => {
+    await openSettings();
+    expect(screen.getByText('Quiet hours (10pm–7am)')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('quiet-start-minus'));
+    await fireEvent.press(screen.getByTestId('quiet-end-plus'));
+    expect(screen.getByText('Quiet hours (9pm–8am)')).toBeTruthy();
+    expect(usersRepo.getUser(getDb())!.notificationPrefs).toMatchObject({
+      quietHoursStart: 21,
+      quietHoursEnd: 8,
+    });
+  });
+});

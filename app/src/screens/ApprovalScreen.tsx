@@ -22,6 +22,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   alternativesForSlot,
   applyHardFilters,
+  applyTrainingToMainEntry,
   createRng,
   prescribeAccessory,
   prescribeWarmupCooldown,
@@ -419,15 +420,20 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   const handleAddExercise = (section: Section, exercise: Exercise) => {
     const prescription =
       section === 'main'
-        ? prescribeAccessory({
+        ? // The user's goal and rest preference apply exactly as they do in generation (track 37f).
+          applyTrainingToMainEntry(
+            prescribeAccessory({
+              exercise,
+              requestedDifficulty: session.difficulty,
+              recoveryTreatment: false,
+              // As the generator would: its own ladder position if it has one, else the band the
+              // user last finished it on — never just its lightest band.
+              workingBand: exerciseStateRepo.getExerciseState(db, exercise.id)?.workingBand,
+              micro: exerciseStateRepo.getExerciseState(db, exercise.id)?.accessoryMicro,
+            }),
             exercise,
-            requestedDifficulty: session.difficulty,
-            recoveryTreatment: false,
-            // As the generator would: its own ladder position if it has one, else the band the
-            // user last finished it on — never just its lightest band.
-            workingBand: exerciseStateRepo.getExerciseState(db, exercise.id)?.workingBand,
-            micro: exerciseStateRepo.getExerciseState(db, exercise.id)?.accessoryMicro,
-          })
+            usersRepo.ensureUser(db, nowUtcInstant()).trainingPreferences,
+          )
         : prescribeWarmupCooldown(exercise, section);
     sessionsRepo.addEntryAtApproval(db, sessionId, section, prescription, nowUtcInstant());
     setAddOpen(false);

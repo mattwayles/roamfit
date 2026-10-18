@@ -27,8 +27,9 @@ import { buildMotivationPool, pickDailyMessages } from './motivationMessages';
 import type { MotivationContext } from './motivationMessages';
 
 const IDENTIFIER_PREFIX = 'motivation-slot-';
-const QUIET_HOURS_START = 22; // 10pm
-const QUIET_HOURS_END = 7; // 7am
+/** Track 37f — the default quiet window, 10pm-7am; the user can move either end in Settings. */
+export const DEFAULT_QUIET_HOURS_START = 22;
+export const DEFAULT_QUIET_HOURS_END = 7;
 /** How many days ahead to keep scheduled — see the module doc's "honest limitation." */
 const SCHEDULE_WINDOW_DAYS = 7;
 /** Hard ceiling on notifications/day, enforced in Settings too — keeps the scheduled total well
@@ -48,17 +49,27 @@ export async function ensureNotificationPermission(): Promise<void> {
   }
 }
 
-/** A "HH:MM" local time, clamped out of the 10pm-7am quiet window when it's enabled. Moved to
- *  the window's own end (a gentle morning default), never silently dropped — matches the
- *  original single-nudge behavior's rule, just applied per user-chosen time instead of once. */
-export function clampToQuietHours(time: string, enabled = true): string {
+/** A "HH:MM" local time, clamped out of the quiet window (default 10pm-7am) when it's enabled.
+ *  Moved to the window's own end (a gentle morning default), never silently dropped — matches the
+ *  original single-nudge behavior's rule, just applied per user-chosen time instead of once. A
+ *  window whose start equals its end is empty. */
+export function clampToQuietHours(
+  time: string,
+  enabled = true,
+  startHour = DEFAULT_QUIET_HOURS_START,
+  endHour = DEFAULT_QUIET_HOURS_END,
+): string {
   const [hour, minute] = parseTime(time);
   if (!enabled) return time;
   const inQuiet =
-    QUIET_HOURS_START > QUIET_HOURS_END
-      ? hour >= QUIET_HOURS_START || hour < QUIET_HOURS_END
-      : hour >= QUIET_HOURS_START && hour < QUIET_HOURS_END;
-  return inQuiet ? formatTime(QUIET_HOURS_END, 0) : formatTime(hour, minute);
+    startHour > endHour ? hour >= startHour || hour < endHour : hour >= startHour && hour < endHour;
+  return inQuiet ? formatTime(endHour, 0) : formatTime(hour, minute);
+}
+
+/** "10pm–7am" for a quiet window. */
+export function quietHoursLabel(startHour: number, endHour: number): string {
+  const h = (n: number) => `${n % 12 === 0 ? 12 : n % 12}${n < 12 ? 'am' : 'pm'}`;
+  return `${h(startHour)}–${h(endHour)}`;
 }
 
 function parseTime(time: string): [number, number] {
@@ -87,6 +98,9 @@ export interface ScheduleMotivationNotificationsInput {
   /** "HH:MM" 24-hour local times — one notification/day per entry. Empty = none scheduled. */
   motivationTimes: string[];
   quietHoursEnabled: boolean;
+  /** Track 37f — the quiet window's hours (0-23); default 22 and 7. */
+  quietHoursStart?: number;
+  quietHoursEnd?: number;
   motivationContext: MotivationContext;
   /** Today's local date (`YYYY-MM-DD`), for both the schedule window's start and the daily rng
    *  seed — same date format used everywhere else in the store (invariant 6). */
@@ -134,7 +148,12 @@ export async function scheduleMotivationNotifications(
     const messages = pickDailyMessages(pool, times.length, rng);
 
     for (let slot = 0; slot < times.length; slot += 1) {
-      const clamped = clampToQuietHours(times[slot], input.quietHoursEnabled);
+      const clamped = clampToQuietHours(
+        times[slot],
+        input.quietHoursEnabled,
+        input.quietHoursStart,
+        input.quietHoursEnd,
+      );
       const [hour, minute] = parseTime(clamped);
       const fireAt = dateForLocalTime(input.todayLocalDate, dayOffset, hour, minute);
       if (fireAt.getTime() <= now.getTime()) continue; // already passed — today's slot only

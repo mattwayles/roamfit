@@ -4,8 +4,13 @@
  * is not a rewrite later.
  */
 import { eq } from 'drizzle-orm';
-import { DEFAULT_ANCHORS_AVAILABLE } from '@roamfit/engine';
-import type { BandId, Limitation as EngineLimitation, UserProfile } from '@roamfit/engine';
+import { DEFAULT_ANCHORS_AVAILABLE, resolveTrainingPreferences } from '@roamfit/engine';
+import type {
+  BandId,
+  Limitation as EngineLimitation,
+  TrainingPreferences,
+  UserProfile,
+} from '@roamfit/engine';
 import type { Anchor } from '@roamfit/data';
 import { isLimitationChoiceId, tagsForLimitationChoices } from '@roamfit/data';
 import type { Db } from '../db';
@@ -22,6 +27,9 @@ export interface NotificationPrefs {
   /** §9.8/§10.8 — issue #20. Off disables the 10pm-7am clamp entirely (notifications may land at
    *  any observed-training hour); on (the default) is the original always-on behavior. */
   quietHoursEnabled?: boolean;
+  /** Track 37f — the quiet window's start and end hours (0-23). Absent = 22 and 7. */
+  quietHoursStart?: number;
+  quietHoursEnd?: number;
   /** Master on/off for the daily motivational-pool notification (a request-driven feature, not
    *  from the deleted spec). Off cancels every scheduled one and stops scheduling new ones. */
   motivationEnabled?: boolean;
@@ -63,6 +71,8 @@ export const DEFAULT_NOTIFICATION_PREFS: Required<NotificationPrefs> = {
   quietHoursEnabled: true,
   motivationEnabled: true,
   motivationTimes: ['18:00'],
+  quietHoursStart: 22,
+  quietHoursEnd: 7,
 };
 
 /** Which look the app wears: follow iOS, Daybreak (light), or Midnight (dark). */
@@ -89,6 +99,8 @@ export interface UserRecord {
   /** Track 37a — the limitation choices the user picked (ids from `LIMITATION_CHOICES`), each
    *  with the local_date it was turned on. Unknown ids are dropped on read. */
   limitationChoices: LimitationChoiceRecord[];
+  /** Track 37f — always complete: stored fields over `DEFAULT_TRAINING_PREFERENCES`. */
+  trainingPreferences: TrainingPreferences;
   lastKnownTzId: string | null;
   hasEverCompletedSession: boolean;
   hasAcknowledgedDisclaimer: boolean;
@@ -116,6 +128,36 @@ function parseLimitationChoices(raw: string): LimitationChoiceRecord[] {
   } catch {
     return [];
   }
+}
+
+/** The stored `training_prefs` JSON, resolved over the defaults. Damage (malformed JSON, a
+ *  non-object, an unknown value for a field) falls back to the default for what is damaged. */
+function parseTrainingPreferences(raw: string): TrainingPreferences {
+  let stored: Record<string, unknown> = {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      stored = parsed as Record<string, unknown>;
+    }
+  } catch {
+    /* fall through to defaults */
+  }
+  const defaults = resolveTrainingPreferences(undefined);
+  const pick = <K extends keyof TrainingPreferences>(
+    key: K,
+    allowed: readonly TrainingPreferences[K][],
+  ): TrainingPreferences[K] =>
+    allowed.includes(stored[key] as TrainingPreferences[K])
+      ? (stored[key] as TrainingPreferences[K])
+      : defaults[key];
+  return {
+    goal: pick('goal', ['general', 'strength', 'muscle', 'endurance']),
+    rest: pick('rest', ['shorter', 'standard', 'longer']),
+    variety: pick('variety', ['consistent', 'balanced', 'varied']),
+    recovery: pick('recovery', ['quick', 'standard', 'extra']),
+    pace: pick('pace', ['steady', 'patient']),
+    warmup: pick('warmup', ['short', 'standard', 'extended']),
+  };
 }
 
 /** Per band, the user's stored fields over the defaults — so a row that customises only a colour
@@ -158,6 +200,7 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
     spotifyVibes: parseStringArray(row.spotifyVibes),
     notificationPrefs: JSON.parse(row.notificationPrefs) as NotificationPrefs,
     limitationChoices: parseLimitationChoices(row.limitationChoices),
+    trainingPreferences: parseTrainingPreferences(row.trainingPrefs),
     lastKnownTzId: row.lastKnownTzId,
     hasEverCompletedSession: row.hasEverCompletedSession,
     hasAcknowledgedDisclaimer: row.hasAcknowledgedDisclaimer,
@@ -199,6 +242,8 @@ export interface UserPatch {
   /** Shallow-merged onto the existing `notificationPrefs`, not replaced wholesale — a settings
    *  screen editing one field must not clobber others it doesn't know about. */
   notificationPrefs?: NotificationPrefs;
+  /** Track 37f — merged onto the stored preferences, like `notificationPrefs`. */
+  trainingPreferences?: Partial<TrainingPreferences>;
 }
 
 export function updateUser(db: Db, patch: UserPatch, now: string): void {
@@ -221,6 +266,12 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
     values.notificationPrefs = JSON.stringify({
       ...current.notificationPrefs,
       ...patch.notificationPrefs,
+    });
+  }
+  if (patch.trainingPreferences !== undefined) {
+    values.trainingPrefs = JSON.stringify({
+      ...current.trainingPreferences,
+      ...patch.trainingPreferences,
     });
   }
   db.update(schema.users).set(values).where(eq(schema.users.id, USER_ID)).run();
@@ -356,5 +407,6 @@ export function buildUserProfile(db: Db, today: string): UserProfile {
     ],
     anchorsAvailable: user.anchorsAvailable,
     disabledExerciseIds: getDisabledExerciseIds(db),
+    training: user.trainingPreferences,
   };
 }
