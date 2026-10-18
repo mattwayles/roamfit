@@ -94,7 +94,11 @@ function legsSlots(): TemplateSlot[] {
     { id: 'legs.squat', patterns: ['squat'], required: true },
     { id: 'legs.hinge', patterns: ['hinge'], required: true },
     { id: 'legs.unilateral', patterns: ['lunge'], required: true },
-    { id: 'legs.isolation', patterns: ['abduction', 'hip_extension'], required: false },
+    {
+      id: 'legs.isolation',
+      patterns: ['abduction', 'hip_extension', 'adduction'],
+      required: false,
+    },
     { id: 'legs.calf', patterns: ['calf'], required: false },
   ];
 }
@@ -168,7 +172,7 @@ function cardioSlots(): TemplateSlot[] {
  */
 const ACCESSORY_PATTERNS_BY_FOCUS: Record<Focus, Pattern[]> = {
   upper: UPPER_ISOLATION,
-  legs: ['abduction', 'hip_extension', 'knee_flexion', 'knee_extension', 'calf'],
+  legs: ['abduction', 'hip_extension', 'knee_flexion', 'knee_extension', 'calf', 'adduction'],
   abs: ['anti_rotation', 'flexion', 'lateral_flexion'],
   full: [
     ...UPPER_ISOLATION,
@@ -180,6 +184,7 @@ const ACCESSORY_PATTERNS_BY_FOCUS: Record<Focus, Pattern[]> = {
     'anti_rotation',
     'flexion',
     'lateral_flexion',
+    'adduction',
   ],
   // Track 14 — cardio has exactly one pattern, so its "accessory" filler is just more of the
   // same slot type. This is what lets a 60-minute cardio session fill with 11-14 conditioning

@@ -188,6 +188,11 @@ export const GLOSSARY: readonly GlossaryGroup[] = [
           'Core work where the job is to stop movement: not twisting, or not letting the low back arch.',
       },
       {
+        term: 'Abduction / adduction',
+        definition:
+          'Moving a leg out to the side (abduction, outer hip) or in toward the other (adduction, inner thigh).',
+      },
+      {
         term: 'Isolation',
         definition: 'An exercise that works mainly one muscle, like a curl or a lateral raise.',
       },

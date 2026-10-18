@@ -24,7 +24,6 @@ level-up offer from the active workout; the bundled demo loops/videos are the us
 local-device history / account persistence issue is the user's to handle (see Future Features →
 User Accounts).
 
-- **37l — More isolation exercises.** Arms, rear delts, calves, adductors, and others.
 - **37m — Apple Health write.** Request authorization when the toggle turns on and on launch when
   it is already on, so completed workouts are actually written.
 - **37n — Accessibility.** Text that scales with the iOS text size (not shrink-to-fit), VoiceOver labels

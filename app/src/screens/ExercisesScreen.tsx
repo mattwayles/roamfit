@@ -102,6 +102,7 @@ const PATTERN_ICON: Record<Pattern, IconName> = {
   knee_flexion: 'walk',
   knee_extension: 'walk',
   abduction: 'swap',
+  adduction: 'swap',
   calf: 'walk',
   hip_extension: 'body',
   anti_rotation: 'core',

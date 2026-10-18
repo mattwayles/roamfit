@@ -23,6 +23,8 @@ export type Pattern =
   | 'knee_flexion'
   | 'knee_extension'
   | 'abduction'
+  /** Track 37l — the inner thigh (adductors): sweeping a leg in toward the midline. */
+  | 'adduction'
   | 'calf'
   | 'anti_rotation'
   | 'anti_extension'

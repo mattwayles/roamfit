@@ -56,19 +56,21 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
       rungs; l3b negatives, l6b / l8b steps toward pistol, chin-up, HSPU, Nordic, one-arm push-up),
       siblings for the named high rungs; family level cap 9 → 12; tests pin positions by id.
 
+- [x] 37l — 12 isolation exercises (concentration / drag curls, single-arm pushdown, wall triceps
+      extension, banded W pull, bent-knee / seated / tibialis calf work, standing hamstring curl,
+      seated leg extension, two adduction moves) + new `adduction` pattern in the legs/full
+      templates; reachability test simulates a rotating user (isolation.test.ts).
+
 ### In progress
 
-- 37l — more isolation exercises. Plan: new records for arms (concentration / drag curls, a
-  self-anchored single-arm pushdown, a wall triceps extension), rear delts (banded W pull), calves
-  (bent-knee/soleus raise, seated banded calf raise, tibialis raise), hamstrings / quads (standing
-  banded hamstring curl, banded seated leg extension), and adductors — which needs a new
-  `adduction` pattern (schema Pattern + validate PATTERN list + legs TEMPLATE_PATTERNS +
-  ACCESSORY_PATTERNS_BY_FOCUS legs/full). Tag to the 37c standard. Written as a scratchpad content
-  script like content_37k.py.
+- 37m — Apple Health write. Plan: read `app/src/lib/healthKit.ts` and Settings' `toggleHealthWrite`;
+  call `requestHealthKitWritePermission()` when the toggle turns on (persist only if granted? decide
+  from the API), and once on launch when already on (App.tsx or Home focus), since the in-memory
+  `authorizationRequested` flag resets each start. Tests with the existing healthKit mocks.
 
 ### Next
 
-- 37l → 37m → 37n (order in BACKLOG).
+- 37m → 37n (order in BACKLOG).
 
 ### Decisions / gotchas
 

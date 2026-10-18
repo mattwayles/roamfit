@@ -10962,6 +10962,404 @@
       ],
       "setup": "Side plank on one forearm, elbow under shoulder. Lift the top leg a hand-width and hold it there with the hips high. Time-based per side.",
       "video_search": "https://www.youtube.com/results?search_query=Side+Plank+Leg+Lift+proper+form+tutorial"
+    },
+    {
+      "id": "banded-concentration-curl",
+      "name": "Banded Concentration Curl",
+      "aliases": [],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "elbow_flexion",
+      "primary": [
+        "biceps"
+      ],
+      "secondary": [],
+      "equipment": "band",
+      "band": "B1-B2",
+      "anchor": "stance",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "elbow"
+      ],
+      "setup": "Sit on a chair with the band under one foot, elbow braced against the inside of that thigh. Curl to the shoulder and lower slowly, upper arm still.",
+      "video_search": "https://www.youtube.com/results?search_query=Banded+Concentration+Curl+proper+form+tutorial"
+    },
+    {
+      "id": "banded-drag-curl",
+      "name": "Banded Drag Curl",
+      "aliases": [],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "elbow_flexion",
+      "primary": [
+        "biceps"
+      ],
+      "secondary": [
+        "forearms"
+      ],
+      "equipment": "band",
+      "band": "B2-B3",
+      "anchor": "stance",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "medium",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "elbow"
+      ],
+      "setup": "Stand mid-band, hands in front of your thighs. Curl while drawing the elbows back, so the hands slide up the front of your body. Lower slowly.",
+      "video_search": "https://www.youtube.com/results?search_query=Banded+Drag+Curl+proper+form+tutorial"
+    },
+    {
+      "id": "banded-single-arm-pushdown",
+      "name": "Banded Single-Arm Pushdown",
+      "aliases": [],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "elbow_extension",
+      "primary": [
+        "triceps"
+      ],
+      "secondary": [],
+      "equipment": "band",
+      "band": "B1-B2",
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "elbow"
+      ],
+      "setup": "Hold one end of the band at your opposite shoulder as the anchor. With the working hand, elbow pinned to your side, press the other end down to a straight arm. No anchor point needed.",
+      "video_search": "https://www.youtube.com/results?search_query=Banded+Single-Arm+Pushdown+proper+form+tutorial"
+    },
+    {
+      "id": "bw-wall-triceps-extension",
+      "name": "Wall Triceps Extension",
+      "aliases": [],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "elbow_extension",
+      "primary": [
+        "triceps"
+      ],
+      "secondary": [],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "elbow",
+        "wrist_extension"
+      ],
+      "setup": "Stand facing a wall, forearms flat on it at forehead height. Lean in, then press through the palms until the arms are straight, elbows staying in. Step back to make it harder.",
+      "video_search": "https://www.youtube.com/results?search_query=Wall+Triceps+Extension+proper+form+tutorial"
+    },
+    {
+      "id": "banded-w-pull",
+      "name": "Banded W Pull",
+      "aliases": [],
+      "focus": [
+        "upper"
+      ],
+      "pattern": "shoulder_isolation",
+      "primary": [
+        "rear_delts"
+      ],
+      "secondary": [
+        "upper_back"
+      ],
+      "equipment": "band",
+      "band": "B1",
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [],
+      "setup": "Hold the band in front of you, elbows bent and tucked at your sides. Pull the hands apart and back so your arms make a W, squeezing the shoulder blades. Return slowly.",
+      "video_search": "https://www.youtube.com/results?search_query=Banded+W+Pull+proper+form+tutorial"
+    },
+    {
+      "id": "bw-bent-knee-calf-raise",
+      "name": "Bent-Knee Calf Raise",
+      "aliases": [],
+      "focus": [
+        "legs"
+      ],
+      "pattern": "calf",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "ankle"
+      ],
+      "setup": "Stand with knees bent a little, holding something for balance. Rise onto the balls of the feet keeping the knees bent, pause, and lower slowly. Works the deep calf muscle.",
+      "video_search": "https://www.youtube.com/results?search_query=Bent-Knee+Calf+Raise+proper+form+tutorial"
+    },
+    {
+      "id": "banded-seated-calf-raise",
+      "name": "Banded Seated Calf Raise",
+      "aliases": [],
+      "focus": [
+        "legs"
+      ],
+      "pattern": "calf",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [],
+      "equipment": "band",
+      "band": "B3-B4",
+      "anchor": "feet",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "ankle"
+      ],
+      "setup": "Sit on a chair with the band under the balls of both feet and the ends held down over your knees. Press up onto the toes against the band, pause, lower slowly.",
+      "video_search": "https://www.youtube.com/results?search_query=Banded+Seated+Calf+Raise+proper+form+tutorial"
+    },
+    {
+      "id": "bw-tibialis-raise",
+      "name": "Tibialis Raise",
+      "aliases": [],
+      "focus": [
+        "legs"
+      ],
+      "pattern": "calf",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main",
+        "warmup"
+      ],
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "ankle"
+      ],
+      "setup": "Lean your back against a wall with your heels a foot in front of it. Lift your toes as high as you can, pause, lower slowly. Works the front of the shin.",
+      "video_search": "https://www.youtube.com/results?search_query=Tibialis+Raise+proper+form+tutorial"
+    },
+    {
+      "id": "banded-standing-hamstring-curl",
+      "name": "Banded Standing Hamstring Curl",
+      "aliases": [],
+      "focus": [
+        "legs"
+      ],
+      "pattern": "knee_flexion",
+      "primary": [
+        "hamstrings"
+      ],
+      "secondary": [],
+      "equipment": "band",
+      "band": "B1-B2",
+      "anchor": "anchor-low",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "knee_flexion_loaded"
+      ],
+      "setup": "Anchor the band low in front of you and loop it around one ankle. Stand tall holding something for balance and curl that heel toward your glutes, thigh still.",
+      "video_search": "https://www.youtube.com/results?search_query=Banded+Standing+Hamstring+Curl+proper+form+tutorial"
+    },
+    {
+      "id": "banded-seated-leg-extension",
+      "name": "Banded Seated Leg Extension",
+      "aliases": [],
+      "focus": [
+        "legs"
+      ],
+      "pattern": "knee_extension",
+      "primary": [
+        "quads"
+      ],
+      "secondary": [],
+      "equipment": "band",
+      "band": "B1-B2",
+      "anchor": "anchor-low",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [],
+      "setup": "Sit on a chair with the band anchored low behind you and looped around one ankle. Straighten the knee against the band, pause, lower slowly.",
+      "video_search": "https://www.youtube.com/results?search_query=Banded+Seated+Leg+Extension+proper+form+tutorial"
+    },
+    {
+      "id": "banded-standing-adduction",
+      "name": "Banded Standing Adduction",
+      "aliases": [],
+      "focus": [
+        "legs"
+      ],
+      "pattern": "adduction",
+      "primary": [
+        "adductors"
+      ],
+      "secondary": [],
+      "equipment": "band",
+      "band": "B1-B2",
+      "anchor": "anchor-low",
+      "anchor_alt": null,
+      "anchor_class": "band_tension",
+      "unilateral": true,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "hip"
+      ],
+      "setup": "Anchor the band low to one side and loop it around the near ankle. Stand side-on holding something for balance and sweep that leg across in front of the other, then return slowly.",
+      "video_search": "https://www.youtube.com/results?search_query=Banded+Standing+Adduction+proper+form+tutorial"
+    },
+    {
+      "id": "bw-side-lying-adduction",
+      "name": "Side-Lying Adductor Raise",
+      "aliases": [],
+      "focus": [
+        "legs"
+      ],
+      "pattern": "adduction",
+      "primary": [
+        "adductors"
+      ],
+      "secondary": [],
+      "equipment": "bodyweight",
+      "band": null,
+      "anchor": "none",
+      "anchor_alt": null,
+      "anchor_class": "none",
+      "unilateral": false,
+      "metric": "reps",
+      "default_seconds": null,
+      "tier": "fill",
+      "roles": [
+        "main"
+      ],
+      "difficulty": "easy",
+      "progression_family": null,
+      "progression_level_id": null,
+      "contraindications": [
+        "hip"
+      ],
+      "setup": "Lie on your side, top leg bent with its foot planted in front of you. Lift the straight bottom leg a few inches off the floor, pause, lower slowly. Finish one side, then switch.",
+      "video_search": "https://www.youtube.com/results?search_query=Side-Lying+Adductor+Raise+proper+form+tutorial"
     }
   ]
 }
