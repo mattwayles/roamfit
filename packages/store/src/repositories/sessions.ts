@@ -81,6 +81,8 @@ export interface SessionEntryRecord {
   durationSec: number | null;
   restSec: number;
   tempoSec: number;
+  /** Track 37f — see `session_entries.transition_sec`. */
+  transitionSec: number | null;
   notes: string | null;
   difficulty: Difficulty;
   progressionFamilyId: string | null;
@@ -189,6 +191,7 @@ function rowToEntry(
     durationSec: row.durationSec,
     restSec: row.restSec,
     tempoSec: row.tempoSec,
+    transitionSec: row.transitionSec,
     notes: row.notes,
     difficulty: row.difficulty,
     progressionFamilyId: row.progressionFamilyId,
@@ -322,6 +325,7 @@ function entryValues(
     durationSec: e.durationSec ?? null,
     restSec: e.restSec,
     tempoSec: e.tempoSec,
+    transitionSec: e.transitionSec ?? null,
     notes: e.notes ?? null,
     difficulty: e.difficulty,
     progressionFamilyId: e.progressionFamilyId,
@@ -978,6 +982,7 @@ export function addEntryAtApproval(
       durationSec: prescription.durationSec ?? null,
       restSec: prescription.restSec,
       tempoSec: prescription.tempoSec,
+      transitionSec: prescription.transitionSec ?? null,
       notes: prescription.notes ?? null,
       difficulty: prescription.difficulty,
       progressionFamilyId: prescription.progressionFamilyId,
@@ -1048,6 +1053,7 @@ function applySwapReplacement(
       durationSec: replacement.durationSec ?? null,
       restSec: replacement.restSec,
       tempoSec: replacement.tempoSec,
+      transitionSec: replacement.transitionSec ?? null,
       notes: replacement.notes ?? null,
       difficulty: replacement.difficulty,
       progressionFamilyId: replacement.progressionFamilyId ?? null,
@@ -1074,6 +1080,7 @@ export function recordSwap(
     | 'durationSec'
     | 'restSec'
     | 'tempoSec'
+    | 'transitionSec'
     | 'notes'
     | 'difficulty'
     | 'progressionFamilyId'
@@ -1474,4 +1481,65 @@ export function countCompletedSessionsByMonth(db: Db): Map<string, number> {
 export function getCompletedSessionDetail(db: Db, sessionId: string): SessionRecord | null {
   const session = getSession(db, sessionId);
   return session && session.status === 'completed' ? session : null;
+}
+
+// ------------------------------------------------------------------------------------------
+// Track 37f — the changeover allowance, learned rather than asked for.
+// ------------------------------------------------------------------------------------------
+
+/** How many recent fully-completed sessions the changeover is learned from, and how many it needs
+ *  before it replaces the default at all. */
+const CHANGEOVER_SAMPLE_SESSIONS = 5;
+const CHANGEOVER_MIN_SAMPLES = 3;
+/** Never learn a changeover outside this range, whatever a single odd week looked like. */
+const CHANGEOVER_MIN_SEC = 30;
+const CHANGEOVER_MAX_SEC = 150;
+const DEFAULT_CHANGEOVER_SEC = 60;
+
+/**
+ * Seconds this user actually spends per exercise beyond what its sets and rests account for — the
+ * engine's per-exercise changeover allowance (60s by default), learned from their own sessions so
+ * a 45-minute workout takes 45 minutes for them, not for an average user.
+ *
+ * One sample per recent completed session in which every set of every exercise was completed (a
+ * skipped set makes a session short for a reason that is not pace): the gap between the active
+ * time actually trained and the plan's estimate, spread over its exercises, added to the allowance
+ * that estimate already carried. The median of the latest five such samples, clamped to 30-150s
+ * and rounded to 5s. Everything that makes a real session longer or shorter than its estimate —
+ * band changes, finding the anchor, reading the next move, resting longer than prescribed — lands
+ * here, which is exactly what time fit needs to know. `undefined` until there are three samples.
+ */
+export function learnedChangeoverSec(db: Db): number | undefined {
+  const rows = db
+    .select({ id: schema.sessions.id, actualMinutes: schema.sessions.actualMinutes })
+    .from(schema.sessions)
+    .where(eq(schema.sessions.status, 'completed'))
+    .orderBy(desc(schema.sessions.completedAt))
+    .limit(CHANGEOVER_SAMPLE_SESSIONS * 4)
+    .all();
+
+  const samples: number[] = [];
+  for (const row of rows) {
+    if (samples.length >= CHANGEOVER_SAMPLE_SESSIONS) break;
+    if (row.actualMinutes == null) continue;
+    const session = getSession(db, row.id);
+    if (!session) continue;
+    const entries = session.entries.filter((e) => e.entryStatus !== 'removed_at_approval');
+    if (entries.length === 0) continue;
+    const fullyDone = entries.every(
+      (e) => e.setLogs.length >= e.sets && e.setLogs.every((s) => s.status === 'completed'),
+    );
+    if (!fullyDone) continue;
+    const estimatedSec = entries.reduce((a, e) => a + e.estimatedSec, 0);
+    const allowance =
+      entries.reduce((a, e) => a + (e.transitionSec ?? DEFAULT_CHANGEOVER_SEC), 0) / entries.length;
+    samples.push(allowance + (row.actualMinutes * 60 - estimatedSec) / entries.length);
+  }
+  if (samples.length < CHANGEOVER_MIN_SAMPLES) return undefined;
+
+  const sorted = [...samples].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  const clamped = Math.min(CHANGEOVER_MAX_SEC, Math.max(CHANGEOVER_MIN_SEC, median));
+  return Math.round(clamped / 5) * 5;
 }

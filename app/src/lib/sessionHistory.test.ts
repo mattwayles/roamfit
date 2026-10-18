@@ -54,6 +54,7 @@ function entry(id: string, over: Partial<Entry> & { setLogs: SetLog[] }): Entry 
     durationSec: null,
     restSec: 60,
     tempoSec: 3,
+    transitionSec: null,
     notes: null,
     difficulty: 'medium',
     progressionFamilyId: null,

@@ -71,6 +71,9 @@ export interface UserProfile {
   /** Track 37f — the user's training preferences. Absent (or any field absent) = the defaults,
    *  which reproduce the engine's behaviour before preferences existed. */
   training?: Partial<TrainingPreferences>;
+  /** Track 37f — seconds this user actually takes between exercises, learned from completed
+   *  sessions by the store. Absent = the default 60s. */
+  changeoverSec?: number;
 }
 
 /** §4.4 — per user × exercise. Never on the shared library table (invariant 7). */
@@ -228,6 +231,10 @@ export interface SessionEntry {
   anchorClass: AnchorClass;
   unilateral: boolean;
   estimatedSec: number;
+  /** Track 37f — the changeover allowance `estimatedSec` was computed with, when it is this
+   *  user's learned value rather than the default 60s. Carried so every later re-estimate (time
+   *  fit trimming a set, an approval edit, a swap) uses the same allowance. */
+  transitionSec?: number;
   /** §4.7 — set when the engine swapped in a different exercise than the "default" pick for this
    *  slot: a laddered exercise that failed a hard filter and was substituted with the nearest
    *  lower level that survives (session-only, does not persist a level change), or a pattern-gap

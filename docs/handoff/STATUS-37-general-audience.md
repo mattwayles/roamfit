@@ -33,15 +33,23 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
       Settings → Training → Training preferences screen (goal, rest, variety, recovery, pace, warm-up,
       days per week); quiet-hours window editable (`notificationPrefs.quietHoursStart/End`).
 
+- [x] 37f changeover — learned per-exercise changeover (`sessionsRepo.learnedChangeoverSec`: median of
+      the last 5 fully-completed sessions, clamped 30-150s, needs 3) → `UserProfile.changeoverSec` →
+      `SessionEntry.transitionSec` (persisted, `session_entries.transition_sec`, migration 0031) so
+      every re-estimate keeps it.
+
 ### In progress
 
-- 37f last piece — learned changeover time: replace the flat 60s `TRANSITION_BUFFER_SEC` with a
-  per-user value learned from completed sessions (store computes it; engine takes it on
-  `TrainingPreferences`-adjacent profile field), clamped, default 60s.
+- 37g — placement. Plan: `packages/engine/src/progression/placement.ts` (pure): experience level
+  (`new` / `returning` / `regular` / `advanced`) → a starting rung per family as a fraction of the
+  ladder, optionally overridden per family by "can you do X?" answers (each answer names a rung).
+  Store: `progressionStateRepo.applyPlacement(db, levels, families, library, now)` sets each family's
+  level + default micro (same reset a level change does). UI lives in onboarding (37h); also a
+  Settings → Training entry "Re-place me on the ladders".
 
 ### Next
 
-- 37g → 37h → 37i → 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
+- 37h → 37i → 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
 
 ### Decisions / gotchas
 

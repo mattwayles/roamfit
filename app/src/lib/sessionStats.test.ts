@@ -55,6 +55,7 @@ function makeEntry(overrides: Partial<SessionEntryRecord> = {}): SessionEntryRec
     durationSec: null,
     restSec: 60,
     tempoSec: 2,
+    transitionSec: null,
     notes: null,
     difficulty: 'medium',
     progressionFamilyId: null,

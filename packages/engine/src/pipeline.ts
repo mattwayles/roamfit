@@ -355,7 +355,7 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
   // Track 37f — the goal (rep/hold offset, rest, sets) and rest preference, applied to every main
   // working entry after the ladder or table prescribed it and before time fit sums it.
   const withTraining = (exercise: Exercise, entry: SessionEntry) =>
-    applyTrainingToMainEntry(entry, exercise, training);
+    applyTrainingToMainEntry(entry, exercise, training, userState.profile.changeoverSec);
 
   function prescribeEntries(multiplier: number): Map<string, SessionEntry> {
     const map = new Map<string, SessionEntry>();
@@ -459,14 +459,17 @@ export function generateSession(input: GenerateSessionInput): SessionPlan {
     });
     // Each add-on move is a single set: a burst that lifts the heart rate, not a cardio block.
     cardioAddOnEntries = cardioSelection.picks.map((pick) => {
-      const entry = prescribeAccessory({
-        exercise: pick.exercise,
-        requestedDifficulty: difficulty,
-        recoveryTreatment: pick.recoveryTreatment,
-        bandRelaxedForPatternGap: pick.bandRelaxedForPatternGap,
-        setsMultiplier,
-        workingBand: userState.exerciseStates[pick.exercise.id]?.workingBand,
-      });
+      const entry = withTraining(
+        pick.exercise,
+        prescribeAccessory({
+          exercise: pick.exercise,
+          requestedDifficulty: difficulty,
+          recoveryTreatment: pick.recoveryTreatment,
+          bandRelaxedForPatternGap: pick.bandRelaxedForPatternGap,
+          setsMultiplier,
+          workingBand: userState.exerciseStates[pick.exercise.id]?.workingBand,
+        }),
+      );
       return { ...entry, sets: 1, estimatedSec: estimateEntrySec({ ...entry, sets: 1 }) };
     });
   }

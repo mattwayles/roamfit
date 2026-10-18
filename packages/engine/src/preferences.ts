@@ -20,6 +20,7 @@ import type { Exercise } from '@roamfit/data';
 import { isCardioExercise } from '@roamfit/data';
 import type { SessionEntry } from './types';
 import { estimateEntrySec } from './prescription/prescribe';
+import { TRANSITION_BUFFER_SEC } from './timefit/formulas';
 import {
   HARD_COOLDOWN_SESSIONS,
   RECOVERY_WINDOW_DAYS,
@@ -116,8 +117,23 @@ export function applyTrainingToMainEntry(
   entry: SessionEntry,
   exercise: Exercise,
   prefs: TrainingPreferences,
+  /** The user's learned changeover (`UserProfile.changeoverSec`); absent = the default 60s. It
+   *  applies to every main entry, cardio included — changing over takes as long either way. */
+  changeoverSec?: number,
 ): SessionEntry {
-  if (entry.role !== 'main' || isCardioExercise(exercise)) return entry;
+  if (entry.role !== 'main') return entry;
+  const withChangeover =
+    changeoverSec === undefined || changeoverSec === TRANSITION_BUFFER_SEC
+      ? entry
+      : (() => {
+          const next = { ...entry, transitionSec: changeoverSec };
+          return { ...next, estimatedSec: estimateEntrySec(next) };
+        })();
+  if (isCardioExercise(exercise)) return withChangeover;
+  return applyGoal(withChangeover, prefs);
+}
+
+function applyGoal(entry: SessionEntry, prefs: TrainingPreferences): SessionEntry {
   const goal = GOAL_ADJUSTMENTS[prefs.goal];
   const restMultiplier = goal.restMultiplier * REST_MULTIPLIER[prefs.rest];
   if (

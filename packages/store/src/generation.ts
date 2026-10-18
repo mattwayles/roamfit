@@ -22,7 +22,7 @@ import {
   ensureProgressionStatesInitialized,
   getAllProgressionStates,
 } from './repositories/progressionState';
-import { getHistoryForGeneration } from './repositories/sessions';
+import { getHistoryForGeneration, learnedChangeoverSec } from './repositories/sessions';
 import { seedAccessoryProgressionFromHistory } from './completion';
 
 export function buildUserState(
@@ -35,7 +35,8 @@ export function buildUserState(
   ensureProgressionStatesInitialized(db, families, library.exercises, clock.today);
   const history = getHistoryForGeneration(db);
   return {
-    profile: buildUserProfile(db, clock.today),
+    // Track 37f — the per-exercise changeover this user actually takes (undefined = 60s).
+    profile: { ...buildUserProfile(db, clock.today), changeoverSec: learnedChangeoverSec(db) },
     exerciseStates: getAllExerciseStates(db),
     progressionStates: getAllProgressionStates(db),
     history,

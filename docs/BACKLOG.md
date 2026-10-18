@@ -24,13 +24,6 @@ level-up offer from the active workout; the bundled demo loops/videos are the us
 local-device history / account persistence issue is the user's to handle (see Future Features →
 User Accounts).
 
-- **37f — Training preferences (configurable parameters, beginner-safe defaults).** One stored
-  preferences record the engine reads instead of its constants: training goal (rep/hold range: General
-  default, Strength, Muscle, Endurance), rest length, variety (cooldown windows), recovery window,
-  progression pace, warm-up/cool-down length, training days per week (`weeklyTarget`, never shown as a
-  streak or a miss), quiet hours window, and the per-exercise changeover time learned from real
-  sessions rather than asked for. Unused `units` is removed from Settings scope (left in the schema).
-  The §13.1 bodyweight-bearing cap stays non-configurable.
 - **37g — Placement: starting level on every ladder.** An optional, self-reported placement
   (experience level, plus a few "can you do X?" checks) that sets each family's starting rung. Explicit
   and repeatable, not the removed automatic calibration. Skipping keeps level 1.

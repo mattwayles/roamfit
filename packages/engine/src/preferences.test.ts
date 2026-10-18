@@ -284,3 +284,37 @@ describe('progression pace', () => {
     expect(second.event.kind).toBe('micro_advance');
   });
 });
+
+describe('learned changeover (UserProfile.changeoverSec)', () => {
+  const pushUp = byId.get('bw-push-up')!;
+
+  it('re-estimates a main entry with the learned allowance and records it on the entry', () => {
+    const base = mainEntry();
+    const slow = applyTrainingToMainEntry(base, pushUp, DEFAULT_TRAINING_PREFERENCES, 90);
+    expect(slow.transitionSec).toBe(90);
+    expect(slow.estimatedSec).toBe(base.estimatedSec + 30);
+    // The default 60s leaves the entry exactly as it was.
+    expect(applyTrainingToMainEntry(base, pushUp, DEFAULT_TRAINING_PREFERENCES, 60)).toBe(base);
+    // A later re-estimate (time fit trimming a set) keeps the allowance.
+    expect(estimateEntrySec({ ...slow, sets: 2 })).toBe(
+      estimateEntrySec({ ...base, sets: 2 }) + 30,
+    );
+  });
+
+  it('a slow changer gets fewer exercises in the same 45 minutes than a quick one', () => {
+    const withChangeover = (changeoverSec: number) =>
+      generateSession({
+        library: exerciseLibrary,
+        families: familyLibrary,
+        userState: { ...userState(), profile: { ...userState().profile, changeoverSec } },
+        request: { focus: 'upper', difficulty: 'medium', targetMinutes: 45 },
+        clock: { today: TODAY, tzId: 'UTC' },
+        rng: createRng(5),
+      });
+    const quick = withChangeover(30);
+    const slow = withChangeover(150);
+    const sets = (p: typeof quick) => p.main.reduce((a, e) => a + e.sets, 0);
+    expect(sets(slow)).toBeLessThan(sets(quick));
+    expect(slow.estimatedMinutes).toBeLessThanOrEqual(Math.ceil(45 * 1.1));
+  });
+});

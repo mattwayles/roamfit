@@ -363,6 +363,8 @@ export function estimateEntrySec(params: {
   restSec: number;
   tempoSec: number;
   unilateral: boolean;
+  /** Track 37f — the entry's own changeover estimate, when it carries one. */
+  transitionSec?: number | null;
 }): number {
   return params.durationSec != null
     ? timedExerciseSec({
@@ -370,6 +372,7 @@ export function estimateEntrySec(params: {
         durationSec: params.durationSec,
         restSec: params.restSec,
         unilateral: params.unilateral,
+        transitionSec: params.transitionSec,
       })
     : repExerciseSec({
         sets: params.sets,
@@ -378,6 +381,7 @@ export function estimateEntrySec(params: {
         tempoSec: params.tempoSec,
         restSec: params.restSec,
         unilateral: params.unilateral,
+        transitionSec: params.transitionSec,
       });
 }
 

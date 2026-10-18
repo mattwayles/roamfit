@@ -630,6 +630,14 @@ ALTER TABLE users ADD COLUMN training_prefs TEXT NOT NULL DEFAULT '{}';
 ALTER TABLE exercise_state ADD COLUMN micro_consecutive_hits INTEGER NOT NULL DEFAULT 0;
 `;
 
+const MIGRATION_0031_ENTRY_TRANSITION = `-- 0031_entry_transition.sql — Track 37f: the changeover allowance (seconds between exercises) an
+-- entry's estimated_sec was computed with, when it is the user's learned value rather than the
+-- default 60s. NULL = the default. Kept on the entry so an approval edit re-estimates it with the
+-- same allowance the generator used.
+
+ALTER TABLE session_entries ADD COLUMN transition_sec INTEGER;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -667,4 +675,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0028_accessory_micro.sql', sql: MIGRATION_0028_ACCESSORY_MICRO },
   { id: '0029_limitation_choices.sql', sql: MIGRATION_0029_LIMITATION_CHOICES },
   { id: '0030_training_prefs.sql', sql: MIGRATION_0030_TRAINING_PREFS },
+  { id: '0031_entry_transition.sql', sql: MIGRATION_0031_ENTRY_TRANSITION },
 ];

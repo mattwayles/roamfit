@@ -28,7 +28,7 @@ function clamp(n: number, low: number, high: number): number {
 /** Real-world time to close out one exercise and get set up for the next: re-reading the next
  *  movement, changing bands/handles, finding the right anchor point and tension. Flat regardless
  *  of anchor changes — a user who needs more than this can pause the workout timer. */
-const TRANSITION_BUFFER_SEC = 60;
+export const TRANSITION_BUFFER_SEC = 60;
 
 /** Straight-set rep-based exercise. */
 export function repExerciseSec(params: {
@@ -37,10 +37,12 @@ export function repExerciseSec(params: {
   tempoSec: number;
   restSec: number;
   unilateral: boolean;
+  /** Track 37f — this user's learned changeover; default `TRANSITION_BUFFER_SEC`. */
+  transitionSec?: number | null;
 }): number {
   const workSec = params.reps * params.tempoSec * (params.unilateral ? 2 : 1);
   const setSec = workSec + params.restSec;
-  return params.sets * setSec + TRANSITION_BUFFER_SEC;
+  return params.sets * setSec + (params.transitionSec ?? TRANSITION_BUFFER_SEC);
 }
 
 /** Timed exercise (§5.6: `sets × (duration_sec + rest_sec) + transition buffer`, ×2 if unilateral). */
@@ -49,10 +51,12 @@ export function timedExerciseSec(params: {
   durationSec: number;
   restSec: number;
   unilateral: boolean;
+  /** Track 37f — this user's learned changeover; default `TRANSITION_BUFFER_SEC`. */
+  transitionSec?: number | null;
 }): number {
   const perSet = params.durationSec + params.restSec;
   const base = params.sets * perSet * (params.unilateral ? 2 : 1);
-  return base + TRANSITION_BUFFER_SEC;
+  return base + (params.transitionSec ?? TRANSITION_BUFFER_SEC);
 }
 
 /**

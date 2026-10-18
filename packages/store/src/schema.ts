@@ -348,6 +348,8 @@ export const sessionEntries = sqliteTable(
     durationSec: integer('duration_sec'),
     restSec: integer('rest_sec').notNull(),
     tempoSec: integer('tempo_sec').notNull(),
+    /** Track 37f — the learned changeover `estimatedSec` used; NULL = 60s (migration 0031). */
+    transitionSec: integer('transition_sec'),
     notes: text('notes'),
     /** See the `sessions.difficulty` doc comment above — same column-name/field-name split. */
     difficulty: text('effort', { enum: ['easy', 'medium', 'hard'] }).notNull(),

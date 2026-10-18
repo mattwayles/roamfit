@@ -123,6 +123,7 @@ export function buildSwapReplacementEntry(exercise: Exercise, entry: SessionEntr
         durationSec: durationSec!,
         restSec: entry.restSec,
         unilateral: exercise.unilateral,
+        transitionSec: entry.transitionSec,
       })
     : repExerciseSec({
         sets,
@@ -130,6 +131,7 @@ export function buildSwapReplacementEntry(exercise: Exercise, entry: SessionEntr
         tempoSec: entry.tempoSec,
         restSec: entry.restSec,
         unilateral: exercise.unilateral,
+        transitionSec: entry.transitionSec,
       });
 
   const sameFamilyLevel =
@@ -155,6 +157,7 @@ export function buildSwapReplacementEntry(exercise: Exercise, entry: SessionEntr
     anchorClass: exercise.anchor_class,
     unilateral: exercise.unilateral,
     estimatedSec,
+    transitionSec: entry.transitionSec,
     substitutedFor: entry.exerciseId,
   };
 }

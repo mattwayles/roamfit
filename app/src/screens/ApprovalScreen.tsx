@@ -433,6 +433,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
             }),
             exercise,
             usersRepo.ensureUser(db, nowUtcInstant()).trainingPreferences,
+            sessionsRepo.learnedChangeoverSec(db),
           )
         : prescribeWarmupCooldown(exercise, section);
     sessionsRepo.addEntryAtApproval(db, sessionId, section, prescription, nowUtcInstant());
