@@ -23,7 +23,7 @@
 import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { generate, sessionsRepo, statsRepo, usersRepo } from '@roamfit/store';
+import { generate, sessionsRepo, statsRepo } from '@roamfit/store';
 import { createRng, seedFromString } from '@roamfit/engine';
 import { pickQuickSessionDifficulty, pickQuickSessionFocus } from '../lib/quickSession';
 import type { TabScreenProps } from '../navigation/types';
@@ -32,7 +32,7 @@ import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { findCurrentEntry, sessionCompletionFraction } from '../lib/sessionProgress';
 import { greetingFor } from '../lib/hypeCopy';
 import AbandonSessionButton from '../components/AbandonSessionButton';
-import { DISCLAIMER_TEXT } from './SettingsScreen';
+import { OnboardingFlow } from '../components/OnboardingFlow';
 import { nextUnlockHero, WEEKDAY_LABELS } from '../lib/dashboard';
 import { markerLabel } from '../lib/dayMarkers';
 import { useDashboardData } from '../lib/useDashboardData';
@@ -53,7 +53,6 @@ import {
   ProgressRing,
   Screen,
   SectionHeader,
-  TopoPattern,
   Txt,
   type IconName,
 } from '../ui';
@@ -126,7 +125,8 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
 
   // §13.3 — the first-launch disclaimer is blocking. While it is up, take the tab bar away too so
   // nothing else in the app is reachable behind it (`TabBar` honors `tabBarStyle.display`).
-  const gateUp = data !== undefined && !data.user.hasAcknowledgedDisclaimer;
+  const gateUp =
+    data !== undefined && (!data.user.hasAcknowledgedDisclaimer || data.user.onboardingInProgress);
   useLayoutEffect(() => {
     navigation.setOptions({ tabBarStyle: gateUp ? { display: 'none' } : undefined });
   }, [navigation, gateUp]);
@@ -200,50 +200,12 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   const { pending, stats, user, board, comebackTier, weekDays: week, todayLocalDate } = data;
   const suggestRecoveryWeek = statsRepo.shouldSuggestRecoveryWeek(stats);
 
-  // §13.3 — the medical disclaimer must be shown on first launch, blocking, before any other
-  // screen content. `hasAcknowledgedDisclaimer` is a one-way flag (usersRepo.acknowledgeDisclaimer)
-  // so this only ever fires once per install; the permanent copy lives in Settings (issue #20/#37's
-  // sibling gap — there was no settings screen at all before this wave).
-  if (!user.hasAcknowledgedDisclaimer) {
-    return (
-      <View style={styles.gate} testID="disclaimer-gate">
-        <TopoPattern seed="wanderlift-gate" strength={0.6} />
-        <Screen
-          scroll
-          edges={['top', 'left', 'right', 'bottom']}
-          contentStyle={styles.gateContent}
-          style={styles.gateScreen}
-        >
-          <Enter index={0}>
-            <Txt variant="hero" color="teal" style={styles.wordmark}>
-              WANDERLIFT
-            </Txt>
-            <Txt variant="eyebrow" color="gold">
-              Train anywhere.
-            </Txt>
-          </Enter>
-          <Enter index={1}>
-            <Card>
-              <Txt variant="body" color="text2" testID="disclaimer-gate-text">
-                {DISCLAIMER_TEXT}
-              </Txt>
-            </Card>
-          </Enter>
-          <Enter index={2}>
-            <Button
-              testID="disclaimer-acknowledge"
-              label="I understand"
-              size="lg"
-              haptic="medium"
-              onPress={() => {
-                usersRepo.acknowledgeDisclaimer(db, nowUtcInstant());
-                load();
-              }}
-            />
-          </Enter>
-        </Screen>
-      </View>
-    );
+  // §13.3 / Track 37h — first launch opens the setup flow, blocking, before any other screen
+  // content: its first step is the medical disclaimer (a one-way acknowledgement; the permanent copy
+  // lives in Settings), and a relaunch mid-setup resumes it. Installs from before onboarding have the
+  // disclaimer acknowledged and no setup in progress, so they go straight to Today.
+  if (!user.hasAcknowledgedDisclaimer || user.onboardingInProgress) {
+    return <OnboardingFlow mode="first" onDone={load} />;
   }
 
   let stagger = 0;
@@ -627,15 +589,6 @@ const useStyles = makeStyles((t) =>
     content: { paddingTop: space.lg, paddingBottom: space.huge + space.xxl, gap: space.xl },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     headerText: { flex: 1 },
-    gate: { flex: 1, backgroundColor: t.colors.bg },
-    gateScreen: { backgroundColor: 'transparent' },
-    gateContent: {
-      flexGrow: 1,
-      justifyContent: 'center',
-      gap: space.xxl,
-      paddingVertical: space.xxl,
-    },
-    wordmark: { textAlign: 'left' },
     banner: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
     bannerText: { flex: 1, gap: 2, paddingTop: 2 },
     bannerActions: {

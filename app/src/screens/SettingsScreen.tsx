@@ -58,11 +58,8 @@ import { Group, IconTile, NavRow, SETTINGS_ROW_PAD, SwitchRow } from '../compone
 
 const DEFAULT_MOTIVATION_TIMES = ['18:00'];
 
-export const DISCLAIMER_TEXT =
-  'Wanderlift is a fitness tool, not a medical device or a substitute for professional medical ' +
-  'advice. It provides no diagnosis and makes no health claims. Consult a physician before ' +
-  'starting any new exercise program, especially if you are pregnant, recovering from an ' +
-  'injury, or have an existing health condition. Stop immediately if you feel pain.';
+export { DISCLAIMER_TEXT } from '../lib/disclaimer';
+import { DISCLAIMER_TEXT } from '../lib/disclaimer';
 
 const ROW_PAD = SETTINGS_ROW_PAD;
 
@@ -493,6 +490,14 @@ export default function SettingsScreen(): React.JSX.Element {
 
       <Enter index={7}>
         <Group title="Learn">
+          <NavRow
+            testID="settings-run-setup"
+            icon="journey"
+            tone="gold"
+            label="Run setup again"
+            hint="Walks through goal, starting levels, equipment, limitations and training days"
+            onPress={() => navigation.navigate('Onboarding')}
+          />
           <NavRow
             testID="settings-anchor-safety"
             icon="anchor"

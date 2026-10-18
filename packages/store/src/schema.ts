@@ -66,6 +66,8 @@ export const users = sqliteTable('users', {
   limitationChoices: text('limitation_choices').notNull().default('[]'),
   /** Track 37f — JSON `Partial<TrainingPreferences>`; `{}` = every default (migration 0030). */
   trainingPrefs: text('training_prefs').notNull().default('{}'),
+  /** Track 37h — NULL | 'in_progress' | 'done' (migration 0032). */
+  onboardingState: text('onboarding_state'),
   /** JSON: { enabled, quiet_hours, observed_training_window }. */
   notificationPrefs: text('notification_prefs').notNull().default('{}'),
   /** §12 — the tz_id last observed for this device; compared against a new session's tz_id to

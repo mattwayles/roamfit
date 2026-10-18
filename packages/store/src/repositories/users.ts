@@ -104,6 +104,9 @@ export interface UserRecord {
   lastKnownTzId: string | null;
   hasEverCompletedSession: boolean;
   hasAcknowledgedDisclaimer: boolean;
+  /** Track 37h — first-launch setup was started (disclaimer acknowledged) and not yet finished or
+   *  skipped, so the app resumes it rather than opening Today. */
+  onboardingInProgress: boolean;
 }
 
 export interface LimitationChoiceRecord {
@@ -204,6 +207,7 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
     lastKnownTzId: row.lastKnownTzId,
     hasEverCompletedSession: row.hasEverCompletedSession,
     hasAcknowledgedDisclaimer: row.hasAcknowledgedDisclaimer,
+    onboardingInProgress: row.onboardingState === 'in_progress',
   };
 }
 
@@ -283,6 +287,25 @@ export function acknowledgeDisclaimer(db: Db, now: string): void {
   ensureUser(db, now);
   db.update(schema.users)
     .set({ hasAcknowledgedDisclaimer: true, updatedAt: now })
+    .where(eq(schema.users.id, USER_ID))
+    .run();
+}
+
+/** Track 37h — the first-launch setup's first step: the disclaimer is acknowledged and setup is
+ *  under way, so a relaunch before it finishes resumes it. */
+export function beginOnboarding(db: Db, now: string): void {
+  ensureUser(db, now);
+  db.update(schema.users)
+    .set({ hasAcknowledgedDisclaimer: true, onboardingState: 'in_progress', updatedAt: now })
+    .where(eq(schema.users.id, USER_ID))
+    .run();
+}
+
+/** Track 37h — setup finished (or skipped): open Today from now on. */
+export function finishOnboarding(db: Db, now: string): void {
+  ensureUser(db, now);
+  db.update(schema.users)
+    .set({ hasAcknowledgedDisclaimer: true, onboardingState: 'done', updatedAt: now })
     .where(eq(schema.users.id, USER_ID))
     .run();
 }

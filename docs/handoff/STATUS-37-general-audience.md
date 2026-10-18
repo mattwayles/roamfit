@@ -42,19 +42,24 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
       `placeOnLadders` (engine), `progressionStateRepo.applyPlacement` (store, no level-up dating),
       `PlacementPicker` + Settings → Training → Starting levels (confirm sheet).
 
+- [x] 37h — onboarding: `components/OnboardingFlow.tsx` (first = Home's blocking gate, review =
+      `Onboarding` route from Settings → Learn → Run setup again); `users.onboarding_state`
+      (migration 0032, `beginOnboarding`/`finishOnboarding`); resumes after a relaunch; equipment
+      options moved to `lib/equipment.ts`, disclaimer to `lib/disclaimer.ts`; `DaysPerWeekStepper`
+      shared; Button gained `accessibilityHint`.
+
 ### In progress
 
-- 37h — onboarding. Plan: `OnboardingScreen` (stack route `Onboarding`, header hidden, gesture off), a
-  step pager: 1 Welcome + disclaimer (acknowledging sets `hasAcknowledgedDisclaimer`) → 2 Goal
-  (GOAL_GROUP) → 3 Experience & placement (PlacementPicker) → 4 Equipment (anchor checklist from
-  GenerateScreen, extracted to a shared component) → 5 Limitations (LimitationPicker) → 6 Days per
-  week → 7 Anchor safety (AnchorSafetyGuide) → Done. Skip on every step after 1 keeps defaults. Home's
-  disclaimer gate is replaced by `navigation.navigate('Onboarding')` when !hasAcknowledgedDisclaimer;
-  Settings → "Run setup again" opens it in review mode (no disclaimer re-ack needed, prefilled).
+- 37i — bands. Plan: (1) `users.bands_owned` JSON (BandId[]; default all five so existing users and
+  the engine's open range are unchanged); engine `UserProfile.bandsOwned?` → prescription clamps a
+  band to the nearest owned one (heavier owned band at or below the prescribed one; if none lower,
+  the lightest owned) — progression state untouched. (2) Band editor screen (label + colour per band,
+  `usersRepo.updateBandTension`). (3) Stacking: band ids extended past B5 as stacked pairs, e.g.
+  'B5+B1'… — decide representation first (see gotchas). Onboarding gets a "Your bands" step.
 
 ### Next
 
-- 37i → 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
+- 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
 
 ### Decisions / gotchas
 
@@ -81,3 +86,7 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
   Settings (37i, the "Band (B1 to B5)" entry), Push and Pull in the "Focus" entry (37j).
 - Goal ranges are OFFSETS on the 8-12 / 20-45s ladder (strength -3 reps/-5s, endurance +7/+10s,
   muscle +1 set), so each rung stays a one-step change and switching goal never re-denominates state.
+- Gate tests that acknowledge the disclaimer via the UI must now press `onboarding-skip` after it
+  (see HomeScreen.dashboard / JourneyScreen.* tests). Tests that call `usersRepo.acknowledgeDisclaimer`
+  directly are unaffected (onboarding_state stays NULL).
+- Onboarding's bands step is not built yet — it lands with 37i.

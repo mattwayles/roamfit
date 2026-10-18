@@ -36,6 +36,9 @@ describe('§14.2 cold start — Today is never empty', () => {
     // Dismiss it exactly the way a real user would (a real tap) — this is also the one test in
     // this suite honest enough to exercise that gate.
     fireEvent.press(screen.getByTestId('disclaimer-acknowledge'));
+    // Track 37h — setup follows the disclaimer; skipping it keeps the recommended defaults.
+    await waitFor(() => expect(screen.getByTestId('onboarding-skip')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('onboarding-skip'));
 
     // Today card, not a resume card — nothing has ever been generated. Tabs are back.
     await waitFor(() => expect(screen.getByTestId('today-card')).toBeTruthy(), WAIT_OPTS);

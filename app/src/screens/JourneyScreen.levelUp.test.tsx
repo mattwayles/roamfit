@@ -41,6 +41,8 @@ async function mountJourney() {
   );
   if (screen.queryByTestId('disclaimer-acknowledge')) {
     fireEvent.press(screen.getByTestId('disclaimer-acknowledge'));
+    await waitFor(() => expect(screen.getByTestId('onboarding-skip')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('onboarding-skip'));
   }
   await waitFor(() => expect(screen.getByTestId('tab-Journey')).toBeTruthy(), WAIT_OPTS);
   await fireEvent.press(screen.getByTestId('tab-Journey'));

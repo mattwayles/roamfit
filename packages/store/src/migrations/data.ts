@@ -638,6 +638,14 @@ const MIGRATION_0031_ENTRY_TRANSITION = `-- 0031_entry_transition.sql — Track 
 ALTER TABLE session_entries ADD COLUMN transition_sec INTEGER;
 `;
 
+const MIGRATION_0032_ONBOARDING = `-- 0032_onboarding.sql — Track 37h: where the first-launch setup stands. NULL = not in it (an install
+-- from before onboarding existed, or any user who has not started it); 'in_progress' = the medical
+-- disclaimer was acknowledged and setup is under way, so a relaunch resumes it; 'done' = finished
+-- or skipped. Existing installs stay NULL and never see it unless they open it from Settings.
+
+ALTER TABLE users ADD COLUMN onboarding_state TEXT;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -676,4 +684,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0029_limitation_choices.sql', sql: MIGRATION_0029_LIMITATION_CHOICES },
   { id: '0030_training_prefs.sql', sql: MIGRATION_0030_TRAINING_PREFS },
   { id: '0031_entry_transition.sql', sql: MIGRATION_0031_ENTRY_TRANSITION },
+  { id: '0032_onboarding.sql', sql: MIGRATION_0032_ONBOARDING },
 ];

@@ -31,6 +31,8 @@ export interface ButtonProps {
   style?: StyleProp<ViewStyle>;
   testID?: string;
   accessibilityLabel?: string;
+  /** What happens on activate, when the label alone doesn't say (VoiceOver reads it after). */
+  accessibilityHint?: string;
 }
 
 const HEIGHT: Record<ButtonSize, number> = { lg: 64, md: 52, sm: 40 };
@@ -52,6 +54,7 @@ export function Button({
   style,
   testID,
   accessibilityLabel,
+  accessibilityHint,
 }: ButtonProps): React.JSX.Element {
   const theme = useTheme();
   const styles = useStyles();
@@ -93,6 +96,7 @@ export function Button({
       haptic={haptic ?? (variant === 'primary' ? 'light' : 'selection')}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: inactive, busy: loading }}
       style={[
         styles.base,

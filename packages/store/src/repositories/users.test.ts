@@ -5,7 +5,14 @@
 import { eq } from 'drizzle-orm';
 import { createTestDb } from '../testHarness';
 import { schema } from '../db';
-import { acknowledgeDisclaimer, ensureUser, getUser, updateUser } from './users';
+import {
+  acknowledgeDisclaimer,
+  beginOnboarding,
+  ensureUser,
+  finishOnboarding,
+  getUser,
+  updateUser,
+} from './users';
 import { utcInstantFor } from '../testFixtures';
 
 describe('§13.3 first-launch disclaimer acknowledgement', () => {
@@ -201,6 +208,36 @@ describe('anchorsAvailable for a new user (track 37b)', () => {
       expect(ensureUser(db, utcInstantFor('2026-10-18')).anchorsAvailable).toEqual([]);
       updateUser(db, { anchorsAvailable: ['anchor-mid'] }, utcInstantFor('2026-10-18'));
       expect(getUser(db)!.anchorsAvailable).toEqual(['anchor-mid']);
+    } finally {
+      close();
+    }
+  });
+});
+
+describe('onboarding state (migration 0032)', () => {
+  it('begins with the disclaimer, survives a relaunch in progress, and finishes', () => {
+    const { db, close } = createTestDb();
+    try {
+      const fresh = ensureUser(db, utcInstantFor('2026-10-18'));
+      expect(fresh.hasAcknowledgedDisclaimer).toBe(false);
+      expect(fresh.onboardingInProgress).toBe(false);
+      beginOnboarding(db, utcInstantFor('2026-10-18'));
+      expect(getUser(db)).toMatchObject({
+        hasAcknowledgedDisclaimer: true,
+        onboardingInProgress: true,
+      });
+      finishOnboarding(db, utcInstantFor('2026-10-18'));
+      expect(getUser(db)!.onboardingInProgress).toBe(false);
+    } finally {
+      close();
+    }
+  });
+
+  it('acknowledging the disclaimer alone (an install from before onboarding) is not in progress', () => {
+    const { db, close } = createTestDb();
+    try {
+      acknowledgeDisclaimer(db, utcInstantFor('2026-10-18'));
+      expect(getUser(db)!.onboardingInProgress).toBe(false);
     } finally {
       close();
     }
