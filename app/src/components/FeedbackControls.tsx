@@ -44,7 +44,13 @@ export default function FeedbackControls({
               style={[styles.item, selected && { backgroundColor: theme.colors[opt.tone] }]}
               onPress={() => onDifficultyChange(selected ? undefined : opt.value)}
             >
-              <Txt variant="bodyStrong" color={selected ? 'ink' : 'text2'} numberOfLines={1}>
+              {/* Two lines at most: at large Dynamic Type "Just right" wraps instead of "Just…". */}
+              <Txt
+                variant="bodyStrong"
+                color={selected ? 'ink' : 'text2'}
+                numberOfLines={2}
+                align="center"
+              >
                 {opt.label}
               </Txt>
             </PressableScale>
@@ -78,6 +84,7 @@ const useStyles = makeStyles((t) =>
       justifyContent: 'center',
       borderRadius: radius.pill,
       paddingHorizontal: space.xs,
+      paddingVertical: space.xs,
     },
   }),
 );

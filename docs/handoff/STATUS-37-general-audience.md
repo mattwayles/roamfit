@@ -64,21 +64,19 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
 - [x] 37m — Apple Health: Settings toggle requests write access when turned on; `writeWorkout`
       requests on the first write of each launch (fixes dropped queued workouts after relaunch).
 
+- [x] 37m — Apple Health: toggle requests write access; first write of each launch re-requests.
+- [x] 37n — accessibility: (1) d229535 Button minHeight/2-line labels, chip role + 44pt slop, set
+      squares 44pt, roles/labels for headline + Spotify rows, Reduce Motion for counters/confetti/
+      headline; (2) feedback labels, Generate recap, timer caption and Field Guide subtitles wrap.
+
 ### In progress
 
-- 37n — accessibility. [x] increment 1 committed: Button minHeight + 2-line labels; Chip role +
-  44pt hitSlop; Debrief set squares 44pt tall; Summary headline + Spotify rows get role/label;
-  Reduce Motion now covers stat counters, confetti and the headline bounce. Remaining below.
-  Original plan: (1) `Button`: fixed `height` → `minHeight`, allow 2 lines
-  so labels aren't clipped at large Dynamic Type; (2) audit `numberOfLines={1}` / fixed heights
-  on text containers across screens; (3) icon-only controls without `accessibilityLabel` (grep
-  IconButton/PressableScale without labels); (4) touch targets < 44pt (grep width/height < 44 on
-  pressables, `hitSlop`); (5) Reduce Motion coverage (`useReduceMotion` on every animation);
-  (6) contrast — run the theme contrast tests on new tones. Tests per increment.
+- nothing — Track 37 complete (37j reverted by user decision). Jest-verified only; device passes
+  are in BACKLOG.
 
 ### Next
 
-- 37n (order in BACKLOG).
+- See BACKLOG for the device passes owed and the human contraindication review.
 
 ### Decisions / gotchas
 

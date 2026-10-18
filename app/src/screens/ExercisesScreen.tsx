@@ -485,7 +485,7 @@ const ExerciseRow = React.memo(function ExerciseRow({
         <Txt variant="h3" numberOfLines={2}>
           {exercise.name}
         </Txt>
-        <Txt variant="small" color="text2" numberOfLines={1}>
+        <Txt variant="small" color="text2" numberOfLines={2}>
           {primaryMuscleLabel(exercise)}
         </Txt>
       </View>

@@ -2314,7 +2314,7 @@ function TimedExercise({
         testID="timed-caption"
         color={stopped ? 'sky' : 'text2'}
         align="center"
-        numberOfLines={1}
+        numberOfLines={2}
       >
         {circleCaption}
       </Txt>

@@ -196,7 +196,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
             variant="eyebrow"
             color="text2"
             align="center"
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {recap}
           </Txt>

@@ -12,23 +12,6 @@ the record of what was completed and why.
 
 ---
 
-## General-audience release plan (Track 37)
-
-Requested 2026-10-18 after a general-access audit: make the app work for anyone from a complete
-beginner to an advanced lifter, not only the user it was built around. Running log:
-`docs/handoff/STATUS-37-general-audience.md`. Sub-tracks in build order. Each one leaves `npm run check`
-green and is deleted from here when it lands.
-
-**Explicitly out of scope (user decisions):** no "this hurts" button on the active workout (yet); no
-level-up offer from the active workout; the bundled demo loops/videos are the user's to produce; the
-local-device history / account persistence issue is the user's to handle (see Future Features →
-User Accounts).
-
-- **37n — Accessibility.** Text that scales with the iOS text size (not shrink-to-fit), VoiceOver labels
-  and roles on every control, Reduce Motion respected everywhere, 44pt touch targets, and contrast.
-
----
-
 ## Desired Fixes
 
 - **Next Unlock → Journey scroll — device pass owed.** Tapping the Next Unlock card on Today now opens
@@ -105,6 +88,13 @@ User Accounts).
   Jest can't verify it. Check on a device: background mid-countdown, lock the screen, with and
   without Spotify playing; confirm no Now Playing entry appears and music isn't interrupted. If iOS
   still suspends, fall back to scheduled local notifications with bundled sounds.
+- **Accessibility — device pass owed.** Track 37n is Jest-verified only. With VoiceOver on and at the
+  largest Accessibility text size: buttons grow (two-line labels) rather than clip; Too easy / Just
+  right / Too hard, the Generate recap and the timer caption wrap cleanly; chips and Debrief set
+  squares are easy to hit; every onboarding step announces "Step N of M"; with Reduce Motion on,
+  Completion has no confetti, count-up or headline bounce. Not changed, deliberately: the 0.96
+  press-down scale and the Switch thumb (direct touch feedback, not the motion Reduce Motion
+  targets).
 - **Apple Health write — device pass owed.** Track 37m: turning on "Write workouts to Apple Health"
   requests write-only access, and the first write of each launch re-requests silently (the flag is
   in-memory), so workouts queued before a relaunch are no longer dropped. Jest-verified with a mocked
@@ -207,7 +197,6 @@ size="lg"`): check it reads at arm's length, the B3 near-black swatch stands off
 
 _Use this section to backlog changes to individual exercise details_
 
-
 ---
 
 ## Requested Exercises
@@ -288,6 +277,9 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   milestones (level-ups, best sets) do not get stamps yet, only cities; (2) the Share button sends a
   plain-text line — a rendered stamp-sheet image is the natural share, but needs `react-native-view-shot`
   (see the Completion item above).
+- **"This hurts" from the active workout — not yet (user decision, 2026-10-18).** Deferred from Track 37. The store already has `limitations.source = 'pain_report'` with an expiry and
+  `ExerciseState.suppressedUntil`; a button mid-set would add a dated limitation and suppress the
+  exercise, then offer a swap.
 - **Push / Pull foci — deferred by user decision (2026-10-18).** Built as Track 37j (9db32c0) and
   reverted (bf13210): "I do not want separate push/pull focus areas at this time." The reverted
   commit is a working reference (split templates, `suitsFocus`, `TemplateSlot.primaryAny`).
