@@ -18,7 +18,7 @@ import { StoreProvider } from '../state/StoreContext';
 import { getDb } from '../db';
 import { nowUtcInstant } from '../lib/localClock';
 import { daybreakTheme } from '../theme';
-import { flat, inDaybreak } from '../ui/test-utils';
+import { WAIT, flat, inDaybreak } from '../ui/test-utils';
 
 const PUSH_UP = { id: 'banded-push-up', name: 'Banded Push-Up' };
 
@@ -51,10 +51,13 @@ async function openExercises(daybreak = false) {
       </NavigationContainer>
     </StoreProvider>
   );
-  render(daybreak ? inDaybreak(app) : app);
-  await waitFor(() => expect(screen.getByTestId('tab-Exercises')).toBeTruthy());
+  // Awaited: under React 19 `render` commits asynchronously, and an un-awaited render let the
+  // next `waitFor` run before anything existed ("render function has not been called") whenever
+  // the full suite ran under parallel load. Same for the 5s WAIT over the 1s default.
+  await render(daybreak ? inDaybreak(app) : app);
+  await waitFor(() => expect(screen.getByTestId('tab-Exercises')).toBeTruthy(), WAIT);
   await fireEvent.press(screen.getByTestId('tab-Exercises'));
-  await waitFor(() => expect(screen.getByTestId('exercise-list')).toBeTruthy());
+  await waitFor(() => expect(screen.getByTestId('exercise-list')).toBeTruthy(), WAIT);
 }
 
 async function openFilters() {
