@@ -11,6 +11,7 @@ import LimitationsScreen from '../screens/LimitationsScreen';
 import AnchorSafetyScreen from '../screens/AnchorSafetyScreen';
 import GlossaryScreen from '../screens/GlossaryScreen';
 import TrainingPreferencesScreen from '../screens/TrainingPreferencesScreen';
+import PlacementScreen from '../screens/PlacementScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import SessionHistoryScreen from '../screens/SessionHistoryScreen';
 import { useTheme } from '../theme';
@@ -42,6 +43,7 @@ export default function RootNavigator(): React.JSX.Element {
       <Stack.Screen name="Limitations" component={LimitationsScreen} options={{ title: '' }} />
       <Stack.Screen name="AnchorSafety" component={AnchorSafetyScreen} options={{ title: '' }} />
       <Stack.Screen name="Glossary" component={GlossaryScreen} options={{ title: '' }} />
+      <Stack.Screen name="Placement" component={PlacementScreen} options={{ title: '' }} />
       <Stack.Screen
         name="TrainingPreferences"
         component={TrainingPreferencesScreen}

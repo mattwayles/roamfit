@@ -306,6 +306,14 @@ export default function SettingsScreen(): React.JSX.Element {
             hint="Opens goal, rest, variety, recovery, pace and warm-up settings"
             onPress={() => navigation.navigate('TrainingPreferences')}
           />
+          <NavRow
+            testID="settings-placement"
+            icon="trendingUp"
+            tone="gold"
+            label="Starting levels"
+            hint="Opens the placement questions to move every trail to a level that fits"
+            onPress={() => navigation.navigate('Placement')}
+          />
           <SwitchRow
             testID="toggle-cue-sounds"
             icon="volume"

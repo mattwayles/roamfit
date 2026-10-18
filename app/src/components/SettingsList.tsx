@@ -23,17 +23,25 @@ const DIVIDER_INSET = ROW_PAD + TILE + space.md;
 export function Group({
   title,
   caption,
+  question = false,
   children,
 }: {
   title: string;
   caption?: string;
+  /** A full-sentence title (a question) reads as a sentence, not an uppercase eyebrow. */
+  question?: boolean;
   children: React.ReactNode;
 }): React.JSX.Element {
   const styles = useStyles();
   const rows = Children.toArray(children).filter(Boolean);
   return (
     <View style={styles.group} testID={`settings-section-${title}`}>
-      <Txt variant="eyebrow" color="text3" accessibilityRole="header" style={styles.groupTitle}>
+      <Txt
+        variant={question ? 'h3' : 'eyebrow'}
+        color={question ? 'text' : 'text3'}
+        accessibilityRole="header"
+        style={styles.groupTitle}
+      >
         {title}
       </Txt>
       <Card padding="none" style={styles.groupCard}>

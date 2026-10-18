@@ -36,6 +36,8 @@ export type RootStackParamList = {
   Limitations: undefined;
   /** Track 37f — Settings → Training → Training preferences. */
   TrainingPreferences: undefined;
+  /** Track 37g — Settings → Training → Starting levels (placement). */
+  Placement: undefined;
   /** Track 37d — Settings → Learn → Anchor safety (also an onboarding step). */
   AnchorSafety: undefined;
   /** Track 37e — Settings → Learn → Glossary. */

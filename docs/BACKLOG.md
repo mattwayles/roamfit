@@ -24,9 +24,6 @@ level-up offer from the active workout; the bundled demo loops/videos are the us
 local-device history / account persistence issue is the user's to handle (see Future Features →
 User Accounts).
 
-- **37g — Placement: starting level on every ladder.** An optional, self-reported placement
-  (experience level, plus a few "can you do X?" checks) that sets each family's starting rung. Explicit
-  and repeatable, not the removed automatic calibration. Skipping keeps level 1.
 - **37h — First-launch onboarding, reviewable any time.** Welcome + disclaimer → goal → experience &
   placement → equipment and bands owned → limitations → days per week → anchor safety guide. Every
   step skippable with beginner defaults. Replaces the Home disclaimer gate; re-openable from Settings.

@@ -38,18 +38,23 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
       `SessionEntry.transitionSec` (persisted, `session_entries.transition_sec`, migration 0031) so
       every re-estimate keeps it.
 
+- [x] 37g — placement: `PLACEMENT_QUESTIONS`/`EXPERIENCE_OPTIONS` (packages/data, keyed by level_id),
+      `placeOnLadders` (engine), `progressionStateRepo.applyPlacement` (store, no level-up dating),
+      `PlacementPicker` + Settings → Training → Starting levels (confirm sheet).
+
 ### In progress
 
-- 37g — placement. Plan: `packages/engine/src/progression/placement.ts` (pure): experience level
-  (`new` / `returning` / `regular` / `advanced`) → a starting rung per family as a fraction of the
-  ladder, optionally overridden per family by "can you do X?" answers (each answer names a rung).
-  Store: `progressionStateRepo.applyPlacement(db, levels, families, library, now)` sets each family's
-  level + default micro (same reset a level change does). UI lives in onboarding (37h); also a
-  Settings → Training entry "Re-place me on the ladders".
+- 37h — onboarding. Plan: `OnboardingScreen` (stack route `Onboarding`, header hidden, gesture off), a
+  step pager: 1 Welcome + disclaimer (acknowledging sets `hasAcknowledgedDisclaimer`) → 2 Goal
+  (GOAL_GROUP) → 3 Experience & placement (PlacementPicker) → 4 Equipment (anchor checklist from
+  GenerateScreen, extracted to a shared component) → 5 Limitations (LimitationPicker) → 6 Days per
+  week → 7 Anchor safety (AnchorSafetyGuide) → Done. Skip on every step after 1 keeps defaults. Home's
+  disclaimer gate is replaced by `navigation.navigate('Onboarding')` when !hasAcknowledgedDisclaimer;
+  Settings → "Run setup again" opens it in review mode (no disclaimer re-ack needed, prefilled).
 
 ### Next
 
-- 37h → 37i → 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
+- 37i → 37j → 37k → 37l → 37m → 37n (order in BACKLOG).
 
 ### Decisions / gotchas
 
