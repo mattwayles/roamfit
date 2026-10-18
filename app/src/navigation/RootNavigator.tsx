@@ -7,6 +7,7 @@ import ApprovalScreen from '../screens/ApprovalScreen';
 import WorkoutScreen from '../screens/WorkoutScreen';
 import SummaryScreen from '../screens/SummaryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import LimitationsScreen from '../screens/LimitationsScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import SessionHistoryScreen from '../screens/SessionHistoryScreen';
 import { useTheme } from '../theme';
@@ -34,6 +35,8 @@ export default function RootNavigator(): React.JSX.Element {
       <Stack.Screen name="Summary" component={SummaryScreen} options={{ title: '' }} />
       {/* Settings draws its own h1 title; the native header stays for the back button. */}
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: '' }} />
+      {/* Settings' sub-pages draw their own h1; the native header stays for the back button. */}
+      <Stack.Screen name="Limitations" component={LimitationsScreen} options={{ title: '' }} />
       {/* The detail page opens on a full-bleed focus-colour hero and draws its own back button over
           it; the edge-swipe back gesture stays on. */}
       <Stack.Screen

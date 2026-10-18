@@ -83,13 +83,14 @@ describe('appearance', () => {
 });
 
 describe('settings', () => {
-  it('lays the groups out in order: Appearance, Training, Motivation, Travel & privacy, Apple Health, disclaimer, Advanced', async () => {
+  it('lays the groups out in order: Appearance, Your body, Training, Motivation, Travel & privacy, Apple Health, disclaimer, Advanced', async () => {
     await openSettings();
     const order = screen
       .getAllByTestId(/^settings-section-/)
       .map((node) => (node.props.testID as string).replace('settings-section-', ''));
     expect(order).toEqual([
       'Appearance',
+      'Your body',
       'Training',
       'Motivation',
       'Travel & privacy',
@@ -221,5 +222,33 @@ describe('settings', () => {
     await fireEvent.press(screen.getByTestId('reset-confirm-yes'));
     expect(reset).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByTestId('reset-sheet')).toBeNull(), WAIT);
+  });
+});
+
+describe('limitations (track 37a)', () => {
+  beforeEach(() => {
+    usersRepo.setLimitationChoices(getDb(), [], '2026-10-18', nowUtcInstant());
+  });
+
+  it('the row summarises the choices and opens the picker, whose ticks save immediately', async () => {
+    usersRepo.setLimitationChoices(getDb(), ['knee'], '2026-10-18', nowUtcInstant());
+    await openSettings();
+    expect(screen.getByTestId('settings-limitations-value')).toHaveTextContent('Knee');
+    await fireEvent.press(screen.getByTestId('settings-limitations'));
+    await ready('limitations-screen');
+    expect(checked('limitation-knee')).toBe(true);
+    expect(checked('limitation-pregnancy')).toBe(false);
+
+    await fireEvent.press(screen.getByTestId('limitation-pregnancy'));
+    await fireEvent.press(screen.getByTestId('limitation-knee'));
+    expect(checked('limitation-pregnancy')).toBe(true);
+    expect(checked('limitation-knee')).toBe(false);
+    expect(usersRepo.getUser(getDb())!.limitationChoices.map((c) => c.id)).toEqual(['pregnancy']);
+    expect(screen.getByTestId('limitation-pregnancy').props.accessibilityRole).toBe('checkbox');
+  });
+
+  it('reads None when nothing is ticked', async () => {
+    await openSettings();
+    expect(screen.getByTestId('settings-limitations-value')).toHaveTextContent('None');
   });
 });

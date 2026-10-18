@@ -62,6 +62,8 @@ export const users = sqliteTable('users', {
     .default(true),
   /** JSON array of Spotify vibe ids (stable strings); '[]' = no preference. Migration 0023. */
   spotifyVibes: text('spotify_vibes').notNull().default('[]'),
+  /** Track 37a — JSON `[{ id, since }]` of `LIMITATION_CHOICES` ids (migration 0029). */
+  limitationChoices: text('limitation_choices').notNull().default('[]'),
   /** JSON: { enabled, quiet_hours, observed_training_window }. */
   notificationPrefs: text('notification_prefs').notNull().default('{}'),
   /** §12 — the tz_id last observed for this device; compared against a new session's tz_id to

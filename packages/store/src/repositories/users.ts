@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 import { DEFAULT_ANCHORS_AVAILABLE } from '@roamfit/engine';
 import type { BandId, Limitation as EngineLimitation, UserProfile } from '@roamfit/engine';
 import type { Anchor } from '@roamfit/data';
+import { isLimitationChoiceId, tagsForLimitationChoices } from '@roamfit/data';
 import type { Db } from '../db';
 import { schema } from '../db';
 import { newId } from '../ids';
@@ -85,9 +86,36 @@ export interface UserRecord {
   /** Stable Spotify vibe ids the user picked; `[]` = no preference. */
   spotifyVibes: string[];
   notificationPrefs: NotificationPrefs;
+  /** Track 37a — the limitation choices the user picked (ids from `LIMITATION_CHOICES`), each
+   *  with the local_date it was turned on. Unknown ids are dropped on read. */
+  limitationChoices: LimitationChoiceRecord[];
   lastKnownTzId: string | null;
   hasEverCompletedSession: boolean;
   hasAcknowledgedDisclaimer: boolean;
+}
+
+export interface LimitationChoiceRecord {
+  id: string;
+  /** local_date the choice was turned on. */
+  since: string;
+}
+
+/** The stored `limitation_choices` JSON, tolerant of damage the same way `parseStringArray` is. */
+function parseLimitationChoices(raw: string): LimitationChoiceRecord[] {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (v): v is LimitationChoiceRecord =>
+        typeof v === 'object' &&
+        v !== null &&
+        typeof (v as LimitationChoiceRecord).id === 'string' &&
+        typeof (v as LimitationChoiceRecord).since === 'string' &&
+        isLimitationChoiceId((v as LimitationChoiceRecord).id),
+    );
+  } catch {
+    return [];
+  }
 }
 
 /** Per band, the user's stored fields over the defaults — so a row that customises only a colour
@@ -129,6 +157,7 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
     themePreference: row.themePreference as ThemePreference,
     spotifyVibes: parseStringArray(row.spotifyVibes),
     notificationPrefs: JSON.parse(row.notificationPrefs) as NotificationPrefs,
+    limitationChoices: parseLimitationChoices(row.limitationChoices),
     lastKnownTzId: row.lastKnownTzId,
     hasEverCompletedSession: row.hasEverCompletedSession,
     hasAcknowledgedDisclaimer: row.hasAcknowledgedDisclaimer,
@@ -280,12 +309,51 @@ export function getActiveLimitations(db: Db, today: string): EngineLimitation[] 
   return rows.filter((r) => !r.expiresAt || r.expiresAt >= today).map(rowToLimitation);
 }
 
+/**
+ * Track 37a — replaces the user's limitation choices with `ids` (unknown ids ignored). A choice
+ * that was already on keeps its original `since`; a newly turned-on one starts `today`.
+ */
+export function setLimitationChoices(
+  db: Db,
+  ids: readonly string[],
+  today: string,
+  now: string,
+): void {
+  const current = ensureUser(db, now);
+  const sinceById = new Map(current.limitationChoices.map((c) => [c.id, c.since]));
+  const next: LimitationChoiceRecord[] = [...new Set(ids)]
+    .filter(isLimitationChoiceId)
+    .map((id) => ({ id, since: sinceById.get(id) ?? today }));
+  db.update(schema.users)
+    .set({ limitationChoices: JSON.stringify(next), updatedAt: now })
+    .where(eq(schema.users.id, USER_ID))
+    .run();
+}
+
+/** The user's choices as engine limitations: one per tag a choice filters on (`source: 'user'`,
+ *  no expiry). A tag shared by two choices appears once, dated by the earliest of them. */
+function limitationsFromChoices(choices: readonly LimitationChoiceRecord[]): EngineLimitation[] {
+  const byTag = new Map<EngineLimitation['tag'], EngineLimitation>();
+  for (const choice of choices) {
+    for (const tag of tagsForLimitationChoices([choice.id])) {
+      const existing = byTag.get(tag);
+      if (!existing || choice.since < existing.createdAt) {
+        byTag.set(tag, { tag, createdAt: choice.since, source: 'user', note: choice.id });
+      }
+    }
+  }
+  return [...byTag.values()];
+}
+
 export function buildUserProfile(db: Db, today: string): UserProfile {
   const user = ensureUser(db, today);
   return {
     units: user.units,
     weeklyTarget: user.weeklyTarget,
-    limitations: getActiveLimitations(db, today),
+    limitations: [
+      ...limitationsFromChoices(user.limitationChoices),
+      ...getActiveLimitations(db, today),
+    ],
     anchorsAvailable: user.anchorsAvailable,
     disabledExerciseIds: getDisabledExerciseIds(db),
   };

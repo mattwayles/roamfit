@@ -10,6 +10,7 @@ import familiesJson from '../library/families.json';
 import type { Exercise, ExerciseLibrary, FamilyLibrary } from './schema';
 
 export * from './schema';
+export * from './limitations';
 
 export const exerciseLibrary = exercisesJson as unknown as ExerciseLibrary;
 export const familyLibrary = familiesJson as unknown as FamilyLibrary;

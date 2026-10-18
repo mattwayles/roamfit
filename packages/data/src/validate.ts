@@ -82,6 +82,8 @@ const CONTRA_VALUES: Contraindication[] = [
   'neck',
   'ankle',
   'core_pressure',
+  'lying_supine',
+  'lying_prone',
 ];
 const LADDER_FAMILY_IDS = [
   'horizontal_push',

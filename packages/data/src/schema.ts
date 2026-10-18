@@ -83,7 +83,12 @@ export type Contraindication =
   | 'lower_back_extension'
   | 'neck'
   | 'ankle'
-  | 'core_pressure';
+  | 'core_pressure'
+  /** Track 37 — positions, not joints: lying on the back / on the front. Filtered by the
+   *  "Pregnant or postpartum" limitation choice (prolonged supine and prone work is what
+   *  prenatal guidance most often rules out after the first trimester). */
+  | 'lying_supine'
+  | 'lying_prone';
 
 /** The 8 laddered progression families in v1 scope (§6.6). */
 export type ProgressionFamilyId =

@@ -19,14 +19,17 @@
  * on the row), and the row's `accessibilityState.checked` is the value; the switch inside carries
  * `${id}-switch`. Tests press the row, not a native switch's `valueChange`.
  */
-import React, { Children, useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/types';
+import { limitationSummary } from '../components/LimitationPicker';
 import { instrumentationRepo, progressionStateRepo, usersRepo } from '@roamfit/store';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
 import { MAX_DAILY_MOTIVATION_TIMES, shiftTime } from '../lib/motivationNotifications';
-import { makeStyles, radius, space, useTheme, type AccentName } from '../theme';
+import { makeStyles, radius, space } from '../theme';
 import { useThemePreference } from '../state/ThemeProvider';
 import type { ThemePreference } from '@roamfit/store';
 import {
@@ -39,12 +42,12 @@ import {
   PressableScale,
   Screen,
   Sheet,
-  Switch,
   Txt,
   haptics,
   type IconName,
 } from '../ui';
 import { IconBadge } from '../components/IconBadge';
+import { Group, IconTile, NavRow, SETTINGS_ROW_PAD, SwitchRow } from '../components/SettingsList';
 
 const DEFAULT_MOTIVATION_TIMES = ['18:00'];
 
@@ -54,97 +57,7 @@ export const DISCLAIMER_TEXT =
   'starting any new exercise program, especially if you are pregnant, recovering from an ' +
   'injury, or have an existing health condition. Stop immediately if you feel pain.';
 
-/** Icon tile size, and how far a hairline separator is inset so it starts past the icon. */
-const TILE = 32;
-const ROW_PAD = space.lg;
-const DIVIDER_INSET = ROW_PAD + TILE + space.md;
-
-/** An iOS-style group: eyebrow above, a `surface` card of rows (hairlines between them), and an
- *  optional caption beneath. `testID` is `settings-section-${title}`. */
-function Group({
-  title,
-  caption,
-  children,
-}: {
-  title: string;
-  caption?: string;
-  children: React.ReactNode;
-}): React.JSX.Element {
-  const styles = useStyles();
-  const rows = Children.toArray(children).filter(Boolean);
-  return (
-    <View style={styles.group} testID={`settings-section-${title}`}>
-      <Txt variant="eyebrow" color="text3" accessibilityRole="header" style={styles.groupTitle}>
-        {title}
-      </Txt>
-      <Card padding="none" style={styles.groupCard}>
-        {rows.map((row, i) => (
-          <React.Fragment key={i}>
-            {i > 0 ? <View style={styles.divider} /> : null}
-            {row}
-          </React.Fragment>
-        ))}
-      </Card>
-      {caption ? (
-        <Txt variant="caption" color="text3" style={styles.groupCaption}>
-          {caption}
-        </Txt>
-      ) : null}
-    </View>
-  );
-}
-
-/** The 32pt rounded-square icon tile, tinted in its group's accent. */
-function IconTile({ icon, tone }: { icon: IconName; tone: AccentName }): React.JSX.Element {
-  const theme = useTheme();
-  const styles = useStyles();
-  return (
-    <View style={[styles.tile, { backgroundColor: theme.tints[tone] }]}>
-      <Icon name={icon} size={18} color={tone} />
-    </View>
-  );
-}
-
-/** One switch row: tile, `h3` label, `Switch`. The row is the toggle (`testID`); the switch inside
- *  is a visual twin (hidden from VoiceOver, which already has the row) with its own id. */
-function SwitchRow({
-  testID,
-  icon,
-  tone,
-  label,
-  value,
-  onValueChange,
-}: {
-  testID: string;
-  icon: IconName;
-  tone: AccentName;
-  label: string;
-  value: boolean;
-  onValueChange: (next: boolean) => void;
-}): React.JSX.Element {
-  const styles = useStyles();
-  return (
-    <Pressable
-      testID={testID}
-      accessibilityRole="switch"
-      accessibilityLabel={label}
-      accessibilityState={{ checked: value }}
-      onPress={() => {
-        haptics.selection();
-        onValueChange(!value);
-      }}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-    >
-      <IconTile icon={icon} tone={tone} />
-      <Txt variant="h3" style={styles.rowLabel}>
-        {label}
-      </Txt>
-      <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <Switch testID={`${testID}-switch`} value={value} onValueChange={onValueChange} />
-      </View>
-    </Pressable>
-  );
-}
+const ROW_PAD = SETTINGS_ROW_PAD;
 
 const APPEARANCE_OPTIONS: {
   value: ThemePreference;
@@ -191,6 +104,7 @@ function AppearanceControl(): React.JSX.Element {
 export default function SettingsScreen(): React.JSX.Element {
   const { db, library, families } = useStore();
   const styles = useStyles();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [user, setUser] = useState<usersRepo.UserRecord>(() =>
     usersRepo.ensureUser(db, nowUtcInstant()),
   );
@@ -342,6 +256,23 @@ export default function SettingsScreen(): React.JSX.Element {
 
       <Enter index={2}>
         <Group
+          title="Your body"
+          caption="Wanderlift leaves out anything that loads an area you protect. Change it any time."
+        >
+          <NavRow
+            testID="settings-limitations"
+            icon="shield"
+            tone="gold"
+            label="Limitations"
+            value={limitationSummary(user.limitationChoices.map((c) => c.id))}
+            hint="Opens the list of body areas and conditions to work around"
+            onPress={() => navigation.navigate('Limitations')}
+          />
+        </Group>
+      </Enter>
+
+      <Enter index={3}>
+        <Group
           title="Training"
           caption="Timer sounds: the 3-2-1 count, the halfway chime and the end-of-rest tone. They mix with whatever else is playing rather than pausing it. Vibration cues are unaffected either way, so a silent workout still tells you when a hold or a rest is up. There is also a mute button on the workout itself, for one session at a time. “Ask how each exercise felt” opens a quick Too easy / Just right / Too hard question over the rest timer after an exercise’s last set; off, the same question sits on that rest page instead."
         >
@@ -364,7 +295,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </Group>
       </Enter>
 
-      <Enter index={3}>
+      <Enter index={4}>
         <Group
           title="Motivation"
           caption={
@@ -443,7 +374,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </Group>
       </Enter>
 
-      <Enter index={4}>
+      <Enter index={5}>
         <View style={styles.privacyGroup}>
           <Group title="Travel & privacy">
             <SwitchRow
@@ -473,7 +404,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </View>
       </Enter>
 
-      <Enter index={5}>
+      <Enter index={6}>
         <Group title="Apple Health">
           <SwitchRow
             testID="toggle-healthkit-write"
@@ -486,7 +417,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </Group>
       </Enter>
 
-      <Enter index={6}>
+      <Enter index={7}>
         <Card padding="md" style={styles.disclaimer} testID="settings-section-Medical disclaimer">
           <IconBadge icon="shield" tone="gold" size={40} />
           <View style={styles.disclaimerBody}>
@@ -500,7 +431,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </Card>
       </Enter>
 
-      <Enter index={7}>
+      <Enter index={8}>
         <Group title="Advanced">
           <Pressable
             testID="settings-advanced-toggle"
@@ -605,17 +536,8 @@ export default function SettingsScreen(): React.JSX.Element {
 const useStyles = makeStyles((tk) =>
   StyleSheet.create({
     content: { paddingTop: space.sm, gap: space.xxl },
-    group: { gap: space.sm },
     appearance: { flexDirection: 'row', gap: space.sm, padding: space.md },
     appearanceOption: { flex: 1, alignSelf: 'stretch', justifyContent: 'center' },
-    groupTitle: { marginLeft: space.xs },
-    groupCard: { overflow: 'hidden' },
-    groupCaption: { marginHorizontal: space.xs },
-    divider: {
-      height: StyleSheet.hairlineWidth,
-      marginLeft: DIVIDER_INSET,
-      backgroundColor: tk.colors.line,
-    },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -625,13 +547,6 @@ const useStyles = makeStyles((tk) =>
     },
     rowPressed: { backgroundColor: tk.colors.surface2 },
     rowLabel: { flex: 1, flexShrink: 1, marginHorizontal: space.md },
-    tile: {
-      width: TILE,
-      height: TILE,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     times: {
       gap: space.sm,
       paddingHorizontal: ROW_PAD,

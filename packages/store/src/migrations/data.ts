@@ -611,6 +611,15 @@ ALTER TABLE exercise_state ADD COLUMN micro_sets INTEGER;
 ALTER TABLE exercise_state ADD COLUMN micro_consecutive_misses INTEGER NOT NULL DEFAULT 0;
 `;
 
+const MIGRATION_0029_LIMITATION_CHOICES = `-- 0029_limitation_choices.sql — Track 37a: the plain-language limitation choices a user picked in
+-- onboarding or Settings (LIMITATION_CHOICES in packages/data), as a JSON array of
+-- {"id": "<choice id>", "since": "<local_date>"}. Choice ids, not tags, are stored so that a later
+-- review of a choice's tag mapping reaches every user who already picked it; buildUserProfile
+-- expands them into engine limitations. The limitations table stays for dated, tag-level rows.
+
+ALTER TABLE users ADD COLUMN limitation_choices TEXT NOT NULL DEFAULT '[]';
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -646,4 +655,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0026_entry_feedback.sql', sql: MIGRATION_0026_ENTRY_FEEDBACK },
   { id: '0027_working_band.sql', sql: MIGRATION_0027_WORKING_BAND },
   { id: '0028_accessory_micro.sql', sql: MIGRATION_0028_ACCESSORY_MICRO },
+  { id: '0029_limitation_choices.sql', sql: MIGRATION_0029_LIMITATION_CHOICES },
 ];

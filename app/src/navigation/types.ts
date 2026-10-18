@@ -32,6 +32,8 @@ export type RootStackParamList = {
   Workout: { sessionId: string; reviewFromSummary?: boolean; jumpTo?: SessionPosition };
   Summary: { sessionId: string };
   Settings: undefined;
+  /** Track 37a — Settings → Limitations (the injury hard filter's input). */
+  Limitations: undefined;
   /** Reached from the library list. Keyed by the stable library id, never a list index, so the
    *  route survives the list being re-sorted or re-filtered underneath it. */
   ExerciseDetail: { exerciseId: string };

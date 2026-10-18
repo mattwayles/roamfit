@@ -56,6 +56,8 @@ const CONTRAINDICATION_VALUES: readonly Contraindication[] = [
   'neck',
   'ankle',
   'core_pressure',
+  'lying_supine',
+  'lying_prone',
 ];
 
 /** ADR-0002: the general pipeline's floor is 15 minutes; Quick Session (~7min) is the only
