@@ -22,7 +22,7 @@
  * `chipSize="lg"` makes the compact trigger the band-coloured swatch (`BandChip size="lg"`), which
  * is what the workout screen uses so the band is unmissable mid-set.
  */
-import React, { useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SINGLE_BANDS } from '@roamfit/engine';
 import type { BandId } from '@roamfit/engine';
@@ -30,6 +30,11 @@ import { bandAppearance, type BandTensions } from '../lib/bandDisplay';
 import { makeStyles, radius, space, useTheme } from '../theme';
 import { Icon, PressableScale, Txt } from '../ui';
 import BandChip, { neutralBandColor, textToneOn } from './BandChip';
+
+/** Track 37i — the bands a screen's pickers offer (the user's usable bands), provided once by the
+ *  screen rather than threaded through every component between it and each picker. */
+const BandOptionsContext = createContext<readonly BandId[]>(SINGLE_BANDS);
+export const BandOptionsProvider = BandOptionsContext.Provider;
 
 export default function BandPicker({
   band,
@@ -47,12 +52,13 @@ export default function BandPicker({
    *  whatever card comes next in the list (see `ApprovalScreen`'s `cardElevated`). */
   open: openProp,
   onOpenChange,
-  options = SINGLE_BANDS,
+  options: optionsProp,
 }: {
   band: BandId;
   tensions: BandTensions;
   /** Track 37i — the bands to offer: the user's usable bands (owned, plus stacked pairs with
-   *  stacking on). Defaults to the five single bands. The current band is always offered. */
+   *  stacking on). Defaults to the screen's `BandOptionsProvider`, else the five single bands.
+   *  The current band is always offered. */
   options?: readonly BandId[];
   onChange: (band: BandId) => void;
   testID?: string;
@@ -72,6 +78,8 @@ export default function BandPicker({
   const look = bandAppearance(band, tensions);
   const background = look.color ?? neutralBandColor(theme);
   const label = look.label;
+  const contextOptions = useContext(BandOptionsContext);
+  const options = optionsProp ?? contextOptions;
   const offered = options.includes(band) ? options : [...options, band];
   const tone = textToneOn(background);
   const isField = variant === 'field';

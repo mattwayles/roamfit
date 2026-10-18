@@ -23,6 +23,8 @@ import {
   alternativesForSlot,
   applyHardFilters,
   applyTrainingToMainEntry,
+  clampToUsableBand,
+  usableBands,
   createRng,
   prescribeAccessory,
   prescribeWarmupCooldown,
@@ -46,7 +48,7 @@ import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { DIFFICULTY_LABELS, FOCUS_LABELS } from '../lib/focusLabels';
 import AbandonSessionButton from '../components/AbandonSessionButton';
-import BandPicker from '../components/BandPicker';
+import BandPicker, { BandOptionsProvider } from '../components/BandPicker';
 import KeyboardDoneBar from '../components/KeyboardDoneBar';
 import { makeStyles, radius, space, type, useTheme, withAlpha, type AccentName } from '../theme';
 import {
@@ -166,6 +168,8 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   /** §1140 — band colours are user data, so they are read from the user row rather than being a
    *  palette this screen invents. `ensureUser` always returns a complete set. */
   const bandTensions = usersRepo.ensureUser(db, nowUtcInstant()).bandTensions;
+  // Track 37i — the bands this user's pickers offer: owned, plus stacked pairs with stacking on.
+  const bandOptions = usableBands(usersRepo.ensureUser(db, nowUtcInstant()).bandSettings);
   /** The in-flight drag, or null. `dy` is raw finger travel (what the dragged card follows);
    *  `toIndex` is that travel snapped to a row position (what every other card reacts to). */
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -376,6 +380,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
       anchorsAvailable: profile.anchorsAvailable,
       limitations: profile.limitations,
       disabledExerciseIds: profile.disabledExerciseIds,
+      bands: profile.bands,
       today: clock.today,
       history: sessionsRepo.getHistoryForGeneration(db),
       exerciseStates: exerciseStateRepo.getAllExerciseStates(db),
@@ -410,6 +415,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
       limitations: profile.limitations,
       disabledExerciseIds: new Set(profile.disabledExerciseIds),
       today: clock.today,
+      ownsBands: (profile.bands?.owned.length ?? 1) > 0,
     });
     const roleFiltered = hardFiltered.filter(
       (e) => e.roles.includes(SECTION_ROLE[section]) && !alreadyInSession.has(e.id),
@@ -418,7 +424,8 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   };
 
   const handleAddExercise = (section: Section, exercise: Exercise) => {
-    const prescription =
+    const user = usersRepo.ensureUser(db, nowUtcInstant());
+    const prescribed =
       section === 'main'
         ? // The user's goal and rest preference apply exactly as they do in generation (track 37f).
           applyTrainingToMainEntry(
@@ -432,10 +439,15 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
               micro: exerciseStateRepo.getExerciseState(db, exercise.id)?.accessoryMicro,
             }),
             exercise,
-            usersRepo.ensureUser(db, nowUtcInstant()).trainingPreferences,
+            user.trainingPreferences,
             sessionsRepo.learnedChangeoverSec(db),
           )
         : prescribeWarmupCooldown(exercise, section);
+    // Only a band the user can be given (track 37i), exactly as generation clamps.
+    const prescription = {
+      ...prescribed,
+      band: clampToUsableBand(prescribed.band, usableBands(user.bandSettings)),
+    };
     sessionsRepo.addEntryAtApproval(db, sessionId, section, prescription, nowUtcInstant());
     setAddOpen(false);
     reload();
@@ -514,169 +526,171 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   const estimate = estimateMinutes(session);
 
   return (
-    <Screen
-      scroll
-      scrollEnabled={drag === null}
-      contentStyle={styles.content}
-      footer={
-        <View style={styles.footer}>
-          <IconButton
-            testID="regenerate-button"
-            icon="refresh"
-            size="lg"
-            accessibilityLabel="Regenerate plan"
-            disabled={regenerating}
-            onPress={handleRegenerate}
+    <BandOptionsProvider value={bandOptions}>
+      <Screen
+        scroll
+        scrollEnabled={drag === null}
+        contentStyle={styles.content}
+        footer={
+          <View style={styles.footer}>
+            <IconButton
+              testID="regenerate-button"
+              icon="refresh"
+              size="lg"
+              accessibilityLabel="Regenerate plan"
+              disabled={regenerating}
+              onPress={handleRegenerate}
+            />
+            <Button
+              testID="start-button"
+              label="Let's go"
+              icon="arrowRight"
+              iconRight
+              size="lg"
+              haptic="success"
+              style={styles.startButton}
+              onPress={handleStart}
+            />
+          </View>
+        }
+      >
+        <Enter index={0} style={styles.gap}>
+          <BoardingPass
+            focus={session.focus}
+            difficulty={session.difficulty}
+            minutes={estimate}
+            moves={activeCount}
+            explanation={session.explanation}
           />
-          <Button
-            testID="start-button"
-            label="Let's go"
-            icon="arrowRight"
-            iconRight
-            size="lg"
-            haptic="success"
-            style={styles.startButton}
-            onPress={handleStart}
-          />
-        </View>
-      }
-    >
-      <Enter index={0} style={styles.gap}>
-        <BoardingPass
-          focus={session.focus}
-          difficulty={session.difficulty}
-          minutes={estimate}
-          moves={activeCount}
-          explanation={session.explanation}
-        />
-        {swapNotice != null && (
-          <Animated.View
-            testID="swap-notice"
-            accessibilityRole="alert"
-            style={[styles.swapNotice, { opacity: swapNoticeOpacity }]}
-          >
-            <Icon name="swap" size={16} color="fern" />
-            <Txt variant="small" color="fern" style={styles.swapNoticeText}>
-              {swapNotice}
-            </Txt>
-          </Animated.View>
-        )}
-      </Enter>
-
-      {(['warmup', 'main', 'cooldown'] as const).map((section) => {
-        const tone = SECTION_TONE[section];
-        const railColor = theme.colors[tone];
-        const entries = bySection(section);
-        return (
-          <View
-            key={section}
-            testID={`section-${section}`}
-            // Lifted while one of its cards is being dragged, so the card paints over the next
-            // section's header instead of sliding underneath it.
-            style={[styles.sectionBlock, drag?.section === section && styles.sectionLifted]}
-          >
-            <View style={styles.sectionHeader}>
-              <Chip label={SECTION_LABEL[section]} tone={tone} selected />
-              <Txt variant="caption" color="text3">
-                {entries.length === 1 ? '1 move' : `${entries.length} moves`}
+          {swapNotice != null && (
+            <Animated.View
+              testID="swap-notice"
+              accessibilityRole="alert"
+              style={[styles.swapNotice, { opacity: swapNoticeOpacity }]}
+            >
+              <Icon name="swap" size={16} color="fern" />
+              <Txt variant="small" color="fern" style={styles.swapNoticeText}>
+                {swapNotice}
               </Txt>
-            </View>
+            </Animated.View>
+          )}
+        </Enter>
 
-            <View style={styles.timeline}>
-              {/* The rail: a 2px line in the section's color, each card hangs a node dot off it. It
-                  stops at the middle of the add row below, where the route ends. */}
-              <View style={[styles.rail, { backgroundColor: railColor }]} />
-              <View style={styles.cards}>
-                {entries.map((entry, index) => (
-                  <EntryCard
-                    key={entry.id}
-                    entry={entry}
-                    railColor={railColor}
-                    exerciseName={
-                      library.exercises.find((e) => e.id === entry.exerciseId)?.name ??
-                      entry.exerciseId
-                    }
-                    bandTensions={bandTensions}
-                    dragging={drag?.section === section && drag.entryId === entry.id}
-                    displacement={dragDisplacement(section, index, entry.id)}
-                    onMeasure={(height) => cardHeightsRef.current.set(entry.id, height)}
-                    onDragStart={(y) => beginDrag(section, entry.id, index, y)}
-                    onDragMove={updateDrag}
-                    onDragEnd={endDrag}
-                    onSetSets={(v) => handleSetSets(entry, v)}
-                    onSetRepTarget={(v) => handleSetRepTarget(entry, v)}
-                    onSetDuration={(v) => handleSetDuration(entry, v)}
-                    onSetRest={(v) => handleSetRest(entry, v)}
-                    onChangeBand={(band) => handleChangeBand(entry, band)}
-                    onSwap={() => handleSwap(entry)}
-                    onRemove={() => handleRemove(entry)}
-                  />
-                ))}
+        {(['warmup', 'main', 'cooldown'] as const).map((section) => {
+          const tone = SECTION_TONE[section];
+          const railColor = theme.colors[tone];
+          const entries = bySection(section);
+          return (
+            <View
+              key={section}
+              testID={`section-${section}`}
+              // Lifted while one of its cards is being dragged, so the card paints over the next
+              // section's header instead of sliding underneath it.
+              style={[styles.sectionBlock, drag?.section === section && styles.sectionLifted]}
+            >
+              <View style={styles.sectionHeader}>
+                <Chip label={SECTION_LABEL[section]} tone={tone} selected />
+                <Txt variant="caption" color="text3">
+                  {entries.length === 1 ? '1 move' : `${entries.length} moves`}
+                </Txt>
+              </View>
 
-                <PressableScale
-                  testID={`add-exercise-${section}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Add exercise to ${SECTION_LABEL[section]}`}
-                  style={[styles.addRow, { borderColor: withAlpha(railColor, 0.55) }]}
-                  onPress={() => openAdd(section)}
-                >
-                  <View style={[styles.node, styles.addNode, { borderColor: railColor }]} />
-                  <Icon name="add" size={18} color={tone} />
-                  <Txt variant="eyebrow" color={tone} style={styles.addRowText}>
-                    Add exercise
-                  </Txt>
-                </PressableScale>
+              <View style={styles.timeline}>
+                {/* The rail: a 2px line in the section's color, each card hangs a node dot off it. It
+                    stops at the middle of the add row below, where the route ends. */}
+                <View style={[styles.rail, { backgroundColor: railColor }]} />
+                <View style={styles.cards}>
+                  {entries.map((entry, index) => (
+                    <EntryCard
+                      key={entry.id}
+                      entry={entry}
+                      railColor={railColor}
+                      exerciseName={
+                        library.exercises.find((e) => e.id === entry.exerciseId)?.name ??
+                        entry.exerciseId
+                      }
+                      bandTensions={bandTensions}
+                      dragging={drag?.section === section && drag.entryId === entry.id}
+                      displacement={dragDisplacement(section, index, entry.id)}
+                      onMeasure={(height) => cardHeightsRef.current.set(entry.id, height)}
+                      onDragStart={(y) => beginDrag(section, entry.id, index, y)}
+                      onDragMove={updateDrag}
+                      onDragEnd={endDrag}
+                      onSetSets={(v) => handleSetSets(entry, v)}
+                      onSetRepTarget={(v) => handleSetRepTarget(entry, v)}
+                      onSetDuration={(v) => handleSetDuration(entry, v)}
+                      onSetRest={(v) => handleSetRest(entry, v)}
+                      onChangeBand={(band) => handleChangeBand(entry, band)}
+                      onSwap={() => handleSwap(entry)}
+                      onRemove={() => handleRemove(entry)}
+                    />
+                  ))}
+
+                  <PressableScale
+                    testID={`add-exercise-${section}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Add exercise to ${SECTION_LABEL[section]}`}
+                    style={[styles.addRow, { borderColor: withAlpha(railColor, 0.55) }]}
+                    onPress={() => openAdd(section)}
+                  >
+                    <View style={[styles.node, styles.addNode, { borderColor: railColor }]} />
+                    <Icon name="add" size={18} color={tone} />
+                    <Txt variant="eyebrow" color={tone} style={styles.addRowText}>
+                      Add exercise
+                    </Txt>
+                  </PressableScale>
+                </View>
               </View>
             </View>
-          </View>
-        );
-      })}
+          );
+        })}
 
-      <View style={styles.abandon}>
-        <AbandonSessionButton onConfirm={handleAbandon} />
-      </View>
+        <View style={styles.abandon}>
+          <AbandonSessionButton onConfirm={handleAbandon} />
+        </View>
 
-      <KeyboardDoneBar nativeID={NUMBER_ACCESSORY_ID} testID="approval-keyboard-done" />
+        <KeyboardDoneBar nativeID={NUMBER_ACCESSORY_ID} testID="approval-keyboard-done" />
 
-      {/* §10.3 add exercise: candidates are captured when the sheet opens (and kept through its
-          exit animation, so the list does not blank as it slides away). */}
-      <Sheet
-        visible={addOpen}
-        onClose={() => setAddOpen(false)}
-        title={addSheet ? `Add to ${SECTION_LABEL[addSheet.section]}` : undefined}
-        testID={`add-picker-${addSheet?.section ?? 'closed'}`}
-      >
-        {addSheet && (
-          <>
-            <ScrollView style={styles.addList} keyboardShouldPersistTaps="handled">
-              {addSheet.candidates.map((exercise) => (
-                <PressableScale
-                  key={exercise.id}
-                  testID={`add-option-${exercise.id}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Add ${exercise.name}`}
-                  style={styles.addOption}
-                  onPress={() => handleAddExercise(addSheet.section, exercise)}
-                >
-                  <Txt variant="h3" style={styles.addOptionText}>
-                    {exercise.name}
-                  </Txt>
-                  <Icon name="add" size={20} color={SECTION_TONE[addSheet.section]} />
-                </PressableScale>
-              ))}
-            </ScrollView>
-            <Button
-              testID={`add-cancel-${addSheet.section}`}
-              label="Cancel"
-              variant="quiet"
-              size="md"
-              fullWidth
-              onPress={() => setAddOpen(false)}
-            />
-          </>
-        )}
-      </Sheet>
-    </Screen>
+        {/* §10.3 add exercise: candidates are captured when the sheet opens (and kept through its
+            exit animation, so the list does not blank as it slides away). */}
+        <Sheet
+          visible={addOpen}
+          onClose={() => setAddOpen(false)}
+          title={addSheet ? `Add to ${SECTION_LABEL[addSheet.section]}` : undefined}
+          testID={`add-picker-${addSheet?.section ?? 'closed'}`}
+        >
+          {addSheet && (
+            <>
+              <ScrollView style={styles.addList} keyboardShouldPersistTaps="handled">
+                {addSheet.candidates.map((exercise) => (
+                  <PressableScale
+                    key={exercise.id}
+                    testID={`add-option-${exercise.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Add ${exercise.name}`}
+                    style={styles.addOption}
+                    onPress={() => handleAddExercise(addSheet.section, exercise)}
+                  >
+                    <Txt variant="h3" style={styles.addOptionText}>
+                      {exercise.name}
+                    </Txt>
+                    <Icon name="add" size={20} color={SECTION_TONE[addSheet.section]} />
+                  </PressableScale>
+                ))}
+              </ScrollView>
+              <Button
+                testID={`add-cancel-${addSheet.section}`}
+                label="Cancel"
+                variant="quiet"
+                size="md"
+                fullWidth
+                onPress={() => setAddOpen(false)}
+              />
+            </>
+          )}
+        </Sheet>
+      </Screen>
+    </BandOptionsProvider>
   );
 }
 

@@ -25,7 +25,7 @@ import {
   type Db,
 } from '@roamfit/store';
 import type { ExerciseLibrary, FamilyLibrary, ProgressionFamilyId } from '@roamfit/data';
-import { assessComeback } from '@roamfit/engine';
+import { assessComeback, usableBands } from '@roamfit/engine';
 import type { ProgressionState } from '@roamfit/engine';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from './localClock';
@@ -84,7 +84,7 @@ export function loadDashboardData(
   const stats = statsRepo.ensureStats(db, nowUtcInstant());
   const states: Record<ProgressionFamilyId, ProgressionState> =
     progressionStateRepo.getAllProgressionStates(db);
-  const board = buildProgressionBoard(library, families, states);
+  const board = buildProgressionBoard(library, families, states, usableBands(user.bandSettings));
   const history = sessionsRepo.getHistoryForGeneration(db);
   const comebackTier = assessComeback(history, clock.today).tier;
   // §9.3 auto-suggest — consumes the tz_change signal Wave 3 already records (§8.3/users.ts's

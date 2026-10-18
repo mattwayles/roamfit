@@ -4,8 +4,14 @@
  * is not a rewrite later.
  */
 import { eq } from 'drizzle-orm';
-import { DEFAULT_ANCHORS_AVAILABLE, resolveTrainingPreferences } from '@roamfit/engine';
+import {
+  DEFAULT_ANCHORS_AVAILABLE,
+  DEFAULT_BAND_SETTINGS,
+  SINGLE_BANDS,
+  resolveTrainingPreferences,
+} from '@roamfit/engine';
 import type {
+  BandSettings,
   Limitation as EngineLimitation,
   SingleBandId,
   TrainingPreferences,
@@ -87,6 +93,8 @@ export interface UserRecord {
    *  existing `'{}'` row (every row, until Settings gains an editor) still yields five usable
    *  bands and no migration is needed. */
   bandTensions: Record<SingleBandId, BandTension>;
+  /** Track 37i — always complete: which bands are owned, and whether to stack them. */
+  bandSettings: BandSettings;
   passportEnabled: boolean;
   healthWriteEnabled: boolean;
   cueSoundsEnabled: boolean;
@@ -163,6 +171,25 @@ function parseTrainingPreferences(raw: string): TrainingPreferences {
   };
 }
 
+/** The stored `band_settings` JSON over the defaults; unknown band ids are dropped. */
+function parseBandSettings(raw: string): BandSettings {
+  let stored: Record<string, unknown> = {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      stored = parsed as Record<string, unknown>;
+    }
+  } catch {
+    /* defaults */
+  }
+  const owned = Array.isArray(stored.owned)
+    ? SINGLE_BANDS.filter((b) => (stored.owned as unknown[]).includes(b))
+    : [...DEFAULT_BAND_SETTINGS.owned];
+  const stacking =
+    typeof stored.stacking === 'boolean' ? stored.stacking : DEFAULT_BAND_SETTINGS.stacking;
+  return { owned, stacking };
+}
+
 /** Per band, the user's stored fields over the defaults — so a row that customises only a colour
  *  keeps the default label, and a row that stores nothing at all is still complete. */
 function mergeBandTensions(
@@ -195,6 +222,7 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
     bandTensions: mergeBandTensions(
       JSON.parse(row.bandTensions) as Partial<Record<SingleBandId, Partial<BandTension>>>,
     ),
+    bandSettings: parseBandSettings(row.bandSettings),
     passportEnabled: row.passportEnabled,
     healthWriteEnabled: row.healthWriteEnabled,
     cueSoundsEnabled: row.cueSoundsEnabled,
@@ -248,6 +276,8 @@ export interface UserPatch {
   notificationPrefs?: NotificationPrefs;
   /** Track 37f — merged onto the stored preferences, like `notificationPrefs`. */
   trainingPreferences?: Partial<TrainingPreferences>;
+  /** Track 37i — merged onto the stored band settings. */
+  bandSettings?: Partial<BandSettings>;
 }
 
 export function updateUser(db: Db, patch: UserPatch, now: string): void {
@@ -272,6 +302,9 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
       ...patch.notificationPrefs,
     });
   }
+  if (patch.bandSettings !== undefined) {
+    values.bandSettings = JSON.stringify({ ...current.bandSettings, ...patch.bandSettings });
+  }
   if (patch.trainingPreferences !== undefined) {
     values.trainingPrefs = JSON.stringify({
       ...current.trainingPreferences,
@@ -279,6 +312,22 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
     });
   }
   db.update(schema.users).set(values).where(eq(schema.users.id, USER_ID)).run();
+}
+
+/** Track 37i — rename or recolour one band (the band editor). Merged over what is stored, so a
+ *  colour change keeps a custom label and vice versa. */
+export function updateBandTension(
+  db: Db,
+  band: SingleBandId,
+  patch: Partial<Pick<BandTension, 'label' | 'color'>>,
+  now: string,
+): void {
+  const current = ensureUser(db, now);
+  const next = { ...current.bandTensions, [band]: { ...current.bandTensions[band], ...patch } };
+  db.update(schema.users)
+    .set({ bandTensions: JSON.stringify(next), updatedAt: now })
+    .where(eq(schema.users.id, USER_ID))
+    .run();
 }
 
 /** §13.3 — marks the first-launch medical disclaimer acknowledged. One-way (no "un-acknowledge"
@@ -431,5 +480,6 @@ export function buildUserProfile(db: Db, today: string): UserProfile {
     anchorsAvailable: user.anchorsAvailable,
     disabledExerciseIds: getDisabledExerciseIds(db),
     training: user.trainingPreferences,
+    bands: user.bandSettings,
   };
 }

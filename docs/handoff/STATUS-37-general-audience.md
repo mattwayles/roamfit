@@ -61,7 +61,7 @@ The plan, its scope cuts and the sub-track list (37a–37n) live in `docs/BACKLO
     out at the heaviest usable band (B5 by default, a stacked pair with stacking on).
   - Prescription clamps every entry's band to usable (nearest at or below, else lightest above).
   - Owning no bands at all excludes band exercises (hard filter), like equipment preference.
-  - [x] (1) engine (this commit) → (2) store users.bands + completion/generation/swap → (3) app Bands screen, stacked
+  - [x] (1) engine → [x] (2) store `users.band_settings` (migration 0033), `updateBandTension`, completion + completion/generation/swap → (3) app Bands screen, stacked
     display in BandChip/BandPicker, onboarding "Your bands" step, glossary terms.
 
 ### Next

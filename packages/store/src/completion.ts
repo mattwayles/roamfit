@@ -12,6 +12,7 @@ import {
   applyAccessorySessionResult,
   applySessionResult,
   sessionsPerStepFor,
+  usableBands,
   BAND_ORDER,
   isPassedRungBandExercise,
   progressesAsAccessory,
@@ -195,6 +196,7 @@ function progressAccessoryEntry(
   now: string,
   seedFrom: 'remembered' | 'prescribed',
   sessionsPerStep: number,
+  usable?: readonly BandId[],
 ): void {
   const stored = getExerciseState(db, entry.exerciseId);
   const micro =
@@ -223,6 +225,7 @@ function progressAccessoryEntry(
       finalBandHeldThroughout: summary.finalBandHeldThroughout,
     },
     sessionsPerStep,
+    usable,
   );
   recordAccessoryProgression(db, entry.exerciseId, result.state, now);
 }
@@ -326,9 +329,10 @@ export function completeSession(
 
     const progressionStates = getAllProgressionStates(txDb);
     // Track 37f — the user's progression pace: how many qualifying sessions one step takes.
-    const sessionsPerStep = sessionsPerStepFor(
-      (getUser(txDb) ?? ensureUser(txDb, now)).trainingPreferences.pace,
-    );
+    const progressUser = getUser(txDb) ?? ensureUser(txDb, now);
+    const sessionsPerStep = sessionsPerStepFor(progressUser.trainingPreferences.pace);
+    // Track 37i — ladders step only through bands this user can be given.
+    const usable = usableBands(progressUser.bandSettings);
     // Group entries by family so a family with more than one entry in the session (not expected
     // by current templates, but not structurally forbidden) still gets one performance verdict.
     const byFamily = new Map<string, SessionEntryRecord[]>();
@@ -374,6 +378,7 @@ export function completeSession(
             now,
             'remembered',
             sessionsPerStep,
+            usable,
           );
         }
         if (improvedBestSet) {
@@ -448,6 +453,7 @@ export function completeSession(
 
       const result = applySessionResult(state, family, input.library.exercises, perf, {
         sessionsPerStep,
+        usableBands: usable,
       });
       upsertProgressionState(txDb, result.state, now);
       progressionEvents.push({ familyId, event: result.event });

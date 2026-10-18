@@ -38,7 +38,7 @@ import { useKeepAwake } from 'expo-keep-awake';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { exerciseStateRepo, remoteConfigRepo, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
-import { alternativesForSlot } from '@roamfit/engine';
+import { alternativesForSlot, usableBands } from '@roamfit/engine';
 import type { BandId, SingleBandId } from '@roamfit/engine';
 import type { SwapAlternative } from '@roamfit/engine';
 import type { Anchor, AnchorClass, Pattern, ProgressionFamilyId } from '@roamfit/data';
@@ -93,7 +93,7 @@ import PinnedNote from '../components/PinnedNote';
 import KeyboardDoneBar from '../components/KeyboardDoneBar';
 import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
-import BandPicker from '../components/BandPicker';
+import BandPicker, { BandOptionsProvider } from '../components/BandPicker';
 import BandChip from '../components/BandChip';
 import DemoMedia from '../components/DemoMedia';
 import type { DemoMediaProps } from '../components/DemoMedia';
@@ -214,6 +214,8 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   /** §1140 — band colours are user data, not a palette this screen invents. */
   const user = usersRepo.ensureUser(db, nowUtcInstant());
   const bandTensions = user.bandTensions;
+  // Track 37i — the bands this user's pickers offer: owned, plus stacked pairs with stacking on.
+  const bandOptions = useMemo(() => usableBands(user.bandSettings), [user.bandSettings]);
   const soundsAvailable = user.cueSoundsEnabled;
   const feedbackAsModal = user.feedbackPromptEnabled;
   useEffect(() => {
@@ -456,6 +458,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       anchorsAvailable: profile.anchorsAvailable,
       limitations: profile.limitations,
       disabledExerciseIds: profile.disabledExerciseIds,
+      bands: profile.bands,
       today: clock.today,
       history: sessionsRepo.getHistoryForGeneration(db),
       exerciseStates: exerciseStateRepo.getAllExerciseStates(db),
@@ -1005,360 +1008,364 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
   const activeSegment = entries.findIndex((e) => e.id === entry.id);
 
   return (
-    <Screen edges={['top', 'left', 'right']} padded={false} testID="workout-screen">
-      {/* The top bar is one row, and the elapsed clock is the biggest type in it: it is what a user
-          mid-set, at arm's length, glances at most often, so it gets the top line and `hero`
-          numerals rather than sharing space with a label. Home rides the left, pause/stop the
-          right; the two side groups are the same fixed width so the clock stays visually centered
-          (which is also why there is no "Elapsed" prefix on the clock text itself). The bar's
-          buttons are the compact `sm` size (hitSlop keeps the target ~52pt) so two of them fit a
-          side without crowding the clock. It replaces the native header, which is hidden for this
-          screen. */}
-      <View style={styles.topBar}>
-        <View style={styles.barSide}>
-          {/* Home lives top-left. Pausing first (idempotent with the workout-level Pause button)
-              means Home's resume card picks the session back up at the same set; this is never
-              Abandon, which discards. `RootNavigator` turns off the edge-swipe gesture for this
-              screen so this is the only way off it (besides Progress/Abandon). */}
-          <IconButton
-            testID="workout-home"
-            size="sm"
-            icon="home"
-            accessibilityLabel="Pause and go to Home"
-            onPress={() => {
-              sessionsRepo.pauseSession(db, sessionId, nowUtcInstant());
-              navigation.navigate('Tabs', { screen: 'Home' });
-            }}
-          />
-          {/* §8.5 — one tap to the other light, mid-session: the courtyard case. Sits on the left
-              beside Home so the right group (pause/stop) and the centered clock keep their width.
-              Sets an explicit, persisted preference. The icon names the destination, not the state. */}
-          {themePreference && (
+    <BandOptionsProvider value={bandOptions}>
+      <Screen edges={['top', 'left', 'right']} padded={false} testID="workout-screen">
+        {/* The top bar is one row, and the elapsed clock is the biggest type in it: it is what a user
+            mid-set, at arm's length, glances at most often, so it gets the top line and `hero`
+            numerals rather than sharing space with a label. Home rides the left, pause/stop the
+            right; the two side groups are the same fixed width so the clock stays visually centered
+            (which is also why there is no "Elapsed" prefix on the clock text itself). The bar's
+            buttons are the compact `sm` size (hitSlop keeps the target ~52pt) so two of them fit a
+            side without crowding the clock. It replaces the native header, which is hidden for this
+            screen. */}
+        <View style={styles.topBar}>
+          <View style={styles.barSide}>
+            {/* Home lives top-left. Pausing first (idempotent with the workout-level Pause button)
+                means Home's resume card picks the session back up at the same set; this is never
+                Abandon, which discards. `RootNavigator` turns off the edge-swipe gesture for this
+                screen so this is the only way off it (besides Progress/Abandon). */}
             <IconButton
-              testID="theme-toggle"
+              testID="workout-home"
               size="sm"
-              icon={themePreference.scheme === 'dark' ? 'sun' : 'moon'}
-              accessibilityLabel={
-                themePreference.scheme === 'dark' ? 'Switch to Daybreak' : 'Switch to Midnight'
-              }
-              onPress={() =>
-                themePreference.setPreference(themePreference.scheme === 'dark' ? 'light' : 'dark')
-              }
+              icon="home"
+              accessibilityLabel="Pause and go to Home"
+              onPress={() => {
+                sessionsRepo.pauseSession(db, sessionId, nowUtcInstant());
+                navigation.navigate('Tabs', { screen: 'Home' });
+              }}
             />
-          )}
-        </View>
-        <Txt
-          variant="hero"
-          testID="workout-elapsed"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.6}
-          style={styles.clock}
-        >
-          {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
-        </Txt>
-        <View style={[styles.barSide, styles.barSideRight]}>
-          <IconButton
-            testID="pause-workout"
-            size="sm"
-            icon={paused ? 'play' : 'pause'}
-            accessibilityLabel={paused ? 'Resume workout' : 'Pause workout'}
-            tone={paused ? 'teal' : 'text'}
-            onPress={paused ? handleResume : handlePause}
-          />
-          <AbandonSessionButton onConfirm={handleAbandon} variant="icon" iconSize="sm" />
-        </View>
-      </View>
-
-      {/* Session progress: one segment per exercise, filled by its completed sets, the current
-          exercise glowing in its section's color. */}
-      <SegmentedBar
-        values={segmentValues}
-        activeIndex={activeSegment}
-        color={theme.section[sessionSection] ?? theme.colors.teal}
-        style={styles.segments}
-      />
-
-      <ScrollView
-        ref={scrollRef}
-        testID="workout-scroll"
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.container,
-          { paddingBottom: insets.bottom + space.huge + space.xxl },
-        ]}
-        // Without this a tap on Save while the keyboard is up is spent dismissing the keyboard, so
-        // the paste has to be confirmed twice.
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-      >
-        {/* Sits with the session-level controls (timer, pause, stop) rather than with the
-            exercise content, because that is what it is: something about this whole workout, not
-            about this set. Above the phase view so it is in the same place during a set and
-            during a rest — rest is when a user actually reaches for it, and a control that moves
-            between the two moments is a control you have to look for. Renders nothing at all when
-            there is no Spotify, so a user who doesn't use it never pays the row. */}
-        <SpotifyControls />
-
-        <View style={styles.metaRow}>
-          <Chip label={SECTION_LABEL[sessionSection] ?? entry.section} tone={sectionTone} />
-          {paused && <PausedChip />}
-          <View style={styles.metaSpacer} />
-          {/* §14.1's real-time progress view — a persistent way to check completed/skipped sets
-              and where you currently are, from any phase of the active workout. "Done" replaces
-              it once reviewing from Summary (before FINISH): that mode has no front edge for the
-              forward control to walk to, so this is the only route back to Summary once there. */}
-          <Chip
-            testID={reviewFromSummary ? 'review-done' : 'view-progress'}
-            label={reviewFromSummary ? 'Done' : 'Progress'}
-            icon={reviewFromSummary ? 'check' : 'trendingUp'}
-            tone="sky"
-            onPress={() => navigation.replace('Summary', { sessionId })}
-          />
-        </View>
-
-        {swapNotice != null && (
-          <Animated.View
-            testID="swap-notice"
-            style={[styles.swapNotice, { opacity: swapNoticeOpacity }]}
+            {/* §8.5 — one tap to the other light, mid-session: the courtyard case. Sits on the left
+                beside Home so the right group (pause/stop) and the centered clock keep their width.
+                Sets an explicit, persisted preference. The icon names the destination, not the state. */}
+            {themePreference && (
+              <IconButton
+                testID="theme-toggle"
+                size="sm"
+                icon={themePreference.scheme === 'dark' ? 'sun' : 'moon'}
+                accessibilityLabel={
+                  themePreference.scheme === 'dark' ? 'Switch to Daybreak' : 'Switch to Midnight'
+                }
+                onPress={() =>
+                  themePreference.setPreference(
+                    themePreference.scheme === 'dark' ? 'light' : 'dark',
+                  )
+                }
+              />
+            )}
+          </View>
+          <Txt
+            variant="hero"
+            testID="workout-elapsed"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+            style={styles.clock}
           >
-            <Txt variant="small" color="fern" align="center">
-              {swapNotice}
-            </Txt>
-          </Animated.View>
-        )}
+            {Math.floor(sessionElapsedSec / 60)}m {Math.floor(sessionElapsedSec % 60)}s
+          </Txt>
+          <View style={[styles.barSide, styles.barSideRight]}>
+            <IconButton
+              testID="pause-workout"
+              size="sm"
+              icon={paused ? 'play' : 'pause'}
+              accessibilityLabel={paused ? 'Resume workout' : 'Pause workout'}
+              tone={paused ? 'teal' : 'text'}
+              onPress={paused ? handleResume : handlePause}
+            />
+            <AbandonSessionButton onConfirm={handleAbandon} variant="icon" iconSize="sm" />
+          </View>
+        </View>
 
-        {/* §10.4 — the gentle nudge, in the two-step-confirm shape this app uses everywhere else
-            rather than a system alert. Neither answer is the "wrong" one, and the set is logged
-            whichever is chosen, so nothing here reads as a warning. A sheet (not an inline
-            banner) because it holds a real decision the rest of the screen is waiting on: no
-            backdrop dismiss and no back-gesture dismiss (`onClose` is a no-op) — one of the two
-            buttons must be pressed. */}
-        <Sheet
-          visible={pausedCompletion != null}
-          onClose={() => {}}
-          dismissable={false}
-          testID="paused-completion-nudge"
+        {/* Session progress: one segment per exercise, filled by its completed sets, the current
+            exercise glowing in its section's color. */}
+        <SegmentedBar
+          values={segmentValues}
+          activeIndex={activeSegment}
+          color={theme.section[sessionSection] ?? theme.colors.teal}
+          style={styles.segments}
+        />
+
+        <ScrollView
+          ref={scrollRef}
+          testID="workout-scroll"
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.container,
+            { paddingBottom: insets.bottom + space.huge + space.xxl },
+          ]}
+          // Without this a tap on Save while the keyboard is up is spent dismissing the keyboard, so
+          // the paste has to be confirmed twice.
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
         >
-          <View style={styles.nudge}>
-            <Txt variant="h2">Your timer is still paused</Txt>
-            <Txt variant="body" color="text2">
-              Your timer is still paused. Want to resume it?
-            </Txt>
-            <View style={styles.nudgeButtons}>
-              <Button
-                testID="paused-completion-resume"
-                label="Resume timer"
-                variant="primary"
-                size="lg"
-                onPress={() => handlePausedCompletion(true)}
+          {/* Sits with the session-level controls (timer, pause, stop) rather than with the
+              exercise content, because that is what it is: something about this whole workout, not
+              about this set. Above the phase view so it is in the same place during a set and
+              during a rest — rest is when a user actually reaches for it, and a control that moves
+              between the two moments is a control you have to look for. Renders nothing at all when
+              there is no Spotify, so a user who doesn't use it never pays the row. */}
+          <SpotifyControls />
+
+          <View style={styles.metaRow}>
+            <Chip label={SECTION_LABEL[sessionSection] ?? entry.section} tone={sectionTone} />
+            {paused && <PausedChip />}
+            <View style={styles.metaSpacer} />
+            {/* §14.1's real-time progress view — a persistent way to check completed/skipped sets
+                and where you currently are, from any phase of the active workout. "Done" replaces
+                it once reviewing from Summary (before FINISH): that mode has no front edge for the
+                forward control to walk to, so this is the only route back to Summary once there. */}
+            <Chip
+              testID={reviewFromSummary ? 'review-done' : 'view-progress'}
+              label={reviewFromSummary ? 'Done' : 'Progress'}
+              icon={reviewFromSummary ? 'check' : 'trendingUp'}
+              tone="sky"
+              onPress={() => navigation.replace('Summary', { sessionId })}
+            />
+          </View>
+
+          {swapNotice != null && (
+            <Animated.View
+              testID="swap-notice"
+              style={[styles.swapNotice, { opacity: swapNoticeOpacity }]}
+            >
+              <Txt variant="small" color="fern" align="center">
+                {swapNotice}
+              </Txt>
+            </Animated.View>
+          )}
+
+          {/* §10.4 — the gentle nudge, in the two-step-confirm shape this app uses everywhere else
+              rather than a system alert. Neither answer is the "wrong" one, and the set is logged
+              whichever is chosen, so nothing here reads as a warning. A sheet (not an inline
+              banner) because it holds a real decision the rest of the screen is waiting on: no
+              backdrop dismiss and no back-gesture dismiss (`onClose` is a no-op) — one of the two
+              buttons must be pressed. */}
+          <Sheet
+            visible={pausedCompletion != null}
+            onClose={() => {}}
+            dismissable={false}
+            testID="paused-completion-nudge"
+          >
+            <View style={styles.nudge}>
+              <Txt variant="h2">Your timer is still paused</Txt>
+              <Txt variant="body" color="text2">
+                Your timer is still paused. Want to resume it?
+              </Txt>
+              <View style={styles.nudgeButtons}>
+                <Button
+                  testID="paused-completion-resume"
+                  label="Resume timer"
+                  variant="primary"
+                  size="lg"
+                  onPress={() => handlePausedCompletion(true)}
+                />
+                <Button
+                  testID="paused-completion-stay-paused"
+                  label="Stay paused"
+                  variant="secondary"
+                  size="md"
+                  fullWidth
+                  onPress={() => handlePausedCompletion(false)}
+                />
+              </View>
+            </View>
+          </Sheet>
+
+          {/* "How did that set feel?" over the running rest timer. Like the paused-completion nudge
+              it is a real prompt the screen waits on, so no backdrop or back-gesture dismiss — but
+              Skip is always there, and nothing is required. */}
+          <Sheet
+            visible={feedbackPromptOpen && feedbackDue}
+            onClose={() => {}}
+            dismissable={false}
+            testID="feedback-prompt"
+          >
+            <View style={styles.nudge}>
+              <Txt variant="h2">{feedbackQuestion}</Txt>
+              <FeedbackControls
+                difficulty={null}
+                onDifficultyChange={(d) => handleFeedbackPromptAnswer(d ?? null)}
               />
               <Button
-                testID="paused-completion-stay-paused"
-                label="Stay paused"
+                testID="feedback-prompt-skip"
+                label="Skip"
                 variant="secondary"
                 size="md"
                 fullWidth
-                onPress={() => handlePausedCompletion(false)}
+                onPress={() => handleFeedbackPromptAnswer(null)}
               />
             </View>
-          </View>
-        </Sheet>
+          </Sheet>
 
-        {/* "How did that set feel?" over the running rest timer. Like the paused-completion nudge
-            it is a real prompt the screen waits on, so no backdrop or back-gesture dismiss — but
-            Skip is always there, and nothing is required. */}
-        <Sheet
-          visible={feedbackPromptOpen && feedbackDue}
-          onClose={() => {}}
-          dismissable={false}
-          testID="feedback-prompt"
-        >
-          <View style={styles.nudge}>
-            <Txt variant="h2">{feedbackQuestion}</Txt>
-            <FeedbackControls
-              difficulty={null}
-              onDifficultyChange={(d) => handleFeedbackPromptAnswer(d ?? null)}
-            />
-            <Button
-              testID="feedback-prompt-skip"
-              label="Skip"
-              variant="secondary"
-              size="md"
-              fullWidth
-              onPress={() => handleFeedbackPromptAnswer(null)}
-            />
-          </View>
-        </Sheet>
+          {/* The user's own note about this exercise, above the exercise itself: it is the thing
+              they wrote down *because* they wanted to see it before doing the movement again. While
+              resting, this is the exercise just finished (`noteExerciseId`), not the upcoming one
+              the rest of the rest screen previews — same split as the feedback controls below. */}
+          <PinnedNote note={noteExState?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
 
-        {/* The user's own note about this exercise, above the exercise itself: it is the thing
-            they wrote down *because* they wanted to see it before doing the movement again. While
-            resting, this is the exercise just finished (`noteExerciseId`), not the upcoming one
-            the rest of the rest screen previews — same split as the feedback controls below. */}
-        <PinnedNote note={noteExState?.pinnedNote ?? null} onChange={handlePinnedNoteChange} />
-
-        {/* Keyed on the exercise as well as the slot: a swap rewrites the same entry row in place,
-            so without it the hero kept the swapped-out exercise's band and rep count. */}
-        {phase === 'exercise' ? (
-          entry.durationSec != null ? (
-            <TimedExercise
-              key={`${entry.id}-${entry.exerciseId}-${setIndex}`}
-              entry={entry}
-              durationDefault={secondsForSet}
-              exerciseName={exercise?.name ?? entry.exerciseId}
-              levelText={levelBadge(entry, families)}
-              anchor={exercise?.anchor ?? null}
-              anchorAlt={exercise?.anchor_alt ?? null}
-              band={bandForSet}
-              bandTensions={bandTensions}
-              onBandChange={handleBandChange}
-              paused={paused}
-              setIndex={setIndex}
-              onComplete={(actualSeconds, pauseInfo) =>
-                finishSetAndRest('completed', undefined, actualSeconds, pauseInfo)
-              }
-              onSkip={handleForward}
-              onSwap={handleSwap}
-              onRewind={previousPosition ? handleRewind : null}
-              forwardIsSkip={atFrontier}
-            />
+          {/* Keyed on the exercise as well as the slot: a swap rewrites the same entry row in place,
+              so without it the hero kept the swapped-out exercise's band and rep count. */}
+          {phase === 'exercise' ? (
+            entry.durationSec != null ? (
+              <TimedExercise
+                key={`${entry.id}-${entry.exerciseId}-${setIndex}`}
+                entry={entry}
+                durationDefault={secondsForSet}
+                exerciseName={exercise?.name ?? entry.exerciseId}
+                levelText={levelBadge(entry, families)}
+                anchor={exercise?.anchor ?? null}
+                anchorAlt={exercise?.anchor_alt ?? null}
+                band={bandForSet}
+                bandTensions={bandTensions}
+                onBandChange={handleBandChange}
+                paused={paused}
+                setIndex={setIndex}
+                onComplete={(actualSeconds, pauseInfo) =>
+                  finishSetAndRest('completed', undefined, actualSeconds, pauseInfo)
+                }
+                onSkip={handleForward}
+                onSwap={handleSwap}
+                onRewind={previousPosition ? handleRewind : null}
+                forwardIsSkip={atFrontier}
+              />
+            ) : (
+              <RepsExercise
+                key={`${entry.id}-${entry.exerciseId}-${setIndex}`}
+                entry={entry}
+                repsDefault={repsForSet}
+                exerciseName={exercise?.name ?? entry.exerciseId}
+                levelText={levelBadge(entry, families)}
+                anchor={exercise?.anchor ?? null}
+                anchorAlt={exercise?.anchor_alt ?? null}
+                band={bandForSet}
+                bandTensions={bandTensions}
+                onBandChange={handleBandChange}
+                paused={paused}
+                setIndex={setIndex}
+                onComplete={(reps) => finishSetAndRest('completed', reps)}
+                onSkip={handleForward}
+                onSwap={handleSwap}
+                onRewind={previousPosition ? handleRewind : null}
+                forwardIsSkip={atFrontier}
+              />
+            )
           ) : (
-            <RepsExercise
-              key={`${entry.id}-${entry.exerciseId}-${setIndex}`}
-              entry={entry}
-              repsDefault={repsForSet}
-              exerciseName={exercise?.name ?? entry.exerciseId}
-              levelText={levelBadge(entry, families)}
-              anchor={exercise?.anchor ?? null}
-              anchorAlt={exercise?.anchor_alt ?? null}
-              band={bandForSet}
-              bandTensions={bandTensions}
-              onBandChange={handleBandChange}
-              paused={paused}
-              setIndex={setIndex}
-              onComplete={(reps) => finishSetAndRest('completed', reps)}
-              onSkip={handleForward}
-              onSwap={handleSwap}
-              onRewind={previousPosition ? handleRewind : null}
-              forwardIsSkip={atFrontier}
-            />
-          )
-        ) : (
-          <RestPhase
-            key={`rest-${entry.id}-${entry.exerciseId}-${setIndex}`}
-            restSec={restSecRemaining}
-            // `isFinalRest` means this is the last set of the whole plan — `entry`/`exercise` here
-            // are only the just-finished one (see the `current` fallback above), not a real
-            // upcoming exercise, so there is nothing to preview.
-            nextLabel={
-              isFinalRest
-                ? 'Workout complete'
-                : `${exercise?.name ?? entry.exerciseId} · set ${setIndex + 1} of ${entry.sets}`
-            }
-            nextName={isFinalRest ? 'Workout complete' : (exercise?.name ?? entry.exerciseId)}
-            nextSetText={isFinalRest ? null : `Set ${setIndex + 1} of ${entry.sets}`}
-            // Deterministic per (entry, set) — the same rest always gets the same line.
-            restLine={pick(
-              restLines,
-              `${restingEntryId ?? entry.id}:${restingSetIndex ?? setIndex}`,
-            )}
-            pips={
-              restingEntry && restingSetIndex != null
-                ? {
-                    done: Array.from({ length: restingEntry.sets }, (_, i) =>
-                      restingEntry.setLogs.some(
-                        (l) => l.setIndex === i && l.status === 'completed',
+            <RestPhase
+              key={`rest-${entry.id}-${entry.exerciseId}-${setIndex}`}
+              restSec={restSecRemaining}
+              // `isFinalRest` means this is the last set of the whole plan — `entry`/`exercise` here
+              // are only the just-finished one (see the `current` fallback above), not a real
+              // upcoming exercise, so there is nothing to preview.
+              nextLabel={
+                isFinalRest
+                  ? 'Workout complete'
+                  : `${exercise?.name ?? entry.exerciseId} · set ${setIndex + 1} of ${entry.sets}`
+              }
+              nextName={isFinalRest ? 'Workout complete' : (exercise?.name ?? entry.exerciseId)}
+              nextSetText={isFinalRest ? null : `Set ${setIndex + 1} of ${entry.sets}`}
+              // Deterministic per (entry, set) — the same rest always gets the same line.
+              restLine={pick(
+                restLines,
+                `${restingEntryId ?? entry.id}:${restingSetIndex ?? setIndex}`,
+              )}
+              pips={
+                restingEntry && restingSetIndex != null
+                  ? {
+                      done: Array.from({ length: restingEntry.sets }, (_, i) =>
+                        restingEntry.setLogs.some(
+                          (l) => l.setIndex === i && l.status === 'completed',
+                        ),
                       ),
-                    ),
-                    justDone: restingSetIndex,
-                    color: theme.section[restingEntry.section as Section] ?? theme.colors.teal,
-                  }
-                : null
-            }
-            // Rest is exactly when a user would go and rig the next anchor, so the requirement is
-            // worth naming before the set rather than at the top of it. `exercise` is already the
-            // *upcoming* entry here — same post-reload reasoning `nextLabel` relies on.
-            nextAnchor={isFinalRest ? null : (exercise?.anchor ?? null)}
-            nextAnchorAlt={isFinalRest ? null : (exercise?.anchor_alt ?? null)}
-            // `bandForSet` is already resolved against the *upcoming* entry/setIndex during rest
-            // (see its own comment above) — the same band the exercise phase will show once this
-            // rest ends, so rest is exactly when swapping to it is useful.
-            nextBand={isFinalRest ? null : bandForSet}
-            bandTensions={bandTensions}
-            // Same DemoMedia props the exercise phase passes below (line ~1039) — `exercise` and
-            // `entry` are already the *upcoming* pair during rest, so the video shown here is the
-            // one about to be trained, not the one just finished.
-            demoMedia={
-              !isFinalRest && exercise
-                ? {
-                    videoSearchQuery: exercise.video_search,
-                    curatedVideoId: remoteConfigRepo.getCuratedVideoId(db, exercise.id),
-                    videoDemoted: videoFlagState.demoted,
-                    userVideoId: exerciseStateRepo.getUserVideoId(db, exercise.id),
-                    onAssignVideo: handleAssignVideo,
-                    onClearVideo: handleClearVideo,
-                    onExpand: handleDemoExpand,
-                    onReportIssue: handleReportVideoIssue,
-                    onPlayerError: handleDemoPlayerError,
-                    onInputFocus: handleDemoInputFocus,
-                  }
-                : null
-            }
-            // Same source and gating as `demoMedia` above — `exercise` is already the *upcoming*
-            // exercise during rest.
-            howTo={!isFinalRest && exercise ? exercise.setup : null}
-            difficulty={difficulty}
-            onDifficultyChange={handleDifficultyChange}
-            feedbackQuestion={feedbackDue && !feedbackAsModal ? feedbackQuestion : null}
-            onNext={handleNextAfterRest}
-            onExtend={handleRestExtend}
-          />
-        )}
+                      justDone: restingSetIndex,
+                      color: theme.section[restingEntry.section as Section] ?? theme.colors.teal,
+                    }
+                  : null
+              }
+              // Rest is exactly when a user would go and rig the next anchor, so the requirement is
+              // worth naming before the set rather than at the top of it. `exercise` is already the
+              // *upcoming* entry here — same post-reload reasoning `nextLabel` relies on.
+              nextAnchor={isFinalRest ? null : (exercise?.anchor ?? null)}
+              nextAnchorAlt={isFinalRest ? null : (exercise?.anchor_alt ?? null)}
+              // `bandForSet` is already resolved against the *upcoming* entry/setIndex during rest
+              // (see its own comment above) — the same band the exercise phase will show once this
+              // rest ends, so rest is exactly when swapping to it is useful.
+              nextBand={isFinalRest ? null : bandForSet}
+              bandTensions={bandTensions}
+              // Same DemoMedia props the exercise phase passes below (line ~1039) — `exercise` and
+              // `entry` are already the *upcoming* pair during rest, so the video shown here is the
+              // one about to be trained, not the one just finished.
+              demoMedia={
+                !isFinalRest && exercise
+                  ? {
+                      videoSearchQuery: exercise.video_search,
+                      curatedVideoId: remoteConfigRepo.getCuratedVideoId(db, exercise.id),
+                      videoDemoted: videoFlagState.demoted,
+                      userVideoId: exerciseStateRepo.getUserVideoId(db, exercise.id),
+                      onAssignVideo: handleAssignVideo,
+                      onClearVideo: handleClearVideo,
+                      onExpand: handleDemoExpand,
+                      onReportIssue: handleReportVideoIssue,
+                      onPlayerError: handleDemoPlayerError,
+                      onInputFocus: handleDemoInputFocus,
+                    }
+                  : null
+              }
+              // Same source and gating as `demoMedia` above — `exercise` is already the *upcoming*
+              // exercise during rest.
+              howTo={!isFinalRest && exercise ? exercise.setup : null}
+              difficulty={difficulty}
+              onDifficultyChange={handleDifficultyChange}
+              feedbackQuestion={feedbackDue && !feedbackAsModal ? feedbackQuestion : null}
+              onNext={handleNextAfterRest}
+              onExtend={handleRestExtend}
+            />
+          )}
 
-        {phase === 'exercise' && (
-          <>
-            {/* Above the demo, and open by default every time — not only on a first-ever
-                performance. Since ADR 0008 removed the bundled figures this cue IS the offline
-                demo, so it is the one thing that must never need a tap to reach; and a user who
-                has done a movement fifty times still checks their setup. */}
-            <Disclosure title="How to" defaultOpen body={exercise?.setup ?? ''} />
+          {phase === 'exercise' && (
+            <>
+              {/* Above the demo, and open by default every time — not only on a first-ever
+                  performance. Since ADR 0008 removed the bundled figures this cue IS the offline
+                  demo, so it is the one thing that must never need a tap to reach; and a user who
+                  has done a movement fifty times still checks their setup. */}
+              <Disclosure title="How to" defaultOpen body={exercise?.setup ?? ''} />
 
-            {exercise && (
-              <View
-                testID="demo-media-block"
-                onLayout={(e) => {
-                  demoBlockY.current = e.nativeEvent.layout.y;
-                }}
-              >
-                <DemoMedia
-                  videoSearchQuery={exercise.video_search}
-                  // §11.4 — a synchronous local read of whatever `sync/firestoreSyncWorker.ts` last
-                  // pulled into `remote_video_config` (track 6d). Null (never bundled, invariant 8)
-                  // until a delta pull has actually resolved a curated id for this exercise, in
-                  // which case `DemoMedia` renders nothing and the "How to" cue below is the demo.
-                  curatedVideoId={remoteConfigRepo.getCuratedVideoId(db, exercise.id)}
-                  videoDemoted={videoFlagState.demoted}
-                  defaultOpen={isFirstEverPerformance}
-                  userVideoId={exerciseStateRepo.getUserVideoId(db, exercise.id)}
-                  onAssignVideo={handleAssignVideo}
-                  onClearVideo={handleClearVideo}
-                  onExpand={handleDemoExpand}
-                  onReportIssue={handleReportVideoIssue}
-                  onPlayerError={handleDemoPlayerError}
-                  onInputFocus={handleDemoInputFocus}
-                />
-              </View>
-            )}
-          </>
-        )}
-      </ScrollView>
+              {exercise && (
+                <View
+                  testID="demo-media-block"
+                  onLayout={(e) => {
+                    demoBlockY.current = e.nativeEvent.layout.y;
+                  }}
+                >
+                  <DemoMedia
+                    videoSearchQuery={exercise.video_search}
+                    // §11.4 — a synchronous local read of whatever `sync/firestoreSyncWorker.ts` last
+                    // pulled into `remote_video_config` (track 6d). Null (never bundled, invariant 8)
+                    // until a delta pull has actually resolved a curated id for this exercise, in
+                    // which case `DemoMedia` renders nothing and the "How to" cue below is the demo.
+                    curatedVideoId={remoteConfigRepo.getCuratedVideoId(db, exercise.id)}
+                    videoDemoted={videoFlagState.demoted}
+                    defaultOpen={isFirstEverPerformance}
+                    userVideoId={exerciseStateRepo.getUserVideoId(db, exercise.id)}
+                    onAssignVideo={handleAssignVideo}
+                    onClearVideo={handleClearVideo}
+                    onExpand={handleDemoExpand}
+                    onReportIssue={handleReportVideoIssue}
+                    onPlayerError={handleDemoPlayerError}
+                    onInputFocus={handleDemoInputFocus}
+                  />
+                </View>
+              )}
+            </>
+          )}
+        </ScrollView>
 
-      <Toast
-        message={toast?.message}
-        triggerKey={toast?.key}
-        style={{ bottom: insets.bottom + space.xl }}
-      />
-    </Screen>
+        <Toast
+          message={toast?.message}
+          triggerKey={toast?.key}
+          style={{ bottom: insets.bottom + space.xl }}
+        />
+      </Screen>
+    </BandOptionsProvider>
   );
 }
 

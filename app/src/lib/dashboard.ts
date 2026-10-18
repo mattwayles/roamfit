@@ -14,7 +14,7 @@ import {
   microStepsToNextLevel,
   OVER_WORKED_MULTIPLIER,
 } from '@roamfit/engine';
-import type { ProgressionState } from '@roamfit/engine';
+import type { BandId, ProgressionState } from '@roamfit/engine';
 import { formatPlace } from './place';
 import type { ExerciseLibrary, FamilyLibrary, Focus, ProgressionFamilyId } from '@roamfit/data';
 import type { manualDayMarkersRepo, sessionsRepo } from '@roamfit/store';
@@ -55,6 +55,8 @@ export function buildProgressionBoard(
   library: ExerciseLibrary,
   families: FamilyLibrary,
   states: Record<ProgressionFamilyId, ProgressionState>,
+  /** Track 37i — the bands this user can be given, so the count skips the ones they lack. */
+  usable?: readonly BandId[],
 ): FamilyBoardEntry[] {
   const out: FamilyBoardEntry[] = [];
   for (const family of families.families) {
@@ -63,13 +65,13 @@ export function buildProgressionBoard(
     const exercise = exerciseForLevel(family, state.levelId, library.exercises);
     if (!exercise) continue;
     const mastery = isMaxLevel(family, state.levelId);
-    const stepsRemaining = mastery ? null : microStepsToNextLevel(state.micro, exercise);
+    const stepsRemaining = mastery ? null : microStepsToNextLevel(state.micro, exercise, usable);
     // The same count measured from this level's floor — the denominator for "N of M done". Both
     // numbers come from the engine's own micro-progression simulation, so the bar can never
     // disagree with the "sessions left" figure beside it.
     const stepsTotal = mastery
       ? null
-      : microStepsToNextLevel(defaultMicroForExercise(exercise), exercise);
+      : microStepsToNextLevel(defaultMicroForExercise(exercise), exercise, usable);
     out.push({
       familyId: family.id,
       familyName: family.name,

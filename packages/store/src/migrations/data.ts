@@ -646,6 +646,13 @@ const MIGRATION_0032_ONBOARDING = `-- 0032_onboarding.sql — Track 37h: where t
 ALTER TABLE users ADD COLUMN onboarding_state TEXT;
 `;
 
+const MIGRATION_0033_BAND_SETTINGS = `-- 0033_band_settings.sql — Track 37i: which single bands the user owns and whether they stack two
+-- for more tension than their heaviest, as JSON {"owned": ["B1",...], "stacking": false}. '{}'
+-- means every band owned and no stacking, which is exactly how the app behaved before.
+
+ALTER TABLE users ADD COLUMN band_settings TEXT NOT NULL DEFAULT '{}';
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -685,4 +692,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0030_training_prefs.sql', sql: MIGRATION_0030_TRAINING_PREFS },
   { id: '0031_entry_transition.sql', sql: MIGRATION_0031_ENTRY_TRANSITION },
   { id: '0032_onboarding.sql', sql: MIGRATION_0032_ONBOARDING },
+  { id: '0033_band_settings.sql', sql: MIGRATION_0033_BAND_SETTINGS },
 ];
