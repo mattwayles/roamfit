@@ -11,17 +11,16 @@ log. Sub-tracks run **in order**, one agent each: 39a → 39b → 39c → 39d.
 
 - [x] Plan written (this file), branch `track-39-passport`
 - [x] 39a data (57a981a): see exports below
+- [x] 39b screen (bc44dd1 page model, 7f9f523 screen/route/opt-in card)
 
 ### In progress
 
-- 39b underway. Plan: (1) `app/src/lib/passportBook.ts` page model + tests; (2) `Passport` route, `PassportScreen.tsx`
-  (screen owns `pageIndex`/`goTo`, `<PassportPage page=.../>` renders one page) + tests (useDashboardData mocked);
-  (3) `components/PassportOptInCard.tsx` (JourneyScreen untouched; 39d swaps it in); (4) status + report.
+- 39c not started.
 
 ### Next
 
 1. ~~39a data~~ done.
-2. **39b screen** — Passport route + book pages, static (no animation yet).
+2. ~~39b screen~~ done.
 3. **39c page turn** — the flip animation, Reduce Motion, VoiceOver paging.
 4. **39d wiring** — Journey teaser card replaces the stamp grid; Completion's new-stamp card opens
    the Passport at that stamp's page.
@@ -93,3 +92,28 @@ log. Sub-tracks run **in order**, one agent each: 39a → 39b → 39c → 39d.
   pages only (add the cover/bio/contents offset in the UI), or null. `local_date` was already
   `DashboardSessionSummary.localDate`; no data-path change was needed, and `useDashboardData`'s
   `passport` already returns the extended summary.
+
+### 39b notes (for 39c and 39d)
+
+- `app/src/lib/passportBook.ts`: `buildPassportBook(summary, shelf)` -> `PassportBookPage[]` (union:
+  cover | bio | contents | visa | endorsements); `bookPageForLabel(summary, label)` and
+  `bookPageForCountry(summary, country)` give absolute indexes (or null); `visaPageOffset`,
+  `travelBadges`, `TRAVEL_BADGE_SERIES`. Contents only with 2+ country groups; endorsements only
+  when the shelf has cities/countries badges (the shelf omits them while Passport is off).
+- `app/src/screens/PassportScreen.tsx`: the screen owns `pageIndex` (state, `null` until the user
+  pages, so the `stampLabel` start page applies once data loads) and `goTo(i)` (clamped). `index` is
+  the derived current page. `<PassportPage page onOpenStamp onSelectCountry onOpenBadges />` is an
+  exported, stateless renderer of one page; the book frame is `<View testID="passport-book">`
+  (spine + the page). 39c: wrap the `PassportPage` in that frame in an animated view keyed on
+  `index`, and keep the previous page rendered during the turn (hold a `prevIndex`). The prev/next
+  `IconButton`s (`passport-prev`, `passport-next`) and the "Page N of M" label (live region) already
+  exist; reuse them for the VoiceOver / Reduce Motion path.
+- The empty (Passport on, no places) and off (opt-in) states render instead of the book; no paging.
+- `components/PassportOptInCard.tsx` exports `PassportOptInCard`, `enablePassport(db)` and
+  `SAMPLE_STAMPS`. JourneyScreen still has its own copy (handler ~line 314, card ~line 838, own
+  `SAMPLE_STAMPS`); 39d should swap it for the card and delete the duplicates.
+- Tests mock `useDashboardData` (`jest.mock`) with `buildPassportSummary` + `buildBadgeShelf`
+  fixtures from `lib/passportBook.fixtures.ts`. With this RNTL, `await fireEvent.press(...)` is
+  needed, or act() calls overlap and state updates are lost.
+- Stamp captions use a short date (`Sep 3, 2026`); bio and the stamp sheet use `formatFullLocalDate`.
+- Visuals not verified on a simulator (guilloche lines, emboss shadow, spacing, light theme).
