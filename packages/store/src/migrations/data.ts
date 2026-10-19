@@ -653,6 +653,23 @@ const MIGRATION_0033_BAND_SETTINGS = `-- 0033_band_settings.sql — Track 37i: w
 ALTER TABLE users ADD COLUMN band_settings TEXT NOT NULL DEFAULT '{}';
 `;
 
+const MIGRATION_0034_BADGES = `-- 0034_badges.sql — Track 38: permanent badge awards. One row per badge_id, so a badge can never
+-- be awarded twice and is never taken away. retroactive = found by the startup backfill (never
+-- celebrated); seen_at NULL = not yet looked at on the Badges screen. Does not sync (same scope
+-- cut as progression_state).
+
+CREATE TABLE earned_badges (
+  badge_id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL DEFAULT 'local',
+  earned_at TEXT NOT NULL,
+  local_date TEXT NOT NULL,
+  session_id TEXT,
+  retroactive INTEGER NOT NULL DEFAULT 0,
+  seen_at TEXT,
+  payload TEXT NOT NULL DEFAULT '{}'
+);
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -693,4 +710,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0031_entry_transition.sql', sql: MIGRATION_0031_ENTRY_TRANSITION },
   { id: '0032_onboarding.sql', sql: MIGRATION_0032_ONBOARDING },
   { id: '0033_band_settings.sql', sql: MIGRATION_0033_BAND_SETTINGS },
+  { id: '0034_badges.sql', sql: MIGRATION_0034_BADGES },
 ];

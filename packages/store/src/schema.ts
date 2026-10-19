@@ -514,6 +514,9 @@ export const signalEvents = sqliteTable(
         // signal. `signal_events.type` is plain TEXT (no CHECK constraint), so this needs no
         // migration.
         'travel_day',
+        // Track 38 — badge code threw during completion or backfill; the workout still completed.
+        // Payload: {message, stage}. Plain TEXT column, so no migration.
+        'badge_error',
       ],
     }).notNull(),
     /** JSON, shape depends on `type` — e.g. swap: {fromExerciseId, toExerciseId, atSetIndex}. */
@@ -542,6 +545,24 @@ export const milestones = sqliteTable('milestones', {
   sessionId: text('session_id'),
   localDate: text('local_date').notNull(),
   createdAt: text('created_at').notNull(),
+});
+
+// ------------------------------------------------------------------------------------------
+// Track 38 badges — permanent awards, one row per badge_id (migration 0034). Never deleted.
+// ------------------------------------------------------------------------------------------
+
+export const earnedBadges = sqliteTable('earned_badges', {
+  badgeId: text('badge_id').primaryKey(),
+  userId: text('user_id').notNull().default('local'),
+  earnedAt: text('earned_at').notNull(),
+  localDate: text('local_date').notNull(),
+  sessionId: text('session_id'),
+  /** Found by the startup backfill rather than earned in a session; never celebrated. */
+  retroactive: integer('retroactive', { mode: 'boolean' }).notNull().default(false),
+  /** NULL until the Badges screen (or the completion reveal) has shown it. */
+  seenAt: text('seen_at'),
+  /** JSON excerpt of the facts at award time, e.g. {value}. */
+  payload: text('payload').notNull().default('{}'),
 });
 
 // ------------------------------------------------------------------------------------------

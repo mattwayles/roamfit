@@ -27,6 +27,7 @@ export type { SavedSpotifyPlaylist } from './repositories/spotifyPlaylists';
 export * as sessionsRepo from './repositories/sessions';
 export * as signalsRepo from './repositories/signals';
 export * as milestonesRepo from './repositories/milestones';
+export * as badgesRepo from './repositories/badges';
 export * as statsRepo from './repositories/stats';
 export * as queuesRepo from './repositories/queues';
 export * as remoteConfigRepo from './repositories/remoteConfig';

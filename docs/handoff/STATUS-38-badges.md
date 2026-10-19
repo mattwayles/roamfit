@@ -13,7 +13,11 @@ log. Sub-tracks run **in order**, one agent each: 38a → 38b → 38c → 38d.
 
 ### In progress
 
-- 38b — not started. Start at `packages/store`: migration 0034, `repositories/badges.ts`, `badgeFacts.ts`, `awardBadges`, completion hook, backfill.
+- 38b (2026-10-18, in progress). Increments: (1) migration 0034 + `earnedBadges` table + `repositories/badges.ts` + tests;
+  (2) `badgeFacts.ts` + `awardBadges` + completion hook (`newBadgeIds`, nested savepoint, failure logged as a
+  `badge_error` signal event) + tests; (3) `backfillBadges` + app startup hook (`useDashboardData` load) + BACKLOG sync line + tests.
+  Decisions: city/country counting mirrors `buildPassportSummary` (distinct `formatPlace` label; distinct `country` string) using a
+  store-local place key, since `formatPlace` is app-only.
 
 ### Next
 
