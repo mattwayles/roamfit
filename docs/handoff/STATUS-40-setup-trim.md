@@ -16,7 +16,7 @@ User request (verbatim intent):
 - [x] Step 3: days per week removed everywhere: Training preferences stepper, Settings summary,
   DaysPerWeekStepper, the two week-streak motivation lines, store weeklyTarget / weekStreak /
   effectiveWeeklyDenominator / week-target adherence, engine UserProfile.weeklyTarget; migration
-  0036 drops users.weekly_target, rolled_up_stats.week_streak and its unused check date — (next commit)
+  0036 drops users.weekly_target, rolled_up_stats.week_streak and its unused check date — 441b7c5
 
 ### In progress
 - Nothing. Track complete pending the device pass in BACKLOG.
