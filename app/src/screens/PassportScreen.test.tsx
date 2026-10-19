@@ -64,6 +64,12 @@ function mount(params?: RootStackParamList['Passport'], theme?: 'light' | 'dark'
   );
 }
 
+/** Presses are ignored mid-turn, so wait for the page-turn overlay to go before the next input. */
+const settle = () =>
+  waitFor(
+    () => expect(screen.queryByTestId('passport-turn', { includeHiddenElements: true })).toBeNull(),
+    WAIT_OPTS,
+  );
 const pageLabel = () => screen.getByTestId('passport-page-label').props.children.join('');
 
 describe('PassportScreen', () => {
@@ -87,15 +93,20 @@ describe('PassportScreen', () => {
     expect(screen.getByTestId('passport-prev').props.accessibilityState?.disabled).toBe(true);
 
     await fireEvent.press(screen.getByTestId('passport-next'));
+    await settle();
     expect(screen.getByTestId('passport-page-bio')).toBeTruthy();
     expect(pageLabel()).toBe('Page 2 of 6');
     expect(screen.getByText('Training since')).toBeTruthy();
     expect(screen.getByText('Thursday, January 1, 2026')).toBeTruthy();
 
     await fireEvent.press(screen.getByTestId('passport-prev'));
+    await settle();
     expect(screen.getByTestId('passport-page-cover')).toBeTruthy();
 
-    for (let i = 0; i < 5; i += 1) await fireEvent.press(screen.getByTestId('passport-next'));
+    for (let i = 0; i < 5; i += 1) {
+      await fireEvent.press(screen.getByTestId('passport-next'));
+      await settle();
+    }
     expect(screen.getByTestId('passport-page-endorsements')).toBeTruthy();
     expect(pageLabel()).toBe('Page 6 of 6');
     expect(screen.getByTestId('passport-next').props.accessibilityState?.disabled).toBe(true);
@@ -132,9 +143,12 @@ describe('PassportScreen', () => {
     mount();
     await waitFor(() => expect(screen.getByTestId('passport-page-cover')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('passport-next'));
+    await settle();
     await fireEvent.press(screen.getByTestId('passport-next'));
+    await settle();
     expect(screen.getByTestId('passport-page-contents')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('passport-country-Peru'));
+    await settle();
     expect(screen.getByTestId('passport-page-visa-1')).toBeTruthy();
     expect(pageLabel()).toBe('Page 5 of 6');
   });
@@ -142,7 +156,10 @@ describe('PassportScreen', () => {
   it('an endorsement opens the Badges screen', async () => {
     mount();
     await waitFor(() => expect(screen.getByTestId('passport-page-cover')).toBeTruthy(), WAIT_OPTS);
-    for (let i = 0; i < 5; i += 1) await fireEvent.press(screen.getByTestId('passport-next'));
+    for (let i = 0; i < 5; i += 1) {
+      await fireEvent.press(screen.getByTestId('passport-next'));
+      await settle();
+    }
     expect(screen.getByText('Three Stops')).toBeTruthy();
     expect(screen.getByText('2 of 3')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('passport-badge-cities_3'));

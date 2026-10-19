@@ -15,7 +15,11 @@ log. Sub-tracks run **in order**, one agent each: 39a → 39b → 39c → 39d.
 
 ### In progress
 
-- 39c not started.
+- 39c underway. Plan: `app/src/components/PageTurnBook.tsx` holds `usePageTurn` (Animated + PanResponder,
+  transformOrigin 'left center', RN 0.86) and pure `decideSwipe`/`claimsSwipe`. Button/jump turns commit
+  `pageIndex` at the START and animate the outgoing page as an overlay; swipes commit at the END.
+  Jumps of >1 page do one turn straight to the target. Reduce Motion / screen reader: instant swap.
+  Steps: (1) turn + buttons + reduce motion, (2) swipe, (3) a11y actions, (4) status + device checks.
 
 ### Next
 

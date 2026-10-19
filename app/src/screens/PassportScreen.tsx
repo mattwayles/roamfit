@@ -1,13 +1,14 @@
 /**
  * Track 39b - the Passport book. One page at a time inside a "book" frame: cover, bio, contents
- * (two or more countries), visa pages of stamps, and the travel-badge endorsements. Static for now
- * (39c adds the page turn): the screen owns `pageIndex` and `goTo`, and `PassportPage` draws
- * whichever page it is handed, so an animation can wrap `PassportPage` without restructuring.
+ * (two or more countries), visa pages of stamps, and the travel-badge endorsements. 39c adds the page turn:
+ * the screen owns `pageIndex`; `PassportBook` runs the page turn (components/PageTurnBook.tsx)
+ * and `PassportPage` draws whichever page it is handed.
  *
  * Never punish (invariant 4): a stamp is a souvenir, an unfilled last page simply ends, and
  * nothing here reads as something missing or overdue. Dates are `local_date`s (invariant 6).
  */
 import React, { useMemo, useState } from 'react';
+import type { AccessibilityActionEvent } from 'react-native';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import type { RootScreenProps } from '../navigation/types';
@@ -26,6 +27,7 @@ import { IconButton, PressableScale, Screen, Sheet, Stamp, Txt } from '../ui';
 import { BadgeEmblem } from '../components/BadgeEmblem';
 import { EmptyState } from '../components/EmptyState';
 import { PassportOptInCard } from '../components/PassportOptInCard';
+import { PageTurnLayers, usePageTurn } from '../components/PageTurnBook';
 
 type Props = RootScreenProps<'Passport'>;
 
@@ -246,6 +248,93 @@ function EndorsementRow({
   );
 }
 
+interface PassportBookProps {
+  pages: PassportBookPage[];
+  index: number;
+  onIndexChange: (i: number) => void;
+  onOpenStamp: (entry: PassportEntry) => void;
+  pageForCountry: (country: string) => number | null;
+  onOpenBadges: () => void;
+}
+
+/** The book frame, the page turn (swipe included) and the prev/next + "Page N of M" bar. */
+function PassportBook({
+  pages,
+  index,
+  onIndexChange,
+  onOpenStamp,
+  pageForCountry,
+  onOpenBadges,
+}: PassportBookProps): React.JSX.Element {
+  const styles = useStyles();
+  const last = pages.length - 1;
+  const pageTurn = usePageTurn({ index, last, onIndexChange });
+  const { goTo } = pageTurn;
+  // Screen readers adjust a single element, so the actions live on the "Page N of M" label (an
+  // `adjustable`); the book itself must stay un-grouped so its stamps and rows remain reachable.
+  const onAdjust = (e: AccessibilityActionEvent) => {
+    if (e.nativeEvent.actionName === 'increment') goTo(index + 1);
+    else if (e.nativeEvent.actionName === 'decrement') goTo(index - 1);
+  };
+  return (
+    <>
+      <View
+        style={styles.book}
+        testID="passport-book"
+        onLayout={pageTurn.onLayout}
+        {...pageTurn.panHandlers}
+      >
+        <View style={styles.spine} />
+        <PageTurnLayers
+          index={index}
+          pageTurn={pageTurn}
+          renderPage={(i) => (
+            <PassportPage
+              page={pages[i]!}
+              onOpenStamp={onOpenStamp}
+              onSelectCountry={(country) => {
+                const t = pageForCountry(country);
+                if (t !== null) goTo(t);
+              }}
+              onOpenBadges={onOpenBadges}
+            />
+          )}
+        />
+      </View>
+      <View style={styles.nav}>
+        <IconButton
+          testID="passport-prev"
+          icon="back"
+          accessibilityLabel="Previous page"
+          disabled={index <= 0}
+          onPress={() => goTo(index - 1)}
+        />
+        <Txt
+          variant="small"
+          color="text2"
+          testID="passport-page-label"
+          accessibilityLiveRegion="polite"
+          accessibilityRole="adjustable"
+          accessibilityActions={[
+            { name: 'increment', label: 'Next page' },
+            { name: 'decrement', label: 'Previous page' },
+          ]}
+          onAccessibilityAction={onAdjust}
+        >
+          Page {index + 1} of {pages.length}
+        </Txt>
+        <IconButton
+          testID="passport-next"
+          icon="chevronRight"
+          accessibilityLabel="Next page"
+          disabled={index >= last}
+          onPress={() => goTo(index + 1)}
+        />
+      </View>
+    </>
+  );
+}
+
 export default function PassportScreen({ navigation, route }: Props): React.JSX.Element {
   const styles = useStyles();
   const { data, reload } = useDashboardData();
@@ -261,7 +350,6 @@ export default function PassportScreen({ navigation, route }: Props): React.JSX.
   const startIndex = stampLabel ? (bookPageForLabel(data.passport, stampLabel) ?? 0) : 0;
   const last = Math.max(0, pages.length - 1);
   const index = Math.min(Math.max(pageIndex ?? startIndex, 0), last);
-  const goTo = (i: number) => setPageIndex(Math.min(Math.max(i, 0), last));
 
   const header = (
     <Txt variant="h1" accessibilityRole="header">
@@ -293,47 +381,17 @@ export default function PassportScreen({ navigation, route }: Props): React.JSX.
     );
   }
 
-  const page = pages[index]!;
-
   return (
     <Screen scroll testID="passport-screen" contentStyle={styles.content}>
       {header}
-      <View style={styles.book} testID="passport-book">
-        <View style={styles.spine} />
-        <PassportPage
-          page={page}
-          onOpenStamp={setOpenEntry}
-          onSelectCountry={(country) => {
-            const i = bookPageForCountry(data.passport, country);
-            if (i !== null) goTo(i);
-          }}
-          onOpenBadges={() => navigation.navigate('Badges')}
-        />
-      </View>
-      <View style={styles.nav}>
-        <IconButton
-          testID="passport-prev"
-          icon="back"
-          accessibilityLabel="Previous page"
-          disabled={index <= 0}
-          onPress={() => goTo(index - 1)}
-        />
-        <Txt
-          variant="small"
-          color="text2"
-          testID="passport-page-label"
-          accessibilityLiveRegion="polite"
-        >
-          Page {index + 1} of {pages.length}
-        </Txt>
-        <IconButton
-          testID="passport-next"
-          icon="chevronRight"
-          accessibilityLabel="Next page"
-          disabled={index >= last}
-          onPress={() => goTo(index + 1)}
-        />
-      </View>
+      <PassportBook
+        pages={pages}
+        index={index}
+        onIndexChange={setPageIndex}
+        onOpenStamp={setOpenEntry}
+        pageForCountry={(country) => bookPageForCountry(data.passport, country)}
+        onOpenBadges={() => navigation.navigate('Badges')}
+      />
 
       <Sheet
         visible={openEntry !== null}
