@@ -5,9 +5,9 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createRng, seedFromString } from '@roamfit/engine';
+import { DEFAULT_BAND_SETTINGS, createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import { exerciseStateRepo, generate, sessionsRepo } from '@roamfit/store';
+import { exerciseStateRepo, generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import ApprovalScreen from './ApprovalScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
@@ -18,6 +18,8 @@ function Setup({ onReady }: { onReady: (db: ReturnType<typeof useStore>['db']) =
   const { db } = useStore();
   const pending = sessionsRepo.getPendingSession(db);
   if (pending) sessionsRepo.discardSession(db, pending.id, {}, new Date().toISOString());
+  // A new user owns no bands; this suite is about band prescriptions.
+  usersRepo.updateUser(db, { bandSettings: DEFAULT_BAND_SETTINGS }, new Date().toISOString());
   onReady(db);
   return null;
 }

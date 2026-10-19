@@ -20,14 +20,22 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { Anchor, Focus } from '@roamfit/data';
-import { createRng, recommendFocus, seedFromString } from '@roamfit/engine';
-import type { Difficulty } from '@roamfit/engine';
+import { DEFAULT_BAND_SETTINGS, createRng, recommendFocus, seedFromString } from '@roamfit/engine';
+import type { BandSettings, Difficulty } from '@roamfit/engine';
 import { generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { getNetworkStatus } from '../lib/networkStatus';
-import { ANCHOR_COUNT, ANCHOR_GROUPS, VISIBLE_ANCHOR_VALUES } from '../lib/equipment';
+import {
+  ANCHOR_COUNT,
+  ANCHOR_GROUPS,
+  BANDS_ROW,
+  VISIBLE_ANCHOR_VALUES,
+  bandsToggled,
+  effectiveAnchors,
+  hasBands,
+} from '../lib/equipment';
 import { DIFFICULTY_LABELS, FOCUS_LABELS, FOCUS_TONE } from '../lib/focusLabels';
 import { IconBadge } from '../components/IconBadge';
 import { gutter, makeStyles, radius, space, useTheme, withAlpha, type AccentName } from '../theme';
@@ -83,6 +91,8 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
   const [focus, setFocus] = useState<Focus>(recommended.focus);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [anchors, setAnchors] = useState<Anchor[]>([]);
+  const [bandSettings, setBandSettings] = useState<BandSettings>(DEFAULT_BAND_SETTINGS);
+  const bands = hasBands(bandSettings);
   // Collapsed by default: anchors are sticky user state (§5.3), set once and rarely revisited, so
   // they should not cost eleven rows of the picker on every generation.
   const [anchorsOpen, setAnchorsOpen] = useState(false);
@@ -111,6 +121,7 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
     // once per profile.
     const filtered = user.anchorsAvailable.filter((a) => VISIBLE_ANCHOR_VALUES.includes(a));
     setAnchors(filtered);
+    setBandSettings(user.bandSettings);
     if (filtered.length !== user.anchorsAvailable.length) {
       usersRepo.updateUser(db, { anchorsAvailable: filtered }, nowUtcInstant());
     }
@@ -125,6 +136,12 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
       cancelled = true;
     };
   }, []);
+
+  const toggleBands = useCallback(() => {
+    const patch = bandsToggled(bandSettings);
+    setBandSettings({ ...bandSettings, ...patch });
+    usersRepo.updateUser(db, { bandSettings: patch }, nowUtcInstant());
+  }, [bandSettings, db]);
 
   const toggleAnchor = useCallback(
     (anchor: Anchor) => {
@@ -184,6 +201,40 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
     ...(cardioAddOnActive ? ['+ cardio'] : []),
     ...(recoveryWeek ? ['recovery'] : []),
   ].join(' · ');
+
+  const renderRow = (r: {
+    testID: string;
+    label: string;
+    hint?: string;
+    selected: boolean;
+    disabled: boolean;
+    onPress: () => void;
+  }) => (
+    <PressableScale
+      key={r.testID}
+      testID={r.testID}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: r.selected, disabled: r.disabled }}
+      accessibilityLabel={r.label}
+      disabled={r.disabled}
+      style={[styles.anchorRow, r.selected && styles.anchorRowOn, r.disabled && { opacity: 0.4 }]}
+      onPress={r.onPress}
+    >
+      <View style={[styles.anchorCheck, r.selected && styles.anchorCheckOn]}>
+        {r.selected && <Icon name="check" size={16} color="ink" />}
+      </View>
+      <View style={styles.anchorLabels}>
+        <Txt variant="bodyStrong" color={r.selected ? 'text' : 'text2'}>
+          {r.label}
+        </Txt>
+        {r.hint != null && (
+          <Txt variant="caption" color="text3">
+            {r.hint}
+          </Txt>
+        )}
+      </View>
+    </PressableScale>
+  );
 
   return (
     <Screen
@@ -393,12 +444,28 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
             <View style={styles.disclosureLabels}>
               <Txt variant="h3">Available equipment</Txt>
               <Txt testID="anchors-summary" variant="caption" color="text2">
-                {anchors.length} of {ANCHOR_COUNT} selected
+                {effectiveAnchors(anchors, bands).length + (bands ? 1 : 0)} of {ANCHOR_COUNT + 1}{' '}
+                selected
               </Txt>
             </View>
             <Icon name={anchorsOpen ? 'chevronUp' : 'chevronDown'} size={20} color="text2" />
           </PressableScale>
 
+          {anchorsOpen && (
+            <View style={styles.anchorGroup}>
+              <Txt variant="eyebrow" color="text3">
+                Bands
+              </Txt>
+              {renderRow({
+                testID: 'bands-toggle',
+                label: BANDS_ROW.label,
+                hint: BANDS_ROW.hint,
+                selected: bands,
+                disabled: false,
+                onPress: toggleBands,
+              })}
+            </View>
+          )}
           {anchorsOpen &&
             ANCHOR_GROUPS.map((group) => (
               <View key={group.title} style={styles.anchorGroup}>
@@ -406,32 +473,15 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
                   {group.title}
                 </Txt>
                 {group.anchors.map((a) => {
-                  const selected = anchors.includes(a.value);
-                  return (
-                    <PressableScale
-                      key={a.value}
-                      testID={`anchor-${a.value}`}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: selected }}
-                      accessibilityLabel={a.label}
-                      style={[styles.anchorRow, selected && styles.anchorRowOn]}
-                      onPress={() => toggleAnchor(a.value)}
-                    >
-                      <View style={[styles.anchorCheck, selected && styles.anchorCheckOn]}>
-                        {selected && <Icon name="check" size={16} color="ink" />}
-                      </View>
-                      <View style={styles.anchorLabels}>
-                        <Txt variant="bodyStrong" color={selected ? 'text' : 'text2'}>
-                          {a.label}
-                        </Txt>
-                        {a.hint != null && (
-                          <Txt variant="caption" color="text3">
-                            {a.hint}
-                          </Txt>
-                        )}
-                      </View>
-                    </PressableScale>
-                  );
+                  const locked = a.needsBands === true && !bands;
+                  return renderRow({
+                    testID: `anchor-${a.value}`,
+                    label: a.label,
+                    hint: locked ? 'Tick Resistance bands first' : a.hint,
+                    selected: !locked && anchors.includes(a.value),
+                    disabled: locked,
+                    onPress: () => toggleAnchor(a.value),
+                  });
                 })}
               </View>
             ))}

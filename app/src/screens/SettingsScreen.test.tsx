@@ -350,6 +350,11 @@ describe('starting levels (track 37g)', () => {
 
 describe('your bands (track 37i)', () => {
   it('owned bands, stacking, and renaming and recolouring a band all save', async () => {
+    usersRepo.updateUser(
+      getDb(),
+      { bandSettings: { owned: ['B1', 'B2', 'B3', 'B4', 'B5'], stacking: false } },
+      nowUtcInstant(),
+    );
     await openSettings();
     expect(screen.getByTestId('settings-bands-value')).toHaveTextContent('5 of 5');
     await fireEvent.press(screen.getByTestId('settings-bands'));

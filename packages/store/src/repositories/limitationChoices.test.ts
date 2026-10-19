@@ -11,7 +11,7 @@ import {
 } from '@roamfit/data';
 import type { Focus } from '@roamfit/data';
 import { FIXED_POINT_ANCHORS } from '@roamfit/engine';
-import { createTestDb } from '../testHarness';
+import { createBandedTestDb } from '../testHarness';
 import { schema } from '../db';
 import { generate } from '../generation';
 import {
@@ -26,7 +26,7 @@ import { clockFor, rngFor, utcInstantFor } from '../testFixtures';
 
 describe('limitation choices (migration 0029)', () => {
   it('default to none, round-trip, and keep the original since date for a kept choice', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       expect(ensureUser(db, utcInstantFor('2026-10-01')).limitationChoices).toEqual([]);
       setLimitationChoices(db, ['knee', 'wrist'], '2026-10-01', utcInstantFor('2026-10-01'));
@@ -43,7 +43,7 @@ describe('limitation choices (migration 0029)', () => {
   });
 
   it('ignores unknown ids on write and drops damaged or unknown entries on read', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       setLimitationChoices(db, ['knee', 'not-a-choice'], '2026-10-01', utcInstantFor('2026-10-01'));
       expect(getUser(db)!.limitationChoices.map((c) => c.id)).toEqual(['knee']);
@@ -65,7 +65,7 @@ describe('limitation choices (migration 0029)', () => {
   });
 
   it('expand into one engine limitation per tag, alongside dated limitation rows', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       setLimitationChoices(db, ['knee', 'low_impact'], '2026-10-01', utcInstantFor('2026-10-01'));
       addLimitation(
@@ -84,7 +84,7 @@ describe('limitation choices (migration 0029)', () => {
   });
 
   it('remove every exercise carrying a chosen tag from a generated session', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       setLimitationChoices(db, ['knee', 'wrist'], '2026-10-01', utcInstantFor('2026-10-01'));
       const banned = new Set(tagsForLimitationChoices(['knee', 'wrist']));
@@ -117,7 +117,7 @@ describe('every limitation choice still leaves a workout for every focus (track 
   for (const choice of LIMITATION_CHOICES) {
     for (const equipped of [false, true]) {
       it(`${choice.id}, ${equipped ? 'all equipment' : 'no equipment'}`, () => {
-        const { db, close } = createTestDb();
+        const { db, close } = createBandedTestDb();
         try {
           if (equipped) {
             updateUser(

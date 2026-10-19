@@ -12,12 +12,24 @@ import { DEFAULT_BAND_TENSIONS, ensureUser, getUser, updateBandTension, updateUs
 import { clockFor, rngFor, utcInstantFor } from '../testFixtures';
 
 describe('band settings (migration 0033)', () => {
-  it('default to every band owned and no stacking, and merge on update', () => {
+  it('a new user owns no bands and does not stack; an unreadable row reads as every band', () => {
     const { db, close } = createTestDb();
     try {
-      expect(ensureUser(db, utcInstantFor('2026-10-18')).bandSettings).toEqual(
-        DEFAULT_BAND_SETTINGS,
-      );
+      expect(ensureUser(db, utcInstantFor('2026-10-18')).bandSettings).toEqual({
+        owned: [],
+        stacking: false,
+      });
+      db.update(schema.users).set({ bandSettings: '{}' }).where(eq(schema.users.id, 'local')).run();
+      expect(getUser(db)!.bandSettings).toEqual(DEFAULT_BAND_SETTINGS);
+    } finally {
+      close();
+    }
+  });
+
+  it('merges updates into the stored settings', () => {
+    const { db, close } = createTestDb();
+    try {
+      ensureUser(db, utcInstantFor('2026-10-18'));
       updateUser(db, { bandSettings: { owned: ['B2', 'B4'] } }, utcInstantFor('2026-10-18'));
       updateUser(db, { bandSettings: { stacking: true } }, utcInstantFor('2026-10-18'));
       expect(getUser(db)!.bandSettings).toEqual({ owned: ['B2', 'B4'], stacking: true });

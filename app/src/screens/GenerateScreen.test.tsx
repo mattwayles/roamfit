@@ -10,7 +10,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { exerciseLibrary, isCardioExercise } from '@roamfit/data';
 import { sessionsRepo, usersRepo } from '@roamfit/store';
-import { FIXED_POINT_ANCHORS } from '@roamfit/engine';
+import { DEFAULT_BAND_SETTINGS, FIXED_POINT_ANCHORS } from '@roamfit/engine';
 import GenerateScreen from './GenerateScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 
@@ -29,6 +29,8 @@ function Setup({ onReady }: { onReady: (db: ReturnType<typeof useStore>['db']) =
   // deliberately mutate the user's sticky anchors (§5.3). Reset to the default so each test
   // starts from the same state instead of inheriting the previous one's toggles.
   usersRepo.updateUser(db, { anchorsAvailable: [...FIXED_POINT_ANCHORS] }, now);
+  // A new user owns no bands; this suite is about band prescriptions.
+  usersRepo.updateUser(db, { bandSettings: DEFAULT_BAND_SETTINGS }, new Date().toISOString());
   onReady(db);
   return null;
 }
@@ -428,5 +430,31 @@ describe('§10.2 Generate screen', () => {
       const next = screen.getByTestId('anchors-summary').props.children.join('');
       expect(next).not.toBe(initial);
     }, WAIT_OPTS);
+  });
+
+  it('lists Resistance bands first; the low, mid and high anchors stay locked until it is ticked', async () => {
+    const { getDb } = renderScreen();
+    await waitFor(() => expect(screen.getByTestId('anchors-disclosure')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('anchors-disclosure'));
+    await waitFor(() => expect(screen.getByTestId('bands-toggle')).toBeTruthy(), WAIT_OPTS);
+    const state = (id: string) => screen.getByTestId(id).props.accessibilityState;
+    const bandAnchors = ['anchor-anchor-low', 'anchor-anchor-mid', 'anchor-anchor-high'];
+
+    expect(state('bands-toggle').checked).toBe(true); // Setup gives this suite every band
+    for (const id of bandAnchors) expect(state(id).disabled).toBe(false);
+
+    fireEvent.press(screen.getByTestId('bands-toggle'));
+    await waitFor(() => expect(state('bands-toggle').checked).toBe(false), WAIT_OPTS);
+    expect(usersRepo.getUser(getDb())!.bandSettings.owned).toEqual([]);
+    for (const id of bandAnchors) {
+      expect(state(id).disabled).toBe(true);
+      expect(state(id).checked).toBe(false);
+    }
+    expect(state('anchor-pullup-bar').disabled).toBe(false);
+
+    fireEvent.press(screen.getByTestId('bands-toggle'));
+    await waitFor(() => expect(state('bands-toggle').checked).toBe(true), WAIT_OPTS);
+    expect(usersRepo.getUser(getDb())!.bandSettings.owned).toHaveLength(5);
+    for (const id of bandAnchors) expect(state(id).disabled).toBe(false);
   });
 });

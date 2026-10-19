@@ -168,6 +168,7 @@ export function CheckRow({
   description,
   checked,
   single = false,
+  disabled = false,
   onPress,
 }: {
   testID: string;
@@ -175,6 +176,8 @@ export function CheckRow({
   description?: string;
   checked: boolean;
   single?: boolean;
+  /** Greyed out and inert, e.g. an option that needs another one first. */
+  disabled?: boolean;
   onPress: () => void;
 }): React.JSX.Element {
   const styles = useStyles();
@@ -184,12 +187,17 @@ export function CheckRow({
       accessibilityRole={single ? 'radio' : 'checkbox'}
       accessibilityLabel={label}
       accessibilityHint={description}
-      accessibilityState={{ checked }}
+      accessibilityState={{ checked, disabled }}
+      disabled={disabled}
       onPress={() => {
         haptics.selection();
         onPress();
       }}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      style={({ pressed }) => [
+        styles.row,
+        pressed && styles.rowPressed,
+        disabled && styles.rowDisabled,
+      ]}
     >
       <View style={styles.checkText}>
         <Txt variant="h3">{label}</Txt>
@@ -229,6 +237,7 @@ const useStyles = makeStyles((tk) =>
       paddingVertical: space.sm,
     },
     rowPressed: { backgroundColor: tk.colors.surface2 },
+    rowDisabled: { opacity: 0.4 },
     rowLabel: { flex: 1, flexShrink: 1, marginHorizontal: space.md },
     rowText: { flex: 1, flexShrink: 1, marginHorizontal: space.md, gap: 2 },
     checkText: { flex: 1, flexShrink: 1, marginRight: space.md, gap: 2 },

@@ -61,6 +61,16 @@ describe('first-launch setup', () => {
 
     await step('equipment');
     expect(checked('onboarding-anchor-anchor-mid')).toBe(false); // nothing is assumed (37b)
+    expect(checked('onboarding-bands')).toBe(false);
+    // A band anchor point means nothing without a band: locked until Resistance bands is ticked.
+    expect(
+      screen.getByTestId('onboarding-anchor-anchor-mid').props.accessibilityState.disabled,
+    ).toBe(true);
+    expect(
+      screen.getByTestId('onboarding-anchor-pullup-bar').props.accessibilityState.disabled,
+    ).toBe(false);
+    await press('onboarding-bands');
+    expect(checked('onboarding-bands')).toBe(true);
     await press('onboarding-anchor-anchor-mid');
     await press('onboarding-next');
 

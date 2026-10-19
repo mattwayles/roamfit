@@ -3,7 +3,7 @@
  * one thing that makes recording either worth doing: the next session is built around the band the
  * user really trained with.
  */
-import { createTestDb } from './testHarness';
+import { createBandedTestDb } from './testHarness';
 import { generate } from './generation';
 import {
   adjustBandAtApproval,
@@ -28,7 +28,7 @@ import {
   utcInstantFor,
 } from './testFixtures';
 
-type Db = ReturnType<typeof createTestDb>['db'];
+type Db = ReturnType<typeof createBandedTestDb>['db'];
 
 function makeSession(db: Db, localDate = '2026-03-01'): string {
   const clock = clockFor(localDate);
@@ -62,7 +62,7 @@ function bandedEntry(db: Db): SessionEntryRecord {
 
 describe('§10.3 — the intended band, changed at approval', () => {
   it('is applied to the plan and logged with the band it replaced', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const sessionId = makeSession(db);
       const entry = bandedEntry(db);
@@ -81,7 +81,7 @@ describe('§10.3 — the intended band, changed at approval', () => {
   });
 
   it('will not invent a band for a bodyweight entry, and no-ops on an unchanged one', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       makeSession(db);
       const bodyweight = getPendingSession(db)!.entries.find((e) => e.band == null)!;
@@ -99,7 +99,7 @@ describe('§10.3 — the intended band, changed at approval', () => {
 
 describe('§10.5 — the band actually used, recorded per set', () => {
   it('is stored on the set log, per set, leaving the entry’s prescription intact', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const sessionId = makeSession(db);
       startSession(db, sessionId, utcInstantFor('2026-03-01', 9));
@@ -177,7 +177,7 @@ describe('the recorded band informs the next session', () => {
   }
 
   it('a heavier band than prescribed is adopted into progression state', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const banded = runSessionUsingBand(db, '2026-03-01', 'B5');
       const state = getAllProgressionStates(db)[banded.progressionFamilyId as ProgressionFamilyId];
@@ -191,8 +191,8 @@ describe('the recorded band informs the next session', () => {
   });
 
   it('reporting nothing leaves progression state exactly where following the plan leaves it', () => {
-    const reported = createTestDb();
-    const silent = createTestDb();
+    const reported = createBandedTestDb();
+    const silent = createBandedTestDb();
     try {
       const banded = runSessionUsingBand(reported.db, '2026-03-01', null);
       runSessionUsingBand(silent.db, '2026-03-01', null);
@@ -211,7 +211,7 @@ describe('the recorded band informs the next session', () => {
   });
 
   it('a best set is recorded against the band it was actually performed with', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const banded = runSessionUsingBand(db, '2026-03-01', 'B5');
       const state = getAllExerciseStates(db)[banded.exerciseId];
@@ -266,7 +266,7 @@ describe('an accessory remembers the band the user finished on', () => {
   }
 
   it('every set moved up and met: the ladder carries on from the band used (12 met on B4 → B5)', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const accessory = runSessionMovingAccessoryUp(db, '2026-03-01', 'B4', 'B4');
       expect(accessory.band).not.toBe('B4');
@@ -277,7 +277,7 @@ describe('an accessory remembers the band the user finished on', () => {
   });
 
   it('only the final set moved up: still the band finished on, not a majority vote', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const accessory = runSessionMovingAccessoryUp(db, '2026-03-01', null, 'B4');
       expect(getAllExerciseStates(db)[accessory.exerciseId].workingBand).toBe('B4');
@@ -287,7 +287,7 @@ describe('an accessory remembers the band the user finished on', () => {
   });
 
   it('following the plan stores the prescribed band (family and cardio work — an accessory’s is its ladder’s)', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const sessionId = makeSession(db);
       startSession(db, sessionId, utcInstantFor('2026-03-01', 9));
@@ -321,7 +321,7 @@ describe('an accessory remembers the band the user finished on', () => {
   });
 
   it('a warm-up never overwrites the working band with its lighter warm-up band', () => {
-    const { db, raw, close } = createTestDb();
+    const { db, raw, close } = createBandedTestDb();
     try {
       const accessory = runSessionMovingAccessoryUp(db, '2026-03-01', 'B4', 'B4');
       const before = getAllExerciseStates(db)[accessory.exerciseId].workingBand;
@@ -351,7 +351,7 @@ describe('an accessory remembers the band the user finished on', () => {
   });
 
   it('migration 0027 backfills the working band from history already logged', () => {
-    const { db, raw, close } = createTestDb();
+    const { db, raw, close } = createBandedTestDb();
     try {
       const accessory = runSessionMovingAccessoryUp(db, '2026-03-01', null, 'B4');
       raw.exec('UPDATE exercise_state SET working_band = NULL');
@@ -371,7 +371,7 @@ describe('an accessory remembers the band the user finished on', () => {
   });
 });
 
-function getSessionIdFor(raw: ReturnType<typeof createTestDb>['raw']): string {
+function getSessionIdFor(raw: ReturnType<typeof createBandedTestDb>['raw']): string {
   return (raw.prepare("SELECT id FROM sessions WHERE status = 'completed'").get() as { id: string })
     .id;
 }

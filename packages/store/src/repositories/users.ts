@@ -248,6 +248,9 @@ export function ensureUser(db: Db, now: string): UserRecord {
     .values({
       id: USER_ID,
       anchorsAvailable: JSON.stringify(DEFAULT_ANCHORS_AVAILABLE),
+      // Nothing assumed: a new user ticks Resistance bands before any band exercise is programmed.
+      // Existing rows keep what they stored (an empty `{}` still reads as every band owned).
+      bandSettings: JSON.stringify({ owned: [], stacking: false }),
       createdAt: now,
       updatedAt: now,
     })

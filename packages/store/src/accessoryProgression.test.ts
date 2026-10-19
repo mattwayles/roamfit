@@ -4,7 +4,7 @@
  */
 import { defaultMicroForExercise, prescribeAccessory } from '@roamfit/engine';
 import type { BandId } from '@roamfit/engine';
-import { createTestDb } from './testHarness';
+import { createBandedTestDb } from './testHarness';
 import { generate } from './generation';
 import {
   createPendingSession,
@@ -25,7 +25,7 @@ import {
   utcInstantFor,
 } from './testFixtures';
 
-type Db = ReturnType<typeof createTestDb>['db'];
+type Db = ReturnType<typeof createBandedTestDb>['db'];
 
 function makeSession(db: Db, localDate: string): string {
   const clock = clockFor(localDate);
@@ -108,7 +108,7 @@ function exerciseOf(entry: SessionEntryRecord) {
 
 describe('accessory micro-progression, through the store', () => {
   it('first outing: the table prescription becomes the ladder, and a met session advances it', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const accessory = runSession(db, '2026-03-01');
       const state = getAllExerciseStates(db)[accessory.exerciseId];
@@ -126,7 +126,7 @@ describe('accessory micro-progression, through the store', () => {
   });
 
   it('the user’s report: every set moved up a band, 12 met, just right → the next band up next time', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const accessory = runSession(db, '2026-03-01', { band: 'B4' });
       const state = getAllExerciseStates(db)[accessory.exerciseId];
@@ -148,7 +148,7 @@ describe('accessory micro-progression, through the store', () => {
   });
 
   it('too_hard holds; two misses in a row step back down', () => {
-    const { db, raw, close } = createTestDb();
+    const { db, raw, close } = createBandedTestDb();
     try {
       const accessory = runSession(db, '2026-03-01', { feedback: 'too_hard' });
       const held = getAllExerciseStates(db)[accessory.exerciseId];
@@ -171,7 +171,7 @@ describe('accessory micro-progression, through the store', () => {
   });
 
   it('a recovery-day band drop, followed as prescribed, is not adopted as the user’s band', () => {
-    const { db, raw, close } = createTestDb();
+    const { db, raw, close } = createBandedTestDb();
     try {
       const accessory = runSession(db, '2026-03-01', { band: 'B3' });
       const before = getAllExerciseStates(db)[accessory.exerciseId].workingBand;
@@ -186,7 +186,7 @@ describe('accessory micro-progression, through the store', () => {
   });
 
   it('history from before the ladder is seeded (and its verdict replayed) exactly as completion would have', () => {
-    const { db, raw, close } = createTestDb();
+    const { db, raw, close } = createBandedTestDb();
     try {
       const accessory = runSession(db, '2026-03-01', { band: 'B4' });
       const progressed = getAllExerciseStates(db)[accessory.exerciseId];
@@ -212,7 +212,7 @@ describe('accessory micro-progression, through the store', () => {
   });
 
   it('generate() seeds from history before it reads state', () => {
-    const { db, raw, close } = createTestDb();
+    const { db, raw, close } = createBandedTestDb();
     try {
       const accessory = runSession(db, '2026-03-01');
       raw.exec('UPDATE exercise_state SET micro_rep_target = NULL');
@@ -232,7 +232,7 @@ describe('accessory micro-progression, through the store', () => {
  */
 function programAccessory(
   db: Db,
-  raw: ReturnType<typeof createTestDb>['raw'],
+  raw: ReturnType<typeof createBandedTestDb>['raw'],
   localDate: string,
   exerciseId: string,
   bandOverride?: BandId,
@@ -308,7 +308,7 @@ describe('a passed-rung band exercise, through the store', () => {
   /** vertical_pull parked at l4, and one main entry rewritten to Straight-Arm Pulldown (l2, authored
    *  B1-B2) as the engine programs a passed-rung draw: family id kept, its own ladder's
    *  prescription (first draw: B3 x 8). */
-  function passedRungSession(db: Db, raw: ReturnType<typeof createTestDb>['raw']) {
+  function passedRungSession(db: Db, raw: ReturnType<typeof createBandedTestDb>['raw']) {
     const sessionId = makeSession(db, '2026-03-01');
     const before = getAllProgressionStates(db).vertical_pull;
     const l4 = library.exercises.find((e) => e.id === 'lat-pulldown')!;
@@ -332,7 +332,7 @@ describe('a passed-rung band exercise, through the store', () => {
   }
 
   it('climbs its own ladder from B3 and leaves the current rung’s state alone', () => {
-    const { db, raw, close } = createTestDb();
+    const { db, raw, close } = createBandedTestDb();
     try {
       const { sessionId, entry } = passedRungSession(db, raw);
       const familyBefore = getAllProgressionStates(db).vertical_pull;
