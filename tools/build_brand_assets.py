@@ -1,4 +1,4 @@
-"""Builds app/assets/icon.png and splash-icon.png from logo-source.png. Run from the repo root:
+"""Builds app/assets/icon.png, splash-icon.png and logo.png from logo-source.png. Run from the repo root:
 python3 -I tools/build_brand_assets.py. The source is a 430x542 flat render on a dark ground, so the
 logo is converted to an alpha mask (teal on transparent) and re-upscaled; replace the source with a
 vector or a larger export when one exists."""
@@ -26,18 +26,22 @@ def ramp(n, f=24):
 alpha *= ramp(alpha.shape[0])[:, None] * ramp(alpha.shape[1])[None, :]
 mark_h = (ys.max() + 1 - ys.min())  # unpadded mark height, source px
 
-def render(mark_frac, size, out, opaque_bg=None):
+def render(mark_frac, size, out, opaque_bg=None, crop=False):
     # scale so the mark (not the padded crop) is `mark_frac` of the canvas height
     k = size * mark_frac / mark_h
     h = int(alpha.shape[0] * k); w = int(alpha.shape[1] * k)
+    if crop: size = None  # canvas is the padded crop itself, not a square
     al = Image.fromarray((alpha*255).astype('uint8')).resize((w,h), Image.LANCZOS)
     arr = np.asarray(al).astype(float)/255
     arr = np.clip((arr-0.04)/0.96,0,1)
     rgba = np.zeros((h,w,4),'uint8'); rgba[...,:3]=teal.astype('uint8'); rgba[...,3]=(arr*255).astype('uint8')
     logo = Image.fromarray(rgba,'RGBA')
+    if size is None: logo.save(out); return
     canvas = Image.new('RGBA',(size,size),opaque_bg or (0,0,0,0))
     canvas.alpha_composite(logo, ((size-w)//2,(size-h)//2))
     if opaque_bg: canvas = canvas.convert('RGB')
     canvas.save(out)
 render(0.78, 1024, 'app/assets/icon.png', (11,14,19,255))
 render(0.50, 1024, 'app/assets/splash-icon.png')
+# In-app mark (welcome screen): transparent, tight crop, mark 360px tall (@3x of 120pt).
+render(1.0, 360, 'app/assets/logo.png', crop=True)

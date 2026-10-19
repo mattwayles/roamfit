@@ -34,6 +34,7 @@ describe('first-launch setup', () => {
   it('starts with the disclaimer, and a relaunch after it resumes setup instead of opening Today', async () => {
     await launch();
     await ready('disclaimer-gate');
+    expect(screen.getByTestId('welcome-logo')).toBeTruthy();
     expect(screen.queryByTestId('tab-Journey')).toBeNull();
     await press('disclaimer-acknowledge');
     await step('goal');
