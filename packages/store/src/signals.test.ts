@@ -4,7 +4,7 @@
  * simulation.test.ts (reps/seconds vs prescribed, set status, best-set improvement, session
  * duration vs estimate, history).
  */
-import { createTestDb } from './testHarness';
+import { createBandedTestDb } from './testHarness';
 import { generate } from './generation';
 import { prescribeAccessory } from '@roamfit/engine';
 import {
@@ -28,7 +28,7 @@ import { recordTravelDay, getStats, effectiveWeeklyDenominator } from './reposit
 import { MIGRATIONS } from './migrations/data';
 import { library, families, clockFor, rngFor, utcInstantFor } from './testFixtures';
 
-function makeSession(db: ReturnType<typeof createTestDb>['db'], localDate = '2026-03-01') {
+function makeSession(db: ReturnType<typeof createBandedTestDb>['db'], localDate = '2026-03-01') {
   const clock = clockFor(localDate);
   const { plan, comebackTier, recoveryWeekManual } = generate(db, {
     library,
@@ -51,7 +51,7 @@ function makeSession(db: ReturnType<typeof createTestDb>['db'], localDate = '202
 
 describe('§8.3 fatigue & pacing signals', () => {
   it('rest taken vs prescribed, +15s tap count, pause count/duration, and time-under-set are all stored per set', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const sessionId = makeSession(db);
       startSession(db, sessionId, utcInstantFor('2026-03-01', 9));
@@ -91,7 +91,7 @@ describe('§8.3 fatigue & pacing signals', () => {
 
 describe('§8.3 preference & aversion / comprehension signals', () => {
   it('regenerate taps are counted, including how many in a row', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const sessionId = makeSession(db);
       recordRegenerateTap(db, sessionId, utcInstantFor('2026-03-01', 8, 10));
@@ -106,7 +106,7 @@ describe('§8.3 preference & aversion / comprehension signals', () => {
   });
 
   it('sets added or deleted at approval are both applied and logged with the original count', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const sessionId = makeSession(db);
       const entry = getPendingSession(db)!.entries.find((e) => e.section === 'main')!;
@@ -135,7 +135,7 @@ describe('§8.3 preference & aversion / comprehension signals', () => {
   });
 
   it('rep target adjustment at approval is applied and logged with the original value', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const sessionId = makeSession(db);
       const entry = getPendingSession(db)!
@@ -164,7 +164,7 @@ describe('§8.3 preference & aversion / comprehension signals', () => {
   });
 
   it('adding an exercise at approval persists the engine prescription verbatim and is logged', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const sessionId = makeSession(db);
       const before = getPendingSession(db)!;
@@ -207,7 +207,7 @@ describe('§8.3 preference & aversion / comprehension signals', () => {
   });
 
   it('demo media expansion is recorded on the entry and as a signal event', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const sessionId = makeSession(db);
       const entry = getPendingSession(db)!.entries.find((e) => e.section === 'main')!;
@@ -222,7 +222,7 @@ describe('§8.3 preference & aversion / comprehension signals', () => {
   });
 
   it('pinned note creation and edit are both logged, distinctly', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const exerciseId = library.exercises[0].id;
       setPinnedNote(
@@ -248,7 +248,7 @@ describe('§8.3 preference & aversion / comprehension signals', () => {
   });
 
   it('session abandonment records the exact exercise and set it was left at', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const sessionId = makeSession(db);
       startSession(db, sessionId, utcInstantFor('2026-03-01', 9));
@@ -284,7 +284,7 @@ describe('§8.3 preference & aversion / comprehension signals', () => {
 
 describe('§8.1 recordEntryFeedback — three-state omit/set/clear (found via app/WorkoutScreen.rest.test.tsx)', () => {
   it('an explicit null clears a previously-set value; omitting the key leaves it untouched', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       const sessionId = makeSession(db);
       const entryId = getPendingSession(db)!.entries.find((e) => e.section === 'main')!.id;
@@ -304,7 +304,7 @@ describe('§8.1 recordEntryFeedback — three-state omit/set/clear (found via ap
 
 describe('§8.3/§9.3 context signals — device timezone change, travel days, days since last session', () => {
   it('a device tz change is logged as a signal event only once the tz actually differs', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       observeTzId(db, 'America/New_York', utcInstantFor('2026-03-01'), '2026-03-01');
       expect(getSignalEventsByType(db, 'tz_change')).toHaveLength(0); // first-ever observation, not a change
@@ -322,7 +322,7 @@ describe('§8.3/§9.3 context signals — device timezone change, travel days, d
   });
 
   it('a travel day reduces the effective weekly denominator with a floor of 2', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       recordTravelDay(db, utcInstantFor('2026-03-01'), '2026-03-01');
       recordTravelDay(db, utcInstantFor('2026-03-02'), '2026-03-02');
@@ -337,7 +337,7 @@ describe('§8.3/§9.3 context signals — device timezone change, travel days, d
   });
 
   it('a travel day also logs a per-date signal event, for the calendar heatmap', () => {
-    const { db, close } = createTestDb();
+    const { db, close } = createBandedTestDb();
     try {
       recordTravelDay(db, utcInstantFor('2026-03-01'), '2026-03-01');
       const events = getSignalEventsByType(db, 'travel_day');
@@ -352,7 +352,7 @@ describe('§8.3/§9.3 context signals — device timezone change, travel days, d
 
 describe('migration 0026 — per-set feedback folds into the exercise', () => {
   it('backfills each entry from its legacy set answers (worst case), leaving answered entries alone', () => {
-    const { db, raw, close } = createTestDb();
+    const { db, raw, close } = createBandedTestDb();
     try {
       makeSession(db);
       const mains = getPendingSession(db)!.entries.filter((e) => e.section === 'main');

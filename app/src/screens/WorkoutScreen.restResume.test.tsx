@@ -14,7 +14,12 @@
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { FIXED_POINT_ANCHORS, createRng, seedFromString } from '@roamfit/engine';
+import {
+  DEFAULT_BAND_SETTINGS,
+  FIXED_POINT_ANCHORS,
+  createRng,
+  seedFromString,
+} from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import { generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { Db } from '@roamfit/store';
@@ -41,6 +46,8 @@ function Setup({ onReady }: { onReady: (db: Db) => void }) {
   // The seeded plan this test was written against assumes every fixed point is available (the
   // pre-37b default); a new user now owns nothing, which changes the plan's first exercise.
   usersRepo.updateUser(db, { anchorsAvailable: [...FIXED_POINT_ANCHORS] }, nowUtcInstant());
+  // A new user owns no bands; this suite is about band prescriptions.
+  usersRepo.updateUser(db, { bandSettings: DEFAULT_BAND_SETTINGS }, new Date().toISOString());
   onReady(db);
   return null;
 }

@@ -19,7 +19,7 @@ import { placeOnLadders } from '@roamfit/engine';
 import { progressionStateRepo, usersRepo } from '@roamfit/store';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
-import { ANCHOR_GROUPS } from '../lib/equipment';
+import { ANCHOR_GROUPS, BANDS_ROW, bandsToggled, hasBands } from '../lib/equipment';
 import { GOAL_GROUP } from '../lib/trainingOptions';
 import { DISCLAIMER_TEXT } from '../lib/disclaimer';
 import { makeStyles, space } from '../theme';
@@ -52,7 +52,7 @@ const STEP_INTROS: Partial<Record<StepId, string>> = {
   placement:
     'Answer what you can and each trail starts at a level that fits. Skip it and everything starts at the first level, which is right for most beginners.',
   equipment:
-    'Tick what you can use. Bodyweight moves, and band moves that anchor under your feet or around your body, are always included.',
+    'Tick what you can use. Bodyweight moves are always included; band moves need Resistance bands, and anchored ones also need an anchor point.',
   bands:
     'Untick any bands you do not have, and name or recolour them to match yours. No bands is fine too.',
   limitations:
@@ -266,22 +266,37 @@ export function OnboardingFlow({
         </>
       ) : null}
 
-      {step === 'equipment'
-        ? ANCHOR_GROUPS.map((group) => (
+      {step === 'equipment' ? (
+        <>
+          <Group title="Bands">
+            <CheckRow
+              testID="onboarding-bands"
+              label={BANDS_ROW.label}
+              description={BANDS_ROW.hint}
+              checked={hasBands(user.bandSettings)}
+              onPress={() => save({ bandSettings: bandsToggled(user.bandSettings) })}
+            />
+          </Group>
+          {ANCHOR_GROUPS.map((group) => (
             <Group key={group.title} title={group.title}>
-              {group.anchors.map((a) => (
-                <CheckRow
-                  key={a.value}
-                  testID={`onboarding-anchor-${a.value}`}
-                  label={a.label}
-                  description={a.hint}
-                  checked={user.anchorsAvailable.includes(a.value)}
-                  onPress={() => toggleAnchor(a.value)}
-                />
-              ))}
+              {group.anchors.map((a) => {
+                const locked = a.needsBands === true && !hasBands(user.bandSettings);
+                return (
+                  <CheckRow
+                    key={a.value}
+                    testID={`onboarding-anchor-${a.value}`}
+                    label={a.label}
+                    description={locked ? 'Tick Resistance bands first' : a.hint}
+                    checked={!locked && user.anchorsAvailable.includes(a.value)}
+                    disabled={locked}
+                    onPress={() => toggleAnchor(a.value)}
+                  />
+                );
+              })}
             </Group>
-          ))
-        : null}
+          ))}
+        </>
+      ) : null}
 
       {step === 'bands' ? (
         <BandSetup

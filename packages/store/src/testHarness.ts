@@ -13,6 +13,7 @@ import { runMigrations } from './migrate';
 import type { MigrationExecutor } from './migrate';
 import * as schema from './schema';
 import type { Db } from './db';
+import { ensureUser } from './repositories/users';
 
 export interface TestDb {
   db: Db;
@@ -40,6 +41,18 @@ function openAndMigrate(filename: string): TestDb {
 
 export function createTestDb(): TestDb {
   return openAndMigrate(':memory:');
+}
+
+/**
+ * A test db whose user already owns every band. A brand-new user owns none (they tick Resistance
+ * bands first), so suites that exercise band prescriptions start from this one.
+ */
+export function createBandedTestDb(): TestDb {
+  const t = openAndMigrate(':memory:');
+  ensureUser(t.db, '2026-01-01T00:00:00.000Z');
+  // `{}` reads as the pre-37i default: every band owned, no stacking.
+  t.raw.prepare("UPDATE users SET band_settings = '{}'").run();
+  return t;
 }
 
 /**

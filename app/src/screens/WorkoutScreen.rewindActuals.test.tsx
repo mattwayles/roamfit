@@ -15,9 +15,9 @@
 import React from 'react';
 import { eq } from 'drizzle-orm';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { createRng, seedFromString } from '@roamfit/engine';
+import { DEFAULT_BAND_SETTINGS, createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import { generate, schema, sessionsRepo } from '@roamfit/store';
+import { generate, schema, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { Db } from '@roamfit/store';
 import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
@@ -40,6 +40,8 @@ function Setup({ onReady }: { onReady: (db: Db) => void }) {
   const { db } = useStore();
   const pending = sessionsRepo.getPendingSession(db);
   if (pending) sessionsRepo.discardSession(db, pending.id, {}, new Date().toISOString());
+  // A new user owns no bands; this suite is about band prescriptions.
+  usersRepo.updateUser(db, { bandSettings: DEFAULT_BAND_SETTINGS }, new Date().toISOString());
   onReady(db);
   return null;
 }

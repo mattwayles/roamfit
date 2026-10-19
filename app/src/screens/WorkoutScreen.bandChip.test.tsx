@@ -8,7 +8,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { createRng, seedFromString } from '@roamfit/engine';
+import { DEFAULT_BAND_SETTINGS, createRng, seedFromString } from '@roamfit/engine';
 import type { SingleBandId } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import { DEFAULT_BAND_TENSIONS, generate, sessionsRepo, usersRepo } from '@roamfit/store';
@@ -35,6 +35,8 @@ function Setup({ onReady }: { onReady: (db: ReturnType<typeof useStore>['db']) =
   const { db } = useStore();
   const pending = sessionsRepo.getPendingSession(db);
   if (pending) sessionsRepo.discardSession(db, pending.id, {}, new Date().toISOString());
+  // A new user owns no bands; this suite is about band prescriptions.
+  usersRepo.updateUser(db, { bandSettings: DEFAULT_BAND_SETTINGS }, new Date().toISOString());
   onReady(db);
   return null;
 }
