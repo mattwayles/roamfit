@@ -130,6 +130,13 @@ export function buildBadgeShelf(
     .map((x) => x.shelf);
 
   const closest = nextBadges(facts, earnedIds, 3).map(shelfOf);
+  // Before the first badge, point at the first one in the catalog ("First Steps"), not at whatever
+  // the starting state happens to put a quarter of the way along (a ladder's first rung counts as
+  // rung 1), and skip the "Almost there" row - nothing is almost there yet.
+  const fresh = earned.length === 0;
+  const first = fresh
+    ? BADGES.find((d) => !d.retired && !d.hidden && !(d.passport && !facts.passportEnabled))
+    : undefined;
 
   return {
     earnedCount: earned.length,
@@ -137,8 +144,8 @@ export function buildBadgeShelf(
     unseenCount: earned.filter((x) => x.shelf.unseen).length,
     sections,
     recent,
-    almostThere: closest.filter((b) => (b.progress?.current ?? 0) > 0),
-    next: closest[0] ?? null,
+    almostThere: fresh ? [] : closest.filter((b) => (b.progress?.current ?? 0) > 0),
+    next: first ? shelfOf(first) : (closest[0] ?? null),
   };
 }
 

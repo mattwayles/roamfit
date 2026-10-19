@@ -57,6 +57,8 @@ import {
   type IconName,
 } from '../ui';
 import { DayCell } from '../components/DayCell';
+import { BadgeEmblem } from '../components/BadgeEmblem';
+import { progressText } from '../lib/badges';
 import { IconBadge } from '../components/IconBadge';
 
 type Props = TabScreenProps<'Home'>;
@@ -475,6 +477,31 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           </Enter>
         )
       )}
+
+      {/* Track 38c - the single closest badge, as plain progress. Small on purpose: Today is
+          "what do I do now"; the full shelf lives on Badges. */}
+      {data.badges.next && data.badges.next.progress ? (
+        <Enter index={next()}>
+          <Card
+            testID="next-badge-row"
+            padding="md"
+            onPress={() => navigation.navigate('Badges')}
+            accessibilityLabel={`Next badge: ${data.badges.next.def.name}, ${progressText(data.badges.next.progress)}. Open badges`}
+            style={styles.nextBadge}
+          >
+            <BadgeEmblem badge={data.badges.next} size={40} />
+            <View style={styles.unlockText}>
+              <Txt variant="eyebrow" color="gold">
+                Next badge
+              </Txt>
+              <Txt variant="small" color="text2">
+                {data.badges.next.def.name} · {progressText(data.badges.next.progress)}
+              </Txt>
+            </View>
+            <Icon name="chevronRight" size={20} color="text3" />
+          </Card>
+        </Enter>
+      ) : null}
     </Screen>
   );
 }
@@ -637,5 +664,6 @@ const useStyles = makeStyles((t) =>
     weekDay: { flex: 1, gap: space.xs },
     unlock: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
     unlockText: { flex: 1, gap: 2 },
+    nextBadge: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
   }),
 );

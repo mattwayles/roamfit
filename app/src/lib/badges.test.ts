@@ -17,6 +17,11 @@ describe('buildBadgeShelf', () => {
     expect(shelf.unseenCount).toBe(0);
     expect(shelf.recent).toEqual([]);
     expect(shelf.almostThere).toEqual([]);
+    // Even though a ladder's starting rung gives another badge a head start, a fresh user is
+    // pointed at the first one.
+    const withHeadStart = buildBadgeShelf([], emptyBadgeFacts({ highestLevelOrdinal: 1 }));
+    expect(withHeadStart.almostThere).toEqual([]);
+    expect(withHeadStart.next?.def.id).toBe('sessions_1');
     // Points at the first one even with no progress.
     expect(shelf.next?.def.id).toBe('sessions_1');
     expect(shelf.sections.map((s) => s.category)).toEqual([
