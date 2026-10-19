@@ -16,6 +16,7 @@ import OnboardingScreen from '../screens/OnboardingScreen';
 import BandsScreen from '../screens/BandsScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import SessionHistoryScreen from '../screens/SessionHistoryScreen';
+import BadgesScreen from '../screens/BadgesScreen';
 import { useTheme } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -71,6 +72,8 @@ export default function RootNavigator(): React.JSX.Element {
         component={SessionHistoryScreen}
         options={{ title: '' }}
       />
+      {/* Track 38c - the badge shelf. Draws its own title; the native header stays for back. */}
+      <Stack.Screen name="Badges" component={BadgesScreen} options={{ title: '' }} />
       {/* A movement group over time, read-only. Draws its own title. */}
     </Stack.Navigator>
   );

@@ -49,6 +49,9 @@ export type RootStackParamList = {
   /** Reached from the library list. Keyed by the stable library id, never a list index, so the
    *  route survives the list being re-sorted or re-filtered underneath it. */
   ExerciseDetail: { exerciseId: string };
+  /** Track 38c - every badge, earned and locked; opened from Journey's and Today's badge rows.
+   *  Opening it marks the earned badges seen. */
+  Badges: undefined;
   /** A finished workout, read-only: what was done, set by set. Reached from the Logbook day sheet. */
   SessionHistory: { sessionId: string };
 };

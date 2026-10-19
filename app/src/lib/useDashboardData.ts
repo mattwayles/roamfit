@@ -16,6 +16,8 @@
 import { useCallback, useState } from 'react';
 import {
   backfillBadges,
+  badgesRepo,
+  buildBadgeFacts,
   manualDayMarkersRepo,
   milestonesRepo,
   progressionStateRepo,
@@ -30,6 +32,7 @@ import { assessComeback, usableBands } from '@roamfit/engine';
 import type { ProgressionState } from '@roamfit/engine';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from './localClock';
+import { buildBadgeShelf, type BadgeShelf } from './badges';
 import {
   buildCalendarDays,
   buildLifetimeCounters,
@@ -67,6 +70,8 @@ export interface DashboardData {
   todayLocalDate: string;
   muscleBalance: MuscleBalanceRow[];
   lifetimeCounters: LifetimeCounters;
+  /** Track 38c - the badge shelf: Journey's card, Today's next-badge row and the Badges screen. */
+  badges: BadgeShelf;
 }
 
 /** Track 38 — the startup badge backfill runs on the first dashboard load of each launch (the
@@ -146,6 +151,10 @@ export function loadDashboardData(
     milestones.filter((m) => m.type === 'level_up').length,
     milestones.filter((m) => m.type === 'best_set_pr').length,
   );
+  const badges = buildBadgeShelf(
+    badgesRepo.getEarnedBadges(db),
+    buildBadgeFacts(db, library, families),
+  );
 
   return {
     pending: sessionsRepo.getPendingSession(db),
@@ -164,6 +173,7 @@ export function loadDashboardData(
     todayLocalDate: clock.today,
     muscleBalance,
     lifetimeCounters,
+    badges,
   };
 }
 
