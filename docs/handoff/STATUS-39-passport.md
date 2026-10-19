@@ -16,20 +16,15 @@ log. Sub-tracks run **in order**, one agent each: 39a → 39b → 39c → 39d.
 
 ### In progress
 
-- 39d underway (plan): (1) Journey teaser card (3 newest stamps, taps to Passport) using
-  PassportOptInCard/enablePassport, duplicates removed; (2) Completion: new-stamp card gets a
-  "See it in your passport" link navigating to Passport {stampLabel}; PassportScreen resets
-  pageIndex when the stampLabel param changes (prop index change renders instantly, no turn);
-  label-match test in newStamp.test.ts; (3) Glossary Passport entry (one already exists; refresh
-  it); (4) status + device-check list.
+- Nothing - Track 39 complete (BACKLOG update pending, orchestrator).
 
 ### Next
 
 1. ~~39a data~~ done.
 2. ~~39b screen~~ done.
 3. ~~39c page turn~~ done.
-4. **39d wiring** — Journey teaser card replaces the stamp grid; Completion's new-stamp card opens
-   the Passport at that stamp's page.
+4. ~~39d wiring~~ done. (was: Journey teaser card replaces the stamp grid; Completion's new-stamp card opens
+   the Passport at that stamp's page.)
 
 ---
 
@@ -156,3 +151,46 @@ finger; rubber band at cover/last page; taps on stamps, contents rows and endors
 and vertical scroll is not stolen; Reduce Motion on = instant swap; VoiceOver: swipe up/down on
 "Page N of M" changes pages and announces, ‹ › work, no turn plays; haptic tick at the end of a turn;
 both themes.
+
+### 39d notes
+
+- Journey: the Passport section is now a pressable `Card` (`passport-section`) with the 3 newest
+  stamps (`entries.slice(-3).reverse()`, 80pt, seeded by label) and "Open your passport ›". Section
+  title, caption and `share-passport` unchanged. Opt-in is `PassportOptInCard` (button testID
+  `passport-opt-in`); Journey's copy of the handler and `SAMPLE_STAMPS` is deleted. New test:
+  `JourneyScreen.passport.test.tsx` (4 real sessions).
+- Completion: chosen design is a small "See it in your passport ›" link INSIDE `NewStampCard`'s
+  fading "after" group (`new-stamp-open-passport`), not a pressable stamp, because tapping the stamp
+  already means "stamp it again" and the stamp carries the animation. It appears with the "Stamp #N"
+  line, after impact; the share button and "Heck yes!" timeline are untouched.
+- Label: `NewStamp.label` and `PassportEntry.label` are both `formatPlace(...)` over the same
+  city/region/countryCode/country fields written by `applyGeocodeResult`, so they match (test in
+  `newStamp.test.ts` runs the label through `bookPageForLabel`).
+- Param jump: `PassportScreen` tracks the last seen `stampLabel` and resets `pageIndex` to null
+  when it changes (derived state during render). The page is drawn straight from `index`; only
+  `goTo` animates, so it is instant. No change to `PageTurnBook`. Edge: if a turn is mid-flight at
+  that moment its end commit could win; not guarded.
+- Passport off means no stamp can land: `lookupNewStamp` is only started when `passportOn` in
+  `SummaryScreen`, so no handling was needed.
+- Glossary already had a "Passport" entry (and Badges); its text now describes the book.
+
+### Device-check list (whole track, none verified on a simulator or device)
+
+39b visuals: paper/guilloche lines (opacity, density, both themes); cover emboss (gold text shadow
+reads as embossed, not blurred); book is 460pt tall and fits a 6.1" phone without scroll fights or
+a cramped nav row; Daybreak (light) contrast on the cover, pages, stamps and endorsements; stamp
+caption dates; the stamp detail sheet.
+39c feel: turn speed (400ms), rotation about the left spine edge with perspective and no clipping by
+`overflow: hidden`; darkening on the turning and lower page; swipe threshold and following the
+finger; rubber band at the ends; taps and vertical scroll still work; Reduce Motion = instant swap;
+VoiceOver adjustable "Page N of M" and arrows; haptic tick; both themes.
+39d: Journey teaser (3 stamps at 80pt fit one row on a small phone, spacing and tap target, Daybreak);
+tapping it opens the Passport on the cover; Completion: the link fades in after the impact, sits
+well under "Tap the stamp to stamp it again", is tappable while it fades, opens the book on the
+right visa page and Back returns to Completion; Passport opens at the right page when already on
+the stack (param change).
+
+### Parked (not built)
+
+- Passport screen: a mid-turn `stampLabel` change is not guarded (see above).
+- Journey teaser could show the date under each stamp; left plain.
