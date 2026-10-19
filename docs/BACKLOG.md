@@ -305,7 +305,7 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   a CSCS working with one) should sign it off, starting with the pregnancy/postpartum filter, and
   decide its four open questions (brief supine work, fall risk, inversions, splitting postpartum from
   pregnancy).
-- **User Accounts** - **Anonymous Firebase Auth session isn't persisted.** No RN AsyncStorage backing, so cross-device continuity silently doesn't work. Zero impact on the core loop — nothing reads it on the critical path.
+- **User Accounts** - **Anonymous Firebase Auth session isn't persisted.** No RN AsyncStorage backing, so cross-device continuity silently doesn't work. Zero impact on the core loop — nothing reads it on the critical path. Full scoping for account creation, login and logout (work required, sizing, open decisions): `docs/ACCOUNTS-SCOPING.md`.
 - **LLM integration is not fully written:** `functions/` is written; no `LlmProxyCaller` implementation calls
   the deployed function, nothing triggers `processLlmQueue`, and there is no natural-language intake
   UI. `docs/RUNBOOK-functions-deploy.md` has never been run against a real Firebase project.
