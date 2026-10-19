@@ -1,5 +1,5 @@
 import { hashSeed } from './seed';
-import { exerciseComplete, greetingFor, lastSet, pick, rest, setComplete } from './hypeCopy';
+import { exerciseComplete, lastSet, pick, rest, setComplete } from './hypeCopy';
 
 describe('hypeCopy pools', () => {
   it('match the DESIGN.md §6 pools', () => {
@@ -38,19 +38,5 @@ describe('pick', () => {
 
   it('throws on an empty pool', () => {
     expect(() => pick([], 'x')).toThrow();
-  });
-});
-
-describe('greetingFor', () => {
-  const at = (h: number) => new Date(2026, 8, 29, h, 30);
-
-  it('uses the local hour of day', () => {
-    expect(greetingFor(at(6))).toBe('Good morning');
-    expect(greetingFor(at(11))).toBe('Good morning');
-    expect(greetingFor(at(12))).toBe('Good afternoon');
-    expect(greetingFor(at(16))).toBe('Good afternoon');
-    expect(greetingFor(at(17))).toBe('Good evening');
-    expect(greetingFor(at(22))).toBe('Good evening');
-    expect(greetingFor(at(2))).toBe('Good evening');
   });
 });

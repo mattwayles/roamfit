@@ -39,12 +39,3 @@ export function pick<T>(pool: readonly T[], seed: string | number): T {
   if (pool.length === 0) throw new Error('pick: empty pool');
   return pool[hashSeed(String(seed)) % pool.length]!;
 }
-
-/** Time-of-day greeting from the *local* hour of `date` (invariant 6: local time, never UTC). */
-export function greetingFor(date: Date): string {
-  const hour = date.getHours();
-  if (hour < 5) return 'Good evening';
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}

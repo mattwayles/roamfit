@@ -1,5 +1,5 @@
 /**
- * §10.1 Home, now the **Today** tab (DESIGN.md §5.1): wordmark + greeting + Settings, banners,
+ * §10.1 Home, now the **Today** tab (DESIGN.md §5.1): the centred logo + Settings, banners,
  * the trail hero card (resumable session or "ready to move?"), Quick Session and In transit
  * tiles, a "This week" strip and the Next Unlock card. The long-term half of the old Home
  * (lifetime totals, progression board, calendar, passport, muscle balance) lives on the Journey
@@ -30,7 +30,6 @@ import type { TabScreenProps } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { findCurrentEntry, sessionCompletionFraction } from '../lib/sessionProgress';
-import { greetingFor } from '../lib/hypeCopy';
 import { LOGO, LOGO_ASPECT } from '../lib/brand';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import { OnboardingFlow } from '../components/OnboardingFlow';
@@ -124,7 +123,6 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   );
 
   const hero = useMemo(() => (data ? nextUnlockHero(data.board) : null), [data]);
-  const greeting = useMemo(() => greetingFor(new Date()), [data]);
 
   // §13.3 — the first-launch disclaimer is blocking. While it is up, take the tab bar away too so
   // nothing else in the app is reachable behind it (`TabBar` honors `tabBarStyle.display`).
@@ -223,29 +221,25 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       contentStyle={styles.content}
     >
       <Enter index={next()} style={styles.header}>
-        <View style={styles.headerText}>
-          <View style={styles.titleRow}>
-            <Image
-              source={LOGO}
-              style={styles.logo}
-              resizeMode="contain"
-              accessible={false}
-              testID="today-logo"
-            />
-            <Txt variant="h1" color="teal">
-              Wanderlift
-            </Txt>
-          </View>
-          <Txt variant="small" color="text2" testID="today-greeting">
-            {greeting}
-          </Txt>
-        </View>
-        <IconButton
-          testID="open-settings"
-          icon="settings"
-          accessibilityLabel="Settings"
-          onPress={() => navigation.navigate('Settings')}
+        {/* The mark is the page's title now (no wordmark), so it carries the header role. */}
+        <Image
+          source={LOGO}
+          style={styles.logo}
+          resizeMode="contain"
+          accessible
+          accessibilityRole="header"
+          accessibilityLabel="Wanderlift"
+          testID="today-logo"
         />
+        {/* Out of the flow, so the logo centres on the screen rather than in what is left of it. */}
+        <View style={styles.settings}>
+          <IconButton
+            testID="open-settings"
+            icon="settings"
+            accessibilityLabel="Settings"
+            onPress={() => navigation.navigate('Settings')}
+          />
+        </View>
       </Enter>
 
       {comebackTier !== 'none' && (
@@ -627,11 +621,10 @@ const useStyles = makeStyles((t) =>
       backgroundColor: t.colors.bg,
     },
     content: { paddingTop: space.lg, paddingBottom: space.huge + space.xxl, gap: space.xl },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    headerText: { flex: 1 },
-    titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
-    // The image carries glow padding, so it is drawn a little taller than the h1 line.
-    logo: { height: 44, width: 44 * LOGO_ASPECT, marginVertical: -6 },
+    header: { alignItems: 'center', justifyContent: 'center' },
+    settings: { position: 'absolute', right: 0, top: 0, bottom: 0, justifyContent: 'center' },
+    // The image carries glow padding; the negative margins pull the top edge and the next card in.
+    logo: { height: 88, width: 88 * LOGO_ASPECT, marginTop: -8, marginBottom: -4 },
     banner: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
     bannerText: { flex: 1, gap: 2, paddingTop: 2 },
     bannerActions: {

@@ -52,8 +52,9 @@ the record of what was completed and why.
   limitations. On a device: a fresh install's Generate → Available equipment → Resistance bands
   opens "Set up your bands first?"; "Set up my bands" opens Your bands and coming back shows the
   row ticked once a band is chosen; "Use all five for now" ticks it and never asks again.
-  Track 41: the Today logo sits level with the "Wanderlift" h1 (glow not clipped, size right in
-  Midnight and Daybreak, large Dynamic Type), and the Journey / Field guide gears line up with
+  Track 41: the Today header is the logo alone, centred at 88pt with the gear on the right (glow
+  not clipped, size right in Midnight and Daybreak, gear never overlaps the logo on a small
+  phone), and the Journey / Field guide gears line up with
   their titles without crowding the Field guide move count on a small phone.
 - **Apple Health write — device pass owed.** Track 37m: turning on "Write workouts to Apple Health"
   requests write-only access, and the first write of each launch re-requests silently (the flag is
