@@ -305,7 +305,7 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   - Using AI in workout generation based on previous retrospective input **(hold on this until we see how current progression is working)**
 - **Sync trigger is weak.** `runOpportunisticSync` fires only when the Home screen regains focus. A
   real connectivity-restored or app-foreground trigger would be better.
-- `progression_state` **/** `users` **/** `limitations` **/** `spotify_playlists` **(and `users.spotify_vibes`) don't sync.** Cut for scope. Would reuse the exact  
+- `progression_state` **/** `users` **/** `limitations` **/** `spotify_playlists` **/** `earned_badges` **(and `users.spotify_vibes`) don't sync.** Cut for scope. Would reuse the exact  
   `resolveLastWriteWins` / `syncRows.ts` pattern already in place.
 - **Spotify: no Settings toggle and no per-workout hide.** The bar renders nothing when the native
   module is absent, so a non-Spotify build is unaffected — but a Spotify user who wants a silent

@@ -15,6 +15,7 @@
  */
 import { useCallback, useState } from 'react';
 import {
+  backfillBadges,
   manualDayMarkersRepo,
   milestonesRepo,
   progressionStateRepo,
@@ -68,6 +69,16 @@ export interface DashboardData {
   lifetimeCounters: LifetimeCounters;
 }
 
+/** Track 38 — the startup badge backfill runs on the first dashboard load of each launch (the
+ *  first screen to read the store), then never again until the next launch. Silent and idempotent;
+ *  it cannot throw. */
+const backfilledDbs = new WeakSet<Db>();
+function ensureBadgesBackfilled(db: Db, library: ExerciseLibrary, families: FamilyLibrary): void {
+  if (backfilledDbs.has(db)) return;
+  backfilledDbs.add(db);
+  backfillBadges(db, library, families, nowUtcInstant(), nowEngineClock().tzId);
+}
+
 export function loadDashboardData(
   db: Db,
   library: ExerciseLibrary,
@@ -80,6 +91,7 @@ export function loadDashboardData(
     library.exercises,
     clock.today,
   );
+  ensureBadgesBackfilled(db, library, families);
   const user = usersRepo.ensureUser(db, nowUtcInstant());
   const stats = statsRepo.ensureStats(db, nowUtcInstant());
   const states: Record<ProgressionFamilyId, ProgressionState> =

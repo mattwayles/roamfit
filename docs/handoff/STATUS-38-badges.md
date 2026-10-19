@@ -9,21 +9,17 @@ log. Sub-tracks run **in order**, one agent each: 38a → 38b → 38c → 38d.
 ### Done
 
 - [x] Plan written (this file + BACKLOG section)
+- [x] 38b store: migration 0034 + repo (babbd1d), facts + award at completion + `newBadgeIds` + backfill (2b092cd), startup hook + BACKLOG sync line (see git log, `Badges (Track 38b, 3)`)
 - [x] 38a engine catalog + evaluator (`packages/engine/src/badges/`, exported from the engine index) - commit bc33ae9
 
 ### In progress
 
-- 38b (2026-10-18, in progress). Increments: (1) migration 0034 + `earnedBadges` table + `repositories/badges.ts` + tests;
-  (2) `badgeFacts.ts` + `awardBadges` + completion hook (`newBadgeIds`, nested savepoint, failure logged as a
-  `badge_error` signal event) + tests; (3) `backfillBadges` + app startup hook (`useDashboardData` load) + BACKLOG sync line + tests.
-  Decisions: city/country counting mirrors `buildPassportSummary` (distinct `formatPlace` label; distinct `country` string) using a
-  store-local place key, since `formatPlace` is app-only.
+- 38c - not started. App: `BadgeEmblem`, `lib/badges.ts` view model, Badges screen, Journey card, `badges` in `DashboardData`. See the 38b notes below for the store API.
 
 ### Next
 
-1. **38b — Store: persistence, facts, award at completion, backfill** (`packages/store`)
-2. **38c — App: badge emblem, Badges screen, Journey card** (`app/src`)
-3. **38d — App: badges on the completion screen + glossary + share** (`app/src`)
+1. **38c — App: badge emblem, Badges screen, Journey card** (`app/src`)
+2. **38d — App: badges on the completion screen + glossary + share** (`app/src`)
 
 ---
 
@@ -243,3 +239,30 @@ BadgeFacts computation notes for 38b (everything lifetime, `status = completed` 
 - `focusesTrained`: distinct session `focus` values, `string[]`.
 - Evaluate with `evaluateBadges(facts, earnedIds)`; the evaluator is retroactive-safe (it returns
   everything not yet earned that the facts qualify for), so backfill and completion share one call.
+
+### 38b outcome: store API and notes for 38c / 38d
+
+All from `@roamfit/store`:
+- `badgesRepo` (`repositories/badges.ts`): `getEarnedBadges(db)` (newest first; `{badgeId, earnedAt, localDate, sessionId, retroactive, seenAt, payload}`),
+  `getEarnedBadgeIds(db): Set<string>`, `insertEarnedBadges`, `markBadgesSeen(db, ids, now)` (keeps the first look), `countUnseen(db)`.
+- `buildBadgeFacts(db, library, families): BadgeFacts`. For Journey/Badges screens: `facts = buildBadgeFacts(...)`, then
+  `badgeProgress(facts, def)` / `nextBadges(facts, earnedIds, 3)` from the engine. 38c adds `badges` to `DashboardData` and builds it in `loadDashboardData`
+  (`app/src/lib/useDashboardData.ts`). It is a full-history read; measure before caching.
+- `awardBadges(db, {library, families, sessionId, localDate, retroactive}, now)` (throws), `awardBadgesSafely(...)` (never throws), `backfillBadges(db, library, families, now, tzId?)`.
+- `seen_at`: NULL means the user has not been shown the badge (drives the NEW dot on Journey). The Badges screen calls `markBadgesSeen` for what is on screen; 38d
+  marks celebrated completion badges seen.
+- `retroactive`: true = found by the startup backfill, `session_id` NULL, `local_date` = the day it was found. Never celebrate these on Summary. false = earned in
+  the completing session (`session_id` set), `payload.value` = the measure at award time.
+- `newBadgeIds` comes from `CompleteSessionResult` (`completeSession`): ids earned by this completion only (never backfilled ones), in engine order (category, then tier).
+  Resolve with `getBadge(id)` from the engine.
+- Backfill runs in `loadDashboardData` on the first dashboard load of each launch (module-level `WeakSet<Db>`), not in `StoreProvider`.
+
+Decisions that differ from the plan:
+- Awarding runs *after* the session status flip inside the same transaction (the plan's "second option"), in a nested savepoint: an error rolls the award back,
+  logs a `badge_error` signal event (`{stage, message}`; the signal type is TS-only, no migration) and completion still succeeds with `newBadgeIds: []`.
+- Time of day (early/late) uses the session's `started_at` (falling back to `utc_instant`) through its own `tz_id`, since `utc_instant` is generation time.
+- Cities/countries are counted over ALL completed sessions (the dashboard passport reads the latest 365). Cities = distinct app place label (city + region only if
+  abbreviated + country code or name); the key is replicated in `badgeFacts.ts` because `formatPlace` is app-only. Countries = distinct `sessions.country`.
+- `totalMinutes`/`longestSessionMinutes` round `actual_minutes` (fallback `estimated_minutes`). `recoveryWeeksCompleted` = completed sessions with `recovery_week_manual`.
+- Clean sweep: planned = sum of `sets` over non-removed main entries; completed = completed main set logs.
+- Not done: no Firestore sync of `earned_badges` (BACKLOG sync line updated).
