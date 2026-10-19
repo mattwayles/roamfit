@@ -10,7 +10,7 @@
       "ios": { "simulator": false }
     },
     "production": {
-      "autoIncrementBuildNumber": true
+      "autoIncrement": true
     }
   },
   "submit": {

@@ -37,6 +37,12 @@
           "background": false
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9c5d70b8-0df6-4a91-b8a5-d527135b3a66"
+      }
+    },
+    "owner": "mattwayles"
   }
 }
