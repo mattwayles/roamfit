@@ -8,7 +8,7 @@ import {
   startSession,
 } from './repositories/sessions';
 import { completeSession } from './completion';
-import { updateUser } from './repositories/users';
+import { ensureUser, updateUser } from './repositories/users';
 import { getAllMilestones } from './repositories/milestones';
 import { getEligibleDeferredWork, getPendingDeferredWork } from './repositories/queues';
 import { library, families, clockFor, rngFor, utcInstantFor } from './testFixtures';
@@ -295,8 +295,10 @@ describe('§11.1 offline safety — a fully offline device queue pass never thro
 
   it('a queue with nothing opted-in enqueued is a true no-op (opt-in only, §13.5)', async () => {
     const { db } = createTestDb();
-    // No updateUser call — healthWriteEnabled/passportEnabled stay at their default false.
     const clock = clockFor('2026-09-01');
+    // healthWriteEnabled is off by default; Passport is on by default, so turn it off.
+    ensureUser(db, utcInstantFor('2026-09-01'));
+    updateUser(db, { passportEnabled: false }, utcInstantFor('2026-09-01'));
     const { plan, comebackTier, recoveryWeekManual } = generate(db, {
       library,
       families,

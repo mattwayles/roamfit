@@ -249,6 +249,9 @@ describe('Journey after a completed session', () => {
   });
 
   it('Passport: opt-in card first, then a stamp per place once turned on and a place is pinned', async () => {
+    // On by default for a new user; the opt-in card is for someone who turned it off in Settings.
+    expect(usersRepo.ensureUser(testDb(), nowUtcInstant()).passportEnabled).toBe(true);
+    usersRepo.updateUser(testDb(), { passportEnabled: false }, nowUtcInstant());
     await mountJourney();
     await waitFor(() => expect(screen.getByTestId('passport-opt-in')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('passport-opt-in'));

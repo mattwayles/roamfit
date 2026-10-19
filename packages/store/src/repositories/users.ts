@@ -251,6 +251,9 @@ export function ensureUser(db: Db, now: string): UserRecord {
       // Nothing assumed: a new user ticks Resistance bands before any band exercise is programmed.
       // Existing rows keep what they stored (an empty `{}` still reads as every band owned).
       bandSettings: JSON.stringify({ owned: [], stacking: false }),
+      // Passport starts on; the location prompt comes with the first completion's geocode attempt.
+      // Existing rows keep what they stored, since an explicit "off" can't be told from the old default.
+      passportEnabled: true,
       createdAt: now,
       updatedAt: now,
     })
