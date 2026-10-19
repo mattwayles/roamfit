@@ -220,7 +220,8 @@ export function buildPassportSummary(sessions: DashboardSessionSummary[]): Passp
   }
   const entries = [...byLabel.values()].sort(
     (a, b) =>
-      a.firstLocalDate.localeCompare(b.firstLocalDate) || (a.label < b.label ? -1 : a.label > b.label ? 1 : 0),
+      a.firstLocalDate.localeCompare(b.firstLocalDate) ||
+      (a.label < b.label ? -1 : a.label > b.label ? 1 : 0),
   );
   const groups = new Map<string, PassportCountryGroup>();
   entries.forEach((e, i) => {
