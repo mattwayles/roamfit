@@ -160,6 +160,13 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   a CSCS working with one) should sign it off, starting with the pregnancy/postpartum filter, and
   decide its four open questions (brief supine work, fall risk, inversions, splitting postpartum from
   pregnancy).
+  Also in that review: the 23 bodyweight exercises added so every rung has a no-band option
+  (`packages/data/src/noBandLadders.test.ts`) were tagged by the same AI pass, not a person. And the
+  band-free path still needs fixed points on some rungs: `horizontal_pull` l3/l4/l6/l7 need a low bar,
+  `vertical_pull` l4-l6 a pull-up bar, `vertical_push` l2 and `hinge` l6 a bench or step. Without
+  them the resolver walks down to the nearest rung it can serve, so a user with no bands and no
+  fixed points climbs squat, lunge and core fully, horizontal pull to l2, vertical pull to l3, and
+  stalls at the first rung needing a fixed point on the others.
 - **User Accounts** - **Anonymous Firebase Auth session isn't persisted.** No RN AsyncStorage backing, so cross-device continuity silently doesn't work. Zero impact on the core loop — nothing reads it on the critical path. Full scoping for account creation, login and logout (work required, sizing, open decisions): `docs/ACCOUNTS-SCOPING.md`.
 - **LLM integration is not fully written:** `functions/` is written; no `LlmProxyCaller` implementation calls
   the deployed function, nothing triggers `processLlmQueue`, and there is no natural-language intake

@@ -51,7 +51,8 @@
           "exercise_ids": [
             "banded-push-up",
             "low-high-fly",
-            "high-low-fly"
+            "high-low-fly",
+            "bw-staggered-push-up"
           ]
         },
         {
@@ -103,14 +104,16 @@
           "anchor_exercise_id": "pull-apart",
           "exercise_ids": [
             "pull-apart",
-            "overhead-pull-apart"
+            "overhead-pull-apart",
+            "bw-prone-scap-retraction"
           ]
         },
         {
           "level_id": "horizontal_pull.l2",
           "anchor_exercise_id": "door-row",
           "exercise_ids": [
-            "door-row"
+            "door-row",
+            "bw-superman-row"
           ]
         },
         {
@@ -119,7 +122,8 @@
           "exercise_ids": [
             "seated-row",
             "face-pull",
-            "banded-seated-face-pull"
+            "banded-seated-face-pull",
+            "bw-high-incline-inverted-row"
           ]
         },
         {
@@ -127,7 +131,8 @@
           "anchor_exercise_id": "bent-over-row",
           "exercise_ids": [
             "bent-over-row",
-            "banded-underhand-row"
+            "banded-underhand-row",
+            "bw-incline-inverted-row"
           ]
         },
         {
@@ -143,7 +148,8 @@
           "anchor_exercise_id": "wide-high-row",
           "exercise_ids": [
             "wide-high-row",
-            "banded-rear-delt-row"
+            "banded-rear-delt-row",
+            "bw-wide-inverted-row"
           ]
         },
         {
@@ -151,7 +157,8 @@
           "anchor_exercise_id": "single-arm-row",
           "exercise_ids": [
             "single-arm-row",
-            "banded-single-arm-standing-row"
+            "banded-single-arm-standing-row",
+            "bw-underhand-inverted-row"
           ]
         },
         {
@@ -174,7 +181,8 @@
           "anchor_exercise_id": "overhead-press",
           "exercise_ids": [
             "overhead-press",
-            "seated-ohp"
+            "seated-ohp",
+            "bw-wall-pike-press"
           ]
         },
         {
@@ -182,7 +190,8 @@
           "anchor_exercise_id": "half-kneeling-ohp",
           "exercise_ids": [
             "half-kneeling-ohp",
-            "tall-kneeling-ohp"
+            "tall-kneeling-ohp",
+            "bw-hands-elevated-pike-push-up"
           ]
         },
         {
@@ -190,7 +199,8 @@
           "anchor_exercise_id": "single-arm-ohp",
           "exercise_ids": [
             "single-arm-ohp",
-            "banded-arnold-press"
+            "banded-arnold-press",
+            "bw-staggered-pike-push-up"
           ]
         },
         {
@@ -213,7 +223,8 @@
           "level_id": "vertical_push.l6",
           "anchor_exercise_id": "pike-push-up",
           "exercise_ids": [
-            "pike-push-up"
+            "pike-push-up",
+            "bw-archer-pike-push-up"
           ]
         },
         {
@@ -251,7 +262,8 @@
           "anchor_exercise_id": "straight-arm-pulldown",
           "exercise_ids": [
             "straight-arm-pulldown",
-            "prone-band-pulldown"
+            "prone-band-pulldown",
+            "bw-prone-lat-pulldown"
           ]
         },
         {
@@ -259,7 +271,8 @@
           "anchor_exercise_id": "floor-pullover",
           "exercise_ids": [
             "floor-pullover",
-            "single-arm-pulldown"
+            "single-arm-pulldown",
+            "bw-prone-snow-angel"
           ]
         },
         {
@@ -267,21 +280,24 @@
           "anchor_exercise_id": "lat-pulldown",
           "exercise_ids": [
             "lat-pulldown",
-            "kneeling-lat-pulldown"
+            "kneeling-lat-pulldown",
+            "bw-scapular-pull-up"
           ]
         },
         {
           "level_id": "vertical_pull.l5",
           "anchor_exercise_id": "upright-row",
           "exercise_ids": [
-            "upright-row"
+            "upright-row",
+            "bw-jackknife-pull-up"
           ]
         },
         {
           "level_id": "vertical_pull.l6",
           "anchor_exercise_id": "assisted-pull-up",
           "exercise_ids": [
-            "assisted-pull-up"
+            "assisted-pull-up",
+            "bw-feet-assisted-pull-up"
           ]
         },
         {
@@ -347,21 +363,24 @@
           "exercise_ids": [
             "goblet-squat",
             "banded-sumo-squat",
-            "banded-pause-squat"
+            "banded-pause-squat",
+            "bw-pause-squat"
           ]
         },
         {
           "level_id": "squat.l4",
           "anchor_exercise_id": "banded-squat",
           "exercise_ids": [
-            "banded-squat"
+            "banded-squat",
+            "bw-sumo-squat"
           ]
         },
         {
           "level_id": "squat.l5",
           "anchor_exercise_id": "front-squat",
           "exercise_ids": [
-            "front-squat"
+            "front-squat",
+            "bw-heels-elevated-squat"
           ]
         },
         {
@@ -400,7 +419,8 @@
           "anchor_exercise_id": "glute-kickback",
           "exercise_ids": [
             "glute-kickback",
-            "standing-glute-kickback"
+            "standing-glute-kickback",
+            "bw-quadruped-kickback"
           ]
         },
         {
@@ -418,7 +438,8 @@
           "exercise_ids": [
             "rdl",
             "good-morning",
-            "hip-thrust"
+            "hip-thrust",
+            "bw-good-morning"
           ]
         },
         {
@@ -426,7 +447,8 @@
           "anchor_exercise_id": "deadlift",
           "exercise_ids": [
             "deadlift",
-            "band-swing"
+            "band-swing",
+            "bw-kickstand-rdl"
           ]
         },
         {
@@ -443,7 +465,8 @@
           "anchor_exercise_id": "single-leg-rdl",
           "exercise_ids": [
             "single-leg-rdl",
-            "single-leg-bridge"
+            "single-leg-bridge",
+            "bw-feet-elevated-single-leg-bridge"
           ]
         },
         {
@@ -487,7 +510,8 @@
           "anchor_exercise_id": "split-squat",
           "exercise_ids": [
             "split-squat",
-            "reverse-lunge"
+            "reverse-lunge",
+            "bw-split-squat"
           ]
         },
         {

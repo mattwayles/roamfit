@@ -200,7 +200,7 @@ describe('generateSession — pipeline wiring', () => {
     expect(plan.explanation).toMatch(/Welcome back/);
   });
 
-  it('PATTERN GAP is never silent for a bodyweight-only upper session', () => {
+  it('a bodyweight-only upper session still gets a pull, with no PATTERN GAP', () => {
     const plan = generateSession({
       library: exerciseLibrary,
       families: familyLibrary,
@@ -214,12 +214,11 @@ describe('generateSession — pipeline wiring', () => {
       clock: { today: TODAY, tzId: 'UTC' },
       rng: createRng(9),
     });
-    // Bodyweight alone cannot cover pulling: either a band was used for it (resolution recorded)
-    // or the imbalance is stated — either way, patternGaps is non-empty and the explanation says so.
-    const hasPullGap = plan.patternGaps.some(
-      (g) => g.pattern === 'horizontal_pull' || g.pattern === 'vertical_pull',
-    );
-    expect(hasPullGap).toBe(true);
+    // Every rung has a bodyweight exercise (noBandLadders.test.ts), and the bottom pull rungs need
+    // no fixed point, so a cold-start user with no anchors is not left without pulling.
+    const isPull = (p: string) => p === 'horizontal_pull' || p === 'vertical_pull';
+    expect(plan.patternGaps.some((g) => isPull(g.pattern))).toBe(false);
+    expect(plan.main.some((e) => isPull(e.pattern))).toBe(true);
   });
 
   it('ADR 0002: a request below the 15min floor is clamped, reflected in targetMinutes, and named in the explanation', () => {
