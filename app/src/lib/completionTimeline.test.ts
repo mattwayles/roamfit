@@ -1,4 +1,9 @@
-import { buildCompletionTimeline, HIGHLIGHT_GAP_MS, WORD_STAGGER_MS } from './completionTimeline';
+import {
+  BADGE_GAP_MS,
+  buildCompletionTimeline,
+  HIGHLIGHT_GAP_MS,
+  WORD_STAGGER_MS,
+} from './completionTimeline';
 
 describe('completion screen timeline', () => {
   it('orders every beat: words, slam, content, stats, highlights, then the button last', () => {
@@ -36,5 +41,30 @@ describe('completion screen timeline', () => {
     expect(buildCompletionTimeline(2, 3, 0, true).stamp).toBe(
       buildCompletionTimeline(2, 3, 0).statsDone,
     );
+  });
+
+  it('badges land after the last highlight, one beat apart, and push the button back', () => {
+    const plain = buildCompletionTimeline(3, 4, 2);
+    expect(plain.badges).toEqual([]);
+    const t = buildCompletionTimeline(3, 4, 2, false, 3);
+    expect(t.badges).toHaveLength(3);
+    expect(t.badges[0]).toBeGreaterThan(t.highlights[1]);
+    expect(t.badges[1] - t.badges[0]).toBe(BADGE_GAP_MS);
+    expect(t.badges[2] - t.badges[1]).toBe(BADGE_GAP_MS);
+    expect(t.button).toBeGreaterThan(t.badges[2]);
+    expect(t.button).toBeGreaterThan(plain.button);
+  });
+
+  it('with no highlights, badges start just after the stats finish', () => {
+    const t = buildCompletionTimeline(2, 3, 0, false, 1);
+    expect(t.badges[0]).toBeGreaterThan(t.statsDone);
+    expect(t.button).toBeGreaterThan(t.badges[0]);
+  });
+
+  it('with badges and a stamp slot, the stamp comes after the last badge', () => {
+    const t = buildCompletionTimeline(3, 4, 1, true, 2);
+    expect(t.stamp).not.toBeNull();
+    expect(t.stamp as number).toBeGreaterThan(t.badges[1]);
+    expect(t.stamp).toBe(t.button);
   });
 });

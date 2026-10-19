@@ -212,6 +212,11 @@ export const GLOSSARY: readonly GlossaryGroup[] = [
           'Optional. A stamp for each town you complete a workout in, if you turn on location in Settings.',
       },
       {
+        term: 'Badges',
+        definition:
+          'Awards for milestones: showing up, climbing the ladders, pushing a little harder, and exploring. You earn each one by reaching its goal, and once earned it is yours for good. There are no streaks, and nothing expires.',
+      },
+      {
         term: 'Best set',
         definition:
           'The most reps or longest hold you have done on an exercise at its heaviest band.',

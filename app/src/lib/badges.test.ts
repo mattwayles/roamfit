@@ -1,5 +1,12 @@
-import { BADGES } from '@roamfit/engine';
-import { buildBadgeShelf, badgeLabel, progressText } from './badges';
+import { BADGES, getBadge } from '@roamfit/engine';
+import { GLOSSARY } from './glossary';
+import {
+  badgeLabel,
+  badgeShareText,
+  buildBadgeShelf,
+  completionBadges,
+  progressText,
+} from './badges';
 import { earnedRow, emptyBadgeFacts } from './badges.fixtures';
 import { iconMap } from '../ui';
 
@@ -87,5 +94,36 @@ describe('buildBadgeShelf', () => {
       emptyBadgeFacts({ sessionsCompleted: 1 }),
     );
     expect(badgeLabel(shelf.recent[0]!)).toBe('First Steps, earned');
+  });
+});
+
+describe('completionBadges', () => {
+  it('keeps the engine order and only what this session earned', () => {
+    const rows = [
+      earnedRow('sessions_5', { sessionId: 's1' }),
+      earnedRow('sessions_1', { sessionId: 's1' }),
+      earnedRow('level_ups_1', { retroactive: true }),
+    ];
+    const out = completionBadges(
+      ['sessions_1', 'sessions_5', 'level_ups_1', 'nope_9', 'minutes_60'],
+      rows,
+    );
+    expect(out.map((b) => b.def.id)).toEqual(['sessions_1', 'sessions_5']);
+    expect(out.every((b) => b.earned && !b.retroactive)).toBe(true);
+  });
+});
+
+describe('badgeShareText', () => {
+  it('names the badge', () => {
+    const def = getBadge('sessions_1')!;
+    expect(badgeShareText(def)).toBe(`Earned the ${def.name} badge on Wanderlift`);
+  });
+});
+
+describe('glossary', () => {
+  it('explains badges: earned by milestones, permanent, no streaks', () => {
+    const term = GLOSSARY.flatMap((g) => g.terms).find((t) => t.term === 'Badges');
+    expect(term?.definition).toMatch(/for good/);
+    expect(term?.definition).toMatch(/no streaks/);
   });
 });

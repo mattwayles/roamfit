@@ -7,6 +7,10 @@
 export const WORD_STAGGER_MS = 200;
 export const STAT_STAGGER_MS = 160;
 export const HIGHLIGHT_GAP_MS = 1300;
+/** Between one badge card and the next: shorter than a highlight, badges are quieter. */
+export const BADGE_GAP_MS = 900;
+/** At most this many badge cards land on the completion screen; the rest become a "+N more" chip. */
+export const MAX_BADGE_CARDS = 3;
 /** How far ahead of a highlight landing its card is scrolled into view. */
 export const HIGHLIGHT_SCROLL_LEAD_MS = 320;
 
@@ -23,6 +27,8 @@ export interface CompletionTimeline {
   statsDone: number;
   /** Each level-up / Mastery card stamps down. */
   highlights: number[];
+  /** Each earned-badge card lands, after the last highlight and before the stamp. */
+  badges: number[];
   /** The new-stamp slot, when Passport is on: where the screen checks whether this session
    *  earned a stamp (it lands here if so). Null when Passport is off. */
   stamp: number | null;
@@ -39,6 +45,7 @@ export function buildCompletionTimeline(
   statTileCount: number,
   highlightCount: number,
   hasStampSlot = false,
+  badgeCount = 0,
 ): CompletionTimeline {
   const words = Math.max(1, wordCount);
   const wordTicks = Array.from({ length: words - 1 }, (_, i) => i * WORD_STAGGER_MS + 120);
@@ -55,7 +62,12 @@ export function buildCompletionTimeline(
     { length: highlightCount },
     (_, i) => statsDone + 200 + i * HIGHLIGHT_GAP_MS,
   );
-  const button = highlightCount > 0 ? highlights[highlights.length - 1] + 1100 : statsDone;
+  const afterHighlights = highlightCount > 0 ? highlights[highlights.length - 1] + 1100 : statsDone;
+  // The first badge takes the next highlight beat (or the highlight lead-in when there are none).
+  const badgesStart =
+    highlightCount > 0 ? highlights[highlights.length - 1] + HIGHLIGHT_GAP_MS : statsDone + 200;
+  const badges = Array.from({ length: badgeCount }, (_, i) => badgesStart + i * BADGE_GAP_MS);
+  const button = badgeCount > 0 ? badges[badges.length - 1] + 1100 : afterHighlights;
   return {
     wordTicks,
     slam,
@@ -63,6 +75,7 @@ export function buildCompletionTimeline(
     statTiles,
     statsDone,
     highlights,
+    badges,
     stamp: hasStampSlot ? button : null,
     button,
   };

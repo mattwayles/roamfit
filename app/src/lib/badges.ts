@@ -161,3 +161,36 @@ export function badgeLabel(b: ShelfBadge): string {
     ? `${b.def.name}, locked, ${progressText(b.progress)}`
     : `${b.def.name}, locked`;
 }
+
+/** The badges a session earned, as shelf entries for the completion screen: `newBadgeIds` in the
+ *  order the engine gave them, resolved against the rows just written. A retroactive row (found by
+ *  the backfill, never earned in a session) and an id the catalog does not know are skipped,
+ *  so the screen can only ever celebrate what this session really earned. */
+export function completionBadges(
+  newBadgeIds: readonly string[],
+  earnedRows: readonly EarnedBadgeRecord[],
+): ShelfBadge[] {
+  const byId = new Map(earnedRows.map((r) => [r.badgeId, r]));
+  const out: ShelfBadge[] = [];
+  for (const id of newBadgeIds) {
+    const row = byId.get(id);
+    const def = getBadge(id);
+    if (!row || !def || row.retroactive) continue;
+    out.push({
+      def,
+      earned: true,
+      unseen: row.seenAt === null,
+      localDate: row.localDate,
+      sessionId: row.sessionId,
+      retroactive: false,
+      progress: null,
+      mystery: false,
+    });
+  }
+  return out;
+}
+
+/** The share sheet text for a badge. */
+export function badgeShareText(def: BadgeDefinition): string {
+  return `Earned the ${def.name} badge on Wanderlift`;
+}
