@@ -74,6 +74,8 @@ import {
   StatTile,
   Txt,
 } from '../ui';
+import { BadgeEmblem } from '../components/BadgeEmblem';
+import { progressText } from '../lib/badges';
 import { DayCell } from '../components/DayCell';
 import { EmptyState } from '../components/EmptyState';
 import { RungTrack } from '../components/RungTrack';
@@ -741,6 +743,61 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
         </View>
       </View>
 
+      {/* Track 38c - Badges: what you have earned (never removed), the last few, and the closest
+          one to earn as plain progress. The NEW dot clears once the Badges screen has been opened. */}
+      <Enter index={next()} style={styles.section}>
+        <SectionTitle
+          title="Badges"
+          icon="medal"
+          tone="gold"
+          caption={`${data.badges.earnedCount} of ${data.badges.totalCount} earned`}
+          right={
+            data.badges.unseenCount > 0 ? (
+              <View
+                testID="badges-new-dot"
+                accessible
+                accessibilityLabel="New badges"
+                style={styles.newPill}
+              >
+                <Txt variant="eyebrow" color="gold">
+                  New
+                </Txt>
+              </View>
+            ) : undefined
+          }
+        />
+        <Card
+          testID="badges-card"
+          padding="md"
+          onPress={() => navigation.navigate('Badges')}
+          accessibilityLabel={`Badges, ${data.badges.earnedCount} of ${data.badges.totalCount} earned. Open all badges`}
+          style={styles.badgesCard}
+        >
+          {data.badges.recent.length > 0 ? (
+            <View style={styles.badgeRecent}>
+              {data.badges.recent.slice(0, 3).map((b) => (
+                <BadgeEmblem
+                  key={b.def.id}
+                  badge={b}
+                  size={64}
+                  showNew={b.unseen}
+                  testID={`badges-recent-${b.def.id}`}
+                />
+              ))}
+            </View>
+          ) : (
+            <Txt variant="body" color="text2" testID="badges-empty">
+              Your first badge comes with your first workout.
+            </Txt>
+          )}
+          {data.badges.next && data.badges.next.progress ? (
+            <Txt variant="small" color="text2" testID="badges-next-line">
+              Next: {data.badges.next.def.name} · {progressText(data.badges.next.progress)}
+            </Txt>
+          ) : null}
+        </Card>
+      </Enter>
+
       {/* §9.6 Passport — opt-in, strings only, one stamp per place (seeded by label, so a place always
           stamps the same way). Appears once there's something to pin (§14.2). */}
       <Enter index={next()} style={styles.section}>
@@ -994,6 +1051,14 @@ const useStyles = makeStyles((t) =>
     content: { paddingTop: space.lg, paddingBottom: space.huge + space.xxl, gap: space.xxxl },
     flex: { flex: 1 },
     section: { gap: space.lg },
+    badgesCard: { gap: space.md },
+    badgeRecent: { flexDirection: 'row', gap: space.md, flexWrap: 'wrap' },
+    newPill: {
+      paddingHorizontal: space.sm,
+      paddingVertical: 2,
+      borderRadius: radius.pill,
+      backgroundColor: t.tints.gold,
+    },
     tiles: { gap: space.md },
     tileRow: { flexDirection: 'row', gap: space.md },
     tile: { flex: 1, minWidth: 0, paddingHorizontal: space.md },
