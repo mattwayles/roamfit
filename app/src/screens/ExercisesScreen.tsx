@@ -1,8 +1,7 @@
 /**
  * The Field Guide: the exercise library, browsable. Every exercise the app can ever program, in
  * one alphabetical list, with the search and filters needed to find one of 247 — and, deliberately,
- * a "needs a video" filter, because populating demo links is a real job someone does in bulk and
- * the list is the only place that job is visible.
+ * Completed / never-done filters on the user's own history.
  *
  * Reads only: nothing on this screen generates, prescribes, or changes progression. A row's facts
  * are the exercise's name, the primary muscle it works, and how many tracked sessions it has
@@ -35,12 +34,7 @@ import {
   primaryMuscleLabel,
   timesCompletedLabel,
 } from '../lib/exerciseCatalog';
-import type {
-  ExerciseFilterState,
-  MultiSelectKey,
-  PerformedFilter,
-  VideoFilter,
-} from '../lib/exerciseCatalog';
+import type { ExerciseFilterState, MultiSelectKey, PerformedFilter } from '../lib/exerciseCatalog';
 import { FOCUS_LABELS, FOCUS_TONE } from '../lib/focusLabels';
 import {
   fontFamily,
@@ -68,12 +62,6 @@ import { EmptyState } from '../components/EmptyState';
 type Props = TabScreenProps<'Exercises'>;
 
 type CatalogState = exerciseCatalogRepo.ExerciseCatalogState;
-
-const VIDEO_OPTIONS: { value: VideoFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'has_video', label: 'Has video' },
-  { value: 'needs_video', label: 'Needs video' },
-];
 
 const PERFORMED_OPTIONS: { value: PerformedFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -126,8 +114,8 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
   const [filters, setFilters] = useState<ExerciseFilterState>(EMPTY_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Re-read on focus: a video assigned on the detail page (or a session completed since) has to be
-  // reflected when the user comes back, which is exactly the flow of populating links one by one.
+  // Re-read on focus: a session completed (or an exercise disabled) since has to be reflected
+  // when the user comes back.
   useFocusEffect(
     useCallback(() => {
       setCatalog(exerciseCatalogRepo.getExerciseCatalogState(db));
@@ -155,7 +143,6 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
 
   const clearAll = () => setFilters((prev) => ({ ...EMPTY_FILTERS, query: prev.query }));
 
-  const setVideo = (video: VideoFilter) => setFilters((prev) => ({ ...prev, video }));
   const setPerformed = (performed: PerformedFilter) =>
     setFilters((prev) => ({ ...prev, performed }));
 
@@ -270,13 +257,6 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
           />
         ))}
         <Chip
-          testID="quick-filter-needs-video"
-          label="Needs video"
-          tone={filters.video === 'needs_video' ? 'teal' : 'neutral'}
-          selected={filters.video === 'needs_video'}
-          onPress={() => setVideo(filters.video === 'needs_video' ? 'all' : 'needs_video')}
-        />
-        <Chip
           testID="quick-filter-completed"
           label="Completed"
           tone={filters.performed === 'performed' ? 'teal' : 'neutral'}
@@ -361,16 +341,8 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
         </View>
 
         <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetBody}>
-          {/* The two dimensions that aren't properties of the exercise record — they're facts
-              about this user's own state — sit first, as single-choice rows. "Needs video" is the
-              one people come here for. */}
-          <FilterRow
-            testIdPrefix="filter-video"
-            label="Demo video"
-            options={VIDEO_OPTIONS}
-            value={filters.video}
-            onChange={setVideo}
-          />
+          {/* Facts about this user's own state, not properties of the exercise record, sit first
+              as a single-choice row. */}
           <FilterRow
             testIdPrefix="filter-performed"
             label="Your history"
@@ -504,11 +476,6 @@ const ExerciseRow = React.memo(function ExerciseRow({
           <Txt testID={`exercise-card-count-${exercise.id}`} variant="caption" color="text3">
             {timesCompletedLabel(0)}
           </Txt>
-        )}
-        {/* A quiet marker, not a warning: it is the operator's to-do list, and an exercise
-            without a curated clip still teaches fine from its "How to" cue (ADR 0008). */}
-        {!state.hasVideo && (
-          <Chip testID={`exercise-card-no-video-${exercise.id}`} label="No video" size="sm" />
         )}
         {/* The toggle itself lives on the detail screen (one source of truth) — this is just the
             at-a-glance signal that a workout will never pick this exercise right now. */}

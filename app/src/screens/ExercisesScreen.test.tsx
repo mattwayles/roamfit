@@ -1,8 +1,7 @@
 /**
  * The library browser, driven through the real navigator and the real on-device store — the same
  * shape as the Home screen tests. What matters here is that the three facts on a card come from
- * real state, that the filters actually narrow the list, and that "needs video" answers the
- * question it exists for.
+ * real state, that the filters actually narrow the list.
  *
  * The list is a `FlatList`, so only the first window of rows is mounted; every case that reaches
  * for a specific exercise searches for it first, exactly as a user would.
@@ -40,7 +39,6 @@ beforeAll(() => {
     { localDate: '2026-08-05' },
     nowUtcInstant(),
   );
-  exerciseStateRepo.assignUserVideo(db, PUSH_UP.id, 'dQw4w9WgXcQ', nowUtcInstant(), '2026-08-05');
 });
 
 async function openExercises(daybreak = false) {
@@ -155,32 +153,7 @@ describe('the exercise library', () => {
     expect(screen.getByTestId('exercise-count')).toHaveTextContent('0 moves');
   });
 
-  it('isolates the exercises that still need a video, and excludes one that has a link', async () => {
-    await openExercises();
-    await openFilters();
-    await fireEvent.press(screen.getByTestId('filter-video-needs_video'));
-
-    // The one with an assigned video is gone from the "needs" view...
-    await waitFor(() => expect(screen.queryByTestId(`exercise-card-${PUSH_UP.id}`)).toBeNull());
-    await search('push-up');
-    expect(screen.queryByTestId(`exercise-card-${PUSH_UP.id}`)).toBeNull();
-
-    // ...and comes back under "has video".
-    await fireEvent.press(screen.getByTestId('filter-video-has_video'));
-    await waitFor(() => expect(screen.getByTestId(`exercise-card-${PUSH_UP.id}`)).toBeTruthy());
-  });
-
-  it('marks a video-less exercise on its card — the to-do list, visible while scrolling', async () => {
-    await openExercises();
-    await search('push-up');
-    expect(screen.queryByTestId(`exercise-card-no-video-${PUSH_UP.id}`)).toBeNull();
-
-    const withoutVideo = exerciseLibrary.exercises.find((e) => e.id !== PUSH_UP.id)!;
-    await search(withoutVideo.name);
-    expect(screen.getByTestId(`exercise-card-no-video-${withoutVideo.id}`)).toBeTruthy();
-  });
-
-  it('marks a disabled exercise on its card — the same at-a-glance signal as "no video"', async () => {
+  it('marks a disabled exercise on its card — ', async () => {
     const other = exerciseLibrary.exercises.find((e) => e.id !== PUSH_UP.id)!;
     exerciseStateRepo.setDisabled(getDb(), other.id, true, nowUtcInstant());
 

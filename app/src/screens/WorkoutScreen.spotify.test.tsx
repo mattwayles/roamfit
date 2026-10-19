@@ -19,19 +19,15 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import { generate, remoteConfigRepo, sessionsRepo } from '@roamfit/store';
+import { generate, sessionsRepo } from '@roamfit/store';
 import type { Db } from '@roamfit/store';
 import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { useSpotifyPlayer } from '../lib/spotifyRemote';
 import type { SpotifyPlayer } from '../lib/spotifyRemote';
-import { getNetworkStatus } from '../lib/networkStatus';
 
 jest.mock('../lib/spotifyRemote', () => ({ useSpotifyPlayer: jest.fn() }));
-jest.mock('../lib/networkStatus', () => ({ getNetworkStatus: jest.fn() }));
-
-const mockGetNetworkStatus = getNetworkStatus as jest.MockedFunction<typeof getNetworkStatus>;
 
 const mockedHook = useSpotifyPlayer as jest.MockedFunction<typeof useSpotifyPlayer>;
 
@@ -159,7 +155,6 @@ async function renderWorkout(sessionId: string) {
 beforeEach(() => {
   jest.clearAllMocks();
   mockedHook.mockReturnValue(player());
-  mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
 });
 
 describe('Spotify controls on the active workout screen', () => {
@@ -221,31 +216,4 @@ describe('Spotify controls on the active workout screen', () => {
     expect(screen.getByTestId('workout-elapsed')).toBeTruthy();
     expect(screen.getByTestId('complete-set')).toBeTruthy();
   }, 20000);
-});
-
-describe('demo video is always muted, whatever the Spotify connection', () => {
-  async function withCuratedVideo(seed: string) {
-    const { db, sessionId, exerciseId } = await sessionOnRepsEntry(seed);
-    remoteConfigRepo.applyRemoteVideoConfig(db, {
-      exerciseId,
-      videoId: 'abc123XYZ_9',
-      videoVerifiedAt: nowUtcInstant(),
-      videoFlagCount: 0,
-      updatedAt: nowUtcInstant(),
-    });
-    return { sessionId };
-  }
-
-  it.each(['connected', 'disconnected'] as const)(
-    'mutes the demo video while Spotify is %s',
-    async (connectionState) => {
-      mockedHook.mockReturnValue(player({ connectionState }));
-      const { sessionId } = await withCuratedVideo(`demo-muted-${connectionState}-seed`);
-      await renderWorkout(sessionId);
-
-      const webview = await waitFor(() => screen.getByTestId('demo-media-webview'), WAIT_OPTS);
-      expect(webview.props.injectedJavaScript).toContain('__roamfitMuted = true');
-    },
-    20000,
-  );
 });

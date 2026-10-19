@@ -16,7 +16,6 @@ import {
   getPendingSession,
   getSession,
   logSet,
-  recordDemoMediaExpanded,
   recordEntryFeedback,
   recordRegenerateTap,
   startSession,
@@ -201,21 +200,6 @@ describe('§8.3 preference & aversion / comprehension signals', () => {
       const events = getSignalEventsByType(db, 'add_at_approval');
       expect(events).toHaveLength(1);
       expect(events[0].payload).toMatchObject({ entryId, exerciseId: newExercise.id });
-    } finally {
-      close();
-    }
-  });
-
-  it('demo media expansion is recorded on the entry and as a signal event', () => {
-    const { db, close } = createBandedTestDb();
-    try {
-      const sessionId = makeSession(db);
-      const entry = getPendingSession(db)!.entries.find((e) => e.section === 'main')!;
-      recordDemoMediaExpanded(db, entry.id, utcInstantFor('2026-03-01', 8, 5));
-
-      const after = getSession(db, sessionId)!.entries.find((e) => e.id === entry.id)!;
-      expect(after.demoMediaExpanded).toBe(true);
-      expect(getSignalEventsByType(db, 'demo_media_expanded')).toHaveLength(1);
     } finally {
       close();
     }

@@ -1150,26 +1150,6 @@ export function recordEntryFeedback(
   }
 }
 
-export function recordDemoMediaExpanded(db: Db, entryId: string, now: string): void {
-  const entry = db
-    .select()
-    .from(schema.sessionEntries)
-    .where(eq(schema.sessionEntries.id, entryId))
-    .all()[0];
-  if (!entry) return;
-  db.update(schema.sessionEntries)
-    .set({ demoMediaExpanded: true })
-    .where(eq(schema.sessionEntries.id, entryId))
-    .run();
-  logSignalEvent(db, {
-    sessionId: entry.sessionId,
-    type: 'demo_media_expanded',
-    payload: { entryId, exerciseId: entry.exerciseId },
-    utcInstant: now,
-    localDate: getSession(db, entry.sessionId)?.localDate ?? now.slice(0, 10),
-  });
-}
-
 // ------------------------------------------------------------------------------------------
 // Set logging — crash safety lives here. Each call is one committed write.
 // ------------------------------------------------------------------------------------------

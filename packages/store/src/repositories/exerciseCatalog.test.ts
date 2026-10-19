@@ -6,9 +6,7 @@
  */
 import { createTestDb } from '../testHarness';
 import { schema } from '../db';
-import { assignUserVideo, setDisabled } from './exerciseState';
-import { applyRemoteVideoConfig } from './remoteConfig';
-import { recordExercisePerformed } from './exerciseState';
+import { recordExercisePerformed, setDisabled } from './exerciseState';
 import {
   emptyCatalogState,
   getExerciseCatalogState,
@@ -136,9 +134,6 @@ describe('getExerciseCatalogState', () => {
     expect(emptyCatalogState()).toEqual({
       timesCompleted: 0,
       lastPerformedAt: null,
-      userVideoId: null,
-      curatedVideoId: null,
-      hasVideo: false,
       disabled: false,
     });
   });
@@ -151,58 +146,6 @@ describe('getExerciseCatalogState', () => {
     const state = getExerciseCatalogState(db)[EXERCISE_ID];
     expect(state.timesCompleted).toBe(2);
     expect(state.lastPerformedAt).toBe('2026-08-05');
-  });
-
-  it('counts a user-assigned video as having a video', () => {
-    const { db } = createTestDb();
-    assignUserVideo(db, EXERCISE_ID, 'dQw4w9WgXcQ', NOW, '2026-09-01');
-
-    const state = getExerciseCatalogState(db)[EXERCISE_ID];
-    expect(state.userVideoId).toBe('dQw4w9WgXcQ');
-    expect(state.hasVideo).toBe(true);
-  });
-
-  it('counts a curated remote-config video as having a video too — it needs no link pasted', () => {
-    const { db } = createTestDb();
-    applyRemoteVideoConfig(db, {
-      exerciseId: EXERCISE_ID,
-      videoId: 'curated123',
-      videoVerifiedAt: NOW,
-      videoFlagCount: 0,
-      updatedAt: NOW,
-    });
-
-    const state = getExerciseCatalogState(db)[EXERCISE_ID];
-    expect(state.curatedVideoId).toBe('curated123');
-    expect(state.hasVideo).toBe(true);
-  });
-
-  it('a remote-config row with a null id is still "needs a video"', () => {
-    const { db } = createTestDb();
-    applyRemoteVideoConfig(db, {
-      exerciseId: EXERCISE_ID,
-      videoId: null,
-      videoVerifiedAt: null,
-      videoFlagCount: 0,
-      updatedAt: NOW,
-    });
-    expect(getExerciseCatalogState(db)[EXERCISE_ID].hasVideo).toBe(false);
-  });
-
-  it('keeps the performed counter when a curated row lands for the same exercise', () => {
-    const { db } = createTestDb();
-    recordExercisePerformed(db, EXERCISE_ID, { localDate: '2026-08-01' }, NOW);
-    applyRemoteVideoConfig(db, {
-      exerciseId: EXERCISE_ID,
-      videoId: 'curated123',
-      videoVerifiedAt: NOW,
-      videoFlagCount: 0,
-      updatedAt: NOW,
-    });
-
-    const state = getExerciseCatalogState(db)[EXERCISE_ID];
-    expect(state.timesCompleted).toBe(1);
-    expect(state.hasVideo).toBe(true);
   });
 
   it('reports a user-disabled exercise, and clears once re-enabled', () => {

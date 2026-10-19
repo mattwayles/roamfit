@@ -33,6 +33,14 @@ the record of what was completed and why.
   `onLayout`, tested in Jest with synthetic layouts only). On a device check the card lands just under
   the top edge with the chart's height settled (cards are taller once their charts mount), that it
   works both from a cold Journey and with Journey already open, and that Reduce Motion is fine.
+- **Demo-video leftovers are now dead weight.** The Demo card, the paste-a-link flow and the
+  video-flag demotion are gone (How to now has a "Watch a video" button opening a YouTube search for
+  "<name> Exercise"; `lib/youtubeSearch.ts`). Left in place, unread: `exercise_state.user_video_id`,
+  `user_video_assigned_at`, `video_flag_count`, `video_demoted_at`, `session_entries.demo_media_expanded`,
+  the `remote_video_config` table with its `remoteConfigRepo` and Firestore pull, the
+  `video_flag_reported` / `user_video_assigned` / `demo_media_expanded` signal types, and the
+  `react-native-webview` dependency (still used only by its jest mock). Drop them with a migration,
+  and remove the dependency, in one pass.
 - **`lifetime_total_minutes` is now write-only.** The Journey tile moved from minutes to sets
   (`lifetimeSets` in `stats.ts`, derived from `set_logs`), so nothing reads the column
   (`rolled_up_stats`, migration 0003) or `lifetimeTotalMinutes` any more. Drop both with a

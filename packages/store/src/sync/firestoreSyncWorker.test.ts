@@ -135,17 +135,6 @@ describe('§11.3 Firestore sync — exercise_state (LWW)', () => {
     // Local's real pinnedNote (never set) must survive — the stale remote value must not land.
     expect(getExerciseStateSyncRow(db, 'bw-plank')!.pinnedNote).toBeNull();
   });
-
-  it('syncs the local video_flag_count/video_demoted_at — closes issue #30 (reachable by an operator once deployed)', async () => {
-    const { db } = createTestDb();
-    exerciseStateRepo.reportVideoIssue(db, 'bw-plank', 'user_report', T0, '2026-09-01');
-    exerciseStateRepo.reportVideoIssue(db, 'bw-plank', 'user_report', T0, '2026-09-01');
-    const client = makeFakeClient();
-    await runFirestoreSync(db, client);
-    const docs = (client as unknown as { __docs: Map<string, RemoteVersionedDoc<unknown>> }).__docs;
-    const pushedRow = docs.get('exercise_state/bw-plank')!.data as { videoFlagCount: number };
-    expect(pushedRow.videoFlagCount).toBe(2);
-  });
 });
 
 describe('§11.3 Firestore sync — rolled_up_stats (LWW singleton)', () => {

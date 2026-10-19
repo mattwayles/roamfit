@@ -13,7 +13,7 @@ export type TabParamList = {
   /** `focusFamilyId` — scroll to that family's Trail card (Today's Next Unlock card sets it);
    *  `focusLogbook` — scroll to the Logbook (Today's "This week" strip sets it). */
   Journey: { focusFamilyId?: string; focusLogbook?: boolean } | undefined;
-  /** The exercise library, browsable — read-only apart from assigning a demo video. */
+  /** The exercise library, browsable and read-only. */
   Exercises: undefined;
 };
 

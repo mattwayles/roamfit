@@ -36,7 +36,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, Animated, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { exerciseStateRepo, remoteConfigRepo, sessionsRepo, usersRepo } from '@roamfit/store';
+import { exerciseStateRepo, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
 import { alternativesForSlot, usableBands } from '@roamfit/engine';
 import type { BandId, SingleBandId } from '@roamfit/engine';
@@ -95,8 +95,7 @@ import FeedbackControls from '../components/FeedbackControls';
 import type { Difficulty } from '../components/FeedbackControls';
 import BandPicker, { BandOptionsProvider } from '../components/BandPicker';
 import BandChip from '../components/BandChip';
-import DemoMedia from '../components/DemoMedia';
-import type { DemoMediaProps } from '../components/DemoMedia';
+import HowToVideoButton from '../components/HowToVideoButton';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import SpotifyControls from '../components/SpotifyControls';
 import {
@@ -227,16 +226,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    *  be a genuine question: whichever way it is answered, the reps the user already entered are
    *  logged, never re-asked for. */
   const [pausedCompletion, setPausedCompletion] = useState<PendingCompletion | null>(null);
-  /** ADR 0009's paste-a-link field is the last thing on this screen, so the keyboard opens
-   *  straight over it and over its Save button. `automaticallyAdjustKeyboardInsets` on the
-   *  ScrollView makes room to scroll past the keyboard; `handleDemoInputFocus` below then puts the
-   *  demo block at the top of what is left visible, so the field, the Save button and any
-   *  validation error are all in view while typing. The block's offset is captured on layout
-   *  because it moves with the content above it (badges, the "How to" cue, an embed that may or
-   *  may not be there). Declared up here with the other hooks, above this screen's loading early
-   *  returns, so the hook order is stable across the null-session render. */
-  const scrollRef = useRef<ScrollView>(null);
-  const demoBlockY = useRef(0);
   /**
    * Where the user has stepped *back* to, or null when they are at the workout's own front edge
    * (§10.8's derived position — the first not-yet-logged set).
@@ -538,7 +527,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       ? Math.round(loggedSetForThisSet.secondsActual / (entry.unilateral ? 2 : 1))
       : (entry.durationSec ?? 0);
   const exState = exerciseStateRepo.getExerciseState(db, entry.exerciseId);
-  const isFirstEverPerformance = !exState || exState.sessionsPerformed === 0;
   // The pinned note above the hero/rest content is about the exercise just finished while resting
   // (same as the rest screen's other feedback controls, and unlike `exState` above, which is
   // deliberately about `entry` — the upcoming set — for the hero's own display).
@@ -923,60 +911,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     reload();
   };
 
-  // §11.4 — the callbacks DemoMedia fires; every persistence call goes through @roamfit/store,
-  // never inline here (ADR 0003 / issue #13). `videoFlagState` reads fresh on every render off
-  // the current entry's exercise, same pattern as `exState` above.
-  const videoFlagState = exerciseStateRepo.getVideoFlagState(db, entry.exerciseId);
-  const handleDemoExpand = () => {
-    sessionsRepo.recordDemoMediaExpanded(db, entry.id, nowUtcInstant());
-  };
-  const handleReportVideoIssue = () => {
-    const localToday = localDateFromDate(new Date());
-    exerciseStateRepo.reportVideoIssue(
-      db,
-      entry.exerciseId,
-      'user_report',
-      nowUtcInstant(),
-      localToday,
-    );
-    reload();
-  };
-  /** ADR 0009 — persist the user's own video for this exercise, then reload so `DemoMedia` gets
-   *  the new id back as a prop and the embed appears immediately, without leaving the set. The
-   *  id arrives already parsed and validated by `parseYouTubeVideoId`; the store never sees a
-   *  raw URL, so a malformed paste cannot reach the player (invariant 8). */
-  const handleAssignVideo = (videoId: string) => {
-    exerciseStateRepo.assignUserVideo(
-      db,
-      entry.exerciseId,
-      videoId,
-      nowUtcInstant(),
-      localDateFromDate(new Date()),
-    );
-    reload();
-  };
-
-  const handleClearVideo = () => {
-    exerciseStateRepo.clearUserVideo(db, entry.exerciseId, nowUtcInstant());
-    reload();
-  };
-
-  const handleDemoInputFocus = () => {
-    scrollRef.current?.scrollTo({ y: Math.max(demoBlockY.current - 8, 0), animated: true });
-  };
-
-  const handleDemoPlayerError = () => {
-    const localToday = localDateFromDate(new Date());
-    exerciseStateRepo.reportVideoIssue(
-      db,
-      entry.exerciseId,
-      'player_error',
-      nowUtcInstant(),
-      localToday,
-    );
-    reload();
-  };
-
   /**
    * The rest page's feedback is about the *exercise* just finished, asked once after its last set;
    * `recordEntryFeedback` writes the entry's single answer (and feeds the exercise's EMA).
@@ -1086,7 +1020,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
         />
 
         <ScrollView
-          ref={scrollRef}
           testID="workout-scroll"
           style={styles.scroll}
           contentContainerStyle={[
@@ -1291,28 +1224,11 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               // rest ends, so rest is exactly when swapping to it is useful.
               nextBand={isFinalRest ? null : bandForSet}
               bandTensions={bandTensions}
-              // Same DemoMedia props the exercise phase passes below (line ~1039) — `exercise` and
-              // `entry` are already the *upcoming* pair during rest, so the video shown here is the
-              // one about to be trained, not the one just finished.
-              demoMedia={
-                !isFinalRest && exercise
-                  ? {
-                      videoSearchQuery: exercise.video_search,
-                      curatedVideoId: remoteConfigRepo.getCuratedVideoId(db, exercise.id),
-                      videoDemoted: videoFlagState.demoted,
-                      userVideoId: exerciseStateRepo.getUserVideoId(db, exercise.id),
-                      onAssignVideo: handleAssignVideo,
-                      onClearVideo: handleClearVideo,
-                      onExpand: handleDemoExpand,
-                      onReportIssue: handleReportVideoIssue,
-                      onPlayerError: handleDemoPlayerError,
-                      onInputFocus: handleDemoInputFocus,
-                    }
-                  : null
+              // `exercise` is already the *upcoming* exercise during rest, so the cue (and the
+              // video search it links to) is for the one about to be trained.
+              howTo={
+                !isFinalRest && exercise ? { body: exercise.setup, name: exercise.name } : null
               }
-              // Same source and gating as `demoMedia` above — `exercise` is already the *upcoming*
-              // exercise during rest.
-              howTo={!isFinalRest && exercise ? exercise.setup : null}
               difficulty={difficulty}
               onDifficultyChange={handleDifficultyChange}
               feedbackQuestion={feedbackDue && !feedbackAsModal ? feedbackQuestion : null}
@@ -1323,38 +1239,15 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
           {phase === 'exercise' && (
             <>
-              {/* Above the demo, and open by default every time — not only on a first-ever
-                  performance. Since ADR 0008 removed the bundled figures this cue IS the offline
-                  demo, so it is the one thing that must never need a tap to reach; and a user who
-                  has done a movement fifty times still checks their setup. */}
-              <Disclosure title="How to" defaultOpen body={exercise?.setup ?? ''} />
-
-              {exercise && (
-                <View
-                  testID="demo-media-block"
-                  onLayout={(e) => {
-                    demoBlockY.current = e.nativeEvent.layout.y;
-                  }}
-                >
-                  <DemoMedia
-                    videoSearchQuery={exercise.video_search}
-                    // §11.4 — a synchronous local read of whatever `sync/firestoreSyncWorker.ts` last
-                    // pulled into `remote_video_config` (track 6d). Null (never bundled, invariant 8)
-                    // until a delta pull has actually resolved a curated id for this exercise, in
-                    // which case `DemoMedia` renders nothing and the "How to" cue below is the demo.
-                    curatedVideoId={remoteConfigRepo.getCuratedVideoId(db, exercise.id)}
-                    videoDemoted={videoFlagState.demoted}
-                    defaultOpen={isFirstEverPerformance}
-                    userVideoId={exerciseStateRepo.getUserVideoId(db, exercise.id)}
-                    onAssignVideo={handleAssignVideo}
-                    onClearVideo={handleClearVideo}
-                    onExpand={handleDemoExpand}
-                    onReportIssue={handleReportVideoIssue}
-                    onPlayerError={handleDemoPlayerError}
-                    onInputFocus={handleDemoInputFocus}
-                  />
-                </View>
-              )}
+              {/* Open by default every time — not only on a first-ever performance. This cue is
+                  the offline guidance, so it is the one thing that must never need a tap to
+                  reach; and a user who has done a movement fifty times still checks their setup. */}
+              <Disclosure
+                title="How to"
+                defaultOpen
+                body={exercise?.setup ?? ''}
+                videoExerciseName={exercise?.name ?? null}
+              />
             </>
           )}
         </ScrollView>
@@ -2347,7 +2240,6 @@ function RestPhase({
   nextAnchorAlt,
   nextBand,
   bandTensions,
-  demoMedia,
   howTo,
   difficulty,
   onDifficultyChange,
@@ -2376,17 +2268,10 @@ function RestPhase({
   nextBand: BandId | null;
   /** The user's own band colours/labels (spec §1140), for the `BandChip` above. */
   bandTensions: Record<SingleBandId, usersRepo.BandTension>;
-  /** The next exercise's demo video, so rest doubles as prep time — rig the anchor or check form
-   *  before the set starts, rather than only after. Null when there is no upcoming exercise (the
-   *  workout is ending) or nothing to demo (`DemoMedia` already returns null in that case; this is
-   *  the case where there's no exercise at all to build the props from). Same `DemoMedia` props
-   *  the exercise phase passes it, so it is the identical component in a second spot rather than a
-   *  parallel implementation. */
-  demoMedia: Omit<DemoMediaProps, 'defaultOpen'> | null;
-  /** The next exercise's setup text — same source (`Exercise.setup`) as the exercise phase's own
-   *  "How to" disclosure. Null under the same conditions as `demoMedia` (final rest, or no
-   *  upcoming exercise to read it from). */
-  howTo: string | null;
+  /** The next exercise's setup text (`Exercise.setup`) and name, shown as the same "How to"
+   *  disclosure the exercise phase has, with its video-search button. Null on the final rest or
+   *  when there is no upcoming exercise to read it from. */
+  howTo: { body: string; name: string } | null;
   difficulty: Difficulty | null;
   onDifficultyChange: (d: Difficulty | undefined) => void;
   /** The inline feedback question, or null when none is due on this rest (not the exercise's last
@@ -2607,19 +2492,10 @@ function RestPhase({
       </Card>
 
       {/* Same "How to" cue the exercise phase shows, read here for the *upcoming* exercise — rest
-          is prep time, so the setup text is exactly as useful here as the demo below. */}
+          is prep time, so the setup text is exactly as useful here. */}
       {howTo && (
         <View testID="rest-how-to-block">
-          <Disclosure title="How to" defaultOpen body={howTo} />
-        </View>
-      )}
-
-      {/* Open by default here — rest is the moment to look, not a moment to also ask for a tap.
-          The exercise phase's own DemoMedia (below, in the parent) keeps its own independent
-          open/closed state once the set actually starts. */}
-      {demoMedia && (
-        <View testID="rest-demo-media-block">
-          <DemoMedia {...demoMedia} defaultOpen />
+          <Disclosure title="How to" defaultOpen body={howTo.body} videoExerciseName={howTo.name} />
         </View>
       )}
     </>
@@ -2658,10 +2534,13 @@ function Disclosure({
   title,
   body,
   defaultOpen,
+  videoExerciseName,
 }: {
   title: string;
   body: string;
   defaultOpen: boolean;
+  /** When set, a button under the text opens a YouTube search for this exercise. */
+  videoExerciseName: string | null;
 }): React.JSX.Element {
   const styles = useStyles();
   const [open, setOpen] = useState(defaultOpen);
@@ -2687,6 +2566,11 @@ function Disclosure({
         <Txt variant="body" color="text2" style={styles.disclosureBody}>
           {body}
         </Txt>
+      )}
+      {open && videoExerciseName && (
+        <View style={styles.disclosureVideo}>
+          <HowToVideoButton exerciseName={videoExerciseName} />
+        </View>
       )}
     </Card>
   );
@@ -2796,5 +2680,6 @@ const useStyles = makeStyles((t) =>
     disclosureTitle: { flexDirection: 'row', alignItems: 'center' },
     disclosureIcon: { marginRight: space.sm },
     disclosureBody: { marginTop: space.md },
+    disclosureVideo: { marginTop: space.md },
   }),
 );

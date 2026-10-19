@@ -1,19 +1,14 @@
 /**
  * The exercise detail page, reached the way a user reaches it — through the library list.
  *
- * Two things here are load-bearing beyond "it renders": a video pasted on this page lands in the
- * same `exercise_state.user_video_id` the workout screen reads (so one video serves both places,
- * with no new column), and the progression block is computed from real `set_logs` written by the
- * real completion path rather than from a fixture.
- *
- * `networkStatus` is mocked online because `DemoMedia` renders nothing at all when offline (ADR
- * 0008 — the "How to" cue is the offline demo), and the paste field lives inside it.
+ * Load-bearing beyond "it renders": the progression block is computed from real `set_logs`
+ * written by the real completion path rather than from a fixture.
  *
  * `render` and `fireEvent` are awaited throughout: this version of RNTL is async, and an
  * un-awaited event simply has not been dispatched yet by the time the next line asserts.
  */
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
@@ -29,13 +24,10 @@ import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider } from '../state/StoreContext';
 import { getDb } from '../db';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
-import { getNetworkStatus } from '../lib/networkStatus';
+import { youtubeSearchUrl } from '../lib/youtubeSearch';
 import { topoLoops } from '../ui';
 import { daybreakTheme, midnightTheme } from '../theme';
 import { flat, inDaybreak } from '../ui/test-utils';
-
-jest.mock('../lib/networkStatus', () => ({ getNetworkStatus: jest.fn() }));
-const mockGetNetworkStatus = getNetworkStatus as jest.MockedFunction<typeof getNetworkStatus>;
 
 const PUSH_UP = { id: 'banded-push-up', name: 'Banded Push-Up' };
 
@@ -114,9 +106,7 @@ beforeAll(() => {
   }
 });
 
-beforeEach(() => {
-  mockGetNetworkStatus.mockResolvedValue({ online: true, metered: false });
-});
+beforeEach(() => {});
 
 async function openDetail(name: string, daybreak = false) {
   const app = (
@@ -185,26 +175,15 @@ describe('the exercise detail page', () => {
     expect(screen.getByText('Horizontal Push · level 6 of 11')).toBeTruthy();
   });
 
-  it('offers the same demo controls the workout screen does', async () => {
-    await openDetail(PUSH_UP.name);
-    await waitFor(() => expect(screen.getByTestId('demo-media-assign')).toBeTruthy());
-  });
-
-  it('assigns a video into the column the workout screen reads', async () => {
+  it('opens a YouTube search for "<name> Exercise" from the How to card', async () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
     const exercise = await openDetail(PUSH_UP.name);
-    exerciseStateRepo.clearUserVideo(getDb(), exercise.id, nowUtcInstant());
 
-    await waitFor(() => expect(screen.getByTestId('demo-media-url-input')).toBeTruthy());
-    await fireEvent.changeText(
-      screen.getByTestId('demo-media-url-input'),
-      'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    );
-    await fireEvent.press(screen.getByTestId('demo-media-url-save'));
+    await fireEvent.press(screen.getByTestId('how-to-video-link'));
 
-    // Not screen-local state: the same store read `WorkoutScreen` makes for its own player.
-    await waitFor(() =>
-      expect(exerciseStateRepo.getUserVideoId(getDb(), exercise.id)).toBe('dQw4w9WgXcQ'),
-    );
+    expect(openURL).toHaveBeenCalledWith(youtubeSearchUrl(exercise.name));
+    expect(screen.queryByTestId('demo-media-assign')).toBeNull();
+    openURL.mockRestore();
   });
 
   it('disables an exercise and re-enables it from the same toggle', async () => {
@@ -222,24 +201,6 @@ describe('the exercise detail page', () => {
         exerciseStateRepo.getExerciseState(getDb(), exercise.id)?.disabledAt ?? null,
       ).toBeNull(),
     );
-  });
-
-  it('removes that video again from the same place', async () => {
-    const exercise = await openDetail(PUSH_UP.name);
-    exerciseStateRepo.assignUserVideo(
-      getDb(),
-      exercise.id,
-      'dQw4w9WgXcQ',
-      nowUtcInstant(),
-      '2026-09-01',
-    );
-
-    // Re-enter so the screen re-reads the assignment it is about to clear.
-    await openDetail(PUSH_UP.name);
-    await waitFor(() => expect(screen.getByTestId('demo-media-url-clear')).toBeTruthy());
-    await fireEvent.press(screen.getByTestId('demo-media-url-clear'));
-
-    await waitFor(() => expect(exerciseStateRepo.getUserVideoId(getDb(), exercise.id)).toBeNull());
   });
 
   it('charts the progression and reports the gain for an exercise actually performed', async () => {

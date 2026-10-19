@@ -27,9 +27,6 @@ import type { exerciseCatalogRepo } from '@roamfit/store';
 
 type CatalogState = exerciseCatalogRepo.ExerciseCatalogState;
 
-/** "Needs video" is the operator view: exercises with no user-assigned and no curated id, i.e.
- *  the ones still waiting for a link. */
-export type VideoFilter = 'all' | 'has_video' | 'needs_video';
 export type PerformedFilter = 'all' | 'performed' | 'never';
 export type LateralityFilter = 'unilateral' | 'bilateral';
 /** A family chip, plus the real and useful "belongs to no ladder" case (warmups, stretches,
@@ -38,7 +35,6 @@ export type FamilyFilter = ProgressionFamilyId | 'none';
 
 export interface ExerciseFilterState {
   query: string;
-  video: VideoFilter;
   performed: PerformedFilter;
   focus: Focus[];
   pattern: Pattern[];
@@ -58,7 +54,6 @@ export interface ExerciseFilterState {
 
 export const EMPTY_FILTERS: ExerciseFilterState = {
   query: '',
-  video: 'all',
   performed: 'all',
   focus: [],
   pattern: [],
@@ -118,7 +113,7 @@ export type FilterOptions = Record<MultiSelectKey, string[]>;
  *  text and its own clear affordance. */
 export function activeFilterCount(state: ExerciseFilterState): number {
   const multi = MULTI_SELECT_KEYS.reduce((n, key) => n + state[key].length, 0);
-  return multi + (state.video === 'all' ? 0 : 1) + (state.performed === 'all' ? 0 : 1);
+  return multi + (state.performed === 'all' ? 0 : 1);
 }
 
 /**
@@ -154,7 +149,7 @@ export function familyOf(exercise: Exercise): FamilyFilter {
  * changing sort would defeat the muscle memory of knowing roughly where something sits.
  *
  * `catalog` is the store's per-exercise state keyed by id; an id missing from it has simply never
- * been performed and has no video, which `fallback` supplies.
+ * been performed, which `fallback` supplies.
  */
 export function filterExercises(
   exercises: Exercise[],
@@ -167,9 +162,6 @@ export function filterExercises(
       const catalogState = catalog[exercise.id] ?? fallback;
 
       if (!matchesQuery(exercise, state.query)) return false;
-
-      if (state.video === 'has_video' && !catalogState.hasVideo) return false;
-      if (state.video === 'needs_video' && catalogState.hasVideo) return false;
 
       if (state.performed === 'performed' && catalogState.timesCompleted === 0) return false;
       if (state.performed === 'never' && catalogState.timesCompleted > 0) return false;
