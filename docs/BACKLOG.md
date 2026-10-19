@@ -23,6 +23,11 @@ badges, syncing `earned_badges` to Firestore.
 
 ## Desired Fixes
 
+- **Badges visuals (Track 38c) - device pass owed.** Only Jest has seen these. On a device check: the
+  four patch shapes (circle, shield, hexagon, rounded square) and tier rings read clearly in Midnight
+  and Daybreak, locked (dashed, faint glyph) vs earned is obvious at 40/64/120; the Badges grid at
+  large Dynamic Type (names wrap, three columns still fit, nothing clips); the Journey Badges card;
+  and the Today "Next badge" row's placement under Next unlock (is Today still uncluttered?).
 - **Next Unlock → Journey scroll — device pass owed.** Tapping the Next Unlock card on Today now opens
   Journey scrolled to that family's Trail card (`focusFamilyId` route param; offsets come from
   `onLayout`, tested in Jest with synthetic layouts only). On a device check the card lands just under

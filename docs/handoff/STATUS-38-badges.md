@@ -10,16 +10,16 @@ log. Sub-tracks run **in order**, one agent each: 38a → 38b → 38c → 38d.
 
 - [x] Plan written (this file + BACKLOG section)
 - [x] 38b store: migration 0034 + repo (babbd1d), facts + award at completion + `newBadgeIds` + backfill (2b092cd), startup hook + BACKLOG sync line (see git log, `Badges (Track 38b, 3)`)
+- [x] 38c app: emblem + shelf view model (e4fbe97), Badges route + screen + `badges` in `DashboardData` (6004b13), Journey card (7318bae), Today Next badge row (65bc812)
 - [x] 38a engine catalog + evaluator (`packages/engine/src/badges/`, exported from the engine index) - commit bc33ae9
 
 ### In progress
 
-- 38c (in progress, started 2026-10-18): commits in order - (1) `BadgeEmblem` + `lib/badges.ts` shelf view model + icon-validity test (fix catalog `high_rung` icon `updown` -> `up`, ids unchanged); (2) `Badges` route + `BadgesScreen` + `badges` in `DashboardData`; (3) Journey Badges card; (4) Today 'Next badge' row. Files: `app/src/components/BadgeEmblem.tsx`, `app/src/lib/badges.ts`, `app/src/screens/BadgesScreen.tsx`.
+- 38d - not started. See the 38c outcome notes below, then the 'App (38d)' section.
 
 ### Next
 
-1. **38c — App: badge emblem, Badges screen, Journey card** (`app/src`)
-2. **38d — App: badges on the completion screen + glossary + share** (`app/src`)
+1. **38d — App: badges on the completion screen + glossary + share** (`app/src`)
 
 ---
 
@@ -183,6 +183,19 @@ that renaming an id fails a test (the same protection level ids get).
 - Glossary entry "Badges": how they're earned, that they're permanent, and that there are no streaks.
 - Tests: the timeline with badges, Summary shows cards in order, caps at 3 + chip, nothing shown
   for retroactive badges, and the Reduce Motion path.
+
+### 38c outcome: notes for 38d
+
+- Emblem: `BadgeEmblem` (`app/src/components/BadgeEmblem.tsx`), props `{ badge: ShelfBadge, size?: 40|64|120, showNew?, testID? }`; `TIER_ACCENT` maps tier to a theme accent for tinting text. A
+  `ShelfBadge` (`app/src/lib/badges.ts`) is `{def, earned, unseen, localDate, sessionId, retroactive, progress, mystery}`. For a just-earned badge from `result.newBadgeIds`, build it with
+  `buildBadgeShelf(badgesRepo.getEarnedBadges(db), buildBadgeFacts(db, library, families))` and pick `shelf.sections.flatMap(s => s.badges)` by id (or read `data.badges` from `loadDashboardData`).
+  `badgeLabel(b)` / `progressText(p)` give the a11y label and "12 of 25".
+- Route: `Badges` (no params) on the root stack; `navigation.navigate('Badges')`.
+- Marking seen: `badgesRepo.markBadgesSeen(db, ids, nowUtcInstant())`. The Badges screen marks everything unseen on focus; 38d should mark the celebrated ones when Summary shows them.
+- `DashboardData.badges` is a `BadgeShelf` (`earnedCount, totalCount, unseenCount, sections, recent, almostThere, next`). `buildBadgeFacts` is a full-history read on every dashboard load (Today, Journey and Badges); measure before caching.
+- Decisions that differ from the plan: the catalog `high_rung` icon was `updown` (not an `IconName`), swapped to `up` (ids untouched). `nextBadges` ranks a fresh user's free "rung 1 of 4" above "0 of 1",
+  so `buildBadgeShelf` points a user with no badges at the first catalog badge instead and hides "Almost there" until something is earned; "Almost there" also skips badges with no progress.
+  Retroactive badges show "Earned" without a date (their `local_date` is the day they were found, not earned). Test helpers: `lib/badges.fixtures.ts`.
 
 ### Decisions / gotchas
 
