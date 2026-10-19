@@ -12,20 +12,17 @@ log. Sub-tracks run **in order**, one agent each: 39a → 39b → 39c → 39d.
 - [x] Plan written (this file), branch `track-39-passport`
 - [x] 39a data (57a981a): see exports below
 - [x] 39b screen (bc44dd1 page model, 7f9f523 screen/route/opt-in card)
+- [x] 39c page turn (acb5b5b: turn, swipe, Reduce Motion/VoiceOver swap, adjustable actions, tests)
 
 ### In progress
 
-- 39c underway. Plan: `app/src/components/PageTurnBook.tsx` holds `usePageTurn` (Animated + PanResponder,
-  transformOrigin 'left center', RN 0.86) and pure `decideSwipe`/`claimsSwipe`. Button/jump turns commit
-  `pageIndex` at the START and animate the outgoing page as an overlay; swipes commit at the END.
-  Jumps of >1 page do one turn straight to the target. Reduce Motion / screen reader: instant swap.
-  Steps: (1) turn + buttons + reduce motion, (2) swipe, (3) a11y actions, (4) status + device checks.
+- 39d not started.
 
 ### Next
 
 1. ~~39a data~~ done.
 2. ~~39b screen~~ done.
-3. **39c page turn** — the flip animation, Reduce Motion, VoiceOver paging.
+3. ~~39c page turn~~ done.
 4. **39d wiring** — Journey teaser card replaces the stamp grid; Completion's new-stamp card opens
    the Passport at that stamp's page.
 
@@ -121,3 +118,36 @@ log. Sub-tracks run **in order**, one agent each: 39a → 39b → 39c → 39d.
   needed, or act() calls overlap and state updates are lost.
 - Stamp captions use a short date (`Sep 3, 2026`); bio and the stamp sheet use `formatFullLocalDate`.
 - Visuals not verified on a simulator (guilloche lines, emboss shadow, spacing, light theme).
+
+### 39c notes (for 39d) and device checks
+
+- `app/src/components/PageTurnBook.tsx`: `usePageTurn({index,last,onIndexChange})` (Animated, native
+  driver, `transformOrigin: 'left center'` + `perspective` + `rotateY`; RN 0.86 supports it, so no
+  translate trick), `PageTurnLayers`, and pure `claimsSwipe` / `decideSwipe` / `rubberBand`.
+  `PassportScreen` now renders the book via an internal `PassportBook` component (hooks need the
+  ready state); `PassportScreen` still owns `pageIndex`.
+- Index timing: button and contents-jump turns commit the index at the START and animate the
+  outgoing page as an overlay (label/arrows update at once). A swipe commits at the END. Presses are
+  ignored while a turn runs. Jumps of more than one page are ONE turn straight to the target.
+- `goTo(i)` (from `usePageTurn`) animates; there is no separate no-animation jump API. The initial
+  open uses `startIndex` (no turn). For 39d, deep-linking via `stampLabel` route params already
+  lands instantly. If you need an instant jump later, set `pageIndex` via the screen's state.
+- Reduce Motion (`ui/useReduceMotion`) or a running screen reader (`isScreenReaderEnabled`, new
+  tiny hook in the same file): instant swap, swipe included. Hidden turn layers carry
+  `accessibilityElementsHidden`; tests must use `includeHiddenElements: true` to see
+  `passport-turn`. Existing tests settle turns before the next press.
+- VoiceOver actions are on the "Page N of M" label (role `adjustable`, increment/decrement), not
+  the book container: iOS ignores actions on a non-accessible container, and making the book
+  accessible would hide its stamps and rows from VoiceOver.
+- Tests hold `Animated.timing` open via a spy (`PassportScreen.turn.test.tsx`); fake timers break
+  the SQLite-backed mount.
+- Haptic: `haptics.selection()` when a turn completes.
+- Not verified on a device: perspective/transformOrigin rendering, shadow darkness, swipe feel.
+
+Device-check list: turn speed (400ms, ease-in-out, right pace?); page rotates about the spine edge
+(left) and the perspective does not look skewed/clipped by `overflow: hidden`; the darkening on the
+turning and lower page; swipe threshold (30% width or fast fling) and that the page follows the
+finger; rubber band at cover/last page; taps on stamps, contents rows and endorsements still work
+and vertical scroll is not stolen; Reduce Motion on = instant swap; VoiceOver: swipe up/down on
+"Page N of M" changes pages and announces, ‹ › work, no turn plays; haptic tick at the end of a turn;
+both themes.
