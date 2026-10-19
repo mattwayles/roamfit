@@ -9,17 +9,17 @@ log. Sub-tracks run **in order**, one agent each: 38a → 38b → 38c → 38d.
 ### Done
 
 - [x] Plan written (this file + BACKLOG section)
+- [x] 38a engine catalog + evaluator (`packages/engine/src/badges/`, exported from the engine index) - commit SHA_PLACEHOLDER
 
 ### In progress
 
-- 38a — not started.
+- 38b — not started. Start at `packages/store`: migration 0034, `repositories/badges.ts`, `badgeFacts.ts`, `awardBadges`, completion hook, backfill.
 
 ### Next
 
-1. **38a — Engine: catalog + evaluator** (`packages/engine/src/badges/`)
-2. **38b — Store: persistence, facts, award at completion, backfill** (`packages/store`)
-3. **38c — App: badge emblem, Badges screen, Journey card** (`app/src`)
-4. **38d — App: badges on the completion screen + glossary + share** (`app/src`)
+1. **38b — Store: persistence, facts, award at completion, backfill** (`packages/store`)
+2. **38c — App: badge emblem, Badges screen, Journey card** (`app/src`)
+3. **38d — App: badges on the completion screen + glossary + share** (`app/src`)
 
 ---
 
@@ -198,3 +198,44 @@ that renaming an id fails a test (the same protection level ids get).
   Passport opt-in.
 - No new dependencies expected (`react-native-svg` is already installed).
 - No "next badge" nudge on Today in v1. Journey only, so Today stays uncluttered (parked).
+
+### 38a outcome: catalog changes and the BadgeFacts contract (read before 38b)
+
+Public API (all from `@roamfit/engine`): `BADGES`, `evaluateBadges(facts, earnedIds)`,
+`badgeProgress(facts, def)`, `nextBadges(facts, earnedIds, n)`, `getBadge(id)`, `isBadgeEarned`,
+types `BadgeFacts/BadgeDefinition/BadgeProgress/BadgeCategory/BadgeTier`, `BADGE_CATEGORIES`,
+`BADGE_TIERS`, `LADDER_FAMILY_COUNT`, `ALL_ROUNDER_FOCUSES`. `BadgeDefinition.icon` is a plain string
+naming an `IconName` in `app/src/ui/Icon.tsx` (38c should add a test that every catalog icon is a
+valid `IconName`). New field `passport?: true` marks cities/countries badges: the 38c shelf hides
+them when `facts.passportEnabled` is false (their `measure` is 0 then; `nextBadges` skips them).
+
+Catalog deviations from the table above:
+- `all_rounder` id is `all_rounder_4` (target 4 = number of focuses done, so progress reads "3 of 4").
+  Focuses counted are `upper, abs, legs, full`; **cardio is excluded** (add-on, not a planned day).
+  `focusesTrained` may still contain `'cardio'`; it is ignored.
+- `record_day` id is `record_day_3` (target 3 best sets in one session; `maxPrsInOneSession`).
+- `well_rounded` id is `well_rounded_all` (target `LADDER_FAMILY_COUNT` = 8, measure `familiesAtOrAbove3`).
+- `summit` ids are `summit_1`, `summit_3`, `summit_all`; `summit_all` targets `LADDER_FAMILY_COUNT`
+  (a constant, pinned to `familyLibrary.families.length` by a test), not `facts.familyCount`,
+  because a definition's `target` is static. `familyCount` stays in the facts for UI use.
+- `heavy_band` ids are `heavy_band_b3|b4|b5|stacked`; `measure = heaviestBandOrdinal + 1` and
+  `target = BAND_ORDER index + 1` (so -1 = no band yet = 0, never negative). Stacked = `B5+B1`.
+- Tiers: a lone badge is `gold`; in a multi-badge series the last is `summit`, the rest spread over
+  bronze/silver/gold. All other ids/thresholds are exactly as the table. 64 badges total
+  (inline snapshot in `badges.test.ts` pins every id; add new ones by appending to the snapshot).
+
+BadgeFacts computation notes for 38b (everything lifetime, `status = completed` sessions only):
+- Main-section, `set_logs.completed` rows only for: `lifetimeSets/Reps/HoldSeconds`,
+  `distinctExercisesPerformed` (distinct exercise ids), `heaviestBandOrdinal`
+  (`BAND_ORDER.indexOf(band)` of the heaviest actual band logged; -1 if none).
+- `totalMinutes` / `longestSessionMinutes`: active minutes (whole minutes) per completed session.
+- `distinctActiveWeeks`: distinct `isoWeekKey(local_date)` (from `repositories/stats.ts`). Not consecutive.
+- `earlySessions` / `lateSessions`: local hour from `utc_instant` + `tz_id` (< 7 / >= 21), never UTC hours.
+- `cleanSweepSessions`: every planned main set completed AND >= 6 main sets planned.
+- `comebacks`: completed sessions whose `local_date` is >= 14 days after the previous completed
+  session (`daysBetween` from the engine); the first session never counts.
+- `highestLevelOrdinal` is the 1-based display rung, 0 if none; `familiesAtTop` are family ids on
+  the top rung; `familiesAtOrAbove3` counts families at display rung >= 3.
+- `focusesTrained`: distinct session `focus` values, `string[]`.
+- Evaluate with `evaluateBadges(facts, earnedIds)`; the evaluator is retroactive-safe (it returns
+  everything not yet earned that the facts qualify for), so backfill and completion share one call.
