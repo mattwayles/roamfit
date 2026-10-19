@@ -489,13 +489,16 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
             accessibilityLabel={`Next badge: ${data.badges.next.def.name}, ${progressText(data.badges.next.progress)}. Open badges`}
             style={styles.nextBadge}
           >
-            <BadgeEmblem badge={data.badges.next} size={40} />
+            <BadgeEmblem badge={data.badges.next} size={64} />
             <View style={styles.unlockText}>
-              <Txt variant="eyebrow" color="gold">
+              {/* Typeset like the Next unlock card above: sky eyebrow, badge name as the h2 headline
+                  (the way the family name is), neutral progress line underneath. */}
+              <Txt variant="eyebrow" color="sky">
                 Next badge
               </Txt>
+              <Txt variant="h2">{data.badges.next.def.name}</Txt>
               <Txt variant="small" color="text2">
-                {data.badges.next.def.name} · {progressText(data.badges.next.progress)}
+                {progressText(data.badges.next.progress)}
               </Txt>
             </View>
             <Icon name="chevronRight" size={20} color="text3" />

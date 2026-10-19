@@ -56,9 +56,6 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
         <Txt variant="body" color="text2" testID="badges-count">
           {shelf.earnedCount} of {shelf.totalCount} earned
         </Txt>
-        <Txt variant="small" color="text3">
-          Yours for good - badges are never taken away.
-        </Txt>
       </View>
 
       {shelf.almostThere.length > 0 ? (

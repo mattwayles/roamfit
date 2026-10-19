@@ -62,6 +62,7 @@ describe('§14.2 cold start — Today is never empty', () => {
     // Always seven real days, even at a month edge (the neighbouring month's days are real cells).
     expect(within(screen.getByTestId('week-strip')).getAllByTestId(/^week-day-/)).toHaveLength(7);
     expect(screen.queryByText(/this week/i, { exact: false })).not.toBeNull(); // the section label
-    expect(screen.queryByText(/^0\b/)).toBeNull();
+    // A bare "0" tally, not the Next badge's "0 of N" progress line.
+    expect(screen.queryByText(/^0\b(?! of)/)).toBeNull();
   });
 });
