@@ -12,15 +12,6 @@ the record of what was completed and why.
 
 ---
 
-## Track 38 — Badges (in progress)
-
-Permanent badges for showing up, climbing ladders, pushing harder and exploring. Full plan and
-running log: `docs/handoff/STATUS-38-badges.md`. Sub-tracks 38a (engine) → 38b (store) → 38c
-(Badges screen, Journey card, Today next-badge nudge) → 38d (completion screen). Parked from it: a Settings toggle to hide
-badges, syncing `earned_badges` to Firestore.
-
----
-
 ## Desired Fixes
 
 - **Badges visuals (Track 38c) - device pass owed.** Only Jest has seen these. On a device check: the
@@ -28,6 +19,10 @@ badges, syncing `earned_badges` to Firestore.
   and Daybreak, locked (dashed, faint glyph) vs earned is obvious at 40/64/120; the Badges grid at
   large Dynamic Type (names wrap, three columns still fit, nothing clips); the Journey Badges card;
   and the Today "Next badge" row's placement under Next unlock (is Today still uncluttered?).
+  Also the completion-screen badge cards (Track 38d): they land after the level-up cards and before the
+  passport stamp, the emblem pop and level-up cue feel right, a session with more than three badges
+  scrolls cleanly to the "+N more badges" chip, Reduce Motion shows still cards, and the share sheet
+  text reads "Earned the <name> badge on Wanderlift".
 - **Next Unlock → Journey scroll — device pass owed.** Tapping the Next Unlock card on Today now opens
   Journey scrolled to that family's Trail card (`focusFamilyId` route param; offsets come from
   `onLayout`, tested in Jest with synthetic layouts only). On a device check the card lands just under
@@ -221,6 +216,13 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
 
 ## Future Features
 
+- **Settings toggle to hide badges.** Badges have no off switch in v1 (Passport badges follow the
+  Passport opt-in). If someone wants a quieter app, a Settings toggle that hides the Journey card,
+  Today's Next badge row and the completion-screen cards would do it; awarding can keep running
+  silently so nothing is lost.
+- **`buildBadgeFacts` is uncached.** It runs a full-history read on every dashboard load (Today,
+  Journey and Badges). Measure it on a device with a long history before optimizing; if it shows,
+  cache the facts and invalidate on session completion.
 - **Find a workout by focus ("when was my last leg day?").** Track 27 lets you page the Logbook back
   month by month and open any day, but there is no filter or search list. Deliberately not built:
   a focus filter over `getCompletedSessionsInRange` (or a flat "recent workouts" list grouped by

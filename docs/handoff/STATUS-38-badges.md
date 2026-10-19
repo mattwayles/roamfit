@@ -11,20 +11,16 @@ log. Sub-tracks run **in order**, one agent each: 38a → 38b → 38c → 38d.
 - [x] Plan written (this file + BACKLOG section)
 - [x] 38b store: migration 0034 + repo (babbd1d), facts + award at completion + `newBadgeIds` + backfill (2b092cd), startup hook + BACKLOG sync line (see git log, `Badges (Track 38b, 3)`)
 - [x] 38c app: emblem + shelf view model (e4fbe97), Badges route + screen + `badges` in `DashboardData` (6004b13), Journey card (7318bae), Today Next badge row (65bc812)
+- [x] 38d app: timeline badge slot + `completionBadges`/`badgeShareText` + glossary (3b75aae), `BadgeEarnedCard` + Summary wiring (ca87d42)
 - [x] 38a engine catalog + evaluator (`packages/engine/src/badges/`, exported from the engine index) - commit bc33ae9
 
 ### In progress
 
-- 38d, started 2026-10-18, three increments:
-  1. timeline `badgeCount` param (after highlights, 900ms gap, stamp/button move after), `lib/badges.ts`
-     `completionBadges` + `badgeShareText` (earned ShelfBadges from `newBadgeIds`), glossary 'Badges'.
-  2. `components/BadgeEarnedCard.tsx` + SummaryScreen wiring (cap 3 + '+N more badges' chip to Badges,
-     cueLevelUp, mark seen on reveal, Reduce Motion = still) + tests.
-  3. Docs wrap-up: STATUS done, BACKLOG Track 38 section removed, parked items.
+Nothing - Track 38 complete.
 
 ### Next
 
-1. **38d — App: badges on the completion screen + glossary + share** (`app/src`)
+Nothing. Parked in `docs/BACKLOG.md`: Settings toggle to hide badges, uncached `buildBadgeFacts`, badge device pass (Desired Fixes), Firestore sync (no-sync line).
 
 ---
 
@@ -188,6 +184,14 @@ that renaming an id fails a test (the same protection level ids get).
 - Glossary entry "Badges": how they're earned, that they're permanent, and that there are no streaks.
 - Tests: the timeline with badges, Summary shows cards in order, caps at 3 + chip, nothing shown
   for retroactive badges, and the Reduce Motion path.
+
+### 38d outcome
+
+- `buildCompletionTimeline(..., hasStampSlot, badgeCount)`: badges start one highlight beat after the last highlight (or just after the stats), `BADGE_GAP_MS` = 900 apart; the stamp slot and "Heck yes!" follow the last badge by the usual 1100ms.
+- Cards come from `completionBadges(newBadgeIds, badgesRepo.getEarnedBadges(db))` read once in `handleFinish` (no facts read). Retroactive rows are skipped there as a second guard.
+- Seen: each card is marked seen as it lands. Badges folded into the "+N more badges" chip stay unseen on purpose (they keep the NEW dot until Badges is opened). Reuses `cueLevelUp`, shake 5 and a confetti pop; no new assets.
+- Reduce Motion: the card has no fade or pop (and no cue change); shake/confetti already no-op under it.
+- Test note: the Summary badge suite wraps `completeSession` to declare earned ids, and the test db persists across tests in a file, so each test uses ids no earlier test earned.
 
 ### 38c outcome: notes for 38d
 
