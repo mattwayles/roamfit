@@ -806,6 +806,9 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
                   still={reduceMotion}
                   onImpact={handleStampImpact}
                   onShare={() => handleShare(stampShareText(newStamp))}
+                  onOpenPassport={() =>
+                    navigation.navigate('Passport', { stampLabel: newStamp.label })
+                  }
                 />
               </View>
             )}

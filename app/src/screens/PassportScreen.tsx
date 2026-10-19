@@ -341,6 +341,14 @@ export default function PassportScreen({ navigation, route }: Props): React.JSX.
   const stampLabel = route.params?.stampLabel;
   // null until the user pages; then the start page (a stamp's page, else the cover) applies.
   const [pageIndex, setPageIndex] = useState<number | null>(null);
+  // A new `stampLabel` while the screen is already open (Completion's link) drops the user's
+  // paging so the new label's page shows at once: the page is drawn straight from `index`, and
+  // only `goTo` runs a turn, so this is an instant jump.
+  const [seenLabel, setSeenLabel] = useState(stampLabel);
+  if (seenLabel !== stampLabel) {
+    setSeenLabel(stampLabel);
+    setPageIndex(null);
+  }
   const [openEntry, setOpenEntry] = useState<PassportEntry | null>(null);
 
   const pages = useMemo(() => (data ? buildPassportBook(data.passport, data.badges) : []), [data]);

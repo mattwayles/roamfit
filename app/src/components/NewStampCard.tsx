@@ -10,7 +10,8 @@
  *      the screen can shake, burst confetti and play the thunk + haptics;
  *   4. the "Stamp #N" line, any "new country" chip and the tap hint fade up, the glow starts to
  *      breathe.
- * Tapping the stamp lifts it and stamps it again, impact and all. Reduce Motion: the stamp is
+ * Tapping the stamp lifts it and stamps it again, impact and all; a small "See it in your
+ * passport" link under it (fading in with the rest of step 4) opens the book at this stamp. Reduce Motion: the stamp is
  * simply there, with the impact cue and no motion. Plain `Animated` API, all native-driven.
  */
 import React, { useCallback, useEffect, useRef } from 'react';
@@ -18,7 +19,7 @@ import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import type { NewStamp } from '../lib/newStamp';
 import { hapticStampLift } from '../lib/workoutAudio';
 import { makeStyles, radius, space, useTheme, withAlpha } from '../theme';
-import { Card, Chip, IconButton, Stamp, stampSpec, Txt } from '../ui';
+import { Card, Chip, IconButton, PressableScale, Stamp, stampSpec, Txt } from '../ui';
 
 interface Props {
   stamp: NewStamp;
@@ -27,6 +28,8 @@ interface Props {
   /** Fired at the moment of contact — the first stamping and every re-stamp. */
   onImpact: () => void;
   onShare: () => void;
+  /** Opens the Passport book at this stamp's page. */
+  onOpenPassport: () => void;
   testID: string;
 }
 
@@ -43,6 +46,7 @@ export default function NewStampCard({
   still,
   onImpact,
   onShare,
+  onOpenPassport,
   testID,
 }: Props): React.JSX.Element {
   const theme = useTheme();
@@ -306,6 +310,17 @@ export default function NewStampCard({
               <Txt variant="small" color="text3" align="center">
                 Tap the stamp to stamp it again
               </Txt>
+              <PressableScale
+                testID={`${testID}-open-passport`}
+                accessibilityRole="button"
+                accessibilityLabel={`See ${stamp.label} in your passport`}
+                onPress={onOpenPassport}
+                style={styles.passportLink}
+              >
+                <Txt variant="bodyStrong" color="gold">
+                  See it in your passport ›
+                </Txt>
+              </PressableScale>
             </Animated.View>
           </Card>
         </Animated.View>
@@ -336,6 +351,7 @@ const useStyles = makeStyles((t) =>
     stage: { alignItems: 'center', justifyContent: 'center' },
     ring: { position: 'absolute', borderWidth: 3 },
     shadow: { position: 'absolute', backgroundColor: withAlpha('#000000', 0.5) },
+    passportLink: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.md },
     after: { alignItems: 'center', gap: space.xs, marginTop: space.xs },
   }),
 );

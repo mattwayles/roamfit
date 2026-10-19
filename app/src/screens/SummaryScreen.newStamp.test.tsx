@@ -44,6 +44,8 @@ function Setup({ onReady }: { onReady: (db: Db) => void }) {
   return null;
 }
 
+const navigate = jest.fn();
+
 async function finishASession(passportEnabled: boolean) {
   let db!: Db;
   render(
@@ -96,7 +98,7 @@ async function finishASession(passportEnabled: boolean) {
         <SummaryScreen
           navigation={
             {
-              navigate: jest.fn(),
+              navigate,
               replace: jest.fn(),
               reset: jest.fn(),
               goBack: jest.fn(),
@@ -116,7 +118,10 @@ async function finishASession(passportEnabled: boolean) {
 
 describe('new Passport stamp on the completion screen', () => {
   afterEach(() => jest.restoreAllMocks());
-  beforeEach(() => lookup.mockReset());
+  beforeEach(() => {
+    lookup.mockReset();
+    navigate.mockClear();
+  });
 
   it('slams the stamp in with the stamping haptics, then lets "Heck yes!" arrive after it', async () => {
     lookup.mockResolvedValue(BEND);
@@ -161,6 +166,17 @@ describe('new Passport stamp on the completion screen', () => {
     const before = rigid();
     fireEvent.press(screen.getByTestId('new-stamp-press'));
     await waitFor(() => expect(rigid()).toBe(before + 1), EVENTUALLY);
+  });
+
+  it('opens the Passport at the stamp that landed from the link under it', async () => {
+    lookup.mockResolvedValue(BEND);
+    await finishASession(true);
+    await waitFor(
+      () => expect(screen.getByTestId('new-stamp-open-passport')).toBeTruthy(),
+      EVENTUALLY,
+    );
+    await fireEvent.press(screen.getByTestId('new-stamp-open-passport'));
+    expect(navigate).toHaveBeenCalledWith('Passport', { stampLabel: 'Bend, OR, USA' });
   });
 
   it('never looks anything up when Passport is off', async () => {

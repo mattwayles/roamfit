@@ -3,6 +3,8 @@ import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import { completeSession, generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import { getDb } from '../db';
 import { nowEngineClock, nowUtcInstant } from './localClock';
+import { buildPassportSummary } from './dashboard';
+import { bookPageForLabel } from './passportBook';
 import { formatStampDate, lookupNewStamp } from './newStamp';
 
 /** A real, fully-logged, completed session on today's local date. */
@@ -93,6 +95,19 @@ describe('lookupNewStamp against the real store', () => {
       newCountry: true,
     });
     expect(stamp?.dateLabel).toMatch(/^[A-Z]{3} \d{1,2}, \d{4}$/);
+  });
+
+  it('carries the exact label the Passport book files the place under (the deep link finds it)', async () => {
+    const db = getDb();
+    const id = completeASession('stamp-lookup-label');
+    const place = { city: 'Lisbon', country: 'Portugal', region: null, countryCode: 'PT' };
+    const stamp = await lookupNewStamp(db, id, 1000, async () =>
+      sessionsRepo.applyGeocodeResult(db, id, place, nowUtcInstant()),
+    );
+    expect(stamp?.label).toBe('Lisbon, PRT');
+    const summary = buildPassportSummary(sessionsRepo.getCompletedSessionsForDashboard(db));
+    expect(summary.entries.map((e) => e.label)).toContain(stamp?.label);
+    expect(bookPageForLabel(summary, stamp!.label)).not.toBeNull();
   });
 
   it('returns null for a place that already has a stamp, and for a lookup that found nothing', async () => {

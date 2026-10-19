@@ -5,9 +5,9 @@
  */
 import React from 'react';
 import { Text } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { StoreProvider } from '../state/StoreContext';
 import { ThemeProvider } from '../state/ThemeProvider';
 import type { RootStackParamList } from '../navigation/types';
@@ -24,6 +24,7 @@ const mockUseDashboardData = useDashboardData as jest.Mock;
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const reload = jest.fn();
+let navRef = createNavigationContainerRef<RootStackParamList>();
 
 function BadgesStub(): React.JSX.Element {
   return <Text testID="badges-stub">badges</Text>;
@@ -49,8 +50,9 @@ function setData(opts: { enabled?: boolean; sessions?: ReturnType<typeof manyPla
 }
 
 function mount(params?: RootStackParamList['Passport'], theme?: 'light' | 'dark') {
+  navRef = createNavigationContainerRef<RootStackParamList>();
   const tree = (
-    <NavigationContainer>
+    <NavigationContainer ref={navRef}>
       <Stack.Navigator>
         <Stack.Screen name="Passport" component={PassportScreen} initialParams={params} />
         <Stack.Screen name="Badges" component={BadgesStub} />
@@ -117,6 +119,26 @@ describe('PassportScreen', () => {
     await waitFor(() => expect(screen.getByTestId('passport-page-visa-1')).toBeTruthy(), WAIT_OPTS);
     expect(pageLabel()).toBe('Page 5 of 6');
     expect(screen.getByTestId('passport-stamp-Cusco, PER')).toBeTruthy();
+  });
+
+  it('a new stampLabel while open jumps straight to that stamp page, with no turn', async () => {
+    mount({ stampLabel: 'City01, PRT' });
+    await waitFor(() => expect(screen.getByTestId('passport-page-visa-0')).toBeTruthy(), WAIT_OPTS);
+    // The user pages away first, so their own paging is what the new label has to override.
+    await fireEvent.press(screen.getByTestId('passport-next'));
+    await settle();
+    expect(pageLabel()).toBe('Page 5 of 6');
+
+    await act(async () => navRef.navigate('Passport', { stampLabel: 'Cusco, PER' }));
+    await waitFor(() => expect(screen.getByTestId('passport-page-visa-1')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.queryByTestId('passport-turn', { includeHiddenElements: true })).toBeNull();
+    expect(screen.getByTestId('passport-stamp-Cusco, PER')).toBeTruthy();
+    expect(pageLabel()).toBe('Page 5 of 6');
+
+    // Back to an earlier label: the page follows, still without a turn.
+    await act(async () => navRef.navigate('Passport', { stampLabel: 'City01, PRT' }));
+    await waitFor(() => expect(screen.getByTestId('passport-page-visa-0')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.queryByTestId('passport-turn', { includeHiddenElements: true })).toBeNull();
   });
 
   it('an unknown stampLabel falls back to the cover', async () => {
