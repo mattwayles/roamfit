@@ -34,7 +34,7 @@ the record of what was completed and why.
   the top edge with the chart's height settled (cards are taller once their charts mount), that it
   works both from a cold Journey and with Journey already open, and that Reduce Motion is fine.
 - **Demo-video leftovers are now dead weight.** The Demo card, the paste-a-link flow and the
-  video-flag demotion are gone (How to now has a "Watch a video" button opening a YouTube search for
+  video-flag demotion are gone (How to now has a "Watch a demo" button opening a YouTube search for
   "<name> Exercise"; `lib/youtubeSearch.ts`). Left in place, unread: `exercise_state.user_video_id`,
   `user_video_assigned_at`, `video_flag_count`, `video_demoted_at`, `session_entries.demo_media_expanded`,
   the `remote_video_config` table with its `remoteConfigRepo` and Firestore pull, the

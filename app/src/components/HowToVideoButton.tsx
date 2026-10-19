@@ -16,7 +16,7 @@ export default function HowToVideoButton({
   return (
     <Button
       testID="how-to-video-link"
-      label="Watch a video"
+      label="Watch a demo"
       variant="secondary"
       size="md"
       icon="external"
