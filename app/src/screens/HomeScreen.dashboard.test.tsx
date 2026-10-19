@@ -46,7 +46,8 @@ describe('§14.2 cold start — Today is never empty', () => {
     expect(screen.queryByTestId('disclaimer-gate')).toBeNull();
     await waitFor(() => expect(screen.getByTestId('tab-Journey')).toBeTruthy(), WAIT_OPTS);
 
-    // Wordmark greeting and the Settings gear.
+    // Logo, wordmark greeting and the Settings gear.
+    expect(screen.getByTestId('today-logo')).toBeTruthy();
     expect(screen.getByTestId('today-greeting').props.children).toBe(greetingFor(new Date()));
     expect(screen.getByTestId('open-settings')).toBeTruthy();
 

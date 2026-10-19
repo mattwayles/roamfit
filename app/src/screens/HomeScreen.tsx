@@ -21,7 +21,7 @@
  * into the engine).
  */
 import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { generate, sessionsRepo, statsRepo } from '@roamfit/store';
 import { createRng, seedFromString } from '@roamfit/engine';
@@ -31,6 +31,7 @@ import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { findCurrentEntry, sessionCompletionFraction } from '../lib/sessionProgress';
 import { greetingFor } from '../lib/hypeCopy';
+import { LOGO, LOGO_ASPECT } from '../lib/brand';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import { OnboardingFlow } from '../components/OnboardingFlow';
 import { nextUnlockHero, WEEKDAY_LABELS } from '../lib/dashboard';
@@ -223,9 +224,18 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
     >
       <Enter index={next()} style={styles.header}>
         <View style={styles.headerText}>
-          <Txt variant="h1" color="teal">
-            Wanderlift
-          </Txt>
+          <View style={styles.titleRow}>
+            <Image
+              source={LOGO}
+              style={styles.logo}
+              resizeMode="contain"
+              accessible={false}
+              testID="today-logo"
+            />
+            <Txt variant="h1" color="teal">
+              Wanderlift
+            </Txt>
+          </View>
           <Txt variant="small" color="text2" testID="today-greeting">
             {greeting}
           </Txt>
@@ -619,6 +629,9 @@ const useStyles = makeStyles((t) =>
     content: { paddingTop: space.lg, paddingBottom: space.huge + space.xxl, gap: space.xl },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     headerText: { flex: 1 },
+    titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+    // The image carries glow padding, so it is drawn a little taller than the h1 line.
+    logo: { height: 44, width: 44 * LOGO_ASPECT, marginVertical: -6 },
     banner: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
     bannerText: { flex: 1, gap: 2, paddingTop: 2 },
     bannerActions: {

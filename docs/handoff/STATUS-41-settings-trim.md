@@ -14,13 +14,11 @@ User request:
 - [x] Steps 1+2: run-setup and Starting levels removed; OnboardingFlow is first-launch only;
   placeOnLadders / applyPlacement / PlacementPicker deleted with their tests — c7e3963
 - [x] Step 3: levelUp.ts moves the rung with no hard-filter check; `no_eligible_exercise` and its
-  Journey copy gone; levelUp.test.ts walks every ladder up and down with no equipment — (next commit)
+  Journey copy gone; levelUp.test.ts walks every ladder up and down with no equipment — 9db64fa
+- [x] Step 4: Today title row has the logo (shared `app/src/lib/brand.ts`) — (next commit)
 
 ### In progress
-4. Today header logo (app/assets/logo.png), next to the WANDERLIFT title.
-
-### Next
-5. Settings gear on Journey and Field guide headers.
+5. Settings gear on Journey and Field guide headers (same IconButton as Today's `open-settings`).
 
 ### Decisions / gotchas
 - Limitations are also no longer checked on a manual move: the ladder position is not unsafe in
