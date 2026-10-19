@@ -17,6 +17,8 @@
  *   4. §6.4/§6.7 — every level-up and Mastery best set this session earned stamps down on its
  *      own beat: its own sound, haptic, shake and confetti pop, the level bar filling. These used
  *      to be a separate step-through screen shown first; they are now this screen's crescendo;
+ *   4b. Track 38d — each badge earned this session (at most three; the rest a "+N more" chip)
+ *      lands after the highlights as a `BadgeEarnedCard`, then the passport stamp;
  *   5. "Heck yes!" arrives last and keeps pulsing. Tapping the headline fires another burst.
  * Over a drifting glow-orb backdrop the whole time. All plain `Animated` API — the app has no
  * reanimated/lottie/svg library, and adding one costs a dev-client rebuild (BACKLOG). Reduce
@@ -43,7 +45,13 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { completeSession, milestonesRepo, sessionsRepo, usersRepo } from '@roamfit/store';
+import {
+  badgesRepo,
+  completeSession,
+  milestonesRepo,
+  sessionsRepo,
+  usersRepo,
+} from '@roamfit/store';
 import type { CompleteSessionResult } from '@roamfit/store';
 import type { RootStackParamList } from '../navigation/types';
 import { homeReset } from '../navigation/routes';
@@ -56,6 +64,7 @@ import {
   type HighlightCelebration,
 } from '../lib/celebration';
 import { buildSessionCompletionStats } from '../lib/sessionStats';
+import { badgeShareText, completionBadges, type ShelfBadge } from '../lib/badges';
 import { lookupNewStamp, type NewStamp } from '../lib/newStamp';
 import {
   cueLevelUp,
@@ -72,8 +81,10 @@ import HypeHeadline from '../components/HypeHeadline';
 import {
   buildCompletionTimeline,
   HIGHLIGHT_SCROLL_LEAD_MS,
+  MAX_BADGE_CARDS,
   STAMP_SETTLE_MS,
 } from '../lib/completionTimeline';
+import BadgeEarnedCard from '../components/BadgeEarnedCard';
 import HighlightCard from '../components/HighlightCard';
 import NewStampCard, { STAMP_IMPACT_MS } from '../components/NewStampCard';
 import FeedbackControls, { type Difficulty } from '../components/FeedbackControls';
@@ -195,6 +206,11 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   const [reduceMotion, setReduceMotion] = useState(false);
   /** How many highlight cards have stamped down so far. */
   const [revealedHighlights, setRevealedHighlights] = useState(0);
+  /** The badges this session earned (all of them), and how many of the shown cards have landed. */
+  const [earnedBadges, setEarnedBadges] = useState<ShelfBadge[]>([]);
+  const [revealedBadges, setRevealedBadges] = useState(0);
+  const badgesTop = useRef(0);
+  const badgeLayouts = useRef<{ y: number; height: number }[]>([]);
   /** Every confetti burst currently in flight. Each mounts once and runs to completion; the list
    *  is capped so tapping the headline forever can't pile up thousands of views. */
   const [bursts, setBursts] = useState<
@@ -359,6 +375,9 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     [completionStats],
   );
 
+  const shownBadges = useMemo(() => earnedBadges.slice(0, MAX_BADGE_CARDS), [earnedBadges]);
+  const hiddenBadgeCount = earnedBadges.length - shownBadges.length;
+
   const hypeHeadline = pickHypeHeadline(sessionId);
   const timeline = useMemo(
     () =>
@@ -367,8 +386,9 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
         statTiles.length,
         celebration.highlights.length,
         stampSlot,
+        shownBadges.length,
       ),
-    [hypeHeadline, statTiles.length, celebration.highlights.length, stampSlot],
+    [hypeHeadline, statTiles.length, celebration.highlights.length, stampSlot, shownBadges.length],
   );
 
   // The whole completion choreography, run once when the screen appears. Every beat is a timer
@@ -379,6 +399,8 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
   //   content      count text fades up; each stat tile pops with its own tick
   //   highlights   each level-up/Mastery card stamps down (`cueLevelUp`, shake, confetti pop),
   //                scrolled into view first if it's below the fold
+  //   badges       each badge earned this session lands (`cueLevelUp`, shake, confetti pop) and is
+  //                marked seen; at most MAX_BADGE_CARDS, the rest a '+N more' chip
   //   stamp        Passport on: a new place's stamp slams down (`NewStampCard`), after the lookup
   //                that started at FINISH has answered — "Heck yes!" waits for it, never forever
   //   button       a Success pulse and "Heck yes!" springs in, then keeps pulsing
@@ -389,6 +411,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     buttonOpacity.setValue(0);
     raysVisible.setValue(0);
     setRevealedHighlights(0);
+    setRevealedBadges(0);
     setNewStamp(null);
 
     let cancelled = false;
@@ -435,6 +458,37 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
               }
             : undefined,
         );
+      });
+    });
+
+    timeline.badges.forEach((revealAt, i) => {
+      at(revealAt - HIGHLIGHT_SCROLL_LEAD_MS, () => {
+        const card = badgeLayouts.current[i];
+        if (!card) return;
+        const cardBottom = badgesTop.current + card.y + card.height;
+        const target = cardBottom - viewportHeight.current + 110;
+        if (target > scrollY.current) scrollRef.current?.scrollTo({ y: target, animated: true });
+      });
+      at(revealAt, () => {
+        setRevealedBadges(i + 1);
+        cueLevelUp();
+        shakeScreen(5);
+        const card = badgeLayouts.current[i];
+        addBurst(
+          'pop',
+          card
+            ? {
+                x: windowWidth / 2,
+                y: badgesTop.current + card.y + card.height / 2 - scrollY.current,
+              }
+            : undefined,
+        );
+        // Shown to the user now, so the NEW dot on Journey is not for these.
+        try {
+          badgesRepo.markBadgesSeen(db, [shownBadges[i].def.id], nowUtcInstant());
+        } catch {
+          // A celebration never fails over bookkeeping; the Badges screen marks them seen later.
+        }
       });
     });
 
@@ -693,6 +747,49 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
               </View>
             )}
 
+            {shownBadges.length > 0 && (
+              <View
+                testID="completion-badges"
+                style={styles.highlights}
+                onLayout={(e: LayoutChangeEvent) => {
+                  badgesTop.current = e.nativeEvent.layout.y;
+                }}
+              >
+                {shownBadges.map((b, i) => (
+                  <View
+                    key={b.def.id}
+                    style={styles.flexRow}
+                    onLayout={(e: LayoutChangeEvent) => {
+                      badgeLayouts.current[i] = {
+                        y: e.nativeEvent.layout.y,
+                        height: e.nativeEvent.layout.height,
+                      };
+                    }}
+                  >
+                    <BadgeEarnedCard
+                      testID={`badge-${i}`}
+                      badge={b}
+                      revealed={i < revealedBadges}
+                      still={reduceMotion}
+                      onShare={() => handleShare(badgeShareText(b.def))}
+                    />
+                  </View>
+                ))}
+                {hiddenBadgeCount > 0 && revealedBadges >= shownBadges.length && (
+                  <View style={styles.moreBadges}>
+                    <Chip
+                      testID="badges-more"
+                      tone="gold"
+                      icon="star"
+                      label={`+${hiddenBadgeCount} more ${hiddenBadgeCount === 1 ? 'badge' : 'badges'}`}
+                      onPress={() => navigation.navigate('Badges')}
+                      accessibilityLabel={`${hiddenBadgeCount} more ${hiddenBadgeCount === 1 ? 'badge' : 'badges'} earned. Open Badges`}
+                    />
+                  </View>
+                )}
+              </View>
+            )}
+
             {newStamp && (
               <View
                 style={styles.flexRow}
@@ -800,6 +897,7 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     const passportOn = usersRepo.getUser(db)?.passportEnabled === true;
     stampLookup.current = passportOn ? lookupNewStamp(db, sessionId) : null;
     setStampSlot(passportOn);
+    setEarnedBadges(completionBadges(completion.newBadgeIds, badgesRepo.getEarnedBadges(db)));
     setResult(completion);
     setMilestones(milestonesRepo.getMilestonesForSession(db, sessionId));
     setWorkoutCount(sessionsRepo.countCompletedSessions(db));
@@ -1213,6 +1311,7 @@ const useStyles = makeStyles((t) =>
     statTile: { flexBasis: '46%', flexGrow: 1 },
     bandRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
     highlights: { width: '100%', gap: space.md },
+    moreBadges: { alignItems: 'center' },
     // Wider tracking than the eyebrow token for this one heading.
     highlightsHeading: { letterSpacing: 2 },
     quietMilestones: {
