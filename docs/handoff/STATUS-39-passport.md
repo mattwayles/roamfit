@@ -14,7 +14,9 @@ log. Sub-tracks run **in order**, one agent each: 39a → 39b → 39c → 39d.
 
 ### In progress
 
-- 39b not started.
+- 39b underway. Plan: (1) `app/src/lib/passportBook.ts` page model + tests; (2) `Passport` route, `PassportScreen.tsx`
+  (screen owns `pageIndex`/`goTo`, `<PassportPage page=.../>` renders one page) + tests (useDashboardData mocked);
+  (3) `components/PassportOptInCard.tsx` (JourneyScreen untouched; 39d swaps it in); (4) status + report.
 
 ### Next
 
