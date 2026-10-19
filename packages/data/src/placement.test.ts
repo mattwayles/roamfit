@@ -25,4 +25,9 @@ describe('placement content (track 37g)', () => {
     expect([...shares].sort((a, b) => a - b)).toEqual(shares);
     expect(Math.max(...shares)).toBeLessThan(1);
   });
+
+  it('"4 to 8" chin-ups starts on the Chin-Up rung, not the harder Pull-Up', () => {
+    const q = PLACEMENT_QUESTIONS.find((x) => x.id === 'pull_ups')!;
+    expect(q.answers.find((a) => a.id === 'some')?.levelId).toBe('vertical_pull.l7');
+  });
 });
