@@ -303,7 +303,7 @@ export default function SettingsScreen(): React.JSX.Element {
             icon="barbell"
             tone="teal"
             label="Training preferences"
-            value={`${trainingSummary(user.trainingPreferences)} · ${user.weeklyTarget} days a week`}
+            value={trainingSummary(user.trainingPreferences)}
             hint="Opens goal, rest, variety, recovery, pace and warm-up settings"
             onPress={() => navigation.navigate('TrainingPreferences')}
           />

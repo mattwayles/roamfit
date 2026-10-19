@@ -94,7 +94,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           quietHoursEnabled: user.notificationPrefs.quietHoursEnabled ?? true,
           quietHoursStart: user.notificationPrefs.quietHoursStart,
           quietHoursEnd: user.notificationPrefs.quietHoursEnd,
-          motivationContext: { hero: nextUnlockHero(board), weekStreak: stats.weekStreak },
+          motivationContext: { hero: nextUnlockHero(board) },
           todayLocalDate,
           skipToday: alreadyCompletedToday || isTravelDayToday,
         }),

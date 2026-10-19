@@ -36,7 +36,6 @@ function userState(overrides: Partial<UserState> = {}): UserState {
   return {
     profile: {
       units: 'lb',
-      weeklyTarget: 3,
       limitations: [],
       anchorsAvailable: [],
       disabledExerciseIds: [],

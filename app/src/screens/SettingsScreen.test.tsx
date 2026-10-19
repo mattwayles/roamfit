@@ -282,7 +282,6 @@ describe('training preferences (track 37f)', () => {
     usersRepo.updateUser(
       getDb(),
       {
-        weeklyTarget: 3,
         trainingPreferences: { goal: 'general', pace: 'steady' },
         notificationPrefs: { quietHoursEnabled: true, quietHoursStart: 22, quietHoursEnd: 7 },
       },
@@ -290,24 +289,21 @@ describe('training preferences (track 37f)', () => {
     );
   });
 
-  it('the row summarises the goal and days, and the screen saves each choice', async () => {
+  it('the row summarises the goal, and the screen saves each choice', async () => {
     await openSettings();
     expect(screen.getByTestId('settings-training-preferences-value')).toHaveTextContent(
-      'General fitness · 3 days a week',
+      'General fitness',
     );
     await fireEvent.press(screen.getByTestId('settings-training-preferences'));
     await ready('training-preferences-screen');
     expect(checked('pref-goal-general')).toBe(true);
     await fireEvent.press(screen.getByTestId('pref-goal-strength'));
     await fireEvent.press(screen.getByTestId('pref-pace-patient'));
-    await fireEvent.press(screen.getByTestId('pref-days-plus'));
     expect(checked('pref-goal-strength')).toBe(true);
     expect(checked('pref-goal-general')).toBe(false);
     expect(screen.getByTestId('pref-goal-strength').props.accessibilityRole).toBe('radio');
-    expect(screen.getByTestId('pref-days-value')).toHaveTextContent('4');
     const user = usersRepo.getUser(getDb())!;
     expect(user.trainingPreferences).toMatchObject({ goal: 'strength', pace: 'patient' });
-    expect(user.weeklyTarget).toBe(4);
   });
 
   it('the quiet window moves by the hour and the label follows', async () => {

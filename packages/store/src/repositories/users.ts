@@ -87,7 +87,6 @@ export type ThemePreference = 'system' | 'light' | 'dark';
 export interface UserRecord {
   id: string;
   units: 'kg' | 'lb';
-  weeklyTarget: number;
   anchorsAvailable: Anchor[];
   /** Always complete: `DEFAULT_BAND_TENSIONS` is merged under whatever the row holds, so an
    *  existing `'{}'` row (every row, until Settings gains an editor) still yields five usable
@@ -219,7 +218,6 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
   return {
     id: row.id,
     units: row.units,
-    weeklyTarget: row.weeklyTarget,
     anchorsAvailable: JSON.parse(row.anchorsAvailable) as Anchor[],
     bandTensions: mergeBandTensions(
       JSON.parse(row.bandTensions) as Partial<Record<SingleBandId, Partial<BandTension>>>,
@@ -271,7 +269,6 @@ export function getUser(db: Db): UserRecord | null {
 
 export interface UserPatch {
   units?: 'kg' | 'lb';
-  weeklyTarget?: number;
   anchorsAvailable?: Anchor[];
   passportEnabled?: boolean;
   healthWriteEnabled?: boolean;
@@ -294,7 +291,6 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
   const current = ensureUser(db, now); // idempotent — a settings update before the user row exists must not no-op
   const values: Record<string, unknown> = { updatedAt: now };
   if (patch.units !== undefined) values.units = patch.units;
-  if (patch.weeklyTarget !== undefined) values.weeklyTarget = patch.weeklyTarget;
   if (patch.anchorsAvailable !== undefined) {
     values.anchorsAvailable = JSON.stringify(patch.anchorsAvailable);
   }
@@ -483,7 +479,6 @@ export function buildUserProfile(db: Db, today: string): UserProfile {
   const user = ensureUser(db, today);
   return {
     units: user.units,
-    weeklyTarget: user.weeklyTarget,
     limitations: [
       ...limitationsFromChoices(user.limitationChoices),
       ...getActiveLimitations(db, today),

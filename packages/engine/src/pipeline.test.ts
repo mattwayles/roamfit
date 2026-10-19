@@ -33,7 +33,6 @@ function coldStartUserState(overrides: Partial<UserState> = {}): UserState {
   return {
     profile: {
       units: 'lb',
-      weeklyTarget: 3,
       limitations: [],
       anchorsAvailable: [...FIXED_POINT_ANCHORS],
       disabledExerciseIds: [],
@@ -136,7 +135,6 @@ describe('generateSession — pipeline wiring', () => {
     const userState = coldStartUserState({
       profile: {
         units: 'lb',
-        weeklyTarget: 3,
         limitations: [{ tag: 'shoulder_overhead', createdAt: '2026-01-01', source: 'user' }],
         anchorsAvailable: [...FIXED_POINT_ANCHORS],
         disabledExerciseIds: [],
@@ -510,7 +508,6 @@ describe('Track 14 — cardio focus, ~40-exercise fixture library', () => {
     return coldStartUserState({
       profile: {
         units: 'lb',
-        weeklyTarget: 3,
         limitations: [],
         anchorsAvailable: [...FIXED_POINT_ANCHORS],
         disabledExerciseIds: [],
@@ -577,7 +574,6 @@ describe('Track 14 — cardio focus, ~40-exercise fixture library', () => {
       history,
       profile: {
         units: 'lb',
-        weeklyTarget: 3,
         limitations: [{ tag: 'knee_impact', createdAt: '2026-01-01', source: 'user' }],
         anchorsAvailable: [...FIXED_POINT_ANCHORS],
         disabledExerciseIds: [],
@@ -633,7 +629,6 @@ describe('Track 14 — cardio focus, ~40-exercise fixture library', () => {
           userState: cardioUserState({
             profile: {
               units: 'lb',
-              weeklyTarget: 3,
               limitations: [],
               anchorsAvailable: [...FIXED_POINT_ANCHORS, 'jump-rope'],
               disabledExerciseIds: [],

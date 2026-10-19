@@ -38,7 +38,6 @@ function coldStart(overrides: Partial<UserState> = {}): UserState {
   return {
     profile: {
       units: 'lb',
-      weeklyTarget: 3,
       limitations: [],
       anchorsAvailable: [...FIXED_POINT_ANCHORS],
       disabledExerciseIds: [],
@@ -80,7 +79,6 @@ const userStates: [string, () => UserState][] = [
       coldStart({
         profile: {
           units: 'lb',
-          weeklyTarget: 3,
           limitations: [{ tag: 'shoulder_overhead', createdAt: '2026-01-01', source: 'user' }],
           anchorsAvailable: [...FIXED_POINT_ANCHORS],
           disabledExerciseIds: [],
@@ -93,7 +91,6 @@ const userStates: [string, () => UserState][] = [
       coldStart({
         profile: {
           units: 'lb',
-          weeklyTarget: 3,
           limitations: [],
           anchorsAvailable: [...FIXED_POINT_ANCHORS, 'pullup-bar', 'body-support'],
           disabledExerciseIds: [],

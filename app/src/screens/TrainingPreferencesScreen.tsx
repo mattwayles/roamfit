@@ -1,8 +1,7 @@
 /**
  * Track 37f — Settings → Training → Training preferences. Every choice saves immediately and shapes
- * the next workout built; nothing about past workouts or ladder progress is rewritten. Training days
- * per week is the existing `weekly_target`: the motivation pool's "N weeks on target" lines read it,
- * and nothing ever shows a count of missed days (invariant 4).
+ * the next workout built; nothing about past workouts or ladder progress is rewritten. There is no
+ * days-per-week setting (removed in Track 40): nothing in the app counts days against a target.
  */
 import React, { useCallback, useState } from 'react';
 import { StyleSheet } from 'react-native';
@@ -13,10 +12,8 @@ import { nowUtcInstant } from '../lib/localClock';
 import { TRAINING_OPTION_GROUPS } from '../lib/trainingOptions';
 import type { TrainingOptionGroup } from '../lib/trainingOptions';
 import { TrainingOptionPicker } from '../components/TrainingOptionPicker';
-import { Group } from '../components/SettingsList';
 import { makeStyles, space } from '../theme';
 import { Screen, Txt } from '../ui';
-import { DAYS_PER_WEEK_CAPTION, DaysPerWeekStepper } from '../components/DaysPerWeekStepper';
 
 export default function TrainingPreferencesScreen(): React.JSX.Element {
   const { db } = useStore();
@@ -40,13 +37,6 @@ export default function TrainingPreferencesScreen(): React.JSX.Element {
         The recommended settings suit almost everyone starting out. Change anything, any time. Your
         progress is kept.
       </Txt>
-
-      <Group title="Training days per week" caption={DAYS_PER_WEEK_CAPTION}>
-        <DaysPerWeekStepper
-          days={user.weeklyTarget}
-          onChange={(weeklyTarget) => save({ weeklyTarget })}
-        />
-      </Group>
 
       {TRAINING_OPTION_GROUPS.map((group) => {
         const g = group as TrainingOptionGroup<keyof TrainingPreferences>;

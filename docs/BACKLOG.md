@@ -37,6 +37,13 @@ the record of what was completed and why.
   (`lifetimeSets` in `stats.ts`, derived from `set_logs`), so nothing reads the column
   (`rolled_up_stats`, migration 0003) or `lifetimeTotalMinutes` any more. Drop both with a
   migration, or leave if a minutes stat returns.
+- **`travel_days_this_week` is now write-only.** It reduced the weekly-target denominator, which went
+  with days per week (Track 40). `recordTravelDay` still bumps it; the calendar reads the
+  `travel_day` signal event instead. Drop the column and the bump with a migration.
+- **Setup trim and the bands prompt (Track 40) — device pass owed.** Setup is now welcome, goal,
+  limitations. On a device: a fresh install's Generate → Available equipment → Resistance bands
+  opens "Set up your bands first?"; "Set up my bands" opens Your bands and coming back shows the
+  row ticked once a band is chosen; "Use all five for now" ticks it and never asks again.
 - **Apple Health write — device pass owed.** Track 37m: turning on "Write workouts to Apple Health"
   requests write-only access, and the first write of each launch re-requests silently (the flag is
   in-memory), so workouts queued before a relaunch are no longer dropped. Jest-verified with a mocked

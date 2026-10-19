@@ -104,32 +104,19 @@ export function computeActivation(db: Db): ActivationSnapshot {
 
 // ------------------------------------------------------------------------------------------
 // Retention: D1 / D7 / D30 — "did the user return with a completed session exactly N days
-// after install" (createdAt's local_date), plus week-target adherence over time (fraction of
-// ISO weeks since the first session where completed-session count met that week's target —
-// note the target used is the user's *current* weeklyTarget, since past-week targets aren't
-// separately recorded; documented rather than silently assumed).
+// after install" (createdAt's local_date). Week-target adherence went with days per week
+// (Track 40).
 // ------------------------------------------------------------------------------------------
 export interface RetentionSnapshot {
   d1: boolean;
   d7: boolean;
   d30: boolean;
-  weekTargetAdherence: number | null; // 0..1, null if no session yet
-}
-
-function isoWeekKey(localDate: string): string {
-  const [y, m, d] = localDate.split('-').map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d));
-  const dayNum = (date.getUTCDay() + 6) % 7; // Mon=0
-  date.setUTCDate(date.getUTCDate() - dayNum + 3); // nearest Thursday
-  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
-  const week = 1 + Math.round((date.getTime() - firstThursday.getTime()) / (7 * 86_400_000));
-  return `${date.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
 }
 
 export function computeRetention(db: Db): RetentionSnapshot {
   const user = getUser(db);
   const userRow = db.select().from(schema.users).where(eq(schema.users.id, 'local')).all()[0];
-  if (!user || !userRow) return { d1: false, d7: false, d30: false, weekTargetAdherence: null };
+  if (!user || !userRow) return { d1: false, d7: false, d30: false };
   const installLocalDate = userRow.createdAt.slice(0, 10);
   const completed = db
     .select()
@@ -140,18 +127,7 @@ export function computeRetention(db: Db): RetentionSnapshot {
   const returnedOn = (n: number) =>
     [...completedDates].some((d) => daysBetween(installLocalDate, d) === n);
 
-  let weekTargetAdherence: number | null = null;
-  if (completed.length > 0) {
-    const byWeek = new Map<string, number>();
-    for (const r of completed) {
-      const wk = isoWeekKey(r.localDate);
-      byWeek.set(wk, (byWeek.get(wk) ?? 0) + 1);
-    }
-    const weeksHit = [...byWeek.values()].filter((n) => n >= user.weeklyTarget).length;
-    weekTargetAdherence = weeksHit / byWeek.size;
-  }
-
-  return { d1: returnedOn(1), d7: returnedOn(7), d30: returnedOn(30), weekTargetAdherence };
+  return { d1: returnedOn(1), d7: returnedOn(7), d30: returnedOn(30) };
 }
 
 // ------------------------------------------------------------------------------------------
