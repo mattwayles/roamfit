@@ -221,7 +221,7 @@ Catalog deviations from the table above:
 - `heavy_band` ids are `heavy_band_b3|b4|b5|stacked`; `measure = heaviestBandOrdinal + 1` and
   `target = BAND_ORDER index + 1` (so -1 = no band yet = 0, never negative). Stacked = `B5+B1`.
 - Tiers: a lone badge is `gold`; in a multi-badge series the last is `summit`, the rest spread over
-  bronze/silver/gold. All other ids/thresholds are exactly as the table. 64 badges total
+  bronze/silver/gold. All other ids/thresholds are exactly as the table. 73 badges total
   (inline snapshot in `badges.test.ts` pins every id; add new ones by appending to the snapshot).
 
 BadgeFacts computation notes for 38b (everything lifetime, `status = completed` sessions only):
