@@ -9,7 +9,7 @@ log. Sub-tracks run **in order**, one agent each: 38a → 38b → 38c → 38d.
 ### Done
 
 - [x] Plan written (this file + BACKLOG section)
-- [x] 38a engine catalog + evaluator (`packages/engine/src/badges/`, exported from the engine index) - commit SHA_PLACEHOLDER
+- [x] 38a engine catalog + evaluator (`packages/engine/src/badges/`, exported from the engine index) - commit bc33ae9
 
 ### In progress
 
