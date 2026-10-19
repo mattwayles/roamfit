@@ -12,6 +12,8 @@ import {
   buildLifetimeCounters,
   buildMuscleBalanceRows,
   buildPassportSummary,
+  passportVisaPages,
+  passportPageForLabel,
   buildProgressionBoard,
   earliestMonth,
   monthLabel,
@@ -199,6 +201,92 @@ describe('§9.6 Passport — strings only, deduplicated, accumulating', () => {
     const passport = buildPassportSummary([]);
     expect(passport.places).toEqual([]);
     expect(passport.countries).toEqual([]);
+  });
+});
+
+describe('Passport book data (Track 39a)', () => {
+  const lisbon = { city: 'Lisbon', country: 'Portugal', countryCode: 'PT' };
+  const bend = { city: 'Bend', region: 'OR', country: 'United States', countryCode: 'US' };
+  const porto = { city: 'Porto', country: 'Portugal', countryCode: 'PT' };
+
+  it('orders entries by first visit, ties broken by label', () => {
+    const p = buildPassportSummary([
+      summary('2026-05-15', bend),
+      summary('2026-05-01', porto),
+      summary('2026-05-01', lisbon),
+    ]);
+    expect(p.entries.map((e) => e.label)).toEqual(['Lisbon, PRT', 'Porto, PRT', 'Bend, OR, USA']);
+  });
+
+  it('tracks first/last local_date and session count across days in one place', () => {
+    const p = buildPassportSummary([
+      summary('2026-05-20', lisbon),
+      summary('2026-05-01', lisbon),
+      summary('2026-05-10', lisbon),
+    ]);
+    expect(p.entries).toEqual([
+      {
+        label: 'Lisbon, PRT',
+        country: 'Portugal',
+        firstLocalDate: '2026-05-01',
+        lastLocalDate: '2026-05-20',
+        sessionCount: 3,
+      },
+    ]);
+  });
+
+  it('trainingSince is the earliest local_date, including placeless sessions', () => {
+    const p = buildPassportSummary([summary('2026-05-10', lisbon), summary('2026-04-02')]);
+    expect(p.trainingSince).toBe('2026-04-02');
+    expect(p.entries[0].firstLocalDate).toBe('2026-05-10');
+    expect(buildPassportSummary([]).trainingSince).toBeNull();
+    expect(buildPassportSummary([]).entries).toEqual([]);
+    expect(buildPassportSummary([]).countryGroups).toEqual([]);
+  });
+
+  it('groups countries by first entry position with place counts and firstEntryIndex', () => {
+    const p = buildPassportSummary([
+      summary('2026-05-01', lisbon),
+      summary('2026-05-02', bend),
+      summary('2026-05-03', porto),
+    ]);
+    expect(p.countryGroups).toEqual([
+      { country: 'Portugal', placeCount: 2, firstEntryIndex: 0 },
+      { country: 'United States', placeCount: 1, firstEntryIndex: 1 },
+    ]);
+    expect(p.entries[p.countryGroups[1].firstEntryIndex].label).toBe('Bend, OR, USA');
+  });
+
+  it('leaves country-less places out of the groups but keeps them as entries', () => {
+    const p = buildPassportSummary([summary('2026-05-01', { city: 'Nowhere' })]);
+    expect(p.entries).toHaveLength(1);
+    expect(p.countryGroups).toEqual([]);
+  });
+
+  const fake = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      label: `P${i}`,
+      country: null,
+      firstLocalDate: '2026-01-01',
+      lastLocalDate: '2026-01-01',
+      sessionCount: 1,
+    }));
+
+  it('paginates visa pages at 6 per page', () => {
+    expect(passportVisaPages(fake(0))).toEqual([]);
+    expect(passportVisaPages(fake(6)).map((p) => p.length)).toEqual([6]);
+    expect(passportVisaPages(fake(7)).map((p) => p.length)).toEqual([6, 1]);
+    expect(passportVisaPages(fake(13)).map((p) => p.length)).toEqual([6, 6, 1]);
+    expect(passportVisaPages(fake(5), 2).map((p) => p.length)).toEqual([2, 2, 1]);
+  });
+
+  it('maps a label to its visa page index', () => {
+    const entries = fake(13);
+    expect(passportPageForLabel(entries, 'P0')).toBe(0);
+    expect(passportPageForLabel(entries, 'P5')).toBe(0);
+    expect(passportPageForLabel(entries, 'P6')).toBe(1);
+    expect(passportPageForLabel(entries, 'P12')).toBe(2);
+    expect(passportPageForLabel(entries, 'missing')).toBeNull();
   });
 });
 

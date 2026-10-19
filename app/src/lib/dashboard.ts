@@ -154,23 +154,113 @@ export function buildMuscleBalanceRows(
     .sort((a, b) => b.hardSets - a.hardSets);
 }
 
+/** One stamp in the Passport book: a distinct place and the visits behind it. Dates are the
+ *  sessions' `local_date`s (invariant 6) — never a UTC timestamp. */
+export interface PassportEntry {
+  /** `formatPlace(s)` — the same string the summary and the stamp seed use. */
+  label: string;
+  country: string | null;
+  /** Entry date: the earliest `local_date` trained here. */
+  firstLocalDate: string;
+  lastLocalDate: string;
+  sessionCount: number;
+}
+
+/** A contents-page row. Entries with no resolved country are deliberately left out of the groups
+ *  (an "Unknown" row would read as a gap to fill, against invariant 4); they still appear on the
+ *  visa pages through `entries`. */
+export interface PassportCountryGroup {
+  country: string;
+  placeCount: number;
+  /** Index into `PassportSummary.entries` of the country's first (earliest-visited) place. */
+  firstEntryIndex: number;
+}
+
 export interface PassportSummary {
   /** One per distinct place, labelled "Bend, OR, USA". */
   places: string[];
   countries: string[];
+  /** Per-place detail, ordered by first visit (ties by label). */
+  entries: PassportEntry[];
+  /** Earliest `local_date` across every session passed in, including ones with no place. */
+  trainingSince: string | null;
+  /** Ordered by each country's first entry position in `entries`. */
+  countryGroups: PassportCountryGroup[];
 }
 
-/** §9.6 Passport — place/country **strings only**, deduplicated, counted. Every pin is a positive,
- *  accumulating record, never a judgment about which ones "count". */
+/** §9.6 Passport — place/country strings plus per-place visit dates, deduplicated, counted. Every
+ *  pin is a positive, accumulating record, never a judgment about which ones "count". */
 export function buildPassportSummary(sessions: DashboardSessionSummary[]): PassportSummary {
   const places = new Set<string>();
   const countries = new Set<string>();
+  const byLabel = new Map<string, PassportEntry>();
+  let trainingSince: string | null = null;
   for (const s of sessions) {
+    if (trainingSince === null || s.localDate < trainingSince) trainingSince = s.localDate;
     const label = formatPlace(s);
-    if (label) places.add(label);
+    if (label) {
+      places.add(label);
+      const entry = byLabel.get(label);
+      if (!entry) {
+        byLabel.set(label, {
+          label,
+          country: s.country ?? null,
+          firstLocalDate: s.localDate,
+          lastLocalDate: s.localDate,
+          sessionCount: 1,
+        });
+      } else {
+        if (s.localDate < entry.firstLocalDate) entry.firstLocalDate = s.localDate;
+        if (s.localDate > entry.lastLocalDate) entry.lastLocalDate = s.localDate;
+        if (entry.country === null && s.country) entry.country = s.country;
+        entry.sessionCount += 1;
+      }
+    }
     if (s.country) countries.add(s.country);
   }
-  return { places: [...places], countries: [...countries] };
+  const entries = [...byLabel.values()].sort(
+    (a, b) =>
+      a.firstLocalDate.localeCompare(b.firstLocalDate) || (a.label < b.label ? -1 : a.label > b.label ? 1 : 0),
+  );
+  const groups = new Map<string, PassportCountryGroup>();
+  entries.forEach((e, i) => {
+    if (!e.country) return;
+    const g = groups.get(e.country);
+    if (g) g.placeCount += 1;
+    else groups.set(e.country, { country: e.country, placeCount: 1, firstEntryIndex: i });
+  });
+  return {
+    places: [...places],
+    countries: [...countries],
+    entries,
+    trainingSince,
+    countryGroups: [...groups.values()],
+  };
+}
+
+/** Stamps per visa page in the Passport book. */
+export const PASSPORT_STAMPS_PER_PAGE = 6;
+
+/** Splits entries into visa pages in order. Zero entries is zero pages; the last page may be short
+ *  and simply ends (no empty slots). */
+export function passportVisaPages(
+  entries: PassportEntry[],
+  perPage: number = PASSPORT_STAMPS_PER_PAGE,
+): PassportEntry[][] {
+  const size = Math.max(1, Math.floor(perPage));
+  const pages: PassportEntry[][] = [];
+  for (let i = 0; i < entries.length; i += size) pages.push(entries.slice(i, i + size));
+  return pages;
+}
+
+/** The visa page index (0-based, among visa pages only) holding `label`, or null if absent. */
+export function passportPageForLabel(
+  entries: PassportEntry[],
+  label: string,
+  perPage: number = PASSPORT_STAMPS_PER_PAGE,
+): number | null {
+  const i = entries.findIndex((e) => e.label === label);
+  return i < 0 ? null : Math.floor(i / Math.max(1, Math.floor(perPage)));
 }
 
 export interface CalendarDay {
