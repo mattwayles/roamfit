@@ -8,7 +8,13 @@ import { daybreak, daybreakTheme } from '../theme';
 import { inDaybreak } from '../ui/test-utils';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
-const nav = { navigate: jest.fn(), replace: jest.fn(), reset: jest.fn(), goBack: jest.fn() };
+const nav = {
+  navigate: jest.fn(),
+  replace: jest.fn(),
+  reset: jest.fn(),
+  goBack: jest.fn(),
+  addListener: () => () => {},
+};
 
 describe('Generate in Daybreak', () => {
   it('paints picks on paper, selected time chip and intensity in deep teal, legends in white', async () => {

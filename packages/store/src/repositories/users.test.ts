@@ -2,6 +2,7 @@
  * §13.3 disclaimer gate + notification-prefs merge behavior — both new in Wave 7. No existing
  * test file covered `users.ts` at all before this.
  */
+import Database from 'better-sqlite3';
 import { eq } from 'drizzle-orm';
 import { createTestDb } from '../testHarness';
 import { schema } from '../db';
@@ -14,6 +15,7 @@ import {
   updateUser,
 } from './users';
 import { utcInstantFor } from '../testFixtures';
+import { MIGRATIONS } from '../migrations/data';
 
 describe('§13.3 first-launch disclaimer acknowledgement', () => {
   it('defaults to false on a fresh user row, and acknowledgeDisclaimer flips it — one way', () => {
@@ -240,6 +242,38 @@ describe('onboarding state (migration 0032)', () => {
       expect(getUser(db)!.onboardingInProgress).toBe(false);
     } finally {
       close();
+    }
+  });
+});
+
+describe('bandsSetUp (migration 0035)', () => {
+  it('is false for a new user and round-trips through updateUser', () => {
+    const { db, close } = createTestDb();
+    try {
+      expect(ensureUser(db, utcInstantFor('2026-10-18')).bandsSetUp).toBe(false);
+      updateUser(db, { bandsSetUp: true }, utcInstantFor('2026-10-18'));
+      expect(getUser(db)!.bandsSetUp).toBe(true);
+      updateUser(db, { cueSoundsEnabled: false }, utcInstantFor('2026-10-18'));
+      expect(getUser(db)!.bandsSetUp).toBe(true);
+    } finally {
+      close();
+    }
+  });
+
+  it('counts every user row that existed before the migration as set up', () => {
+    const raw = new Database(':memory:');
+    try {
+      const index = MIGRATIONS.findIndex((m) => m.id === '0035_bands_set_up.sql');
+      for (const m of MIGRATIONS.slice(0, index)) raw.exec(m.sql);
+      raw
+        .prepare(
+          "INSERT INTO users (id, anchors_available, created_at, updated_at) VALUES ('local', '[]', 'x', 'x')",
+        )
+        .run();
+      raw.exec(MIGRATIONS[index].sql);
+      expect(raw.prepare('SELECT bands_set_up FROM users').get()).toEqual({ bands_set_up: 1 });
+    } finally {
+      raw.close();
     }
   });
 });

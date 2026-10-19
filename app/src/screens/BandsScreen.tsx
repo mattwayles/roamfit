@@ -1,4 +1,5 @@
-/** Track 37i — Settings → Your bands: owned bands, names and colours, and stacking. */
+/** Track 37i — Settings → Your bands: owned bands, names and colours, and stacking. Any edit here
+ *  counts as having set bands up (Track 40), so Generate stops offering this screen. */
 import React, { useCallback, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { usersRepo } from '@roamfit/store';
@@ -22,11 +23,12 @@ export default function BandsScreen(): React.JSX.Element {
         settings={user.bandSettings}
         tensions={user.bandTensions}
         onChangeSettings={(bandSettings) => {
-          usersRepo.updateUser(db, { bandSettings }, nowUtcInstant());
+          usersRepo.updateUser(db, { bandSettings, bandsSetUp: true }, nowUtcInstant());
           refresh();
         }}
         onChangeTension={(band, patch) => {
           usersRepo.updateBandTension(db, band, patch, nowUtcInstant());
+          usersRepo.updateUser(db, { bandsSetUp: true }, nowUtcInstant());
           refresh();
         }}
       />

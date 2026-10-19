@@ -10,16 +10,14 @@ User request (verbatim intent):
 - Remove "Anchoring bands safely" from setup; keep it in Settings (Learn).
 
 ### Done
-- (none yet)
+- [x] Step 1: setup is welcome, goal, limitations (review: goal, limitations) — e7bdde1
+- [x] Step 2: users.bands_set_up (0035) + Generate "Set up your bands first?" sheet; Your bands edits
+  set the flag — (next commit)
 
 ### In progress
-- Step 1: OnboardingFlow steps → welcome, goal, limitations (review: goal, limitations). Update
-  `app/src/screens/Onboarding.test.tsx`.
+- Step 3: remove days per week (see Next for the full list).
 
 ### Next
-2. Bands set-up flag (users.bands_set_up, migration 0035; existing rows = 1, new = 0; set on any
-   Your bands edit) + Generate warning sheet when ticking Resistance bands with flag off:
-   "Set up bands" (→ Bands screen, reload on focus) / "Use all five" / cancel.
 3. Remove days per week: DaysPerWeekStepper, TrainingPreferences stepper, Settings summary,
    week-streak motivation lines + weekStreak, store weeklyTarget (stats, completion, instrumentation,
    users repo), engine UserProfile.weeklyTarget + test fixtures, migration dropping
@@ -28,7 +26,7 @@ User request (verbatim intent):
 ### Decisions / gotchas
 - Another session (wanderlift-12) had uncommitted no-band-ladder work in packages/data, engine
   pipeline.test.ts / properties.test.ts / golden snapshot, and docs/BACKLOG.md when this track
-  started. Commit only this track's files by explicit path; don't touch theirs. Engine fixture edits
-  in those two test files wait until their work lands.
+  started. It landed as 6ca3b13 before step 2, so the tree was clean from then on. Still commit by
+  explicit path in case another session is active.
 - Settings → Starting levels (PlacementScreen) is kept: the request was about setup only.
 - Week streaks also contradict invariant 4 (no streaks), so removing them is doubly right.

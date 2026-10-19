@@ -670,6 +670,15 @@ CREATE TABLE earned_badges (
 );
 `;
 
+const MIGRATION_0035_BANDS_SET_UP = `-- 0035_bands_set_up.sql — Track 40: Your bands left first-launch setup. Generate now offers it the
+-- first time Resistance bands is ticked, so it needs to know whether the user has ever chosen their
+-- bands. Every existing row went through a setup that asked (or predates it), so it counts as set
+-- up; a new row starts at 0.
+
+ALTER TABLE users ADD COLUMN bands_set_up INTEGER NOT NULL DEFAULT 0;
+UPDATE users SET bands_set_up = 1;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -711,4 +720,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0032_onboarding.sql', sql: MIGRATION_0032_ONBOARDING },
   { id: '0033_band_settings.sql', sql: MIGRATION_0033_BAND_SETTINGS },
   { id: '0034_badges.sql', sql: MIGRATION_0034_BADGES },
+  { id: '0035_bands_set_up.sql', sql: MIGRATION_0035_BANDS_SET_UP },
 ];

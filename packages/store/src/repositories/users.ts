@@ -95,6 +95,8 @@ export interface UserRecord {
   bandTensions: Record<SingleBandId, BandTension>;
   /** Track 37i — always complete: which bands are owned, and whether to stack them. */
   bandSettings: BandSettings;
+  /** Track 40 — the user has chosen their bands, so Generate need not offer Your bands. */
+  bandsSetUp: boolean;
   passportEnabled: boolean;
   healthWriteEnabled: boolean;
   cueSoundsEnabled: boolean;
@@ -223,6 +225,7 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
       JSON.parse(row.bandTensions) as Partial<Record<SingleBandId, Partial<BandTension>>>,
     ),
     bandSettings: parseBandSettings(row.bandSettings),
+    bandsSetUp: row.bandsSetUp,
     passportEnabled: row.passportEnabled,
     healthWriteEnabled: row.healthWriteEnabled,
     cueSoundsEnabled: row.cueSoundsEnabled,
@@ -284,6 +287,7 @@ export interface UserPatch {
   trainingPreferences?: Partial<TrainingPreferences>;
   /** Track 37i — merged onto the stored band settings. */
   bandSettings?: Partial<BandSettings>;
+  bandsSetUp?: boolean;
 }
 
 export function updateUser(db: Db, patch: UserPatch, now: string): void {
@@ -311,6 +315,7 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
   if (patch.bandSettings !== undefined) {
     values.bandSettings = JSON.stringify({ ...current.bandSettings, ...patch.bandSettings });
   }
+  if (patch.bandsSetUp !== undefined) values.bandsSetUp = patch.bandsSetUp;
   if (patch.trainingPreferences !== undefined) {
     values.trainingPrefs = JSON.stringify({
       ...current.trainingPreferences,

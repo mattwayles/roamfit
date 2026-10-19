@@ -68,7 +68,13 @@ function screenEl() {
   return (
     <GenerateScreen
       navigation={
-        { navigate: jest.fn(), replace: jest.fn(), reset: jest.fn(), goBack: jest.fn() } as never
+        {
+          navigate: jest.fn(),
+          replace: jest.fn(),
+          reset: jest.fn(),
+          goBack: jest.fn(),
+          addListener: () => () => {},
+        } as never
       }
       route={{ key: 'Generate', name: 'Generate', params: undefined } as never}
     />
