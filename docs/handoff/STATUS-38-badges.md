@@ -197,7 +197,10 @@ that renaming an id fails a test (the same protection level ids get).
 - No settings toggle to turn badges off in v1 (parked in BACKLOG). Passport badges follow the
   Passport opt-in.
 - No new dependencies expected (`react-native-svg` is already installed).
-- No "next badge" nudge on Today in v1. Journey only, so Today stays uncluttered (parked).
+- **Next badge nudge on Today — requested by the user (2026-10-18), part of 38c.** A compact row near
+  the Next Unlock card: the closest locked badge (`nextBadges(facts, earned, 1)`) with its emblem and
+  neutral progress ("Next badge: <name> · 18 of 25"). Tap opens Badges. Before any badge it points at
+  the first one. Never deficit copy.
 
 ### 38a outcome: catalog changes and the BadgeFacts contract (read before 38b)
 

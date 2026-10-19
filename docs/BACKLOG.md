@@ -16,8 +16,8 @@ the record of what was completed and why.
 
 Permanent badges for showing up, climbing ladders, pushing harder and exploring. Full plan and
 running log: `docs/handoff/STATUS-38-badges.md`. Sub-tracks 38a (engine) → 38b (store) → 38c
-(Badges screen, Journey card) → 38d (completion screen). Parked from it: a Settings toggle to hide
-badges, a "next badge" nudge on Today, syncing `earned_badges` to Firestore.
+(Badges screen, Journey card, Today next-badge nudge) → 38d (completion screen). Parked from it: a Settings toggle to hide
+badges, syncing `earned_badges` to Firestore.
 
 ---
 
