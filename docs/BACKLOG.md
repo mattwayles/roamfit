@@ -14,6 +14,11 @@ the record of what was completed and why.
 
 ## Desired Fixes
 
+- **EAS development build — first run owed.** `app/eas.json` and `docs/EAS-SETUP.md` are written but
+  never run. Needs `eas login`, `eas device:create` for the iPhone, then
+  `eas build --platform ios --profile development`. Check the install link works on the phone and the
+  build connects to `./scripts/dev.sh --tunnel`. TestFlight (`production` profile) is also untried and
+  needs the App Store Connect app record first.
 - **Badges visuals (Track 38c) - device pass owed.** Only Jest has seen these. On a device check: the
   four patch shapes (circle, shield, hexagon, rounded square) and tier rings read clearly in Midnight
   and Daybreak, locked (dashed, faint glyph) vs earned is obvious at 40/64/120; the Badges grid at
