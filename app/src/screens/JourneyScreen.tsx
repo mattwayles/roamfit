@@ -33,7 +33,6 @@ import {
   levelDownFamily,
   manualDayMarkersRepo,
   sessionsRepo,
-  usersRepo,
 } from '@roamfit/store';
 import type { ProgressionFamilyId } from '@roamfit/data';
 import { createRng, seedFromString } from '@roamfit/engine';
@@ -56,7 +55,6 @@ import { buildSessionHistoryView, formatFullLocalDate } from '../lib/sessionHist
 import { useDashboardData } from '../lib/useDashboardData';
 import { useLogbookMonth } from '../lib/useLogbookMonth';
 import { buildTrailProgress, type TrailProgress } from '../lib/trailProgress';
-import { requestLocationPermission } from '../lib/geocode';
 import { makeStyles, radius, space, useTheme } from '../theme';
 import {
   Button,
@@ -78,14 +76,15 @@ import { BadgeEmblem } from '../components/BadgeEmblem';
 import { progressText } from '../lib/badges';
 import { DayCell } from '../components/DayCell';
 import { EmptyState } from '../components/EmptyState';
+import { PassportOptInCard } from '../components/PassportOptInCard';
 import { RungTrack } from '../components/RungTrack';
 import { TrailProgressChart } from '../components/TrailProgressChart';
 import { SectionTitle } from '../components/SectionTitle';
 
 type Props = TabScreenProps<'Journey'>;
 
-/** Sample stamps ghosted behind the Passport opt-in — decoration only, never the user's data. */
-const SAMPLE_STAMPS = ['Lisbon, PRT', 'Bend, OR, USA', 'Cusco, PER'] as const;
+/** How many of the newest stamps the Passport teaser shows. */
+const PASSPORT_TEASER_STAMPS = 3;
 
 /** The most a Journey list staggers by, so a long board never delays its own tail. */
 const MAX_STAGGER = 9;
@@ -309,15 +308,6 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
     void Share.share({
       message: `Wanderlift — trained in ${places.length} ${places.length === 1 ? 'place' : 'places'} and ${countries.length} ${countries.length === 1 ? 'country' : 'countries'}.`,
     });
-  };
-
-  const handlePassportOptIn = () => {
-    usersRepo.updateUser(db, { passportEnabled: true }, nowUtcInstant());
-    // Fire-and-forget — the queued `passport_geocode` jobs are what actually retry the lookup;
-    // this just gives the very first one a granted permission to find instead of failing once
-    // for free.
-    void requestLocationPermission();
-    reload();
   };
 
   if (data === undefined) {
@@ -822,42 +812,34 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
           }
         />
         {user.passportEnabled && passport.places.length > 0 ? (
-          <View testID="passport-section" style={styles.stamps}>
-            {passport.places.map((place) => (
-              <Stamp
-                key={place}
-                testID={`passport-stamp-${place}`}
-                title={place}
-                seed={place}
-                size={96}
-              />
-            ))}
-          </View>
-        ) : !user.passportEnabled ? (
-          hasSessions ? (
-            <Card padding="md" style={styles.optIn}>
-              <View style={styles.sampleStamps}>
-                {SAMPLE_STAMPS.map((city) => (
+          <Card
+            testID="passport-section"
+            padding="md"
+            onPress={() => navigation.navigate('Passport')}
+            accessibilityLabel={`Passport, ${passport.places.length} ${plural(passport.places.length, 'place', 'places')} in ${passport.countries.length} ${plural(passport.countries.length, 'country', 'countries')}. Open passport`}
+            style={styles.passportCard}
+          >
+            <View style={styles.stamps}>
+              {passport.entries
+                .slice(-PASSPORT_TEASER_STAMPS)
+                .reverse()
+                .map((e) => (
                   <Stamp
-                    key={city}
-                    testID={`passport-sample-${city}`}
-                    title={city}
-                    seed={city}
-                    size={72}
-                    style={styles.ghost}
+                    key={e.label}
+                    testID={`passport-stamp-${e.label}`}
+                    title={e.label}
+                    seed={e.label}
+                    size={80}
                   />
                 ))}
-              </View>
-              <Txt variant="bodyStrong" align="center">
-                Collect a stamp for every place you train
-              </Txt>
-              <Button
-                testID="passport-opt-in"
-                label="Turn on Passport"
-                size="sm"
-                onPress={handlePassportOptIn}
-              />
-            </Card>
+            </View>
+            <Txt variant="small" color="text2" align="center">
+              Open your passport ›
+            </Txt>
+          </Card>
+        ) : !user.passportEnabled ? (
+          hasSessions ? (
+            <PassportOptInCard testID="passport-opt-in-card" onEnabled={reload} />
           ) : (
             <EmptyState
               testID="passport-empty"
@@ -1090,10 +1072,13 @@ const useStyles = makeStyles((t) =>
     calendar: { gap: 6 },
     weekdayRow: { flexDirection: 'row', gap: 6 },
     calendarRow: { flexDirection: 'row', gap: 6 },
-    stamps: { flexDirection: 'row', flexWrap: 'wrap', gap: space.lg, paddingVertical: space.sm },
-    optIn: { alignItems: 'center', gap: space.md },
-    sampleStamps: { flexDirection: 'row', gap: space.md, alignItems: 'center' },
-    ghost: { opacity: 0.3 },
+    passportCard: { gap: space.md },
+    stamps: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: space.lg,
+      paddingVertical: space.sm,
+    },
     muscles: { gap: space.md },
     muscleRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
     muscleLabel: { width: 96, textTransform: 'capitalize' },

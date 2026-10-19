@@ -16,7 +16,12 @@ log. Sub-tracks run **in order**, one agent each: 39a → 39b → 39c → 39d.
 
 ### In progress
 
-- 39d not started.
+- 39d underway (plan): (1) Journey teaser card (3 newest stamps, taps to Passport) using
+  PassportOptInCard/enablePassport, duplicates removed; (2) Completion: new-stamp card gets a
+  "See it in your passport" link navigating to Passport {stampLabel}; PassportScreen resets
+  pageIndex when the stampLabel param changes (prop index change renders instantly, no turn);
+  label-match test in newStamp.test.ts; (3) Glossary Passport entry (one already exists; refresh
+  it); (4) status + device-check list.
 
 ### Next
 
