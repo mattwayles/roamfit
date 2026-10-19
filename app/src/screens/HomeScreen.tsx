@@ -207,7 +207,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
   // lives in Settings), and a relaunch mid-setup resumes it. Installs from before onboarding have the
   // disclaimer acknowledged and no setup in progress, so they go straight to Today.
   if (!user.hasAcknowledgedDisclaimer || user.onboardingInProgress) {
-    return <OnboardingFlow mode="first" onDone={load} />;
+    return <OnboardingFlow onDone={load} />;
   }
 
   let stagger = 0;

@@ -142,6 +142,4 @@ export type {
   WarmupPreference,
 } from './preferences';
 export type { ApplySessionOptions } from './progression/rules';
-export { placeOnLadders } from './progression/placement';
-export type { PlacementInput } from './progression/placement';
 export * from './badges';

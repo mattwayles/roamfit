@@ -2,8 +2,7 @@
  * Track 38b — badge facts, award at completion, and the silent backfill, against real fixture
  * sessions (generate -> log -> complete) rather than hand-written rows.
  */
-import { exerciseLibrary, familyLibrary } from '@roamfit/data';
-import { BADGES, placeOnLadders } from '@roamfit/engine';
+import { BADGES } from '@roamfit/engine';
 import type { Focus } from '@roamfit/data';
 import { createTestDb } from './testHarness';
 import type { TestDb } from './testHarness';
@@ -22,7 +21,6 @@ import { getEarnedBadges, getEarnedBadgeIds } from './repositories/badges';
 import { getSignalEventsByType } from './repositories/signals';
 import { getAllMilestones } from './repositories/milestones';
 import { lifetimeSets } from './repositories/stats';
-import { applyPlacement } from './repositories/progressionState';
 import { buildBadgeFacts, localHourOf } from './badgeFacts';
 import { awardBadges, backfillBadges } from './badgeAward';
 import {
@@ -168,29 +166,6 @@ describe('buildBadgeFacts', () => {
       expect(f.familyCount).toBe(families.families.length);
       // Nothing has been climbed yet, so no rung counts.
       expect(f.highestLevelOrdinal).toBe(0);
-    } finally {
-      close();
-    }
-  });
-
-  it('a placement start earns no rung facts; they count only once a ladder has been climbed', () => {
-    const { db, close } = createTestDb();
-    try {
-      const levels = placeOnLadders(familyLibrary.families, {
-        experience: 'advanced',
-        answers: { pull_ups: 'many' },
-      });
-      applyPlacement(
-        db,
-        familyLibrary,
-        exerciseLibrary.exercises,
-        levels,
-        utcInstantFor('2026-04-01'),
-      );
-      const f = buildBadgeFacts(db, exerciseLibrary, familyLibrary);
-      expect(f.highestLevelOrdinal).toBe(0);
-      expect(f.familiesAtOrAbove3).toBe(0);
-      expect(f.familiesAtTop).toEqual([]);
     } finally {
       close();
     }

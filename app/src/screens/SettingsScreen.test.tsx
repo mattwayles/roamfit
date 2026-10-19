@@ -319,31 +319,6 @@ describe('training preferences (track 37f)', () => {
   });
 });
 
-describe('starting levels (track 37g)', () => {
-  it('answers move the ladders only after the confirm', async () => {
-    const db = getDb();
-    await openSettings();
-    await fireEvent.press(screen.getByTestId('settings-placement'));
-    await ready('placement-screen');
-    expect(checked('placement-experience-new')).toBe(true);
-    await fireEvent.press(screen.getByTestId('placement-push_ups-many'));
-    await fireEvent.press(screen.getByTestId('placement-apply'));
-    await fireEvent.press(screen.getByTestId('placement-confirm-cancel'));
-    expect(progressionStateRepo.getAllProgressionStates(db).horizontal_push.levelId).not.toBe(
-      'horizontal_push.l6',
-    );
-    await fireEvent.press(screen.getByTestId('placement-apply'));
-    await fireEvent.press(screen.getByTestId('placement-confirm-yes'));
-    await waitFor(
-      () =>
-        expect(progressionStateRepo.getAllProgressionStates(db).horizontal_push.levelId).toBe(
-          'horizontal_push.l6',
-        ),
-      WAIT,
-    );
-  });
-});
-
 describe('your bands (track 37i)', () => {
   it('owned bands, stacking, and renaming and recolouring a band all save', async () => {
     usersRepo.updateUser(

@@ -308,14 +308,6 @@ export default function SettingsScreen(): React.JSX.Element {
             onPress={() => navigation.navigate('TrainingPreferences')}
           />
           <NavRow
-            testID="settings-placement"
-            icon="trendingUp"
-            tone="gold"
-            label="Starting levels"
-            hint="Opens the placement questions to move every trail to a level that fits"
-            onPress={() => navigation.navigate('Placement')}
-          />
-          <NavRow
             testID="settings-bands"
             icon="anchor"
             tone="sky"
@@ -507,14 +499,6 @@ export default function SettingsScreen(): React.JSX.Element {
 
       <Enter index={7}>
         <Group title="Learn">
-          <NavRow
-            testID="settings-run-setup"
-            icon="journey"
-            tone="gold"
-            label="Run setup again"
-            hint="Walks through goal, starting levels, equipment, limitations and training days"
-            onPress={() => navigation.navigate('Onboarding')}
-          />
           <NavRow
             testID="settings-anchor-safety"
             icon="anchor"

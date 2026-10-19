@@ -80,16 +80,12 @@ describe('first-launch setup', () => {
     );
   });
 
-  it('Settings > Run setup again starts at the goal, prefilled, and Close returns to Settings', async () => {
+  it('Settings has no way back into setup', async () => {
     await launch();
     await ready('open-settings');
     await press('open-settings');
-    await ready('settings-run-setup');
-    await press('settings-run-setup');
-    await step('goal');
-    expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('1 of 2');
-    expect(checked('pref-goal-muscle')).toBe(true);
-    await press('onboarding-skip'); // "Close"
     await ready('settings-screen');
+    expect(screen.queryByTestId('settings-run-setup')).toBeNull();
+    expect(screen.queryByTestId('settings-placement')).toBeNull();
   });
 });

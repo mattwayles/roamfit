@@ -1,20 +1,20 @@
 /**
- * Track 37h — first-launch setup, and the same steps again from Settings ("Run setup again").
+ * Track 37h — first-launch setup. It runs once; there is no way back into it (Track 41), because
+ * the goal and limitations it asks about are both in Settings.
  *
  * Welcome + medical disclaimer → goal → limitations. Every choice saves the moment it is made,
  * through the same store calls Settings uses, so leaving part-way keeps what was chosen and a
  * relaunch resumes the setup (`users.onboarding_state`). Every step after the disclaimer can be
  * skipped: "Skip setup" keeps the recommended defaults, which are built for a beginner.
  *
- * Deliberately not asked here (Track 40): starting levels (every trail starts at its first rung;
- * Settings → Starting levels can move them later), equipment (Generate asks per workout, and offers
+ * Deliberately not asked here (Track 40): starting levels (every trail starts at its first rung,
+ * and Journey moves any ladder freely), equipment (Generate asks per workout, and offers
  * Your bands the first time bands are ticked), and the anchor safety guide (Settings → Learn).
  *
- * `mode: 'first'` is the blocking first-launch gate Home renders (tab bar hidden); acknowledging the
- * disclaimer is its first step and cannot be skipped (§13.3). `mode: 'review'` starts at the goal
- * step with everything prefilled.
+ * It is the blocking first-launch gate Home renders (tab bar hidden); acknowledging the disclaimer
+ * is its first step and cannot be skipped (§13.3).
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AccessibilityInfo, Image, StyleSheet, View } from 'react-native';
 import type { ImageSourcePropType } from 'react-native';
 import { usersRepo } from '@roamfit/store';
@@ -33,6 +33,8 @@ const LOGO = require('../../assets/logo.png') as ImageSourcePropType;
 
 type StepId = 'welcome' | 'goal' | 'limitations';
 
+const STEPS: readonly StepId[] = ['welcome', 'goal', 'limitations'];
+
 const STEP_TITLES: Record<StepId, string> = {
   welcome: 'Welcome to Wanderlift',
   goal: 'What are you training for?',
@@ -45,22 +47,13 @@ const STEP_INTROS: Partial<Record<StepId, string>> = {
     'Wanderlift will leave out anything that loads what you tick. You can change this any time in Settings.',
 };
 
-export function OnboardingFlow({
-  mode,
-  onDone,
-}: {
-  mode: 'first' | 'review';
-  onDone: () => void;
-}): React.JSX.Element {
+export function OnboardingFlow({ onDone }: { onDone: () => void }): React.JSX.Element {
   const { db } = useStore();
   const styles = useStyles();
-  const steps: StepId[] = useMemo(
-    () => (mode === 'first' ? ['welcome', 'goal', 'limitations'] : ['goal', 'limitations']),
-    [mode],
-  );
+  const steps = STEPS;
   const [user, setUser] = useState(() => usersRepo.ensureUser(db, nowUtcInstant()));
   // A relaunch mid-setup resumes after the disclaimer, which is already acknowledged.
-  const [index, setIndex] = useState(() => (mode === 'first' && user.onboardingInProgress ? 1 : 0));
+  const [index, setIndex] = useState(() => (user.onboardingInProgress ? 1 : 0));
 
   const step = steps[index];
   const isLast = index === steps.length - 1;
@@ -81,9 +74,9 @@ export function OnboardingFlow({
   }, [index, step, steps.length]);
 
   const finish = useCallback(() => {
-    if (mode === 'first') usersRepo.finishOnboarding(db, nowUtcInstant());
+    usersRepo.finishOnboarding(db, nowUtcInstant());
     onDone();
-  }, [db, mode, onDone]);
+  }, [db, onDone]);
 
   const next = () => {
     if (isLast) finish();
@@ -159,7 +152,7 @@ export function OnboardingFlow({
           <View style={styles.footerMain}>
             <Button
               testID="onboarding-next"
-              label={isLast ? (mode === 'first' ? 'Start training' : 'Done') : 'Continue'}
+              label={isLast ? 'Start training' : 'Continue'}
               size="md"
               fullWidth
               onPress={next}
@@ -180,7 +173,7 @@ export function OnboardingFlow({
         {!isLast ? (
           <Button
             testID="onboarding-skip"
-            label={mode === 'first' ? 'Skip setup' : 'Close'}
+            label="Skip setup"
             variant="quiet"
             size="sm"
             accessibilityHint="Keeps the recommended settings for everything not yet chosen"
