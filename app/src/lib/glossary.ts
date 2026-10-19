@@ -209,7 +209,7 @@ export const GLOSSARY: readonly GlossaryGroup[] = [
       {
         term: 'Passport',
         definition:
-          'Optional. A stamp for each town you complete a workout in, if you turn on location in Settings.',
+          'Optional. A stamp for each place you complete a workout in, if you turn location on. Open it from Journey to flip through your passport like a book: bio page, contents, visa pages of stamps, and travel badges.',
       },
       {
         term: 'Badges',
