@@ -45,6 +45,7 @@ import {
 import { addMilestone } from './repositories/milestones';
 import { recordSessionCompletion } from './repositories/stats';
 import type { MuscleVolumeEntry } from './repositories/stats';
+import { awardBadgesSafely } from './badgeAward';
 import { enqueueDeferredWork } from './repositories/queues';
 import { getStats } from './repositories/stats';
 
@@ -59,6 +60,9 @@ export interface CompleteSessionResult {
   actualMinutes: number;
   progressionEvents: { familyId: string; event: ProgressionEvent }[];
   milestoneTypes: string[];
+  /** Track 38 — ids of badges this completion earned (never retroactive ones), in the engine's
+   *  category-then-tier order. Empty when none, or if badge code failed (completion still stands). */
+  newBadgeIds: string[];
 }
 
 interface WorkingSetSummary {
@@ -557,7 +561,26 @@ export function completeSession(
       .where(eq(schema.sessions.id, session.id))
       .run();
 
-    return { actualMinutes, progressionEvents, milestoneTypes };
+    // Track 38 — after the status flip, so the facts count this session. Never fails completion.
+    const newBadges = awardBadgesSafely(
+      txDb,
+      {
+        library: input.library,
+        families: input.families,
+        sessionId: session.id,
+        localDate: session.localDate,
+        retroactive: false,
+      },
+      now,
+      'completion',
+    );
+
+    return {
+      actualMinutes,
+      progressionEvents,
+      milestoneTypes,
+      newBadgeIds: newBadges.map((b) => b.id),
+    };
   });
 }
 

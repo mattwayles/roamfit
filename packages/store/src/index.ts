@@ -8,6 +8,8 @@ export * from './dates';
 export * from './migrate';
 export * from './generation';
 export * from './completion';
+export * from './badgeAward';
+export { buildBadgeFacts } from './badgeFacts';
 export * from './levelUp';
 export * from './llmQueueWorker';
 export * from './deviceQueueWorker';
