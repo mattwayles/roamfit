@@ -165,7 +165,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   ...series({
     series: 'high_rung',
     category: 'climbing',
-    icon: 'updown',
+    icon: 'up',
     measure: (f) => f.highestLevelOrdinal,
     tiers: [
       { target: 4, name: 'Foothills', description: 'Reach rung 4 on any ladder.' },

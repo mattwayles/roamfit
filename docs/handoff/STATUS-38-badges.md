@@ -14,7 +14,7 @@ log. Sub-tracks run **in order**, one agent each: 38a → 38b → 38c → 38d.
 
 ### In progress
 
-- 38c - not started. App: `BadgeEmblem`, `lib/badges.ts` view model, Badges screen, Journey card, `badges` in `DashboardData`. See the 38b notes below for the store API.
+- 38c (in progress, started 2026-10-18): commits in order - (1) `BadgeEmblem` + `lib/badges.ts` shelf view model + icon-validity test (fix catalog `high_rung` icon `updown` -> `up`, ids unchanged); (2) `Badges` route + `BadgesScreen` + `badges` in `DashboardData`; (3) Journey Badges card; (4) Today 'Next badge' row. Files: `app/src/components/BadgeEmblem.tsx`, `app/src/lib/badges.ts`, `app/src/screens/BadgesScreen.tsx`.
 
 ### Next
 
