@@ -10,14 +10,15 @@ log. Sub-tracks run **in order**, one agent each: 39a → 39b → 39c → 39d.
 ### Done
 
 - [x] Plan written (this file), branch `track-39-passport`
+- [x] 39a data (57a981a): see exports below
 
 ### In progress
 
-- 39a not started.
+- 39b not started.
 
 ### Next
 
-1. **39a data** — per-place passport entries.
+1. ~~39a data~~ done.
 2. **39b screen** — Passport route + book pages, static (no animation yet).
 3. **39c page turn** — the flip animation, Reduce Motion, VoiceOver paging.
 4. **39d wiring** — Journey teaser card replaces the stamp grid; Completion's new-stamp card opens
@@ -81,3 +82,12 @@ log. Sub-tracks run **in order**, one agent each: 39a → 39b → 39c → 39d.
 - The user has **uncommitted changes in `docs/BACKLOG.md` and `package-lock.json`** that are not
   part of this track. Never stage them: commit with explicit paths, never `git add -A` / `git add .`
   / `git commit -a`. The orchestrator handles BACKLOG at the end.
+- 39a exports, all in `app/src/lib/dashboard.ts`: `PassportEntry` {label, country, firstLocalDate,
+  lastLocalDate, sessionCount}; `PassportCountryGroup` {country, placeCount, firstEntryIndex};
+  `PassportSummary` now also has `entries` (first visit asc, ties by label), `trainingSince`,
+  `countryGroups` (ordered by first entry; country-less places are NOT in groups, but are in
+  entries); `PASSPORT_STAMPS_PER_PAGE` (6); `passportVisaPages(entries, perPage=6)` (0 entries = 0
+  pages); `passportPageForLabel(entries, label, perPage=6)` returns the 0-based index among visa
+  pages only (add the cover/bio/contents offset in the UI), or null. `local_date` was already
+  `DashboardSessionSummary.localDate`; no data-path change was needed, and `useDashboardData`'s
+  `passport` already returns the extended summary.
