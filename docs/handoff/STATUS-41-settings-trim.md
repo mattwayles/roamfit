@@ -17,7 +17,7 @@ User request:
   Journey copy gone; levelUp.test.ts walks every ladder up and down with no equipment — 9db64fa
 - [x] Step 4: Today title row has the logo (shared `app/src/lib/brand.ts`) — 521ef49
 - [x] Step 5: Settings gear on Journey (`journey-open-settings`) and Field guide
-  (`guide-open-settings`) — (next commit)
+  (`guide-open-settings`) — 527a8ac
 
 ### In progress
 - Nothing. Device pass owed (BACKLOG, under the Track 40 item).
