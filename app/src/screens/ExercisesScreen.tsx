@@ -51,6 +51,7 @@ import {
   Chip,
   Enter,
   Icon,
+  IconButton,
   PressableScale,
   Screen,
   Sheet,
@@ -157,19 +158,28 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
 
   const header = (
     <View style={styles.header}>
-      <Enter>
-        <Txt variant="eyebrow" color="gold">
-          Every move we know
-        </Txt>
-        <View style={styles.titleRow}>
-          <Txt variant="display" accessibilityRole="header" style={styles.title}>
-            Field guide
+      <Enter style={styles.headerTop}>
+        <View style={styles.headerText}>
+          <Txt variant="eyebrow" color="gold">
+            Every move we know
           </Txt>
-          <Txt testID="exercise-count" variant="h2" color="text2" style={styles.count}>
-            {moveCount}
-            {moveCount === 1 ? ' move' : ' moves'}
-          </Txt>
+          <View style={styles.titleRow}>
+            <Txt variant="display" accessibilityRole="header" style={styles.title}>
+              Field guide
+            </Txt>
+            <Txt testID="exercise-count" variant="h2" color="text2" style={styles.count}>
+              {moveCount}
+              {moveCount === 1 ? ' move' : ' moves'}
+            </Txt>
+          </View>
         </View>
+        {/* Settings is reachable from every tab, as on Today. */}
+        <IconButton
+          testID="guide-open-settings"
+          icon="settings"
+          accessibilityLabel="Settings"
+          onPress={() => navigation.navigate('Settings')}
+        />
       </Enter>
 
       <View style={styles.searchWrap}>
@@ -496,6 +506,8 @@ const useStyles = makeStyles((t) =>
       paddingBottom: space.sm,
       gap: space.lg,
     },
+    headerTop: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+    headerText: { flex: 1 },
     titleRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
     title: { flexShrink: 1 },
     count: { marginLeft: space.md },

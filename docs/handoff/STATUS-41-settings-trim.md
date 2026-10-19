@@ -15,14 +15,18 @@ User request:
   placeOnLadders / applyPlacement / PlacementPicker deleted with their tests — c7e3963
 - [x] Step 3: levelUp.ts moves the rung with no hard-filter check; `no_eligible_exercise` and its
   Journey copy gone; levelUp.test.ts walks every ladder up and down with no equipment — 9db64fa
-- [x] Step 4: Today title row has the logo (shared `app/src/lib/brand.ts`) — (next commit)
+- [x] Step 4: Today title row has the logo (shared `app/src/lib/brand.ts`) — 521ef49
+- [x] Step 5: Settings gear on Journey (`journey-open-settings`) and Field guide
+  (`guide-open-settings`) — (next commit)
 
 ### In progress
-5. Settings gear on Journey and Field guide headers (same IconButton as Today's `open-settings`).
+- Nothing. Device pass owed (BACKLOG, under the Track 40 item).
 
 ### Decisions / gotchas
 - Limitations are also no longer checked on a manual move: the ladder position is not unsafe in
   itself, and generation still applies every hard filter (invariant 3) before any exercise is
   programmed.
+- The gears have distinct testIDs: tab screens stay mounted once visited, so a shared
+  `open-settings` id would collide in tests.
 - Band/anchor uses in Approval/Workout swaps and band clamping are workout-time uses of the
   remembered selections and stay.
