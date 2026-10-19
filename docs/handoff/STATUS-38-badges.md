@@ -186,12 +186,14 @@ that renaming an id fails a test (the same protection level ids get).
 
 ### Decisions / gotchas
 
-- **The user has uncommitted work in progress** in `app/src/components/OnboardingFlow.tsx`,
-  `app/src/components/SettingsList.tsx`, `app/src/lib/equipment.ts`,
-  `app/src/screens/GenerateScreen.tsx`, `package-lock.json`, `packages/store/src/repositories/users.ts`.
-  **Do not edit, stage, format, or commit those files.** Stage only your own paths with
-  `git add <path>`, never `git add -A` / `git commit -a`. If `npm run check` fails *only*
-  because of those files, don't fix them. Note it here and in your report.
+- **Work happens in the worktree `/Users/mattwayles/Development/wanderlift-badges`, branch
+  `track-38-badges`.** The user is editing the main checkout (`../wanderlift`, on `master`) at the
+  same time, so never touch that directory. Commit on `track-38-badges`. The user merges.
+  Stage only your own paths (`git add <path>`).
+- **Baseline `npm run check` (2026-10-18):** engine/data/store/functions are all green. App Jest
+  has timing-sensitive screen tests (e.g. `WorkoutScreen.timedDurationAdjust`,
+  `HomeScreen.banners`) that sometimes time out under full parallel load and pass when rerun alone.
+  If a failure is in a file you didn't touch, rerun that file alone before treating it as yours.
 - No settings toggle to turn badges off in v1 (parked in BACKLOG). Passport badges follow the
   Passport opt-in.
 - No new dependencies expected (`react-native-svg` is already installed).
