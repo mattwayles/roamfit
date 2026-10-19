@@ -52,6 +52,9 @@ export type RootStackParamList = {
   /** Track 38c - every badge, earned and locked; opened from Journey's and Today's badge rows.
    *  Opening it marks the earned badges seen. */
   Badges: undefined;
+  /** Track 39b - the Passport book. `stampLabel` opens it at that place's visa page; otherwise the
+   *  cover. */
+  Passport: { stampLabel?: string } | undefined;
   /** A finished workout, read-only: what was done, set by set. Reached from the Logbook day sheet. */
   SessionHistory: { sessionId: string };
 };

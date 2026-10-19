@@ -17,6 +17,7 @@ import BandsScreen from '../screens/BandsScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import SessionHistoryScreen from '../screens/SessionHistoryScreen';
 import BadgesScreen from '../screens/BadgesScreen';
+import PassportScreen from '../screens/PassportScreen';
 import { useTheme } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -74,6 +75,8 @@ export default function RootNavigator(): React.JSX.Element {
       />
       {/* Track 38c - the badge shelf. Draws its own title; the native header stays for back. */}
       <Stack.Screen name="Badges" component={BadgesScreen} options={{ title: '' }} />
+      {/* Track 39b - the Passport book. Draws its own title; the native header stays for back. */}
+      <Stack.Screen name="Passport" component={PassportScreen} options={{ title: '' }} />
       {/* A movement group over time, read-only. Draws its own title. */}
     </Stack.Navigator>
   );
