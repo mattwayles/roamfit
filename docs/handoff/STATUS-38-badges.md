@@ -15,7 +15,12 @@ log. Sub-tracks run **in order**, one agent each: 38a → 38b → 38c → 38d.
 
 ### In progress
 
-- 38d - not started. See the 38c outcome notes below, then the 'App (38d)' section.
+- 38d, started 2026-10-18, three increments:
+  1. timeline `badgeCount` param (after highlights, 900ms gap, stamp/button move after), `lib/badges.ts`
+     `completionBadges` + `badgeShareText` (earned ShelfBadges from `newBadgeIds`), glossary 'Badges'.
+  2. `components/BadgeEarnedCard.tsx` + SummaryScreen wiring (cap 3 + '+N more badges' chip to Badges,
+     cueLevelUp, mark seen on reveal, Reduce Motion = still) + tests.
+  3. Docs wrap-up: STATUS done, BACKLOG Track 38 section removed, parked items.
 
 ### Next
 
