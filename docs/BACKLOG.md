@@ -141,6 +141,15 @@ the record of what was completed and why.
      `Sheet`.
   8. Everywhere: Reduce Motion, large Dynamic Type (`mega`/`hero` are capped at 1.3), VoiceOver labels on
      every icon-only control.
+- **Passport book — device pass owed, and two loose ends.** Track 39
+  (`docs/handoff/STATUS-39-passport.md`, Jest-verified only; the full device-check list is there).
+  On a device, in Midnight and Daybreak: the cover emboss and guilloché page lines, the 460pt page on
+  a 6.1" phone, the 3D turn about the spine (400ms, `transformOrigin`, clipping by the book's
+  `overflow: hidden`, shadow strength), swipe threshold and rubber band, the haptic tick, Reduce
+  Motion and VoiceOver (instant swap; swipe up/down on "Page N of M"), the Journey teaser's three
+  80pt stamps on a small phone, and Completion's "See it in your passport ›" link opening the right
+  page. Not built: (1) a `stampLabel` param change arriving mid-turn isn't guarded, so the turn's end
+  commit can override the jump; (2) the Journey teaser could show each stamp's first-visit date.
 - **Spotify vibes / recents / favorites — device pass owed.** Track 23 is Jest-verified only. On a
   device with Spotify connected: (1) real vibe searches — do women-targeted / gendered playlists still
   dominate for Rock, Metal, Hip-Hop, etc.? If so, tune the terms in `app/src/lib/spotifyVibes.ts` (a
