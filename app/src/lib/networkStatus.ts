@@ -82,7 +82,11 @@ export function useIsOnline(): boolean {
     }
     return () => {
       live = false;
-      sub?.remove();
+      try {
+        sub?.remove?.();
+      } catch {
+        // nothing to unsubscribe
+      }
     };
   }, []);
   return online;

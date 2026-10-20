@@ -18,7 +18,10 @@ import { getNetworkStatus } from '../lib/networkStatus';
 import { daybreakTheme, midnightTheme } from '../theme';
 import { inDaybreak, WAIT } from '../ui/test-utils';
 
-jest.mock('../lib/networkStatus', () => ({ getNetworkStatus: jest.fn() }));
+jest.mock('../lib/networkStatus', () => ({
+  getNetworkStatus: jest.fn(),
+  useIsOnline: jest.fn(() => true),
+}));
 const mockGetNetworkStatus = getNetworkStatus as jest.MockedFunction<typeof getNetworkStatus>;
 
 let completedId: string;
