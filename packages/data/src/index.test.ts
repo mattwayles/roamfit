@@ -184,7 +184,7 @@ describe('alternating flag', () => {
   it('marks the alternating moves, never one that is also unilateral', () => {
     const alternating = exerciseLibrary.exercises.filter((e) => e.alternating);
     expect(alternating.map((e) => e.id)).toEqual(
-      expect.arrayContaining(['bw-bicycle-crunch', 'bw-flutter-kick', 'bw-alternating-crunch']),
+      expect.arrayContaining(['bw-bicycle-crunch', 'bw-scissors', 'bw-alternating-crunch']),
     );
     expect(alternating.filter((e) => e.unilateral)).toEqual([]);
   });
