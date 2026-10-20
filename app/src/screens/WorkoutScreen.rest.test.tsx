@@ -178,12 +178,10 @@ describe('Rest timer + feedback controls, driven through WorkoutScreen', () => {
       expect(entryFeedback()).toBeNull();
     }, WAIT_OPTS);
 
-    // Skip zeroes the remaining time and advances on Next.
+    // Skip zeroes the remaining time, and a rest that has run out advances by itself.
     await fireEvent.press(screen.getByTestId('rest-skip'));
-    await waitFor(() => expect(restDisplay()).toBe(0), WAIT_OPTS);
-    await fireEvent.press(screen.getByTestId('rest-next'));
 
-    // Next advanced the phase: either back to an exercise view (the next set/entry), or — if
+    // The rest advanced the phase: either back to an exercise view (the next set/entry), or — if
     // that reps set happened to be the very last one in the session — straight to Summary.
     // Either is correct; which one depends on where in the generated plan `firstRepsEntry`
     // landed, which this test doesn't control.

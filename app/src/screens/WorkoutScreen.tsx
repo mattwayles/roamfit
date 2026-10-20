@@ -1234,6 +1234,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
               difficulty={difficulty}
               onDifficultyChange={handleDifficultyChange}
               feedbackQuestion={feedbackDue && !feedbackAsModal ? feedbackQuestion : null}
+              holdAutoAdvance={feedbackPromptOpen && feedbackDue}
               onNext={handleNextAfterRest}
               onExtend={handleRestExtend}
             />
@@ -2254,6 +2255,7 @@ function RestPhase({
   difficulty,
   onDifficultyChange,
   feedbackQuestion,
+  holdAutoAdvance,
   onNext,
   onExtend,
 }: {
@@ -2287,6 +2289,9 @@ function RestPhase({
   /** The inline feedback question, or null when none is due on this rest (not the exercise's last
    *  set) or it is asked in a modal over this page instead. */
   feedbackQuestion: string | null;
+  /** The feedback modal is still open over this page. The rest moves on by itself when it runs out
+   *  (see below), but not while a prompt is waiting on an answer. */
+  holdAutoAdvance: boolean;
   onNext: () => void;
   /** §10.7 — "+15s taps are recorded as a fatigue signal." Called only for +15 (never −15/Skip). */
   onExtend: () => void;
@@ -2378,6 +2383,20 @@ function RestPhase({
   const mostMsRef = useRef(restSec * 1000);
   mostMsRef.current = Math.max(mostMsRef.current, remainingMs);
   const remainingSeconds = Math.ceil(remainingMs / 1000);
+
+  // The rest ends itself: at zero the next set starts, as if NEXT had been tapped. It waits while
+  // the feedback modal is open and goes the moment that is answered or skipped. The last rest has
+  // no next set (`nextSetText` is null), so it still waits for NEXT rather than ending the workout
+  // on its own. Once only, so a re-render at zero cannot advance twice.
+  const autoAdvancedRef = useRef(false);
+  useEffect(() => {
+    if (remainingMs > 0 || holdAutoAdvance || nextSetText == null || autoAdvancedRef.current) {
+      return;
+    }
+    autoAdvancedRef.current = true;
+    handleNext();
+  });
+
   const pulse = usePulse(remainingSeconds >= 1 && remainingSeconds <= 3);
 
   return (

@@ -143,6 +143,22 @@ describe('"How did that set feel?" modal over the rest screen, driven through Wo
     expect(entryFeedback()).toBeNull();
   });
 
+  it('does not move on at zero while the modal is open, and does once it is dismissed', async () => {
+    await restAfterFirstRepsSet(true);
+    await fireEvent.press(screen.getByTestId('rest-skip'));
+    await waitFor(
+      () => expect(Number(screen.getByTestId('rest-remaining').props.children)).toBe(0),
+      WAIT_OPTS,
+    );
+    // Held: the timer is out but the prompt is still waiting on an answer.
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(screen.getByTestId('feedback-prompt')).toBeTruthy();
+    expect(screen.getByTestId('rest-hero')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('feedback-prompt-skip'));
+    await waitFor(() => expect(screen.queryByTestId('rest-hero')).toBeNull(), WAIT_OPTS);
+  });
+
   it('with the setting off there is no modal and the question stays inline', async () => {
     await restAfterFirstRepsSet(false);
     expect(screen.queryByTestId('feedback-prompt')).toBeNull();
@@ -155,8 +171,8 @@ describe('"How did that set feel?" modal over the rest screen, driven through Wo
     expect(screen.queryByTestId('feedback-prompt')).toBeNull();
     expect(screen.queryByTestId('difficulty-segment')).toBeNull();
 
+    // The rest runs out and the next set starts by itself.
     await fireEvent.press(screen.getByTestId('rest-skip'));
-    await fireEvent.press(screen.getByTestId('rest-next'));
     await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
     await fireEvent.press(screen.getByTestId('complete-set'));
 
