@@ -3042,8 +3042,9 @@
       "anchor_alt": null,
       "anchor_class": "band_tension",
       "unilateral": false,
-      "metric": "time",
-      "default_seconds": 30,
+      "alternating": true,
+      "metric": "reps",
+      "default_seconds": null,
       "tier": "core",
       "roles": [
         "main"
@@ -3056,7 +3057,7 @@
         "lying_supine",
         "lower_back_extension"
       ],
-      "setup": "Lie on your back, band around both feet, ends pinned overhead under your hands. Small alternating kicks, low back flat.",
+      "setup": "Lie on your back, band around both feet, ends pinned overhead under your hands. Small alternating kicks, low back flat. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Flutter+Kick+proper+form+tutorial"
     },
     {
@@ -4479,8 +4480,8 @@
       "anchor_alt": null,
       "anchor_class": "band_tension",
       "unilateral": false,
-      "metric": "time",
-      "default_seconds": 30,
+      "metric": "reps",
+      "default_seconds": null,
       "tier": "core",
       "roles": [
         "main"
@@ -4492,7 +4493,7 @@
         "core_pressure",
         "shoulder_overhead"
       ],
-      "setup": "Stand on the band, press both hands overhead and hold. March knees to hip height without letting the ribs flare.",
+      "setup": "Stand on the band, press both hands overhead and hold. March knees to hip height without letting the ribs flare. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Overhead+March+proper+form+tutorial"
     },
     {
@@ -5136,8 +5137,9 @@
       "anchor_alt": null,
       "anchor_class": "none",
       "unilateral": false,
-      "metric": "time",
-      "default_seconds": 30,
+      "alternating": true,
+      "metric": "reps",
+      "default_seconds": null,
       "tier": "core",
       "roles": [
         "main"
@@ -5150,7 +5152,7 @@
         "lying_supine",
         "lower_back_extension"
       ],
-      "setup": "On your back, legs straight and just off the ground, hands under your glutes. Small alternating kicks.",
+      "setup": "On your back, legs straight and just off the ground, hands under your glutes. Small alternating kicks. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=Flutter+Kick+proper+form+tutorial"
     },
     {
@@ -6266,8 +6268,8 @@
       "anchor_alt": null,
       "anchor_class": "none",
       "unilateral": false,
-      "metric": "time",
-      "default_seconds": 30,
+      "metric": "reps",
+      "default_seconds": null,
       "tier": "core",
       "roles": [
         "main",
@@ -6279,7 +6281,7 @@
       "contraindications": [
         "knee_flexion_loaded"
       ],
-      "setup": "Hold the bottom of a squat and pulse a few inches up and down.",
+      "setup": "Hold the bottom of a squat and pulse a few inches up and down. Time-based.",
       "video_search": "https://www.youtube.com/results?search_query=Squat+Pulse+proper+form+tutorial"
     },
     {
