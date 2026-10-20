@@ -38,7 +38,6 @@ function coldStart(overrides: Partial<UserState> = {}): UserState {
   return {
     profile: {
       units: 'lb',
-      weeklyTarget: 3,
       limitations: [],
       anchorsAvailable: [...FIXED_POINT_ANCHORS],
       disabledExerciseIds: [],
@@ -80,7 +79,6 @@ const userStates: [string, () => UserState][] = [
       coldStart({
         profile: {
           units: 'lb',
-          weeklyTarget: 3,
           limitations: [{ tag: 'shoulder_overhead', createdAt: '2026-01-01', source: 'user' }],
           anchorsAvailable: [...FIXED_POINT_ANCHORS],
           disabledExerciseIds: [],
@@ -93,7 +91,6 @@ const userStates: [string, () => UserState][] = [
       coldStart({
         profile: {
           units: 'lb',
-          weeklyTarget: 3,
           limitations: [],
           anchorsAvailable: [...FIXED_POINT_ANCHORS, 'pullup-bar', 'body-support'],
           disabledExerciseIds: [],
@@ -230,13 +227,18 @@ describe('property: invariants hold across the full request sweep', () => {
                 expect(allFlexion).toBe(false);
               }
 
-              // PATTERN GAP is never silent: bodyweight-only upper/full always records one for
-              // pulling (the real library has zero bodyweight pull exercises).
-              if (equipmentPreference === 'bodyweight' && (focus === 'upper' || focus === 'full')) {
+              // Bodyweight-only upper/full never records a pull gap: every ladder rung has a
+              // bodyweight exercise, and the bottom pull rungs need no fixed point. Not with an
+              // overhead limitation, which rules out every bottom-rung vertical pull (hangs).
+              if (
+                equipmentPreference === 'bodyweight' &&
+                (focus === 'upper' || focus === 'full') &&
+                userState.profile.limitations.length === 0
+              ) {
                 const hasPullGap = plan.patternGaps.some(
                   (g) => g.pattern === 'horizontal_pull' || g.pattern === 'vertical_pull',
                 );
-                expect(hasPullGap).toBe(true);
+                expect(hasPullGap).toBe(false);
               }
 
               // Track 14 — MAIN-pool scoping invariant. `conditioning` is the Cardio focus's own

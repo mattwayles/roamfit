@@ -89,9 +89,9 @@ export const PLACEMENT_QUESTIONS: readonly PlacementQuestion[] = [
     answers: [
       { id: 'unsure', label: 'Not sure', levelId: null },
       { id: 'none', label: 'None yet', levelId: 'vertical_pull.l1' },
-      { id: 'few', label: '1 to 3', levelId: 'vertical_pull.l7' },
-      { id: 'some', label: '4 to 8', levelId: 'vertical_pull.l8' },
-      { id: 'many', label: 'More than 8', levelId: 'vertical_pull.l9' },
+      { id: 'few', label: '1 to 3', levelId: 'vertical_pull.l6b' },
+      { id: 'some', label: '4 to 8', levelId: 'vertical_pull.l7' },
+      { id: 'many', label: 'More than 8', levelId: 'vertical_pull.l8' },
     ],
   },
   {

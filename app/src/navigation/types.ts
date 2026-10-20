@@ -13,7 +13,7 @@ export type TabParamList = {
   /** `focusFamilyId` — scroll to that family's Trail card (Today's Next Unlock card sets it);
    *  `focusLogbook` — scroll to the Logbook (Today's "This week" strip sets it). */
   Journey: { focusFamilyId?: string; focusLogbook?: boolean } | undefined;
-  /** The exercise library, browsable — read-only apart from assigning a demo video. */
+  /** The exercise library, browsable and read-only. */
   Exercises: undefined;
 };
 
@@ -38,11 +38,7 @@ export type RootStackParamList = {
   TrainingPreferences: undefined;
   /** Track 37i — Settings → Your bands. */
   Bands: undefined;
-  /** Track 37h — Settings → Run setup again (onboarding in review mode). */
-  Onboarding: undefined;
-  /** Track 37g — Settings → Training → Starting levels (placement). */
-  Placement: undefined;
-  /** Track 37d — Settings → Learn → Anchor safety (also an onboarding step). */
+  /** Track 37d — Settings → Learn → Anchor safety. */
   AnchorSafety: undefined;
   /** Track 37e — Settings → Learn → Glossary. */
   Glossary: undefined;

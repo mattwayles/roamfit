@@ -20,7 +20,8 @@
       "supportsTablet": false,
       "infoPlist": {
         "UIBackgroundModes": ["audio"],
-        "NSLocationWhenInUseUsageDescription": "Wanderlift uses your location once, at the end of a workout, to pin the city and country on your Passport. It's never tracked in the background."
+        "NSLocationWhenInUseUsageDescription": "Wanderlift uses your location once, at the end of a workout, to pin the city and country on your Passport. It's never tracked in the background.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "plugins": [
@@ -37,6 +38,12 @@
           "background": false
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9c5d70b8-0df6-4a91-b8a5-d527135b3a66"
+      }
+    },
+    "owner": "mattwayles"
   }
 }

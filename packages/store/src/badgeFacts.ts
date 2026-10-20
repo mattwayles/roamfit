@@ -183,8 +183,12 @@ export function buildBadgeFacts(
   const prsBySession = new Map<string, number>();
   let bestSetPrsTotal = 0;
   let levelUpsTotal = 0;
+  const climbedFamilies = new Set<string>();
   for (const m of milestones) {
-    if (m.type === 'level_up') levelUpsTotal += 1;
+    if (m.type === 'level_up') {
+      levelUpsTotal += 1;
+      if (typeof m.payload?.familyId === 'string') climbedFamilies.add(m.payload.familyId);
+    }
     if (m.type === 'best_set_pr') {
       bestSetPrsTotal += 1;
       if (m.sessionId) prsBySession.set(m.sessionId, (prsBySession.get(m.sessionId) ?? 0) + 1);
@@ -197,7 +201,9 @@ export function buildBadgeFacts(
   const familiesAtTop: string[] = [];
   for (const family of families.families) {
     const state = states[family.id];
-    if (!state) continue;
+    // A rung only counts once it has been climbed in the app: a placement start (or a ladder
+    // never moved) is where the user began, not something they earned.
+    if (!state || !climbedFamilies.has(family.id)) continue;
     const n = levelOrdinal(family, state.levelId).n;
     if (n > highestLevelOrdinal) highestLevelOrdinal = n;
     if (n >= 3) familiesAtOrAbove3 += 1;

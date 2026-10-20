@@ -16,7 +16,6 @@ import {
   getPendingSession,
   getSession,
   logSet,
-  recordDemoMediaExpanded,
   recordEntryFeedback,
   recordRegenerateTap,
   startSession,
@@ -24,7 +23,7 @@ import {
 import { consecutiveRegenerateTapCount, getSignalEventsByType } from './repositories/signals';
 import { setPinnedNote } from './repositories/exerciseState';
 import { observeTzId } from './repositories/users';
-import { recordTravelDay, getStats, effectiveWeeklyDenominator } from './repositories/stats';
+import { recordTravelDay, getStats } from './repositories/stats';
 import { MIGRATIONS } from './migrations/data';
 import { library, families, clockFor, rngFor, utcInstantFor } from './testFixtures';
 
@@ -206,21 +205,6 @@ describe('§8.3 preference & aversion / comprehension signals', () => {
     }
   });
 
-  it('demo media expansion is recorded on the entry and as a signal event', () => {
-    const { db, close } = createBandedTestDb();
-    try {
-      const sessionId = makeSession(db);
-      const entry = getPendingSession(db)!.entries.find((e) => e.section === 'main')!;
-      recordDemoMediaExpanded(db, entry.id, utcInstantFor('2026-03-01', 8, 5));
-
-      const after = getSession(db, sessionId)!.entries.find((e) => e.id === entry.id)!;
-      expect(after.demoMediaExpanded).toBe(true);
-      expect(getSignalEventsByType(db, 'demo_media_expanded')).toHaveLength(1);
-    } finally {
-      close();
-    }
-  });
-
   it('pinned note creation and edit are both logged, distinctly', () => {
     const { db, close } = createBandedTestDb();
     try {
@@ -321,16 +305,13 @@ describe('§8.3/§9.3 context signals — device timezone change, travel days, d
     }
   });
 
-  it('a travel day reduces the effective weekly denominator with a floor of 2', () => {
+  it('each travel day is counted', () => {
     const { db, close } = createBandedTestDb();
     try {
       recordTravelDay(db, utcInstantFor('2026-03-01'), '2026-03-01');
       recordTravelDay(db, utcInstantFor('2026-03-02'), '2026-03-02');
       const stats = getStats(db)!;
       expect(stats.travelDaysThisWeek).toBe(2);
-
-      expect(effectiveWeeklyDenominator(3, 2)).toBe(2); // 3-2=1, floored to 2
-      expect(effectiveWeeklyDenominator(3, 0)).toBe(3);
     } finally {
       close();
     }

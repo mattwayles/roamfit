@@ -1,12 +1,6 @@
 /**
- * One exercise, in full: everything the library record carries, the "How to" cue, the demo video,
- * and what this user's own history says about getting stronger at it.
- *
- * **The video here is the same video the workout screen shows.** It goes through the same
- * `DemoMedia` component and the same `exerciseStateRepo.assignUserVideo` / `clearUserVideo` calls,
- * writing the same `exercise_state.user_video_id` column — one video per exercise, two places it
- * can be set and two places it renders. No new field, no second source of truth, and nothing to
- * reconcile if a link is pasted here rather than mid-set.
+ * One exercise, in full: everything the library record carries, the "How to" cue (with a button to a
+ * YouTube search for it), and what this user's own history says about getting stronger at it.
  *
  * The progression block answers "have I got stronger at this?" from `set_logs` — reps, held
  * seconds, sets and band all count (`lib/exerciseProgress.ts`). It never re-derives a prescription
@@ -25,14 +19,14 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { exerciseCatalogRepo, exerciseStateRepo, remoteConfigRepo } from '@roamfit/store';
+import { exerciseCatalogRepo, exerciseStateRepo } from '@roamfit/store';
 import { levelOrdinal } from '@roamfit/engine';
 import type { Exercise } from '@roamfit/data';
 import type { RootStackParamList } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { localDateFromDate, nowUtcInstant } from '../lib/localClock';
 import { ProgressChart } from '../components/ProgressChart';
-import DemoMedia from '../components/DemoMedia';
+import HowToVideoButton from '../components/HowToVideoButton';
 import PinnedNote from '../components/PinnedNote';
 import { EmptyState } from '../components/EmptyState';
 import { IconBadge } from '../components/IconBadge';
@@ -89,9 +83,6 @@ function heroGradient(theme: Theme, tone: AccentName): GradientColors {
 interface DetailData {
   catalog: exerciseCatalogRepo.ExerciseCatalogState;
   history: exerciseCatalogRepo.ExerciseHistoryPerformance[];
-  userVideoId: string | null;
-  curatedVideoId: string | null;
-  videoDemoted: boolean;
   pinnedNote: string | null;
   disabled: boolean;
 }
@@ -116,9 +107,6 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
         exerciseCatalogRepo.getExerciseCatalogState(db)[exerciseId] ??
         exerciseCatalogRepo.emptyCatalogState(),
       history: exerciseCatalogRepo.getExercisePerformanceHistory(db, exerciseId),
-      userVideoId: exerciseStateRepo.getUserVideoId(db, exerciseId),
-      curatedVideoId: remoteConfigRepo.getCuratedVideoId(db, exerciseId),
-      videoDemoted: exerciseStateRepo.getVideoFlagState(db, exerciseId).demoted,
       pinnedNote: exerciseStateRepo.getExerciseState(db, exerciseId)?.pinnedNote ?? null,
       disabled: exerciseStateRepo.getExerciseState(db, exerciseId)?.disabledAt != null,
     });
@@ -126,41 +114,6 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
 
   useFocusEffect(useCallback(() => load(), [load]));
 
-  // The same store calls the workout screen makes — see this file's header for why that matters.
-  const handleAssignVideo = (videoId: string) => {
-    exerciseStateRepo.assignUserVideo(
-      db,
-      exerciseId,
-      videoId,
-      nowUtcInstant(),
-      localDateFromDate(new Date()),
-    );
-    load();
-  };
-  const handleClearVideo = () => {
-    exerciseStateRepo.clearUserVideo(db, exerciseId, nowUtcInstant());
-    load();
-  };
-  const handleReportVideoIssue = () => {
-    exerciseStateRepo.reportVideoIssue(
-      db,
-      exerciseId,
-      'user_report',
-      nowUtcInstant(),
-      localDateFromDate(new Date()),
-    );
-    load();
-  };
-  const handlePlayerError = () => {
-    exerciseStateRepo.reportVideoIssue(
-      db,
-      exerciseId,
-      'player_error',
-      nowUtcInstant(),
-      localDateFromDate(new Date()),
-    );
-    load();
-  };
   const handlePinnedNoteChange = (note: string) => {
     exerciseStateRepo.setPinnedNote(
       db,
@@ -283,25 +236,8 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
             <Txt testID="detail-setup" variant="body" color="text2">
               {exercise.setup}
             </Txt>
+            <HowToVideoButton exerciseName={exercise.name} />
           </Card>
-        </Enter>
-
-        {/* DemoMedia is its own card with its own "Demo" header row. */}
-        <Enter index={3}>
-          <DemoMedia
-            videoSearchQuery={exercise.video_search}
-            userVideoId={data?.userVideoId ?? null}
-            curatedVideoId={data?.curatedVideoId ?? null}
-            videoDemoted={data?.videoDemoted ?? false}
-            onAssignVideo={handleAssignVideo}
-            onClearVideo={handleClearVideo}
-            // The §8.3 "demo expanded" signal is a fact about an entry in a session; browsing the
-            // library is not a session, and there is no entry to attach it to. Nothing to record.
-            onExpand={() => {}}
-            onReportIssue={handleReportVideoIssue}
-            onPlayerError={handlePlayerError}
-            defaultOpen
-          />
         </Enter>
 
         <Enter index={4}>
@@ -499,7 +435,7 @@ function progressionLabel(
   return `${family.name} · level ${ordinal.n} of ${ordinal.of}`;
 }
 
-/** Section-card header: an accent icon and an eyebrow label (matches `DemoMedia`'s own header). */
+/** Section-card header: an accent icon and an eyebrow label. */
 function CardHeader({
   icon,
   tone,

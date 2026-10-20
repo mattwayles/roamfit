@@ -4,14 +4,6 @@
  * hard-sets-per-muscle-14d metric and the §5.2 OVER-WORKED trailing-volume comparison read from,
  * filtered by `local_date` (a small indexed local query — the §11.3 cost note is about Firestore
  * *remote* document reads, not local SQLite scans of a bounded recent window).
- *
- * Week-streak decision (not specified numerically in spec.md): a "week" is the ISO calendar week
- * (Mon-Sun) containing a session's `local_date`. A week counts as "hit" once it has at least
- * `weekly_target` completed sessions. The streak is the number of consecutive hit weeks ending at
- * the most recent week that has *concluded or is in progress with the target already met* —
- * i.e. the current in-progress week counts as soon as it's hit, consistent with §9.1's "lumpy
- * lives, forgiving math" framing (it should credit a fast start to the week immediately, not wait
- * for the week to end). Documented here per CLAUDE.md rather than silently assumed.
  */
 import { and, eq, gte, sql } from 'drizzle-orm';
 import type { Db } from '../db';
@@ -24,13 +16,11 @@ import { logSignalEvent } from './signals';
 const USER_ID = 'local';
 const ROLLING_WINDOW_DAYS = 7;
 const HARD_SETS_WINDOW_DAYS = 14;
-const TRAVEL_DENOMINATOR_FLOOR = 2;
 
 export interface RolledUpStatsRecord {
   lifetimeSessionCount: number;
   lifetimeTotalMinutes: number;
   rolling7dLocalDates: string[];
-  weekStreak: number;
   travelDaysThisWeek: number;
   estimateAccuracyEma: number | null;
   lastSessionLocalDate: string | null;
@@ -42,7 +32,6 @@ function rowToStats(row: typeof schema.rolledUpStats.$inferSelect): RolledUpStat
     lifetimeSessionCount: row.lifetimeSessionCount,
     lifetimeTotalMinutes: row.lifetimeTotalMinutes,
     rolling7dLocalDates: JSON.parse(row.rolling7dLocalDates),
-    weekStreak: row.weekStreak,
     travelDaysThisWeek: row.travelDaysThisWeek,
     estimateAccuracyEma: row.estimateAccuracyEma,
     lastSessionLocalDate: row.lastSessionLocalDate,
@@ -84,35 +73,6 @@ export function isoWeekKey(localDate: string): string {
   return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
 }
 
-function computeWeekStreak(
-  sessionLocalDates: string[],
-  weeklyTarget: number,
-  today: string,
-): number {
-  const countByWeek = new Map<string, number>();
-  for (const d of sessionLocalDates) {
-    const key = isoWeekKey(d);
-    countByWeek.set(key, (countByWeek.get(key) ?? 0) + 1);
-  }
-  let streak = 0;
-  let cursor = today;
-  // Walk backward one week at a time from the current week.
-  for (;;) {
-    const key = isoWeekKey(cursor);
-    const count = countByWeek.get(key) ?? 0;
-    if (count >= weeklyTarget) {
-      streak += 1;
-      // Step back 7 calendar days to land in the previous ISO week.
-      const [y, m, d] = cursor.split('-').map(Number);
-      const prev = new Date(Date.UTC(y, m - 1, d - 7));
-      cursor = `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}-${String(prev.getUTCDate()).padStart(2, '0')}`;
-    } else {
-      break;
-    }
-  }
-  return streak;
-}
-
 export interface MuscleVolumeEntry {
   muscle: string;
   sets: number;
@@ -122,7 +82,6 @@ export interface MuscleVolumeEntry {
 export interface RecordSessionCompletionInput {
   sessionId: string;
   localDate: string;
-  weeklyTarget: number;
   muscleVolume: MuscleVolumeEntry[];
   estimatedMinutes: number;
   actualMinutes: number;
@@ -132,8 +91,7 @@ export interface RecordSessionCompletionInput {
   recoveryWeekManual: boolean;
 }
 
-/** The one write call at completion. Appends the ledger rows, updates the singleton stats row.
- *  Bounded local recompute of week streak (reads `sessions.local_date` only, not entries). */
+/** The one write call at completion. Appends the ledger rows, updates the singleton stats row. */
 export function recordSessionCompletion(
   db: Db,
   input: RecordSessionCompletionInput,
@@ -156,15 +114,6 @@ export function recordSessionCompletion(
   const rolling = [...stats.rolling7dLocalDates, input.localDate]
     // Trim to a generous 30-day tail — plenty for the 7-day window with no unbounded growth.
     .filter((d) => isWithinRollingWindow(d, input.localDate, 30));
-
-  const allCompletedDates = db
-    .select({ localDate: schema.sessions.localDate })
-    .from(schema.sessions)
-    .where(eq(schema.sessions.status, 'completed'))
-    .all()
-    .map((r) => r.localDate);
-
-  const weekStreak = computeWeekStreak(allCompletedDates, input.weeklyTarget, input.localDate);
 
   const accuracySample =
     input.estimatedMinutes > 0
@@ -195,7 +144,6 @@ export function recordSessionCompletion(
       lifetimeSessionCount: stats.lifetimeSessionCount + 1,
       lifetimeTotalMinutes: stats.lifetimeTotalMinutes + input.actualMinutes,
       rolling7dLocalDates: JSON.stringify(rolling),
-      weekStreak,
       lastSessionLocalDate: input.localDate,
       estimateAccuracyEma,
       weeksSinceLastRecoveryWeek,
@@ -212,24 +160,17 @@ export function shouldSuggestRecoveryWeek(stats: RolledUpStatsRecord): boolean {
   return stats.weeksSinceLastRecoveryWeek >= 6 && stats.weeksSinceLastRecoveryWeek <= 8;
 }
 
-/** §9.1 rolling 7-day session count against `weekly_target`, with §9.3's travel-day denominator
- *  reduction (floor of 2) already applied to the denominator the caller compares against. */
+/** §9.1 rolling 7-day session count. */
 export function rollingSessionCount(stats: RolledUpStatsRecord, today: string): number {
   return stats.rolling7dLocalDates.filter((d) =>
     isWithinRollingWindow(d, today, ROLLING_WINDOW_DAYS),
   ).length;
 }
 
-export function effectiveWeeklyDenominator(
-  weeklyTarget: number,
-  travelDaysThisWeek: number,
-): number {
-  return Math.max(TRAVEL_DENOMINATOR_FLOOR, weeklyTarget - travelDaysThisWeek);
-}
-
 /**
- * The counter (`travelDaysThisWeek`) drives the §9.3 denominator math; the `travel_day` signal
- * event, dated to `localDate`, is the per-date record that count alone never carried — it's what
+ * The counter (`travelDaysThisWeek`) once reduced the weekly-target denominator (§9.3), which went
+ * with days per week (Track 40); nothing reads it now. The `travel_day` signal event, dated to
+ * `localDate`, is the per-date record that count alone never carried — it's what
  * lets the calendar heatmap (§14.1.6) mark this specific day as travel rather than a plain
  * untrained square.
  */

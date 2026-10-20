@@ -670,6 +670,25 @@ CREATE TABLE earned_badges (
 );
 `;
 
+const MIGRATION_0035_BANDS_SET_UP = `-- 0035_bands_set_up.sql — Track 40: Your bands left first-launch setup. Generate now offers it the
+-- first time Resistance bands is ticked, so it needs to know whether the user has ever chosen their
+-- bands. Every existing row went through a setup that asked (or predates it), so it counts as set
+-- up; a new row starts at 0.
+
+ALTER TABLE users ADD COLUMN bands_set_up INTEGER NOT NULL DEFAULT 0;
+UPDATE users SET bands_set_up = 1;
+`;
+
+const MIGRATION_0036_REMOVE_WEEKLY_TARGET = `-- 0036_remove_weekly_target.sql — Track 40: training days per week is gone from the app. It only
+-- ever fed the week streak (and its "N weeks on target" motivation lines), which also broke the
+-- no-streaks rule, so the target, the streak and the streak's never-used check date are dropped
+-- rather than left as dead weight (same call as 0018_remove_enjoyment.sql).
+
+ALTER TABLE users DROP COLUMN weekly_target;
+ALTER TABLE rolled_up_stats DROP COLUMN week_streak;
+ALTER TABLE rolled_up_stats DROP COLUMN last_week_streak_check_local_date;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -711,4 +730,6 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0032_onboarding.sql', sql: MIGRATION_0032_ONBOARDING },
   { id: '0033_band_settings.sql', sql: MIGRATION_0033_BAND_SETTINGS },
   { id: '0034_badges.sql', sql: MIGRATION_0034_BADGES },
+  { id: '0035_bands_set_up.sql', sql: MIGRATION_0035_BANDS_SET_UP },
+  { id: '0036_remove_weekly_target.sql', sql: MIGRATION_0036_REMOVE_WEEKLY_TARGET },
 ];

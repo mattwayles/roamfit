@@ -28,16 +28,6 @@ export interface ExerciseCatalogState {
   /** Sessions in which at least one set of this exercise was completed. */
   timesCompleted: number;
   lastPerformedAt: string | null;
-  /** ADR 0009 — the video the user assigned themselves, or null. */
-  userVideoId: string | null;
-  /** §11.4 — the curated remote-config id, or null. Never bundled (invariant 8). */
-  curatedVideoId: string | null;
-  /**
-   * Backs the "still needs a YouTube link" filter. True when *either* source can supply a video,
-   * because either one is enough for the media ladder to show a player — an exercise with a
-   * curated id does not need a link pasted for it.
-   */
-  hasVideo: boolean;
   /** Explicit, permanent user veto (Exercises detail screen or the workout approval screen) —
    *  distinct from `exercise_state.suppressed_until`'s temporary, system-managed cooldown. */
   disabled: boolean;
@@ -46,9 +36,6 @@ export interface ExerciseCatalogState {
 const EMPTY_STATE: ExerciseCatalogState = {
   timesCompleted: 0,
   lastPerformedAt: null,
-  userVideoId: null,
-  curatedVideoId: null,
-  hasVideo: false,
   disabled: false,
 };
 
@@ -75,7 +62,6 @@ export function getExerciseCatalogState(db: Db): Record<string, ExerciseCatalogS
       exerciseId: schema.exerciseState.exerciseId,
       sessionsPerformed: schema.exerciseState.sessionsPerformed,
       lastPerformedAt: schema.exerciseState.lastPerformedAt,
-      userVideoId: schema.exerciseState.userVideoId,
       disabledAt: schema.exerciseState.disabledAt,
     })
     .from(schema.exerciseState)
@@ -87,26 +73,7 @@ export function getExerciseCatalogState(db: Db): Record<string, ExerciseCatalogS
       ...EMPTY_STATE,
       timesCompleted: row.sessionsPerformed,
       lastPerformedAt: row.lastPerformedAt,
-      userVideoId: row.userVideoId ?? null,
-      hasVideo: row.userVideoId != null,
       disabled: row.disabledAt != null,
-    };
-  }
-
-  const configRows = db
-    .select({
-      exerciseId: schema.remoteVideoConfig.exerciseId,
-      videoId: schema.remoteVideoConfig.videoId,
-    })
-    .from(schema.remoteVideoConfig)
-    .all();
-
-  for (const row of configRows) {
-    const existing = out[row.exerciseId] ?? { ...EMPTY_STATE };
-    out[row.exerciseId] = {
-      ...existing,
-      curatedVideoId: row.videoId ?? null,
-      hasVideo: existing.userVideoId != null || row.videoId != null,
     };
   }
 

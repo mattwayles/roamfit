@@ -46,6 +46,7 @@ import {
   Icon,
   PressableScale,
   Screen,
+  Sheet,
   Switch,
   Txt,
   type IconName,
@@ -93,6 +94,10 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
   const [anchors, setAnchors] = useState<Anchor[]>([]);
   const [bandSettings, setBandSettings] = useState<BandSettings>(DEFAULT_BAND_SETTINGS);
   const bands = hasBands(bandSettings);
+  // Track 40 — Your bands is no longer part of setup, so the first tick of Resistance bands asks
+  // the user to choose theirs rather than silently assuming all five.
+  const [bandsSetUp, setBandsSetUp] = useState(true);
+  const [bandsPromptOpen, setBandsPromptOpen] = useState(false);
   // Collapsed by default: anchors are sticky user state (§5.3), set once and rarely revisited, so
   // they should not cost eleven rows of the picker on every generation.
   const [anchorsOpen, setAnchorsOpen] = useState(false);
@@ -121,11 +126,22 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
     // once per profile.
     const filtered = user.anchorsAvailable.filter((a) => VISIBLE_ANCHOR_VALUES.includes(a));
     setAnchors(filtered);
-    setBandSettings(user.bandSettings);
     if (filtered.length !== user.anchorsAvailable.length) {
       usersRepo.updateUser(db, { anchorsAvailable: filtered }, nowUtcInstant());
     }
   }, [db]);
+
+  // Bands are read on mount and again on every focus: the set-up prompt can send the user to Your
+  // bands and back.
+  useEffect(() => {
+    const load = () => {
+      const user = usersRepo.ensureUser(db, nowUtcInstant());
+      setBandSettings(user.bandSettings);
+      setBandsSetUp(user.bandsSetUp);
+    };
+    load();
+    return navigation.addListener('focus', load);
+  }, [db, navigation]);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,11 +153,23 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
     };
   }, []);
 
-  const toggleBands = useCallback(() => {
+  const applyBandsToggle = useCallback(() => {
     const patch = bandsToggled(bandSettings);
     setBandSettings({ ...bandSettings, ...patch });
     usersRepo.updateUser(db, { bandSettings: patch }, nowUtcInstant());
   }, [bandSettings, db]);
+
+  const toggleBands = useCallback(() => {
+    if (!bands && !bandsSetUp) setBandsPromptOpen(true);
+    else applyBandsToggle();
+  }, [applyBandsToggle, bands, bandsSetUp]);
+
+  const chooseAllBands = useCallback(() => {
+    setBandsPromptOpen(false);
+    setBandsSetUp(true);
+    usersRepo.updateUser(db, { bandsSetUp: true }, nowUtcInstant());
+    applyBandsToggle();
+  }, [applyBandsToggle, db]);
 
   const toggleAnchor = useCallback(
     (anchor: Anchor) => {
@@ -517,6 +545,44 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
           onChange={setRecoveryWeek}
         />
       </Enter>
+
+      <Sheet
+        testID="bands-setup-prompt"
+        visible={bandsPromptOpen}
+        onClose={() => setBandsPromptOpen(false)}
+        title="Set up your bands first?"
+      >
+        <Txt variant="small" color="text2" style={styles.sheetBody}>
+          Wanderlift doesn't know which bands you have yet. Choose them in Your bands, and your
+          workouts will only use bands you own.
+        </Txt>
+        <View style={styles.sheetButtons}>
+          <Button
+            testID="bands-setup-prompt-setup"
+            label="Set up my bands"
+            onPress={() => {
+              setBandsPromptOpen(false);
+              navigation.navigate('Bands');
+            }}
+          />
+          <Button
+            testID="bands-setup-prompt-all"
+            label="Use all five for now"
+            variant="secondary"
+            size="md"
+            fullWidth
+            onPress={chooseAllBands}
+          />
+          <Button
+            testID="bands-setup-prompt-cancel"
+            label="Not now"
+            variant="quiet"
+            size="md"
+            fullWidth
+            onPress={() => setBandsPromptOpen(false)}
+          />
+        </View>
+      </Sheet>
     </Screen>
   );
 }
@@ -586,6 +652,8 @@ const useStyles = makeStyles((t) =>
     titleBlock: { gap: space.xs },
     section: { gap: space.md },
     footer: { gap: space.sm },
+    sheetBody: { marginBottom: space.xl },
+    sheetButtons: { gap: space.md },
 
     // -- focus tiles
     tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },

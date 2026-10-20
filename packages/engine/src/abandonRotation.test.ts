@@ -36,7 +36,6 @@ function userState(history: SessionHistoryRecord[]): UserState {
   return {
     profile: {
       units: 'lb',
-      weeklyTarget: 3,
       limitations: [],
       anchorsAvailable: [...FIXED_POINT_ANCHORS],
       disabledExerciseIds: [],

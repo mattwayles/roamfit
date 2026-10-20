@@ -213,8 +213,6 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
       setLevelUpNotice(`${entry.familyName}: now at ${result.exerciseName}.`);
     } else if (result.status === 'at_max') {
       setLevelUpNotice(`${entry.familyName} is already at the top of its ladder — nice.`);
-    } else if (result.status === 'no_eligible_exercise') {
-      setLevelUpNotice(`The next ${entry.familyName} level needs an anchor you don't have set up.`);
     }
     reload();
   };
@@ -241,10 +239,6 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
       setLevelUpNotice(`${entry.familyName}: now at ${result.exerciseName}.`);
     } else if (result.status === 'at_min') {
       setLevelUpNotice(`${entry.familyName} is already at the bottom of its ladder.`);
-    } else if (result.status === 'no_eligible_exercise') {
-      setLevelUpNotice(
-        `The prior ${entry.familyName} level needs an anchor you don't have set up.`,
-      );
     }
     reload();
   };
@@ -357,8 +351,17 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
       testID="journey-screen"
       contentStyle={styles.content}
     >
-      <Enter index={next()}>
-        <Txt variant="display">Journey Markers</Txt>
+      <Enter index={next()} style={styles.header}>
+        <Txt variant="display" style={styles.headerTitle}>
+          Journey Markers
+        </Txt>
+        {/* Settings is reachable from every tab, as on Today. */}
+        <IconButton
+          testID="journey-open-settings"
+          icon="settings"
+          accessibilityLabel="Settings"
+          onPress={() => navigation.navigate('Settings')}
+        />
       </Enter>
 
       {/* §14.1.8 lifetime counters — monotonic, permanent. Two tones in a checkerboard (teal,
@@ -1033,6 +1036,8 @@ const useStyles = makeStyles((t) =>
     content: { paddingTop: space.lg, paddingBottom: space.huge + space.xxl, gap: space.xxxl },
     flex: { flex: 1 },
     section: { gap: space.lg },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    headerTitle: { flex: 1 },
     badgesCard: { gap: space.md },
     badgeRecent: { flexDirection: 'row', gap: space.md, flexWrap: 'wrap' },
     newPill: {

@@ -22,9 +22,6 @@ type CatalogState = exerciseCatalogRepo.ExerciseCatalogState;
 const FALLBACK: CatalogState = {
   timesCompleted: 0,
   lastPerformedAt: null,
-  userVideoId: null,
-  curatedVideoId: null,
-  hasVideo: false,
   disabled: false,
 };
 
@@ -109,37 +106,6 @@ describe('search', () => {
 
   it('a query that matches nothing returns nothing, rather than everything', () => {
     expect(all(exercises, { ...EMPTY_FILTERS, query: 'deadlift' })).toEqual([]);
-  });
-});
-
-describe('video filter — the "which still need a link" view', () => {
-  const exercises = [
-    exercise({ id: 'has-user', name: 'A' }),
-    exercise({ id: 'has-curated', name: 'B' }),
-    exercise({ id: 'needs', name: 'C' }),
-  ];
-  const catalog: Record<string, CatalogState> = {
-    'has-user': { ...FALLBACK, userVideoId: 'abc', hasVideo: true },
-    'has-curated': { ...FALLBACK, curatedVideoId: 'def', hasVideo: true },
-  };
-
-  it('isolates the exercises with no video from either source', () => {
-    expect(all(exercises, { ...EMPTY_FILTERS, video: 'needs_video' }, catalog)).toEqual(['needs']);
-  });
-
-  it('and the ones that already have one, from either source', () => {
-    expect(all(exercises, { ...EMPTY_FILTERS, video: 'has_video' }, catalog)).toEqual([
-      'has-user',
-      'has-curated',
-    ]);
-  });
-
-  it('an exercise with no catalogue row at all counts as needing one', () => {
-    expect(all(exercises, { ...EMPTY_FILTERS, video: 'needs_video' }, {})).toEqual([
-      'has-user',
-      'has-curated',
-      'needs',
-    ]);
   });
 });
 
@@ -247,10 +213,9 @@ describe('activeFilterCount', () => {
         ...EMPTY_FILTERS,
         difficulty: ['easy', 'hard'],
         focus: ['abs'],
-        video: 'needs_video',
         performed: 'never',
       }),
-    ).toBe(5);
+    ).toBe(4);
   });
 });
 

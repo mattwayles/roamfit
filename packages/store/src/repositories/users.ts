@@ -87,7 +87,6 @@ export type ThemePreference = 'system' | 'light' | 'dark';
 export interface UserRecord {
   id: string;
   units: 'kg' | 'lb';
-  weeklyTarget: number;
   anchorsAvailable: Anchor[];
   /** Always complete: `DEFAULT_BAND_TENSIONS` is merged under whatever the row holds, so an
    *  existing `'{}'` row (every row, until Settings gains an editor) still yields five usable
@@ -95,6 +94,8 @@ export interface UserRecord {
   bandTensions: Record<SingleBandId, BandTension>;
   /** Track 37i — always complete: which bands are owned, and whether to stack them. */
   bandSettings: BandSettings;
+  /** Track 40 — the user has chosen their bands, so Generate need not offer Your bands. */
+  bandsSetUp: boolean;
   passportEnabled: boolean;
   healthWriteEnabled: boolean;
   cueSoundsEnabled: boolean;
@@ -217,12 +218,12 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
   return {
     id: row.id,
     units: row.units,
-    weeklyTarget: row.weeklyTarget,
     anchorsAvailable: JSON.parse(row.anchorsAvailable) as Anchor[],
     bandTensions: mergeBandTensions(
       JSON.parse(row.bandTensions) as Partial<Record<SingleBandId, Partial<BandTension>>>,
     ),
     bandSettings: parseBandSettings(row.bandSettings),
+    bandsSetUp: row.bandsSetUp,
     passportEnabled: row.passportEnabled,
     healthWriteEnabled: row.healthWriteEnabled,
     cueSoundsEnabled: row.cueSoundsEnabled,
@@ -251,6 +252,9 @@ export function ensureUser(db: Db, now: string): UserRecord {
       // Nothing assumed: a new user ticks Resistance bands before any band exercise is programmed.
       // Existing rows keep what they stored (an empty `{}` still reads as every band owned).
       bandSettings: JSON.stringify({ owned: [], stacking: false }),
+      // Passport starts on; the location prompt comes with the first completion's geocode attempt.
+      // Existing rows keep what they stored, since an explicit "off" can't be told from the old default.
+      passportEnabled: true,
       createdAt: now,
       updatedAt: now,
     })
@@ -265,7 +269,6 @@ export function getUser(db: Db): UserRecord | null {
 
 export interface UserPatch {
   units?: 'kg' | 'lb';
-  weeklyTarget?: number;
   anchorsAvailable?: Anchor[];
   passportEnabled?: boolean;
   healthWriteEnabled?: boolean;
@@ -281,13 +284,13 @@ export interface UserPatch {
   trainingPreferences?: Partial<TrainingPreferences>;
   /** Track 37i — merged onto the stored band settings. */
   bandSettings?: Partial<BandSettings>;
+  bandsSetUp?: boolean;
 }
 
 export function updateUser(db: Db, patch: UserPatch, now: string): void {
   const current = ensureUser(db, now); // idempotent — a settings update before the user row exists must not no-op
   const values: Record<string, unknown> = { updatedAt: now };
   if (patch.units !== undefined) values.units = patch.units;
-  if (patch.weeklyTarget !== undefined) values.weeklyTarget = patch.weeklyTarget;
   if (patch.anchorsAvailable !== undefined) {
     values.anchorsAvailable = JSON.stringify(patch.anchorsAvailable);
   }
@@ -308,6 +311,7 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
   if (patch.bandSettings !== undefined) {
     values.bandSettings = JSON.stringify({ ...current.bandSettings, ...patch.bandSettings });
   }
+  if (patch.bandsSetUp !== undefined) values.bandsSetUp = patch.bandsSetUp;
   if (patch.trainingPreferences !== undefined) {
     values.trainingPrefs = JSON.stringify({
       ...current.trainingPreferences,
@@ -475,7 +479,6 @@ export function buildUserProfile(db: Db, today: string): UserProfile {
   const user = ensureUser(db, today);
   return {
     units: user.units,
-    weeklyTarget: user.weeklyTarget,
     limitations: [
       ...limitationsFromChoices(user.limitationChoices),
       ...getActiveLimitations(db, today),

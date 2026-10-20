@@ -118,7 +118,6 @@ export interface Limitation {
 /** §4.3 — subset relevant to generation. */
 export interface UserProfile {
   units: 'kg' | 'lb';
-  weeklyTarget: number;
   limitations: Limitation[];
   /** §5.3 — single global sticky list, the one per-session constraint. */
   anchorsAvailable: Anchor[];

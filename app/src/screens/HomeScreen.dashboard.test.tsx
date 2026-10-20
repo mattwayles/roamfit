@@ -11,7 +11,6 @@ import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider } from '../state/StoreContext';
-import { greetingFor } from '../lib/hypeCopy';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
@@ -46,8 +45,9 @@ describe('§14.2 cold start — Today is never empty', () => {
     expect(screen.queryByTestId('disclaimer-gate')).toBeNull();
     await waitFor(() => expect(screen.getByTestId('tab-Journey')).toBeTruthy(), WAIT_OPTS);
 
-    // Wordmark greeting and the Settings gear.
-    expect(screen.getByTestId('today-greeting').props.children).toBe(greetingFor(new Date()));
+    // The logo is the title (no wordmark, no greeting), with the Settings gear.
+    expect(screen.getByTestId('today-logo').props.accessibilityLabel).toBe('Wanderlift');
+    expect(screen.queryByTestId('today-greeting')).toBeNull();
     expect(screen.getByTestId('open-settings')).toBeTruthy();
 
     // Quick Session + In transit tiles are live from the first launch.

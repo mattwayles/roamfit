@@ -483,7 +483,6 @@ export function completeSession(
       {
         sessionId: session.id,
         localDate: session.localDate,
-        weeklyTarget: user.weeklyTarget,
         muscleVolume,
         estimatedMinutes: session.estimatedMinutes,
         actualMinutes,

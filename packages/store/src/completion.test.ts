@@ -137,9 +137,11 @@ describe('completion — best-set PR and milestones', () => {
       expect(deferred.some((d) => d.kind === 'llm_distillation' && d.sessionId === sessionId)).toBe(
         true,
       );
-      // healthkit/passport are opt-in and off by default — must not be enqueued.
+      // HealthKit is opt-in and off by default — must not be enqueued. Passport is on by default.
       expect(deferred.some((d) => d.kind === 'healthkit_write')).toBe(false);
-      expect(deferred.some((d) => d.kind === 'passport_geocode')).toBe(false);
+      expect(deferred.some((d) => d.kind === 'passport_geocode' && d.sessionId === sessionId)).toBe(
+        true,
+      );
     } finally {
       close();
     }

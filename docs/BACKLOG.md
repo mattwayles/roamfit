@@ -14,6 +14,11 @@ the record of what was completed and why.
 
 ## Desired Fixes
 
+- **EAS development build — first run owed.** `app/eas.json` and `docs/EAS-SETUP.md` are written but
+  never run. Needs `eas login`, `eas device:create` for the iPhone, then
+  `eas build --platform ios --profile development`. Check the install link works on the phone and the
+  build connects to `./scripts/dev.sh --tunnel`. TestFlight (`production` profile) is also untried and
+  needs the App Store Connect app record first.
 - **Badges visuals (Track 38c) - device pass owed.** Only Jest has seen these. On a device check: the
   four patch shapes (circle, shield, hexagon, rounded square) and tier rings read clearly in Midnight
   and Daybreak, locked (dashed, faint glyph) vs earned is obvious at 40/64/120; the Badges grid at
@@ -28,10 +33,29 @@ the record of what was completed and why.
   `onLayout`, tested in Jest with synthetic layouts only). On a device check the card lands just under
   the top edge with the chart's height settled (cards are taller once their charts mount), that it
   works both from a cold Journey and with Journey already open, and that Reduce Motion is fine.
+- **Demo-video leftovers are now dead weight.** The Demo card, the paste-a-link flow and the
+  video-flag demotion are gone (How to now has a "Watch a demo" button opening a YouTube search for
+  "<name> Exercise"; `lib/youtubeSearch.ts`). Left in place, unread: `exercise_state.user_video_id`,
+  `user_video_assigned_at`, `video_flag_count`, `video_demoted_at`, `session_entries.demo_media_expanded`,
+  the `remote_video_config` table with its `remoteConfigRepo` and Firestore pull, the
+  `video_flag_reported` / `user_video_assigned` / `demo_media_expanded` signal types, and the
+  `react-native-webview` dependency (still used only by its jest mock). Drop them with a migration,
+  and remove the dependency, in one pass.
 - **`lifetime_total_minutes` is now write-only.** The Journey tile moved from minutes to sets
   (`lifetimeSets` in `stats.ts`, derived from `set_logs`), so nothing reads the column
   (`rolled_up_stats`, migration 0003) or `lifetimeTotalMinutes` any more. Drop both with a
   migration, or leave if a minutes stat returns.
+- **`travel_days_this_week` is now write-only.** It reduced the weekly-target denominator, which went
+  with days per week (Track 40). `recordTravelDay` still bumps it; the calendar reads the
+  `travel_day` signal event instead. Drop the column and the bump with a migration.
+- **Setup trim and the bands prompt (Track 40) — device pass owed.** Setup is now welcome, goal,
+  limitations. On a device: a fresh install's Generate → Available equipment → Resistance bands
+  opens "Set up your bands first?"; "Set up my bands" opens Your bands and coming back shows the
+  row ticked once a band is chosen; "Use all five for now" ticks it and never asks again.
+  Track 41: the Today header is the logo alone, centred at 88pt with the gear on the right (glow
+  not clipped, size right in Midnight and Daybreak, gear never overlaps the logo on a small
+  phone), and the Journey / Field guide gears line up with
+  their titles without crowding the Field guide move count on a small phone.
 - **Apple Health write — device pass owed.** Track 37m: turning on "Write workouts to Apple Health"
   requests write-only access, and the first write of each launch re-requests silently (the flag is
   in-memory), so workouts queued before a relaunch are no longer dropped. Jest-verified with a mocked
@@ -155,6 +179,13 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   a CSCS working with one) should sign it off, starting with the pregnancy/postpartum filter, and
   decide its four open questions (brief supine work, fall risk, inversions, splitting postpartum from
   pregnancy).
+  Also in that review: the 23 bodyweight exercises added so every rung has a no-band option
+  (`packages/data/src/noBandLadders.test.ts`) were tagged by the same AI pass, not a person. And the
+  band-free path still needs fixed points on some rungs: `horizontal_pull` l3/l4/l6/l7 need a low bar,
+  `vertical_pull` l4-l6 a pull-up bar, `vertical_push` l2 and `hinge` l6 a bench or step. Without
+  them the resolver walks down to the nearest rung it can serve, so a user with no bands and no
+  fixed points climbs squat, lunge and core fully, horizontal pull to l2, vertical pull to l3, and
+  stalls at the first rung needing a fixed point on the others.
 - **User Accounts** - **Anonymous Firebase Auth session isn't persisted.** No RN AsyncStorage backing, so cross-device continuity silently doesn't work. Zero impact on the core loop — nothing reads it on the critical path. Full scoping for account creation, login and logout (work required, sizing, open decisions): `docs/ACCOUNTS-SCOPING.md`.
 - **LLM integration is not fully written:** `functions/` is written; no `LlmProxyCaller` implementation calls
   the deployed function, nothing triggers `processLlmQueue`, and there is no natural-language intake

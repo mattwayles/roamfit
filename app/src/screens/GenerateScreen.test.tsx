@@ -17,10 +17,22 @@ import { StoreProvider, useStore } from '../state/StoreContext';
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 
 function mockNavigation() {
-  return { navigate: jest.fn(), replace: jest.fn(), reset: jest.fn(), goBack: jest.fn() };
+  return {
+    navigate: jest.fn(),
+    replace: jest.fn(),
+    reset: jest.fn(),
+    goBack: jest.fn(),
+    addListener: jest.fn(() => () => {}),
+  };
 }
 
-function Setup({ onReady }: { onReady: (db: ReturnType<typeof useStore>['db']) => void }) {
+function Setup({
+  onReady,
+  bandsSetUp = true,
+}: {
+  onReady: (db: ReturnType<typeof useStore>['db']) => void;
+  bandsSetUp?: boolean;
+}) {
   const { db } = useStore();
   const now = new Date().toISOString();
   const pending = sessionsRepo.getPendingSession(db);
@@ -29,8 +41,10 @@ function Setup({ onReady }: { onReady: (db: ReturnType<typeof useStore>['db']) =
   // deliberately mutate the user's sticky anchors (§5.3). Reset to the default so each test
   // starts from the same state instead of inheriting the previous one's toggles.
   usersRepo.updateUser(db, { anchorsAvailable: [...FIXED_POINT_ANCHORS] }, now);
-  // A new user owns no bands; this suite is about band prescriptions.
-  usersRepo.updateUser(db, { bandSettings: DEFAULT_BAND_SETTINGS }, new Date().toISOString());
+  // A new user owns no bands; this suite is about band prescriptions, so it gets every band unless
+  // the test is about a user who has not set bands up yet.
+  const bandSettings = bandsSetUp ? DEFAULT_BAND_SETTINGS : { owned: [], stacking: false };
+  usersRepo.updateUser(db, { bandSettings, bandsSetUp }, now);
   onReady(db);
   return null;
 }
@@ -38,12 +52,12 @@ function Setup({ onReady }: { onReady: (db: ReturnType<typeof useStore>['db']) =
 /** Mounts the screen with a db-grabbing sibling, so each test mounts exactly ONE tree. Two
  *  `render()` calls in a single test leave both mounted and their effects then fight over
  *  `screen`, which shows up as unrelated tests timing out. */
-function renderScreen() {
+function renderScreen({ bandsSetUp = true }: { bandsSetUp?: boolean } = {}) {
   const navigation = mockNavigation();
   let db!: ReturnType<typeof useStore>['db'];
   render(
     <StoreProvider>
-      <Setup onReady={(d) => (db = d)} />
+      <Setup onReady={(d) => (db = d)} bandsSetUp={bandsSetUp} />
       <GenerateScreen
         navigation={navigation as never}
         route={{ key: 'Generate', name: 'Generate', params: undefined } as never}
@@ -456,5 +470,46 @@ describe('§10.2 Generate screen', () => {
     await waitFor(() => expect(state('bands-toggle').checked).toBe(true), WAIT_OPTS);
     expect(usersRepo.getUser(getDb())!.bandSettings.owned).toHaveLength(5);
     for (const id of bandAnchors) expect(state(id).disabled).toBe(false);
+  });
+
+  describe('Resistance bands before Your bands is set up (Track 40)', () => {
+    async function openUnticked() {
+      const rendered = renderScreen({ bandsSetUp: false });
+      await waitFor(() => expect(screen.getByTestId('anchors-disclosure')).toBeTruthy(), WAIT_OPTS);
+      fireEvent.press(screen.getByTestId('anchors-disclosure'));
+      await waitFor(() => expect(screen.getByTestId('bands-toggle')).toBeTruthy(), WAIT_OPTS);
+      return rendered;
+    }
+    const checkedNow = () => screen.getByTestId('bands-toggle').props.accessibilityState.checked;
+
+    it('ticking it offers Your bands instead of assuming all five, and "Set up my bands" goes there', async () => {
+      const { navigation, getDb } = await openUnticked();
+      expect(checkedNow()).toBe(false);
+      fireEvent.press(screen.getByTestId('bands-toggle'));
+      await waitFor(() => expect(screen.getByTestId('bands-setup-prompt')).toBeTruthy(), WAIT_OPTS);
+      expect(usersRepo.getUser(getDb())!.bandSettings.owned).toEqual([]);
+      fireEvent.press(screen.getByTestId('bands-setup-prompt-setup'));
+      expect(navigation.navigate).toHaveBeenCalledWith('Bands');
+    });
+
+    it('"Use all five for now" ticks every band and stops asking', async () => {
+      const { getDb } = await openUnticked();
+      fireEvent.press(screen.getByTestId('bands-toggle'));
+      await waitFor(() => expect(screen.getByTestId('bands-setup-prompt')).toBeTruthy(), WAIT_OPTS);
+      fireEvent.press(screen.getByTestId('bands-setup-prompt-all'));
+      await waitFor(() => expect(checkedNow()).toBe(true), WAIT_OPTS);
+      const user = usersRepo.getUser(getDb())!;
+      expect(user.bandSettings.owned).toHaveLength(5);
+      expect(user.bandsSetUp).toBe(true);
+    });
+
+    it('"Not now" leaves bands unticked', async () => {
+      const { getDb } = await openUnticked();
+      fireEvent.press(screen.getByTestId('bands-toggle'));
+      await waitFor(() => expect(screen.getByTestId('bands-setup-prompt')).toBeTruthy(), WAIT_OPTS);
+      fireEvent.press(screen.getByTestId('bands-setup-prompt-cancel'));
+      expect(checkedNow()).toBe(false);
+      expect(usersRepo.getUser(getDb())!.bandsSetUp).toBe(false);
+    });
   });
 });

@@ -9,21 +9,25 @@
  * shows "Level 3 of 9 — Knee Push-Up". Adjusting it there, before generating, is also the only
  * version that needs no session to exist at all.
  *
- * Invariant 2 holds: the transition itself is the engine's (`levelUpForTooEasy`) and eligibility
- * is the engine's hard filters. This module only persists the result.
+ * Invariant 2 holds: the transition itself is the engine's (`levelUpForTooEasy`). This module only
+ * persists the result.
+ *
+ * Track 41 — a manual move is never refused for equipment (or anything else the hard filters know
+ * about). Equipment is only the selections remembered for the next Generate, so "a rung needs an
+ * anchor you don't have set up" is not something the app can know. The ladder position is not
+ * unsafe in itself: generation still runs every hard filter (invariant 3) before any exercise on
+ * the new rung is programmed, and walks down the ladder if nothing on it fits that workout.
  */
 import {
-  applyHardFilters,
   findFamily,
   levelUpForTooEasy,
   levelDownForTooHard,
   resolveLadderSlot,
 } from '@roamfit/engine';
-import type { EngineClock, Rng } from '@roamfit/engine';
-import type { ExerciseLibrary, FamilyLibrary, ProgressionFamilyId } from '@roamfit/data';
+import type { EngineClock, ProgressionState, Rng } from '@roamfit/engine';
+import type { Exercise, ExerciseLibrary, FamilyLibrary, ProgressionFamilyId } from '@roamfit/data';
 import type { Db } from './db';
 import { logSignalEvent } from './repositories/signals';
-import { buildUserProfile } from './repositories/users';
 import { getAllProgressionStates, upsertProgressionState } from './repositories/progressionState';
 
 export type LevelUpOutcome =
@@ -32,11 +36,7 @@ export type LevelUpOutcome =
   /** Already at the top of this ladder — §6.7 Mastery territory, not a failure. */
   | { status: 'at_max' }
   /** No such family, or no progression state for it yet. */
-  | { status: 'unknown_family' }
-  /** The next rung exists, but every exercise on it is hard-filtered out for this user (anchor or
-   *  limitation). Nothing is written — moving someone onto a rung they cannot perform would
-   *  strand them there, with no way off it but failing it. */
-  | { status: 'no_eligible_exercise' };
+  | { status: 'unknown_family' };
 
 export interface LevelUpInput {
   familyId: ProgressionFamilyId;
@@ -50,7 +50,7 @@ export interface LevelUpInput {
 }
 
 export function levelUpFamily(db: Db, input: LevelUpInput, now: string): LevelUpOutcome {
-  const { familyId, library, families, clock, rng } = input;
+  const { familyId, library, families, clock } = input;
 
   const family = findFamily(families.families, familyId);
   if (!family) return { status: 'unknown_family' };
@@ -62,33 +62,7 @@ export function levelUpFamily(db: Db, input: LevelUpInput, now: string): LevelUp
   const advanced = levelUpForTooEasy(state, family, library.exercises);
   if (!advanced) return { status: 'at_max' };
 
-  // Check the new rung against the user's real hard filters BEFORE committing.
-  const profile = buildUserProfile(db, clock.today);
-  const pool = applyHardFilters({
-    library: library.exercises,
-    request: { equipmentPreference: 'any' },
-    anchorsAvailable: profile.anchorsAvailable,
-    limitations: profile.limitations,
-    disabledExerciseIds: new Set(profile.disabledExerciseIds),
-    today: clock.today,
-  });
-  const resolved = resolveLadderSlot({
-    familyId,
-    families: families.families,
-    library: library.exercises,
-    progressionStates: { ...states, [familyId]: advanced.state },
-    hardFilteredPool: pool,
-    rng,
-    // This is checking whether the rung just unlocked has an eligible exercise of its own, and
-    // needs to name one from it for the confirmation copy — pooling in already-mastered lower
-    // rungs (track 14) would let this succeed with the wrong exercise, or with the wrong level's
-    // name, even when the new rung itself is unusable.
-    includeLowerRungs: false,
-  });
-  // `resolveLadderSlot` walks *down* when a rung is unavailable, which is right during generation
-  // and wrong here: a walk-down means the rung just unlocked has nothing the user can actually do.
-  if (!resolved || resolved.substitutedFrom) return { status: 'no_eligible_exercise' };
-
+  const exercise = rungExercise(input, states, advanced.state);
   upsertProgressionState(db, advanced.state, now);
 
   logSignalEvent(db, {
@@ -98,7 +72,7 @@ export function levelUpFamily(db: Db, input: LevelUpInput, now: string): LevelUp
       familyId,
       fromLevelId: state.levelId,
       toLevelId: advanced.state.levelId,
-      toExerciseId: resolved.exercise.id,
+      toExerciseId: exercise.id,
     },
     utcInstant: now,
     localDate: clock.today,
@@ -106,8 +80,8 @@ export function levelUpFamily(db: Db, input: LevelUpInput, now: string): LevelUp
 
   return {
     status: 'levelled_up',
-    exerciseId: resolved.exercise.id,
-    exerciseName: resolved.exercise.name,
+    exerciseId: exercise.id,
+    exerciseName: exercise.name,
     levelId: advanced.state.levelId,
   };
 }
@@ -115,8 +89,7 @@ export function levelUpFamily(db: Db, input: LevelUpInput, now: string): LevelUp
 /**
  * The symmetric counterpart to `levelUpFamily` above — "this rung is above me", dropped one
  * level. Same home (the progression board, no session required), same division of labor
- * (`levelDownForTooHard` is the engine's transition; this module only checks eligibility on the
- * new rung and persists it).
+ * (`levelDownForTooHard` is the engine's transition; this module only persists it).
  */
 export type LevelDownOutcome =
   /** Dropped. `exerciseName` is the new (lower) rung's exercise, for the confirmation copy. */
@@ -124,10 +97,7 @@ export type LevelDownOutcome =
   /** Already at the bottom of this ladder — level 1 is the floor. */
   | { status: 'at_min' }
   /** No such family, or no progression state for it yet. */
-  | { status: 'unknown_family' }
-  /** The prior rung exists, but every exercise on it is hard-filtered out for this user (anchor or
-   *  limitation). Nothing is written, for the same reason `levelUpFamily` refuses this case. */
-  | { status: 'no_eligible_exercise' };
+  | { status: 'unknown_family' };
 
 export interface LevelDownInput {
   familyId: ProgressionFamilyId;
@@ -141,7 +111,7 @@ export interface LevelDownInput {
 }
 
 export function levelDownFamily(db: Db, input: LevelDownInput, now: string): LevelDownOutcome {
-  const { familyId, library, families, clock, rng } = input;
+  const { familyId, library, families, clock } = input;
 
   const family = findFamily(families.families, familyId);
   if (!family) return { status: 'unknown_family' };
@@ -153,27 +123,7 @@ export function levelDownFamily(db: Db, input: LevelDownInput, now: string): Lev
   const dropped = levelDownForTooHard(state, family, library.exercises);
   if (!dropped) return { status: 'at_min' };
 
-  // Check the new (lower) rung against the user's real hard filters BEFORE committing.
-  const profile = buildUserProfile(db, clock.today);
-  const pool = applyHardFilters({
-    library: library.exercises,
-    request: { equipmentPreference: 'any' },
-    anchorsAvailable: profile.anchorsAvailable,
-    limitations: profile.limitations,
-    disabledExerciseIds: new Set(profile.disabledExerciseIds),
-    today: clock.today,
-  });
-  const resolved = resolveLadderSlot({
-    familyId,
-    families: families.families,
-    library: library.exercises,
-    progressionStates: { ...states, [familyId]: dropped.state },
-    hardFilteredPool: pool,
-    rng,
-    includeLowerRungs: false,
-  });
-  if (!resolved || resolved.substitutedFrom) return { status: 'no_eligible_exercise' };
-
+  const exercise = rungExercise(input, states, dropped.state);
   upsertProgressionState(db, dropped.state, now);
 
   logSignalEvent(db, {
@@ -183,7 +133,7 @@ export function levelDownFamily(db: Db, input: LevelDownInput, now: string): Lev
       familyId,
       fromLevelId: state.levelId,
       toLevelId: dropped.state.levelId,
-      toExerciseId: resolved.exercise.id,
+      toExerciseId: exercise.id,
     },
     utcInstant: now,
     localDate: clock.today,
@@ -191,8 +141,31 @@ export function levelDownFamily(db: Db, input: LevelDownInput, now: string): Lev
 
   return {
     status: 'levelled_down',
-    exerciseId: resolved.exercise.id,
-    exerciseName: resolved.exercise.name,
+    exerciseId: exercise.id,
+    exerciseName: exercise.name,
     levelId: dropped.state.levelId,
   };
+}
+
+/** One exercise from the new rung itself, to name in the confirmation copy. Drawn from the whole
+ *  library — nothing about the user's equipment or filters applies to a manual move. */
+function rungExercise(
+  input: LevelUpInput,
+  states: ReturnType<typeof getAllProgressionStates>,
+  next: ProgressionState,
+): Exercise {
+  const resolved = resolveLadderSlot({
+    familyId: input.familyId,
+    families: input.families.families,
+    library: input.library.exercises,
+    progressionStates: { ...states, [input.familyId]: next },
+    hardFilteredPool: input.library.exercises,
+    rng: input.rng,
+    // The rung just moved to, not a lower one pooled in for variety (track 14).
+    includeLowerRungs: false,
+  });
+  // Every rung has at least one exercise in the library (data validators), so this always
+  // resolves; the throw is a guard against a broken library, not a user-facing state.
+  if (!resolved) throw new Error(`no exercise on ${next.levelId}`);
+  return resolved.exercise;
 }

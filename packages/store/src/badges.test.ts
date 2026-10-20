@@ -164,7 +164,8 @@ describe('buildBadgeFacts', () => {
       // Main work only: never more than every completed set (which also counts prep).
       expect(f.lifetimeSets).toBeLessThanOrEqual(lifetimeSets(db));
       expect(f.familyCount).toBe(families.families.length);
-      expect(f.highestLevelOrdinal).toBeGreaterThanOrEqual(1);
+      // Nothing has been climbed yet, so no rung counts.
+      expect(f.highestLevelOrdinal).toBe(0);
     } finally {
       close();
     }

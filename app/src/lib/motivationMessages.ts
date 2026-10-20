@@ -5,18 +5,18 @@
  * ... a large pool, randomly selected each day so it doesn't get stale").
  *
  * Same register as the rest of the app's copy (CLAUDE.md invariant 4 / STATUS-5-motivation.md's
- * "grep for shame"): loss-aversion at most (a streak, a close unlock), never guilt ("you missed",
+ * "grep for shame"): loss-aversion at most (a close unlock), never guilt ("you missed",
  * "you're behind"). Every template is pure text — no scheduling, no I/O — so it's trivially
  * testable and reusable if a second surface (e.g. an in-app banner) ever wants the same copy.
+ *
+ * The streak lines the original request asked for went with days per week (Track 40): with no
+ * weekly target there is nothing to run a streak against, and streaks break invariant 4 anyway.
  */
 import type { Rng } from '@roamfit/engine';
 
 export interface MotivationContext {
   /** From `nextUnlockHero(board)` — null when there's nothing close yet. */
   hero: { familyName: string; sessionsRemaining: number } | null;
-  /** `stats.weekStreak` — consecutive weeks the weekly target was hit. 0 means "say nothing
-   *  streak-shaped," never "say something about a broken one." */
-  weekStreak: number;
 }
 
 export interface MotivationMessage {
@@ -110,20 +110,6 @@ const CONDITIONAL_TEMPLATES: Template[] = [
     applicable: (ctx) => ctx.hero !== null && ctx.hero!.sessionsRemaining <= 2,
     build: (ctx) => ({
       body: `You're close on ${ctx.hero!.familyName} — ${ctx.hero!.sessionsRemaining} more and you level up.`,
-    }),
-  },
-  {
-    id: 'streak-1',
-    applicable: (ctx) => ctx.weekStreak > 0,
-    build: (ctx) => ({
-      body: `${ctx.weekStreak} ${ctx.weekStreak === 1 ? 'week' : 'weeks'} running on target. Keep it going today.`,
-    }),
-  },
-  {
-    id: 'streak-2',
-    applicable: (ctx) => ctx.weekStreak >= 2,
-    build: (ctx) => ({
-      body: `${ctx.weekStreak} weeks in a row hitting your target — today keeps the run alive.`,
     }),
   },
 ];

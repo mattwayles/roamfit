@@ -87,6 +87,17 @@ describe('navigation shell', () => {
     await fireEvent.press(screen.getByTestId('open-settings'));
     await waitFor(() => expect(screen.queryByTestId('open-settings')).toBeNull(), WAIT);
   });
+
+  it.each([
+    ['Journey', 'journey-open-settings'],
+    ['Exercises', 'guide-open-settings'],
+  ])('Settings opens from the %s tab too', async (tab, gear) => {
+    await boot();
+    await fireEvent.press(screen.getByTestId(`tab-${tab}`));
+    await waitFor(() => expect(screen.getByTestId(gear)).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId(gear));
+    await waitFor(() => expect(screen.getByTestId('settings-screen')).toBeTruthy(), WAIT);
+  });
 });
 
 describe('homeReset', () => {

@@ -47,7 +47,6 @@ export const users = sqliteTable('users', {
     .default('lb'),
   /** JSON: Record<BandId, { label, color, approx_load, note }>. */
   bandTensions: text('band_tensions').notNull().default('{}'),
-  weeklyTarget: integer('weekly_target').notNull().default(3),
   /** JSON array of Anchor. §5.3 default: all band_tension on, all bodyweight_bearing off. */
   anchorsAvailable: text('anchors_available').notNull(),
   passportEnabled: integer('passport_enabled', { mode: 'boolean' }).notNull().default(false),
@@ -70,6 +69,9 @@ export const users = sqliteTable('users', {
   onboardingState: text('onboarding_state'),
   /** Track 37i — JSON `Partial<BandSettings>`; `{}` = all owned, no stacking (migration 0033). */
   bandSettings: text('band_settings').notNull().default('{}'),
+  /** Track 40 — the user has chosen their bands (Your bands, or Generate's set-up prompt). Gates
+   *  that prompt (migration 0035). */
+  bandsSetUp: integer('bands_set_up', { mode: 'boolean' }).notNull().default(false),
   /** JSON: { enabled, quiet_hours, observed_training_window }. */
   notificationPrefs: text('notification_prefs').notNull().default('{}'),
   /** §12 — the tz_id last observed for this device; compared against a new session's tz_id to
@@ -576,13 +578,11 @@ export const rolledUpStats = sqliteTable('rolled_up_stats', {
   /** §14.1.8 lifetime counters — running total of `actualMinutes` across every completed session
    *  (migration 0003). REAL, not INTEGER: `actualMinutes` itself is fractional. */
   lifetimeTotalMinutes: real('lifetime_total_minutes').notNull().default(0),
-  /** §9.1 rolling 7-day window count, evaluated against weekly_target. Recomputed cheaply at
+  /** §9.1 rolling 7-day window count. Recomputed cheaply at
    *  read/write time from `rolling7dLocalDates` rather than re-scanning `sessions`. */
   rolling7dLocalDates: text('rolling_7d_local_dates').notNull().default('[]'),
-  /** §9.1 week streak — consecutive weeks the target was hit. */
-  weekStreak: integer('week_streak').notNull().default(0),
-  lastWeekStreakCheckLocalDate: text('last_week_streak_check_local_date'),
-  /** §9.3 travel days recorded this rolling week (reduces the denominator, floor 2). */
+  /** §9.3 travel days recorded this rolling week. Write-only since the weekly target went
+   *  (Track 40); the `travel_day` signal event is what the calendar reads. */
   travelDaysThisWeek: integer('travel_days_this_week').notNull().default(0),
   /** §14.3 — JSON: Record<muscle, number> hard-set count, trailing 14 days. */
   hardSetsByMuscle14d: text('hard_sets_by_muscle_14d').notNull().default('{}'),

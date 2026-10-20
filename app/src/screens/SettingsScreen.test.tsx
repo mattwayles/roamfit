@@ -282,7 +282,6 @@ describe('training preferences (track 37f)', () => {
     usersRepo.updateUser(
       getDb(),
       {
-        weeklyTarget: 3,
         trainingPreferences: { goal: 'general', pace: 'steady' },
         notificationPrefs: { quietHoursEnabled: true, quietHoursStart: 22, quietHoursEnd: 7 },
       },
@@ -290,24 +289,21 @@ describe('training preferences (track 37f)', () => {
     );
   });
 
-  it('the row summarises the goal and days, and the screen saves each choice', async () => {
+  it('the row summarises the goal, and the screen saves each choice', async () => {
     await openSettings();
     expect(screen.getByTestId('settings-training-preferences-value')).toHaveTextContent(
-      'General fitness · 3 days a week',
+      'General fitness',
     );
     await fireEvent.press(screen.getByTestId('settings-training-preferences'));
     await ready('training-preferences-screen');
     expect(checked('pref-goal-general')).toBe(true);
     await fireEvent.press(screen.getByTestId('pref-goal-strength'));
     await fireEvent.press(screen.getByTestId('pref-pace-patient'));
-    await fireEvent.press(screen.getByTestId('pref-days-plus'));
     expect(checked('pref-goal-strength')).toBe(true);
     expect(checked('pref-goal-general')).toBe(false);
     expect(screen.getByTestId('pref-goal-strength').props.accessibilityRole).toBe('radio');
-    expect(screen.getByTestId('pref-days-value')).toHaveTextContent('4');
     const user = usersRepo.getUser(getDb())!;
     expect(user.trainingPreferences).toMatchObject({ goal: 'strength', pace: 'patient' });
-    expect(user.weeklyTarget).toBe(4);
   });
 
   it('the quiet window moves by the hour and the label follows', async () => {
@@ -320,31 +316,6 @@ describe('training preferences (track 37f)', () => {
       quietHoursStart: 21,
       quietHoursEnd: 8,
     });
-  });
-});
-
-describe('starting levels (track 37g)', () => {
-  it('answers move the ladders only after the confirm', async () => {
-    const db = getDb();
-    await openSettings();
-    await fireEvent.press(screen.getByTestId('settings-placement'));
-    await ready('placement-screen');
-    expect(checked('placement-experience-new')).toBe(true);
-    await fireEvent.press(screen.getByTestId('placement-push_ups-many'));
-    await fireEvent.press(screen.getByTestId('placement-apply'));
-    await fireEvent.press(screen.getByTestId('placement-confirm-cancel'));
-    expect(progressionStateRepo.getAllProgressionStates(db).horizontal_push.levelId).not.toBe(
-      'horizontal_push.l6',
-    );
-    await fireEvent.press(screen.getByTestId('placement-apply'));
-    await fireEvent.press(screen.getByTestId('placement-confirm-yes'));
-    await waitFor(
-      () =>
-        expect(progressionStateRepo.getAllProgressionStates(db).horizontal_push.levelId).toBe(
-          'horizontal_push.l6',
-        ),
-      WAIT,
-    );
   });
 });
 
