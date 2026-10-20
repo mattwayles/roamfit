@@ -48,10 +48,8 @@ export default function PinnedNote({
           selectionColor={theme.colors.gold}
           keyboardAppearance={theme.scheme}
           multiline
-          // The accessory "Done" bar does not always appear on iOS, so the return key is Done too
-          // (a note is a line or two; it never needed a newline key).
-          returnKeyType="done"
-          submitBehavior="blurAndSubmit"
+          // Return inserts a newline (a true multi-line field); the accessory "Done" bar closes it.
+          submitBehavior="newline"
           inputAccessoryViewID={ACCESSORY_ID}
           onChangeText={setDraft}
           onBlur={() => {
