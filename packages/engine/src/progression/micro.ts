@@ -13,21 +13,20 @@ import {
   DEFAULT_REST_SEC,
   DEFAULT_SETS,
   DEFAULT_TEMPO_SEC,
-  PROGRESSION_REP_HIGH,
-  PROGRESSION_REP_LOW,
-  PROGRESSION_TIME_HIGH_SEC,
-  PROGRESSION_TIME_LOW_SEC,
   PROGRESSION_TIME_STEP_SEC,
 } from './constants';
-import { bandStepsFor, parseBandRange, spendTier, tierCapFor, tierOf } from './tiers';
+import {
+  bandStepsFor,
+  parseBandRange,
+  rangeForExercise,
+  spendTier,
+  tierCapFor,
+  tierOf,
+} from './tiers';
 
 export { parseBandRange };
 
-export function rangeForExercise(exercise: Exercise): { low: number; high: number } {
-  return exercise.metric === 'time'
-    ? { low: PROGRESSION_TIME_LOW_SEC, high: PROGRESSION_TIME_HIGH_SEC }
-    : { low: PROGRESSION_REP_LOW, high: PROGRESSION_REP_HIGH };
-}
+export { rangeForExercise };
 
 /** How far one micro-step moves `repTarget`: a rep, or `PROGRESSION_TIME_STEP_SEC` of hold. */
 function repStepFor(exercise: Exercise): number {

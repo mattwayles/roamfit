@@ -34,7 +34,39 @@ import {
   DEFAULT_REST_SEC,
   DEFAULT_SETS,
   DEFAULT_TEMPO_SEC,
+  PROGRESSION_REP_HIGH,
+  PROGRESSION_REP_LOW,
+  PROGRESSION_TIME_HIGH_SEC,
+  PROGRESSION_TIME_LOW_SEC,
+  PROGRESSION_TIME_STEP_SEC,
 } from './constants';
+
+/** The range an exercise's `repTarget` climbs: reps for a rep exercise, seconds of hold for a
+ *  timed one. */
+export function rangeForExercise(exercise: Exercise): { low: number; high: number } {
+  return exercise.metric === 'time'
+    ? { low: PROGRESSION_TIME_LOW_SEC, high: PROGRESSION_TIME_HIGH_SEC }
+    : { low: PROGRESSION_REP_LOW, high: PROGRESSION_REP_HIGH };
+}
+
+/**
+ * `repTarget` is stored in the anchor's unit — reps or seconds — but is drawn on by every sibling
+ * at the level. A sibling with the other metric gets the same *position* in its own range (the
+ * bottom of 8-12 reps is the bottom of 20-45s), snapped to the step its metric climbs by, so a
+ * timed flutter kick on a rep-anchored level is prescribed seconds rather than "8 seconds".
+ */
+function translateDose(target: number, anchor: Exercise, programmed: Exercise): number {
+  if (anchor.metric === programmed.metric) return target;
+  const from = rangeForExercise(anchor);
+  const to = rangeForExercise(programmed);
+  const fraction = Math.min(1, Math.max(0, (target - from.low) / (from.high - from.low)));
+  const raw = to.low + fraction * (to.high - to.low);
+  if (programmed.metric !== 'time') return Math.round(raw);
+  return Math.min(
+    to.high,
+    Math.max(to.low, Math.round(raw / PROGRESSION_TIME_STEP_SEC) * PROGRESSION_TIME_STEP_SEC),
+  );
+}
 
 /** Tiers every exercise has regardless of equipment, spent after band headroom runs out:
  *  tempo +1s, rest -15s, sets +1. One increment each, per §6.2's linear wording. */
@@ -133,8 +165,9 @@ export function spendTier(tier: number, exercise: Exercise): TierKnobs {
  * The prescription for `programmed`, given a micro-state tracked against `anchor`. The one place
  * a level's stored ladder position is adapted to the sibling actually drawn this session.
  *
- * `repTarget` passes straight through: it is the one knob both equipment classes share, and it is
- * what the user is being asked to hit today whichever sibling is in front of them.
+ * `repTarget` is the one knob both equipment classes share, and it is what the user is being asked
+ * to hit today whichever sibling is in front of them. It passes straight through unless the
+ * sibling counts something else (reps vs seconds), in which case `translateDose` re-expresses it.
  */
 export function projectMicroToExercise(
   micro: ProgressionMicroState,
@@ -142,5 +175,5 @@ export function projectMicroToExercise(
   programmed: Exercise,
 ): ProgressionMicroState {
   const knobs = spendTier(tierOf(micro, anchor), programmed);
-  return { repTarget: micro.repTarget, ...knobs };
+  return { repTarget: translateDose(micro.repTarget, anchor, programmed), ...knobs };
 }

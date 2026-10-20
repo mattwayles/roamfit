@@ -164,3 +164,42 @@ it('mixed-equipment levels are a real shape in the library, not a hypothetical',
   );
   expect(mixed.length).toBeGreaterThan(0);
 });
+
+describe('projectMicroToExercise — a sibling that counts the other thing', () => {
+  const deadBug = byId('bw-dead-bug'); // reps anchor of anti_extension.l1
+  const flutterKick = byId('bw-flutter-kick'); // timed sibling at that level
+  const squatPulse = byId('bw-squat-pulse'); // timed anchor of squat.l2
+  const tempoSquat = byId('bw-tempo-squat'); // rep sibling at that level
+
+  const at = (repTarget: number) => ({ ...defaultMicroForExercise(deadBug), repTarget });
+
+  it('re-expresses reps as seconds at the same position in the range', () => {
+    expect(projectMicroToExercise(at(8), deadBug, flutterKick).repTarget).toBe(20);
+    expect(projectMicroToExercise(at(10), deadBug, flutterKick).repTarget).toBe(35);
+    expect(projectMicroToExercise(at(12), deadBug, flutterKick).repTarget).toBe(45);
+  });
+
+  it('re-expresses seconds as reps for a rep sibling of a timed anchor', () => {
+    const micro = (repTarget: number) => ({ ...defaultMicroForExercise(squatPulse), repTarget });
+    expect(projectMicroToExercise(micro(20), squatPulse, tempoSquat).repTarget).toBe(8);
+    expect(projectMicroToExercise(micro(45), squatPulse, tempoSquat).repTarget).toBe(12);
+  });
+
+  it('prescribes a timed sibling of a rep anchor in seconds, never as the rep count', () => {
+    const entry = prescribeLaddered({
+      exercise: flutterKick,
+      anchorExercise: deadBug,
+      familyId: 'anti_extension',
+      levelId: 'anti_extension.l1',
+      micro: defaultMicroForExercise(deadBug),
+      requestedDifficulty: 'medium',
+      recoveryTreatment: false,
+    });
+    expect(entry.durationSec).toBe(20);
+    expect(entry.repTarget).toBeUndefined();
+  });
+
+  it('leaves a same-metric sibling untouched', () => {
+    expect(projectMicroToExercise(at(9), deadBug, byId('dead-bug')).repTarget).toBe(9);
+  });
+});
