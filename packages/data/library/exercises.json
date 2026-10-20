@@ -3574,6 +3574,7 @@
       "anchor_alt": null,
       "anchor_class": "band_tension",
       "unilateral": false,
+      "alternating": true,
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
@@ -3587,7 +3588,7 @@
         "shoulder_horizontal",
         "wrist_extension"
       ],
-      "setup": "Banded push-up (band across upper back), then a single-arm row with the band pinned under the opposite palm. Both sides = one rep.",
+      "setup": "Banded push-up (band across upper back), then a single-arm row with the band pinned under the opposite palm. Alternate sides each rep.",
       "video_search": "https://www.youtube.com/results?search_query=loop+resistance+band+Push-Up+to+Row+proper+form+tutorial"
     },
     {
@@ -11367,7 +11368,7 @@
       "anchor": "none",
       "anchor_alt": null,
       "anchor_class": "none",
-      "unilateral": false,
+      "unilateral": true,
       "metric": "reps",
       "default_seconds": null,
       "tier": "fill",
