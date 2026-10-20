@@ -129,6 +129,8 @@ async function openDetail(name: string, daybreak = false) {
   return exercise;
 }
 
+jest.mock('../lib/networkStatus', () => ({ useIsOnline: jest.fn(() => true) }));
+
 describe('the exercise detail page in Daybreak', () => {
   it('paints the hero legend and the spec tiles from the Daybreak palette', async () => {
     await openDetail(PUSH_UP.name, true);

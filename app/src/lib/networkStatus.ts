@@ -19,6 +19,8 @@
  * limitation for whoever eventually gets a native module that can read the real flag.
  */
 
+import { useEffect, useState } from 'react';
+
 type ExpoNetworkModule = typeof import('expo-network');
 
 let networkModuleCache: ExpoNetworkModule | null | undefined;
@@ -57,4 +59,31 @@ export async function getNetworkStatus(): Promise<NetworkStatus> {
   } catch {
     return SAFE_DEFAULT;
   }
+}
+
+/** Live online flag for UI that should only exist with a connection. Starts `false` (unknown is
+ *  treated as offline, per the safe default above), reads once on mount, then follows the
+ *  native listener. Without the native module it stays `false`. */
+export function useIsOnline(): boolean {
+  const [online, setOnline] = useState(false);
+  useEffect(() => {
+    let live = true;
+    getNetworkStatus().then((s) => {
+      if (live) setOnline(s.online);
+    });
+    const mod = loadNetworkModule();
+    let sub: { remove: () => void } | undefined;
+    try {
+      sub = mod?.addNetworkStateListener?.((state) => {
+        if (live) setOnline(state.isInternetReachable ?? state.isConnected ?? false);
+      });
+    } catch {
+      sub = undefined;
+    }
+    return () => {
+      live = false;
+      sub?.remove();
+    };
+  }, []);
+  return online;
 }
