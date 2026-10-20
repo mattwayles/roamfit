@@ -50,6 +50,7 @@ import { DIFFICULTY_LABELS, FOCUS_LABELS } from '../lib/focusLabels';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import BandPicker, { BandOptionsProvider } from '../components/BandPicker';
 import KeyboardDoneBar from '../components/KeyboardDoneBar';
+import { repBasis } from '../lib/repBasis';
 import { makeStyles, radius, space, type, useTheme, withAlpha, type AccentName } from '../theme';
 import {
   Button,
@@ -609,6 +610,9 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
                         library.exercises.find((e) => e.id === entry.exerciseId)?.name ??
                         entry.exerciseId
                       }
+                      repBasisText={repBasis(
+                        library.exercises.find((e) => e.id === entry.exerciseId),
+                      )}
                       bandTensions={bandTensions}
                       dragging={drag?.section === section && drag.entryId === entry.id}
                       displacement={dragDisplacement(section, index, entry.id)}
@@ -823,6 +827,7 @@ function EntryCard({
   entry,
   railColor,
   exerciseName,
+  repBasisText,
   bandTensions,
   dragging,
   displacement,
@@ -842,6 +847,8 @@ function EntryCard({
   /** The section's rail color: the node dot, and the glow while dragging. */
   railColor: string;
   exerciseName: string;
+  /** What a rep counts ("per side", "total, both sides"), or null when it needs no cue. */
+  repBasisText: string | null;
   /** The user's own band colours/labels (spec §1140), for `BandChip`. */
   bandTensions: Record<SingleBandId, usersRepo.BandTension>;
   dragging: boolean;
@@ -901,6 +908,11 @@ function EntryCard({
           <Txt variant="h3" numberOfLines={2}>
             {exerciseName}
           </Txt>
+          {repBasisText != null && !isTimed && (
+            <Txt variant="caption" color="text3" testID={`rep-basis-${entry.exerciseId}`}>
+              Reps are {repBasisText}
+            </Txt>
+          )}
         </View>
 
         {/* Both actions are icons on the title's own row, so they cost no vertical space at

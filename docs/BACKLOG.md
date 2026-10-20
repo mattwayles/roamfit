@@ -101,6 +101,10 @@ the record of what was completed and why.
 
 _Use this section to backlog changes to individual exercise details_
 
+- `bw-side-lying-adduction` is `unilateral: false`, but its setup says "finish one side, then switch" — it should probably be unilateral (reps would then read "per side" and its time estimate would double). Not changed: it alters prescriptions.
+- `push-up-to-row` setup says "Both sides = one rep", unlike the alternating moves (reps total across both sides). It carries no rep-basis cue.
+- Rep-basis cue (per side / total, both sides) on the workout counter, approval card and exercise page: device pass owed. The `alternating` list in `exercises.json` is an editorial call; add the flag to any move that should read "total, both sides".
+
 ---
 
 ## Requested Exercises

@@ -27,6 +27,7 @@ import { useStore } from '../state/StoreContext';
 import { localDateFromDate, nowUtcInstant } from '../lib/localClock';
 import { ProgressChart } from '../components/ProgressChart';
 import HowToVideoButton from '../components/HowToVideoButton';
+import { repBasis } from '../lib/repBasis';
 import PinnedNote from '../components/PinnedNote';
 import { EmptyState } from '../components/EmptyState';
 import { IconBadge } from '../components/IconBadge';
@@ -362,6 +363,9 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
                 label="Sides"
                 value={exercise.unilateral ? 'One side at a time' : 'Both sides'}
               />
+              {repBasis(exercise) != null && (
+                <Spec label="Reps count" value={repBasis(exercise)!} />
+              )}
               <Spec label="Metric" value={formatToken(exercise.metric)} />
               {exercise.default_seconds != null && (
                 <Spec label="Default hold" value={`${exercise.default_seconds}s`} />

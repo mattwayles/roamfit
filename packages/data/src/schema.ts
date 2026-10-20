@@ -124,6 +124,10 @@ export interface Exercise {
   anchor_class: AnchorClass;
 
   unilateral: boolean;
+  /** Both sides take turns inside one continuous set (bicycle crunch, flutter kick, dead bug). Not
+   *  `unilateral`: the set is not split into a left half and a right half, and a rep counts every
+   *  movement on either side, so the reps are a total for both sides. Absent means false. */
+  alternating?: boolean;
   metric: Metric;
   /** Required when metric === 'time', null otherwise. */
   default_seconds: number | null;

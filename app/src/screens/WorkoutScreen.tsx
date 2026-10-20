@@ -96,6 +96,7 @@ import type { Difficulty } from '../components/FeedbackControls';
 import BandPicker, { BandOptionsProvider } from '../components/BandPicker';
 import BandChip from '../components/BandChip';
 import HowToVideoButton from '../components/HowToVideoButton';
+import { repBasis } from '../lib/repBasis';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import SpotifyControls from '../components/SpotifyControls';
 import {
@@ -1167,6 +1168,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
                 entry={entry}
                 repsDefault={repsForSet}
                 exerciseName={exercise?.name ?? entry.exerciseId}
+                repBasisText={repBasis(exercise)}
                 levelText={levelBadge(entry, families)}
                 anchor={exercise?.anchor ?? null}
                 anchorAlt={exercise?.anchor_alt ?? null}
@@ -1499,6 +1501,7 @@ function RepsExercise({
   entry,
   repsDefault,
   exerciseName,
+  repBasisText,
   levelText,
   anchor,
   anchorAlt,
@@ -1516,6 +1519,8 @@ function RepsExercise({
   entry: sessionsRepo.SessionEntryRecord;
   exerciseName: string;
   /** "Lvl 3/7 · Horizontal push" for the level chip, or null when the entry has no ladder. */
+  /** What a rep counts ("per side", "total, both sides"), null when no cue is needed. */
+  repBasisText: string | null;
   levelText: string | null;
   /** What this exercise attaches to, for `AnchorBadge` — see `ExerciseHeader`. */
   anchor: Anchor | null;
@@ -1579,6 +1584,11 @@ function RepsExercise({
           <Txt variant="eyebrow" color="text3">
             Reps
           </Txt>
+          {repBasisText != null && (
+            <Txt variant="caption" color="text2" testID="rep-basis">
+              {repBasisText}
+            </Txt>
+          )}
           <View style={styles.counterRow}>
             <IconButton
               testID="rep-minus"
