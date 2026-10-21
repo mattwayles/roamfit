@@ -60,8 +60,8 @@ export interface SwapSlotRequest {
    *  or any anchor the caller names, from the alternatives offered. */
   excludeAnchor?: Anchor;
   /** Every exercise id in the workout, the replaced one included. A replacement is never one of
-   *  these, nor the banded/bodyweight version of one — only the replaced exercise's own
-   *  other version stays on offer, since that is the one leaving. Absent = no such exclusion. */
+   *  these, nor the banded/bodyweight version of one — the replaced exercise's own other version
+   *  included. Absent = no such exclusion. */
   workoutExerciseIds?: readonly string[];
   /** Default 5 (spec: "3-5 alternatives"). */
   maxResults?: number;
@@ -199,11 +199,7 @@ export function alternativesForSlot(req: SwapSlotRequest): SwapAlternative[] {
   const pattern: Pattern = req.entry.pattern;
   const excludeAnchor = req.excludeAnchor ?? undefined;
 
-  const takenMovements = new Set(
-    (req.workoutExerciseIds ?? [])
-      .filter((id) => id !== req.entry.exerciseId)
-      .map((id) => movementKey(id)),
-  );
+  const takenMovements = new Set((req.workoutExerciseIds ?? []).map((id) => movementKey(id)));
 
   const pool = hardFiltered.filter(
     (e) =>

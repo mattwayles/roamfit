@@ -427,13 +427,14 @@ describe('alternativesForSlot — one version of a movement per workout', () => 
     expect(offered).toEqual(expect.arrayContaining(['banded-press-y', 'bw-press-y']));
   });
 
-  it('still offers the other version of the exercise being replaced', () => {
+  it('does not offer the other version of the exercise being replaced either', () => {
     const offered = ids({
       ...base,
       entry: entry({ exerciseId: 'banded-row-x' }),
       workoutExerciseIds: ['banded-row-x'],
     });
-    expect(offered).toContain('bw-row-x');
+    expect(offered).not.toContain('bw-row-x');
     expect(offered).not.toContain('banded-row-x');
+    expect(offered).toContain('plain-z');
   });
 });
