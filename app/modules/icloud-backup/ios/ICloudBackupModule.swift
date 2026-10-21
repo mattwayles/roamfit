@@ -96,8 +96,10 @@ public class ICloudBackupModule: Module {
             error: &error
           ) { latestURL, previousURL in
             do {
-              if fm.fileExists(atPath: latestURL.path) {
-                if fm.fileExists(atPath: previousURL.path) { try fm.removeItem(at: previousURL) }
+              // An evicted copy still counts: FileManager moves and removes a ubiquitous item by its
+              // logical URL even while only its `.icloud` placeholder is on disk.
+              if existsOrEvicted(latestURL) {
+                if existsOrEvicted(previousURL) { try fm.removeItem(at: previousURL) }
                 try fm.moveItem(at: latestURL, to: previousURL)
               }
               try fm.moveItem(at: temp, to: latestURL)
