@@ -46,6 +46,9 @@ let dbInstance: Db | null = null;
 /** The op-sqlite client behind `dbInstance`; kept so `closeDb()` can close it and so `backup.ts`
  *  can run `VACUUM INTO` on the live database. Module-internal by convention — see
  *  `getLiveClient`. */
+/** Set only by `reopenDuringRestore`: a restore in progress owns the scratch files, so the reopen
+ *  must not run recovery (which would delete the rollback copy it still needs). */
+let skipRecovery = false;
 let clientInstance: ReturnType<typeof open> | null = null;
 
 /** op-sqlite's `executeSync` — unlike `better-sqlite3`'s `Database.exec`, which
@@ -81,7 +84,7 @@ export function getDb(): Db {
   if (process.env.JEST_WORKER_ID === undefined) migrateLegacyDb(LEGACY_DB_NAME, LIVE_DB_NAME);
   // A restore that was cut off mid-swap may have left no usable live file; put it right before
   // the open below would create an empty one. A no-op unless restore scratch files exist.
-  recoverInterruptedRestore(LIVE_DB_NAME);
+  if (!skipRecovery) recoverInterruptedRestore(LIVE_DB_NAME);
 
   const client = open({ name: LIVE_DB_NAME });
   client.executeSync('PRAGMA journal_mode = WAL');
@@ -109,6 +112,17 @@ export function getDb(): Db {
   clientInstance = client;
   dbInstance = drizzleOpSqlite(client, { schema }) as unknown as Db;
   return dbInstance;
+}
+
+/** `getDb()` for `restoreFromSnapshot` only: reopens the live file mid-restore without
+ *  interrupted-restore recovery. */
+export function reopenDuringRestore(): Db {
+  skipRecovery = true;
+  try {
+    return getDb();
+  } finally {
+    skipRecovery = false;
+  }
 }
 
 /** The raw client behind the handle `getDb()` returns, opening the database first if needed.

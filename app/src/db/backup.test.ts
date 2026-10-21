@@ -13,7 +13,14 @@ import {
   prepareRestoreIncomingPath,
   restoreFromSnapshot,
 } from './backup';
-import { copyVerified, deleteDb, readAppliedIds, scratchNames } from './backupFiles';
+import {
+  copyVerified,
+  deleteDb,
+  isSwapping,
+  markSwapping,
+  readAppliedIds,
+  scratchNames,
+} from './backupFiles';
 
 const names = scratchNames(LIVE_DB_NAME);
 const NOW = '2026-10-20T10:00:00.000Z';
@@ -188,30 +195,75 @@ describe('restoreFromSnapshot', () => {
 });
 
 describe('recovery of an interrupted restore', () => {
-  it('rebuilds a missing live db from the pre-swap copy on the next getDb()', () => {
-    setup('a');
-    // Simulate a crash in step 4: previous verified, staging made, live deleted.
+  /** Takes the pre-swap copy of the live db, as step 1 does. */
+  function takePrevious(): void {
     const live = open({ name: LIVE_DB_NAME });
     copyVerified(live, names.previous, readAppliedIds(LIVE_DB_NAME)!);
     live.close();
+  }
+
+  it('marker present: rebuilds live from the pre-swap copy even when live reads the same ids', () => {
+    setup('a');
     closeDb();
-    deleteDb(LIVE_DB_NAME);
+    takePrevious();
+    // A torn swap: live carries identical migration ids but different data.
+    const live = open({ name: LIVE_DB_NAME });
+    live.executeSync("UPDATE users SET units = 'lb'");
+    live.close();
+    markSwapping(LIVE_DB_NAME);
 
     const db = getDb();
 
     expect(usersRepo.getUser(db)!.units).toBe('kg');
+    expect(isSwapping(LIVE_DB_NAME)).toBe(false);
     expect(readAppliedIds(names.previous)).toBeNull();
   });
 
-  it('keeps a healthy live db and just clears the scratch files', () => {
+  it('marker present and live deleted: rebuilds live from the pre-swap copy', () => {
     setup('a');
-    const live = open({ name: LIVE_DB_NAME });
-    copyVerified(live, names.previous, readAppliedIds(LIVE_DB_NAME)!);
-    live.close();
     closeDb();
+    takePrevious();
+    markSwapping(LIVE_DB_NAME);
+    deleteDb(LIVE_DB_NAME);
 
     expect(usersRepo.getUser(getDb())!.units).toBe('kg');
+    expect(isSwapping(LIVE_DB_NAME)).toBe(false);
+  });
+
+  it('marker absent: keeps live as it is and clears the scratch files', () => {
+    setup('a');
+    closeDb();
+    takePrevious();
+    const live = open({ name: LIVE_DB_NAME });
+    live.executeSync("UPDATE users SET units = 'lb'");
+    live.close();
+
+    expect(usersRepo.getUser(getDb())!.units).toBe('lb');
     expect(readAppliedIds(names.previous)).toBeNull();
+  });
+
+  it('never leaves the marker behind after a successful, refused or failed restore', () => {
+    setup('a');
+    createSnapshot();
+    stageSnapshotAsIncoming();
+    expect(restoreFromSnapshot(NOW).kind).toBe('restored');
+    expect(isSwapping(LIVE_DB_NAME)).toBe(false);
+
+    const c = open({ name: RESTORE_INCOMING_NAME });
+    c.executeSync('CREATE TABLE junk (x TEXT)');
+    c.close();
+    expect(restoreFromSnapshot(NOW).kind).toBe('invalid');
+    expect(isSwapping(LIVE_DB_NAME)).toBe(false);
+
+    // A failure after the swap (here: the forward migration of a doctored backup) rolls back.
+    createSnapshot();
+    const old = open({ name: names.outgoing });
+    old.executeSync("DELETE FROM _migrations WHERE id = '0039_icloud_backup.sql'");
+    old.close(); // columns remain, so re-running 0039 fails: ALTER TABLE ADD of an existing column
+    stageSnapshotAsIncoming();
+    expect(restoreFromSnapshot(NOW).kind).toBe('failed');
+    expect(isSwapping(LIVE_DB_NAME)).toBe(false);
+    expect(usersRepo.getUser(getDb())!.units).toBe('kg');
   });
 });
 

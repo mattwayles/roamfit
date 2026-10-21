@@ -17,16 +17,18 @@
  *        cut off: live untouched; both scratch files are discarded next launch.
  *   3. close the live db (checkpoints the WAL)
  *        cut off: live untouched.
- *   4. delete live; live <- VACUUM INTO copy of `staging`, ids verified   <- the only window
- *        cut off: live is missing or partial, but `previous` (the old data, verified) exists, so
- *        the next launch rebuilds live from it. The restore is rolled back, not half-applied; the
- *        user can run it again (the backup is still in iCloud).
+ *   4. raise the swap marker; delete live; live <- VACUUM INTO copy of `staging`, ids verified;
+ *      clear the marker                                   <- the only window
+ *        cut off: the marker exists, so live is untrustworthy whatever its ids say (a torn copy
+ *        of a same-version backup reads identically); the next launch rebuilds live from
+ *        `previous` (the old data, verified), then clears the marker. The restore is rolled
+ *        back, not half-applied; the user can run it again (the backup is still in iCloud).
  *   5. `getDb()` — migrates an older backup forward; clear the queued HealthKit writes and the
  *      pending-decision flag
- *        cut off: live holds the restored data (possibly partly migrated — migrations are
- *        idempotent per id); `previous` is still present and the next launch keeps live because
- *        its ids match `staging`/`previous` or `staging` is gone. The cleared flags are re-applied
- *        only by re-running restore; at worst a stale HealthKit job replays once.
+ *        cut off: no marker, so live is kept: it holds the restored data (possibly partly
+ *        migrated — migrations are idempotent per id) and scratch files are discarded next
+ *        launch. The cleared flags are re-applied only by re-running restore; at worst a stale
+ *        HealthKit job replays once.
  *   6. delete `incoming`, `staging`, then `previous` last
  *        cut off: leftovers are discarded next launch.
  *
@@ -36,13 +38,15 @@
 import { open } from '@op-engineering/op-sqlite';
 import { knownMigrationIds, queuesRepo, usersRepo } from '@roamfit/store';
 import type { Db } from '@roamfit/store';
-import { LIVE_DB_NAME, closeDb, getDb, getLiveClient } from './index';
+import { LIVE_DB_NAME, closeDb, getLiveClient, reopenDuringRestore } from './index';
 import {
   absolutePath,
   clientAppliedIds,
   copyVerified,
   deleteDb,
   isSound,
+  clearSwapMarker,
+  markSwapping,
   readAppliedIds,
   recoverInterruptedRestore,
   rebuildLiveFromPrevious,
@@ -124,6 +128,7 @@ export function restoreFromSnapshot(now: string = new Date().toISOString()): Res
   // Steps 3-5: from here a failure rolls back to `previous`.
   closeDb();
   try {
+    markSwapping(LIVE_DB_NAME);
     deleteDb(LIVE_DB_NAME);
     const staging = open({ name: names.staging });
     try {
@@ -131,7 +136,8 @@ export function restoreFromSnapshot(now: string = new Date().toISOString()): Res
     } finally {
       staging.close();
     }
-    const db = getDb();
+    clearSwapMarker(LIVE_DB_NAME);
+    const db = reopenDuringRestore();
     queuesRepo.deleteDeferredWorkOfKind(db, 'healthkit_write');
     usersRepo.updateUser(db, { backupDecisionPending: false }, now);
     // Step 6.
@@ -142,7 +148,11 @@ export function restoreFromSnapshot(now: string = new Date().toISOString()): Res
   } catch (e) {
     closeDb();
     rebuildLiveFromPrevious(LIVE_DB_NAME);
-    return { kind: 'failed', error: e instanceof Error ? e.message : String(e), db: getDb() };
+    return {
+      kind: 'failed',
+      error: e instanceof Error ? e.message : String(e),
+      db: reopenDuringRestore(),
+    };
   }
 }
 

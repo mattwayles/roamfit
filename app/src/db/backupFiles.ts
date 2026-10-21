@@ -18,7 +18,7 @@ import { open } from '@op-engineering/op-sqlite';
 
 export type Client = ReturnType<typeof open>;
 
-/** The four scratch databases, named after the live one so Jest's per-file live names keep them
+/** The five scratch databases, named after the live one so Jest's per-file live names keep them
  *  per-file too (and the production names are `wanderlift-backup-outgoing.sqlite` etc.). */
 export function scratchNames(liveName: string) {
   const base = liveName.replace(/\.sqlite$/, '');
@@ -31,6 +31,8 @@ export function scratchNames(liveName: string) {
     staging: `${base}-restore-staging.sqlite`,
     /** Verified copy of the live db taken just before the swap — the rollback source. */
     previous: `${base}-restore-previous.sqlite`,
+    /** Swap marker: exists only while the live file is being deleted and rebuilt from `staging`. */
+    swapping: `${base}-restore-swapping.sqlite`,
   };
 }
 
@@ -103,55 +105,67 @@ export function copyVerified(source: Client, targetName: string, expectedIds: st
   }
 }
 
-/** Rebuilds the live db from the pre-swap copy and clears every restore scratch file. Throws if
- *  the rebuilt file does not verify (the pre-swap copy is then kept). */
+/** Raises the swap marker. Call after the live db is closed and immediately before it is
+ *  deleted. The marker is a tiny db with one table, so its presence can be told apart from the
+ *  empty stub `open` creates for a name that does not exist. */
+export function markSwapping(liveName: string): void {
+  const client = open({ name: scratchNames(liveName).swapping });
+  client.executeSync('CREATE TABLE IF NOT EXISTS swapping (x INTEGER)');
+  client.close();
+}
+
+export function isSwapping(liveName: string): boolean {
+  const name = scratchNames(liveName).swapping;
+  const client = open({ name });
+  const present =
+    client.executeSync("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'swapping'")
+      .rows.length > 0;
+  client.close();
+  if (!present) deleteDb(name); // drop the stub `open` just made
+  return present;
+}
+
+export function clearSwapMarker(liveName: string): void {
+  deleteDb(scratchNames(liveName).swapping);
+}
+
+/** Rebuilds the live db from the pre-swap copy and clears the swap marker and every restore
+ *  scratch file. Throws if the rebuilt file does not verify (the pre-swap copy and the marker are
+ *  then kept, so the next launch retries). The marker goes first once live is verified: a cut-off
+ *  between that and deleting `previous` leaves `previous` with no marker, which recovery treats
+ *  as a healthy live db. */
 export function rebuildLiveFromPrevious(liveName: string): void {
   const names = scratchNames(liveName);
   const previousIds = readAppliedIds(names.previous);
   if (previousIds === null) throw new Error('No usable pre-restore copy to roll back to.');
+  deleteDb(liveName);
   const previous = open({ name: names.previous });
   try {
     copyVerified(previous, liveName, previousIds);
   } finally {
     previous.close();
   }
+  clearSwapMarker(liveName);
   deleteDb(names.staging);
   deleteDb(names.previous);
 }
 
 /**
- * Completes or undoes a restore that was cut off, before the live db is opened. The pre-swap copy
- * (`previous`) exists only while a swap may be in flight, so its absence means there is nothing to
- * do. When it is present:
- *  - the live db is sound and carries the staged (restored) ids, or the pre-swap ids → the swap
- *    either finished or never started; keep live and clear the scratch files;
- *  - otherwise (live missing, empty, unsound, or a stranger) → the swap died mid-copy; rebuild
- *    live from the pre-swap copy. The restore is rolled back, never half-applied, and the user
- *    can simply run it again.
- * A `previous` that is itself partial (cut off while being made) can only coexist with a still
- * untouched live db, which this leaves alone.
+ * Completes or undoes a restore that was cut off, before the live db is opened. Migration ids
+ * cannot tell an untouched live db from a torn copy of an identical-version backup, so recovery
+ * keys off the swap marker, which exists exactly while live is being deleted and rebuilt:
+ *  - marker present -> live is untrustworthy whatever it reads; rebuild it from the verified
+ *    pre-swap copy (`previous`). The restore is rolled back, never half-applied, and the user can
+ *    simply run it again.
+ *  - marker absent -> live is either the untouched original (cut off in steps 1-3) or the fully
+ *    verified restored db (cut off in step 5/6); keep it and clear the scratch files.
  */
 export function recoverInterruptedRestore(liveName: string): void {
   const names = scratchNames(liveName);
-  const previousIds = readAppliedIds(names.previous);
-  if (previousIds === null) {
-    deleteDb(names.previous); // drop the stub `open` just made, or a partial copy
-    deleteDb(names.staging);
+  if (isSwapping(liveName)) {
+    rebuildLiveFromPrevious(liveName);
     return;
   }
-  const liveIds = readAppliedIds(liveName);
-  const stagedIds = readAppliedIds(names.staging); // null once cleanup has begun
-  const liveHealthy =
-    liveIds !== null &&
-    isSound(liveName) &&
-    (liveIds.join('\n') === previousIds.join('\n') ||
-      stagedIds === null ||
-      liveIds.join('\n') === stagedIds.join('\n'));
-  if (liveHealthy) {
-    deleteDb(names.staging);
-    deleteDb(names.previous);
-    return;
-  }
-  deleteDb(liveName);
-  rebuildLiveFromPrevious(liveName);
+  deleteDb(names.staging);
+  deleteDb(names.previous);
 }
