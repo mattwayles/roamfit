@@ -12,13 +12,15 @@ Last updated: 2026-10-20
   `prepareRestoreIncomingPath`, `restoreFromSnapshot` → `RestoreResult`, `cleanupScratchFiles`),
   `backupFiles.ts`, `closeDb` / `getLiveClient` / `reopenDuringRestore` in `db/index.ts` — edce778;
   swap-marker recovery fix 6cd40df.
+- [x] 43c migration 0040 `users.icloud_backup_linked` — aeebe5a.
+- [x] 43c `app/src/lib/icloudBackup.ts` (`runBackup`, `getBackupStatus`, `checkForExistingBackup`,
+  `keepThisPhonesData`, `downloadAndRestore`, `formatBackupTime`); triggers in SummaryScreen
+  `handleFinish` and `useBackupOnBackground` (App.tsx `ThemedShell`) — 8b1594c.
+- [x] 43c Settings "iCloud backup" group (after Apple Health) — ca42f59.
 ### In progress
 - Agents run sequentially in the main tree (worktrees lack node_modules; concurrent `npm run check`
   is known to hang).
-  - 43c: `app/src/lib/icloudBackup.ts` scheduler (triggers + guards, glues native module to
-    backup.ts) + Settings "iCloud backup" group.
-### Next
-- 43d: restore UI — welcome-screen offer on a fresh install (sets/clears `backup_decision_pending`),
+  - 43d: restore UI — welcome-screen offer on a fresh install (sets/clears `backup_decision_pending`),
   Settings → Advanced "Restore from iCloud backup" with confirm, StoreProvider remount with the new
   `Db` after restore, motivation notifications rescheduled.
 - 43e: BACKLOG device-pass item; user enables iCloud capability + container on the Apple Developer
@@ -42,7 +44,9 @@ Last updated: 2026-10-20
   - `stat(which?: 'latest' | 'previous'): Promise<{ modifiedAt: number; size: number } | null>`
 - NEVER back up an empty db over a real one: no backup until onboarding is complete AND
   `backup_decision_pending` is false (set true at first launch when a backup exists; cleared by
-  Restore or "Start fresh").
+  Restore or "Start fresh"). Backstop against timing races: a device with
+  `icloud_backup_linked = false` that finds a remote backup never uploads — it sets pending instead.
+  Linked becomes true on first upload, on restore, or on "Keep this phone's data".
 - Restore refuses a backup whose `_migrations` contains ids this build doesn't know ("Update
   Wanderlift to restore this backup"). Older backups are migrated forward by the normal `getDb()`.
 - After restore: delete `deferred_work` rows of kind `healthkit_write` (Health already syncs across
