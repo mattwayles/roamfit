@@ -58,13 +58,12 @@ describe('appearance', () => {
     usersRepo.updateUser(getDb(), { themePreference: 'system' }, nowUtcInstant());
   });
 
-  it('shows the stored preference as the selected option, with the caption', async () => {
+  it('shows the stored preference as the selected option', async () => {
     usersRepo.updateUser(getDb(), { themePreference: 'light' }, nowUtcInstant());
     await openSettings();
     expect(selected('appearance-light')).toBe(true);
     expect(selected('appearance-system')).toBe(false);
     expect(selected('appearance-dark')).toBe(false);
-    expect(screen.getByText(/^Daybreak is built for training outdoors in full sun\./)).toBeTruthy();
   });
 
   it('pressing an option persists it and switches the live theme', async () => {

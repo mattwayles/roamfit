@@ -84,9 +84,6 @@ const APPEARANCE_OPTIONS: {
   { value: 'dark', label: 'Midnight', testID: 'appearance-dark', icon: 'moon' },
 ];
 
-const APPEARANCE_CAPTION =
-  'Daybreak is built for training outdoors in full sun. System follows your iPhone, which can switch at sunset.';
-
 /** The three-way theme picker: one selectable `Chip` per preference, equal width. The selected one
  *  is the stored preference (not the resolved scheme — "System" stays selected while following). */
 function AppearanceControl(): React.JSX.Element {
@@ -337,16 +334,13 @@ export default function SettingsScreen(): React.JSX.Element {
       </Enter>
 
       <Enter index={1}>
-        <Group title="Appearance" caption={APPEARANCE_CAPTION}>
+        <Group title="Appearance">
           <AppearanceControl />
         </Group>
       </Enter>
 
       <Enter index={2}>
-        <Group
-          title="Your body"
-          caption="Wanderlift leaves out anything that loads an area you protect. Change it any time."
-        >
+        <Group title="Your body">
           <NavRow
             testID="settings-limitations"
             icon="shield"
@@ -360,10 +354,7 @@ export default function SettingsScreen(): React.JSX.Element {
       </Enter>
 
       <Enter index={3}>
-        <Group
-          title="Training"
-          caption="Timer sounds: the 3-2-1 count, the halfway chime and the end-of-rest tone. They mix with whatever else is playing rather than pausing it. Vibration cues are unaffected either way, so a silent workout still tells you when a hold or a rest is up. There is also a mute button on the workout itself, for one session at a time. “Ask how each exercise felt” opens a quick Too easy / Just right / Too hard question over the rest timer after an exercise’s last set; off, the same question sits on that rest page instead."
-        >
+        <Group title="Training">
           <NavRow
             testID="settings-training-preferences"
             icon="barbell"
