@@ -46,9 +46,9 @@ You may be a fresh agent picking up interrupted work. Before writing any code:
 
 - React Native + Expo (dev-client, config plugins), **iOS only**. TypeScript strict.
 - SQLite is the source of truth (op-sqlite + Drizzle). All reads/writes local-first.
-- Firebase (Firestore + Auth) is a **sync target only** — never on the critical path.
+- **No backend.** Firebase (Firestore sync, Auth, Cloud Functions) and the Claude proxy were removed
+  in Track 42; the app is fully local. A network service of any kind needs the user's say-so.
 - Generation engine: pure TypeScript, no I/O, no network, fully unit-testable.
-- LLM: Claude via a Cloud Function proxy. Key never ships in the bundle.
 
 ## Non-negotiable invariants
 
@@ -57,15 +57,15 @@ part of the original spec worth keeping in full, restated here so nothing has to
 
 1. **Offline is not a degradation mode.** Generate, approve, run, complete, log, and view the
    dashboard must all work with zero connectivity (§11.1, §11.6).
-2. **The engine decides; the LLM decorates.** The LLM never selects exercises, sets loads, or
-   relaxes a filter (§7.2).
+2. **The engine decides.** No model ever selects exercises, sets loads, or relaxes a filter
+   (§7.2); if an LLM ever returns it only decorates.
 3. **Safety filters live in code, before any model sees anything** — injuries, anchor class,
    the bodyweight-bearing effort cap (§13.1, §13.2).
 4. **Never punish.** No streaks, no red days, no guilt copy (§1.1, §9).
 5. **`level_id` is a stable identifier, never an array index** (§4.2, §6.6).
 6. **All calendar math uses `local_date`**, never UTC (§12).
 7. **Per-user state never lives on the shared exercise library table** (§4.4).
-8. **Never invent a YouTube video id.** Curated ids live in remote config only (§11.4).
+8. **Never invent a YouTube video id.** The app ships none; "Watch a demo" is a YouTube search (§11.4).
 
 ## Layout
 
@@ -77,7 +77,7 @@ packages/
 docs/
   BACKLOG.md            everything not yet done — features, bugs, debt, verification owed
   handoff/              per-track status logs (historical for finished tracks)
-tools/          operator CLIs (video_db.py, library build/validate scripts)
+tools/          operator CLIs (library build/validate scripts)
 ```
 
 ## Rules

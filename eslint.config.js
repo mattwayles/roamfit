@@ -16,7 +16,6 @@ module.exports = [
       'app/ios/**',
       'app/android/**',
       '**/coverage/**',
-      'functions/lib/**',
     ],
   },
   js.configs.recommended,

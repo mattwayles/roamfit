@@ -520,14 +520,7 @@ export function completeSession(
 
     if (!user.hasEverCompletedSession) markHasEverCompletedSession(txDb, now);
 
-    // §11.3 — enqueue, never await. Workers land in Wave 6.
-    enqueueDeferredWork(
-      txDb,
-      'llm_distillation',
-      session.id,
-      { retrospective: input.retrospective ?? null },
-      now,
-    );
+    // §11.3 — enqueue, never await.
     if (user.healthWriteEnabled) {
       enqueueDeferredWork(txDb, 'healthkit_write', session.id, { actualMinutes }, now);
     }

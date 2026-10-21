@@ -6,8 +6,7 @@
     "app",
     "packages/engine",
     "packages/data",
-    "packages/store",
-    "functions"
+    "packages/store"
   ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",

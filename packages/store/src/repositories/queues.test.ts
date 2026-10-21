@@ -12,13 +12,13 @@ const T0 = '2026-09-01T10:00:00.000Z';
 describe('§11.3 deferred work queue — exponential backoff', () => {
   it('a freshly enqueued job is immediately eligible', () => {
     const { db } = createTestDb();
-    enqueueDeferredWork(db, 'llm_coach_voice', 'session-1', {}, T0);
+    enqueueDeferredWork(db, 'healthkit_write', 'session-1', {}, T0);
     expect(getEligibleDeferredWork(db, T0)).toHaveLength(1);
   });
 
   it('after a failure, the job is NOT eligible again until its backoff delay has elapsed', () => {
     const { db } = createTestDb();
-    enqueueDeferredWork(db, 'llm_coach_voice', 'session-1', {}, T0);
+    enqueueDeferredWork(db, 'healthkit_write', 'session-1', {}, T0);
     const [job] = getEligibleDeferredWork(db, T0);
     recordDeferredWorkFailure(db, job!.id, T0);
 
@@ -36,7 +36,7 @@ describe('§11.3 deferred work queue — exponential backoff', () => {
 
   it('the backoff delay doubles with each successive failure (2^attempts minutes)', () => {
     const { db } = createTestDb();
-    enqueueDeferredWork(db, 'llm_distillation', 'session-1', {}, T0);
+    enqueueDeferredWork(db, 'passport_geocode', 'session-1', {}, T0);
     const [job] = getEligibleDeferredWork(db, T0);
 
     let t = T0;
@@ -59,7 +59,7 @@ describe('§11.3 deferred work queue — exponential backoff', () => {
 
   it('the backoff delay is capped at capMinutes', () => {
     const { db } = createTestDb();
-    enqueueDeferredWork(db, 'llm_distillation', 'session-1', {}, T0);
+    enqueueDeferredWork(db, 'passport_geocode', 'session-1', {}, T0);
     const [job] = getEligibleDeferredWork(db, T0);
     // attempts will reach 5 -> 2^5 = 32 minutes uncapped; cap it to 10.
     for (let i = 0; i < 4; i++) recordDeferredWorkFailure(db, job!.id, T0, { capMinutes: 10 });
@@ -76,7 +76,7 @@ describe('§11.3 deferred work queue — exponential backoff', () => {
   // ever removed.
   it('permanently fails (and stops appearing as pending) after maxAttempts', () => {
     const { db } = createTestDb();
-    enqueueDeferredWork(db, 'llm_coach_voice', 'session-1', {}, T0);
+    enqueueDeferredWork(db, 'healthkit_write', 'session-1', {}, T0);
     const [job] = getEligibleDeferredWork(db, T0);
 
     let t = T0;
@@ -91,7 +91,7 @@ describe('§11.3 deferred work queue — exponential backoff', () => {
 
   it('a successful job is marked done and disappears from both pending and eligible views', () => {
     const { db } = createTestDb();
-    enqueueDeferredWork(db, 'llm_coach_voice', 'session-1', {}, T0);
+    enqueueDeferredWork(db, 'healthkit_write', 'session-1', {}, T0);
     const [job] = getEligibleDeferredWork(db, T0);
     markDeferredWorkDone(db, job!.id, T0);
 

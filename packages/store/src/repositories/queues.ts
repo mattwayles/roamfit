@@ -1,9 +1,7 @@
 /**
- * §11.3 deferred work queues — LLM distillation, LLM coach voice, HealthKit write, passport
- * geocode. Enqueued at completion/generation (§10.9/§7.1), never awaited: those operations must
- * succeed with zero connectivity (§11.1). This is the durable queue Wave 5 wrote; 6c-llm-proxy
- * adds the exponential-backoff eligibility fields and the drain worker for the two `llm_*` kinds
- * (`healthkit_write`/`passport_geocode` are 6d's worker to write).
+ * §11.3 deferred work queue — HealthKit write and passport geocode. Enqueued at completion
+ * (§10.9), never awaited: completion must succeed with zero connectivity (§11.1). Carries the
+ * exponential-backoff eligibility fields; `deviceQueueWorker.ts` drains it.
  */
 import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import type { Db } from '../db';
@@ -81,7 +79,7 @@ export function markDeferredWorkDone(db: Db, id: string, now: string): void {
 /** §11.3 exponential backoff. `attempts` increments; below `maxAttempts` the row is rescheduled
  *  `2^attempts` minutes out (capped at `capMinutes`) and stays `pending`; at `maxAttempts` it is
  *  marked `failed` permanently. Either way this never throws and never surfaces to the user — a
- *  coach line or a distillation signal arriving late (or never) is an accepted outcome (§11.3),
+ *  HealthKit write or a geocode arriving late (or never) is an accepted outcome (§11.3),
  *  never a blocked workout. */
 export function recordDeferredWorkFailure(
   db: Db,

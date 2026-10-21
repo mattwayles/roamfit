@@ -124,7 +124,7 @@ describe('completion — best-set PR and milestones', () => {
     }
   });
 
-  it('every completed session logs an nth_session milestone and enqueues llm_distillation deferred work', () => {
+  it('every completed session logs an nth_session milestone and enqueues its deferred work', () => {
     const { db, close } = createTestDb();
     try {
       const { sessionId } = runSession(db, '2026-04-01', 1, 1);
@@ -134,9 +134,6 @@ describe('completion — best-set PR and milestones', () => {
       );
 
       const deferred = getPendingDeferredWork(db);
-      expect(deferred.some((d) => d.kind === 'llm_distillation' && d.sessionId === sessionId)).toBe(
-        true,
-      );
       // HealthKit is opt-in and off by default — must not be enqueued. Passport is on by default.
       expect(deferred.some((d) => d.kind === 'healthkit_write')).toBe(false);
       expect(deferred.some((d) => d.kind === 'passport_geocode' && d.sessionId === sessionId)).toBe(

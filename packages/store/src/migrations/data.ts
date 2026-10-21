@@ -697,6 +697,17 @@ DROP TABLE spotify_playlists;
 ALTER TABLE users DROP COLUMN spotify_vibes;
 `;
 
+const MIGRATION_0038_REMOVE_FIREBASE = `-- 0038_remove_firebase.sql — Firebase is gone from the app (no Firestore sync, no LLM proxy), so
+-- the tables that only served it are dropped rather than left as dead weight (same call as
+-- 0018_remove_enjoyment.sql): \`remote_video_config\` (the pull-only mirror of Firestore's curated
+-- video ids) and \`sync_cursor\` (the sync watermarks). Queued LLM jobs can never run now, so any
+-- still pending are deleted.
+
+DROP TABLE remote_video_config;
+DROP TABLE sync_cursor;
+DELETE FROM deferred_work WHERE kind IN ('llm_distillation', 'llm_coach_voice');
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -741,4 +752,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0035_bands_set_up.sql', sql: MIGRATION_0035_BANDS_SET_UP },
   { id: '0036_remove_weekly_target.sql', sql: MIGRATION_0036_REMOVE_WEEKLY_TARGET },
   { id: '0037_remove_spotify.sql', sql: MIGRATION_0037_REMOVE_SPOTIFY },
+  { id: '0038_remove_firebase.sql', sql: MIGRATION_0038_REMOVE_FIREBASE },
 ];

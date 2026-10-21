@@ -1,9 +1,8 @@
 /**
- * Invariant 1 at the screen level. Track 6f wired `processLlmQueue` into `runOpportunisticSync`,
- * which `HomeScreen` calls fire-and-forget on focus. The isolation that keeps that off the core
- * loop was only ever tested inside `opportunisticSync.ts` itself — this asserts the guarantee
- * where it actually matters: Home still renders real local data when the whole background sync
- * chain rejects outright.
+ * Invariant 1 at the screen level. `HomeScreen` calls `runOpportunisticSync` (the device queue
+ * drain) fire-and-forget on focus. The isolation that keeps that off the core loop is tested
+ * inside `opportunisticSync.ts` itself — this asserts the guarantee where it actually matters:
+ * Home still renders real local data when the whole background drain rejects outright.
  */
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';

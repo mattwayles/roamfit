@@ -1,9 +1,8 @@
 /**
  * §13.4/§9.6/§11.3 device queue worker — drains the `healthkit_write`/`passport_geocode` rows
  * `completion.ts` already writes durably to `deferred_work` (opt-in only: `user.healthWriteEnabled`
- * / `user.passportEnabled`), using the same exponential-backoff `deferred_work` machinery
- * `llmQueueWorker.ts` established. Mirrors that worker's shape deliberately: an injected
- * interface per job kind so `packages/store` never imports a native HealthKit module or a
+ * / `user.passportEnabled`), using the exponential-backoff `deferred_work` machinery.
+ * An injected interface per job kind so `packages/store` never imports a native HealthKit module or a
  * geocoding client — `app/` implements both against the real device APIs.
  *
  * Two behaviors this worker exists specifically to get right, because both are named in the
@@ -45,7 +44,7 @@ export interface HealthKitWriter {
 
 /** The seam `app/` implements against `expo-location` (or equivalent). Reject when the lookup
  *  cannot complete right now (no connectivity, no permission determination possible, no GPS fix)
- *  — that's the one signal this worker treats as retryable, exactly like `LlmProxyCaller`. */
+ *  — that's the one signal this worker treats as retryable. */
 export interface GeocodeCaller {
   reverseGeocode(): Promise<{
     city: string;
@@ -100,7 +99,6 @@ async function processOne(
       return 'succeeded';
     }
 
-    // Any other kind (llm_coach_voice, llm_distillation) is out of scope — llmQueueWorker's.
     return 'succeeded';
   } catch {
     // No connectivity for the geocode, or a genuine HealthKit write failure (never a denial —

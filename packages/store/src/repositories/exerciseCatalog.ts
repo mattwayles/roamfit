@@ -1,6 +1,6 @@
 /**
  * The two reads the Exercises page needs, kept here rather than in `app/` because everything on
- * this page is a query over `exercise_state`, `remote_video_config`, `sessions`, `session_entries`
+ * this page is a query over `exercise_state`, `sessions`, `session_entries`
  * and `set_logs` — and `app/` writes no queries (ADR 0003 / CLAUDE.md's "no new persistence logic
  * in app/").
  *
@@ -47,7 +47,7 @@ export function emptyCatalogState(): ExerciseCatalogState {
 
 /**
  * One pass over both tables for the whole library, keyed by exercise id. Two full-table reads
- * rather than 219 per-exercise lookups: `exercise_state` and `remote_video_config` are both
+ * rather than 219 per-exercise lookups: `exercise_state` is
  * bounded by the size of the bundled library, so this is the cheap shape, and it is what makes
  * the list render (and its filters recompute) without touching the db per card.
  *

@@ -20,7 +20,7 @@
  *   milestones         §9.7 / §6.7 / §9.9 — level-ups, best-set PRs, recovery weeks, nth-session,
  *                      new-city
  *   rolled_up_stats    §11.3 — incrementally maintained, single row (single local user in v1)
- *   deferred_work      §11.3 queues — LLM distillation, HealthKit write, passport geocode.
+ *   deferred_work      §11.3 queues — HealthKit write, passport geocode.
  *                      Workers are Wave 6; this wave only enqueues.
  *   session_muscle_volume  per (session, muscle) set counts, written once at completion —
  *                      the substrate for §14.3 hard-sets-per-muscle-14d and the §5.2
@@ -30,7 +30,7 @@
  *                      staying exact — a decaying aggregate blob would drift.
  *
  * All ids are app-generated UUIDs (text), not sqlite autoincrement — keeps id generation
- * independent of the driver and collision-free once Firestore sync (Wave 6) exists.
+ * independent of the driver and collision-free.
  */
 import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
@@ -142,8 +142,7 @@ export const exerciseState = sqliteTable(
     videoFlagCount: integer('video_flag_count').notNull().default(0),
     videoDemotedAt: text('video_demoted_at'),
     /** §11.4 / ADR 0009 — a YouTube video id the user assigned themselves from the workout
-     *  screen. Deliberately separate from `remote_video_config.video_id`: that table is pull-only
-     *  from Firestore and a local write there would be lost on the next delta sync. Storing the
+     *  screen. Storing the
      *  id (never the pasted URL) keeps this the same shape the embed builder already consumes,
      *  and keeps a malformed URL from ever reaching the player. NULL = none assigned. */
     userVideoId: text('user_video_id'),
@@ -578,11 +577,10 @@ export const deferredWork = sqliteTable(
   {
     id: text('id').primaryKey(),
     kind: text('kind', {
-      // §7.1 — 'llm_coach_voice' added in 6c-llm-proxy (§11.3 queue worker); the other three
-      // predate it (Wave 5/6b). This is a plain TS-level enum with no SQL CHECK constraint
-      // (verified against migrations/data.ts before relying on that), so adding a literal here
-      // needs no migration.
-      enum: ['llm_distillation', 'llm_coach_voice', 'healthkit_write', 'passport_geocode'],
+      // A plain TS-level enum with no SQL CHECK constraint, so changing the literals needs no
+      // migration. The two `llm_*` kinds are gone with the LLM proxy; migration 0038 deletes any
+      // rows still carrying them.
+      enum: ['healthkit_write', 'passport_geocode'],
     }).notNull(),
     sessionId: text('session_id').notNull(),
     payload: text('payload').notNull().default('{}'),
@@ -622,28 +620,6 @@ export const sessionMuscleVolume = sqliteTable(
     index('ix_session_muscle_volume_local_date').on(t.localDate),
   ],
 );
-
-// ------------------------------------------------------------------------------------------
-// §11.3 / §4.1 remote-config sync (track 6d). Local mirror of `video/{exercise_id}` — pulled
-// only, never pushed by the app (video_db.py / track 6e is the only writer on the Firestore
-// side). Supplies `curatedVideoId` at the media-ladder call site (issue #29/#30).
-// ------------------------------------------------------------------------------------------
-
-export const remoteVideoConfig = sqliteTable('remote_video_config', {
-  exerciseId: text('exercise_id').primaryKey(),
-  videoId: text('video_id'),
-  videoVerifiedAt: text('video_verified_at'),
-  videoFlagCount: integer('video_flag_count').notNull().default(0),
-  updatedAt: text('updated_at').notNull(),
-});
-
-/** Generic key/value sync watermark table — e.g. "how far has the video-config delta pull
- *  gotten" or "how far has the append-only sessions push gotten." Deliberately not modeled on
- *  `deferred_work` (that models discrete one-shot jobs; this is continuous cursor state). */
-export const syncCursor = sqliteTable('sync_cursor', {
-  name: text('name').primaryKey(),
-  value: text('value'),
-});
 
 // ------------------------------------------------------------------------------------------
 // Migration bookkeeping.

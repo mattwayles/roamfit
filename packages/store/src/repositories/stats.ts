@@ -2,7 +2,7 @@
  * §11.3 rolled-up stats — maintained incrementally so the dashboard is instant offline and never
  * re-scans full history. `session_muscle_volume` (schema.ts) is the exact ledger the §14.3
  * hard-sets-per-muscle-14d metric and the §5.2 OVER-WORKED trailing-volume comparison read from,
- * filtered by `local_date` (a small indexed local query — the §11.3 cost note is about Firestore
+ * filtered by `local_date` (a small indexed local query — the §11.3 cost note was about Firestore
  * *remote* document reads, not local SQLite scans of a bounded recent window).
  */
 import { and, eq, gte, sql } from 'drizzle-orm';

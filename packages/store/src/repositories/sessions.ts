@@ -29,7 +29,6 @@ import {
   recordDifficultyFeedback,
 } from './exerciseState';
 import { logSignalEvent } from './signals';
-import { enqueueDeferredWork } from './queues';
 import { addMilestone } from './milestones';
 
 const USER_ID = 'local';
@@ -386,13 +385,6 @@ export function createPendingSession(db: Db, input: CreateSessionInput): string 
     db.insert(schema.sessionEntries).values(row).run();
   }
 
-  // §7.1/§11.3 — coach voice is async, cached per session, never blocking: the deterministic
-  // `explanation` line above is what the approval screen shows immediately and forever if this
-  // job never completes. Enqueued here (not awaited, not even attempted here) so this function
-  // stays synchronous and offline-safe; a separate queue worker drains it when connectivity
-  // exists (see `repositories/queues.ts` / `llmQueueWorker.ts`).
-  enqueueDeferredWork(db, 'llm_coach_voice', id, {}, input.utcInstant);
-
   return id;
 }
 
@@ -460,18 +452,6 @@ export function applyGeocodeResult(
       now,
     );
   }
-}
-
-export function applyCoachVoiceResult(
-  db: Db,
-  sessionId: string,
-  rewrittenExplanation: string,
-  now: string,
-): void {
-  db.update(schema.sessions)
-    .set({ explanation: rewrittenExplanation, generatedBy: 'engine+llm', updatedAt: now })
-    .where(eq(schema.sessions.id, sessionId))
-    .run();
 }
 
 // ------------------------------------------------------------------------------------------

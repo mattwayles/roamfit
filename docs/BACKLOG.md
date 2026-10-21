@@ -37,8 +37,7 @@ the record of what was completed and why.
   video-flag demotion are gone (How to now has a "Watch a demo" button opening a YouTube search for
   "<name> Exercise"; `lib/youtubeSearch.ts`). Left in place, unread: `exercise_state.user_video_id`,
   `user_video_assigned_at`, `video_flag_count`, `video_demoted_at`, `session_entries.demo_media_expanded`,
-  the `remote_video_config` table with its `remoteConfigRepo` and Firestore pull, the
-  `video_flag_reported` / `user_video_assigned` / `demo_media_expanded` signal types, and the
+  the `video_flag_reported` / `user_video_assigned` / `demo_media_expanded` signal types, and the
   `react-native-webview` dependency (still used only by its jest mock). Drop them with a migration,
   and remove the dependency, in one pass.
 - **`lifetime_total_minutes` is now write-only.** The Journey tile moved from minutes to sets
@@ -121,7 +120,7 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   or a top-level Progress tab were deliberately left out; `ProgressChart` and `chartGeometry` are
   the pieces to build on.
 - **Daily motivation's schedule window is 7 days, refreshed opportunistically (on Home
-  focus/open), same limitation already noted for the sync trigger below.** Because a local
+  focus/open), same limitation as any opportunistic refresh.** Because a local
   notification can't run app code at delivery time, "skip today — already trained / marked in
   transit" is only ever evaluated when the schedule is (re)built, not when it fires. If the app
   genuinely isn't opened for more than 7 days, the tail of that window can fire on a day the user
@@ -180,12 +179,3 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   them the resolver walks down to the nearest rung it can serve, so a user with no bands and no
   fixed points climbs squat, lunge and core fully, horizontal pull to l2, vertical pull to l3, and
   stalls at the first rung needing a fixed point on the others.
-- **User Accounts** - **Anonymous Firebase Auth session isn't persisted.** No RN AsyncStorage backing, so cross-device continuity silently doesn't work. Zero impact on the core loop — nothing reads it on the critical path. Full scoping for account creation, login and logout (work required, sizing, open decisions): `docs/ACCOUNTS-SCOPING.md`.
-- **LLM integration is not fully written:** `functions/` is written; no `LlmProxyCaller` implementation calls
-  the deployed function, nothing triggers `processLlmQueue`, and there is no natural-language intake
-  UI. `docs/RUNBOOK-functions-deploy.md` has never been run against a real Firebase project.
-  - Using AI in workout generation based on previous retrospective input **(hold on this until we see how current progression is working)**
-- **Sync trigger is weak.** `runOpportunisticSync` fires only when the Home screen regains focus. A
-  real connectivity-restored or app-foreground trigger would be better.
-- `progression_state` **/** `users` **/** `limitations` **/** `earned_badges` don't sync.** Cut for scope. Would reuse the exact  
-  `resolveLastWriteWins` / `syncRows.ts` pattern already in place.

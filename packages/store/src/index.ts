@@ -11,11 +11,7 @@ export * from './completion';
 export * from './badgeAward';
 export { buildBadgeFacts } from './badgeFacts';
 export * from './levelUp';
-export * from './llmQueueWorker';
 export * from './deviceQueueWorker';
-export * from './sync/lastWriteWins';
-export * from './sync/firestoreSyncClient';
-export * from './sync/firestoreSyncWorker';
 
 export * as usersRepo from './repositories/users';
 export type { BandTension, ThemePreference } from './repositories/users';
@@ -30,6 +26,4 @@ export * as milestonesRepo from './repositories/milestones';
 export * as badgesRepo from './repositories/badges';
 export * as statsRepo from './repositories/stats';
 export * as queuesRepo from './repositories/queues';
-export * as remoteConfigRepo from './repositories/remoteConfig';
-export * as syncCursorRepo from './repositories/syncCursor';
 export * as instrumentationRepo from './repositories/instrumentation';
