@@ -293,6 +293,7 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
                     points={ladder.points}
                     markers={ladder.markers}
                     formatValue={steps}
+                    yLabel="Steps up the ladder (each step = a small upgrade)"
                     integerTicks
                     describeValue={(i) => ladder.labels[i] ?? null}
                   />
@@ -303,6 +304,11 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
                     points={chartMode === 'volume' ? chart : bestSeries.points}
                     markers={chartMode === 'volume' ? undefined : bestSeries.markers}
                     formatValue={(v) => unitLabel(progress.unit, v)}
+                    yLabel={
+                      chartMode === 'volume'
+                        ? `Total ${progress.unit} across all sets, per session`
+                        : `Most ${progress.unit} in one set, per session`
+                    }
                     integerTicks
                     zeroBase={chartMode === 'volume'}
                     describeValue={

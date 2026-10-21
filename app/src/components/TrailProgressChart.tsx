@@ -127,6 +127,7 @@ export function TrailProgressChart({
             title={`Level ${page.n} progress`}
             points={page.ladder.points}
             formatValue={steps}
+            yLabel="Steps up this level"
             integerTicks
             zeroBase
             height={140}
@@ -134,7 +135,7 @@ export function TrailProgressChart({
             describePoint={(i) => page.ladder.pointExercise[i] ?? null}
           />
           <Txt variant="caption" color="text3">
-            Steps up this level: a heavier band counts as a step forward, even with fewer reps.
+            Each step is one small upgrade: more reps, a heavier band, a slower tempo, shorter rest or an extra set. A heavier band counts as a step forward even with fewer reps.
           </Txt>
         </>
       ) : (

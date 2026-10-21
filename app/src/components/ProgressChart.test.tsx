@@ -34,6 +34,12 @@ describe.each([
     expect(screen.getByLabelText('Best set: 2 reps on Jan 4 to 12 reps on Oct 1')).toBeTruthy();
   });
 
+  it('names what the Y axis counts when given a yLabel', async () => {
+    await render(wrap(chart({ yLabel: 'Most reps in one set, per session' })));
+    await ready('progress-chart-area');
+    expect(screen.getByText('↑ Most reps in one set, per session')).toBeTruthy();
+  });
+
   it('draws nothing until it is measured, then takes a tap on the nearest point', async () => {
     await render(wrap(chart()));
     await ready('progress-chart-area');

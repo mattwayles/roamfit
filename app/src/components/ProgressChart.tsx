@@ -39,6 +39,8 @@ export interface ProgressChartProps {
   markers?: readonly ChartMarker[];
   /** "12 reps", "30s", "Rung 3" — used in the tap readout and the accessibility summary. */
   formatValue: (value: number) => string;
+  /** What the Y axis counts, in plain words ("Steps up the ladder"); drawn above the plot. */
+  yLabel?: string;
   /** Axis label; defaults to the bare number. */
   formatAxis?: (value: number) => string;
   /** Names the chart for assistive tech: "Best set". */
@@ -62,6 +64,7 @@ export function ProgressChart({
   points,
   markers = [],
   formatValue,
+  yLabel,
   formatAxis,
   title,
   step = false,
@@ -107,6 +110,11 @@ export function ProgressChart({
 
   return (
     <View testID={testID} style={styles.wrap}>
+      {yLabel ? (
+        <Txt testID={`${testID}-ylabel`} variant="caption" color="text2">
+          {`↑ ${yLabel}`}
+        </Txt>
+      ) : null}
       <View
         testID={`${testID}-area`}
         onLayout={onLayout}
