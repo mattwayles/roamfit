@@ -20,7 +20,7 @@
  * what to generate, prescribe, or flag as over-worked (that's `dashboard.ts` calling straight
  * into the engine).
  */
-import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { generate, sessionsRepo, statsRepo } from '@roamfit/store';
@@ -64,7 +64,7 @@ import { IconBadge } from '../components/IconBadge';
 type Props = TabScreenProps<'Home'>;
 
 export default function HomeScreen({ navigation }: Props): React.JSX.Element {
-  const { db, library, families } = useStore();
+  const { db, library, families, restoredNotice, clearRestoredNotice } = useStore();
   const theme = useTheme();
   const styles = useStyles();
   const pillTone = theme.heroCta;
@@ -101,6 +101,13 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       );
     }
   }, [reload]);
+
+  // Track 43 - after an iCloud restore the app remounts here; the welcome shows while Today is up.
+  // A real blur only (not the old tree unmounting during the swap, which would clear it at once).
+  useEffect(
+    () => navigation.addListener('blur', clearRestoredNotice),
+    [navigation, clearRestoredNotice],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -241,6 +248,17 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           />
         </View>
       </Enter>
+
+      {restoredNotice && (
+        <Enter index={next()}>
+          <BannerCard
+            testID="restored-banner"
+            icon="cloud"
+            tone="fern"
+            title="Welcome back. Your data is restored."
+          />
+        </Enter>
+      )}
 
       {comebackTier !== 'none' && (
         <Enter index={next()}>

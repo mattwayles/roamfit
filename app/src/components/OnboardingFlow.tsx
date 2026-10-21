@@ -11,6 +11,10 @@
  * and Journey moves any ladder freely), equipment (Generate asks per workout, and offers
  * Your bands the first time bands are ticked), and the anchor safety guide (Settings → Learn).
  *
+ * Track 43: on a fresh install the welcome step also offers an iCloud backup when one exists
+ * ("Welcome back"). The check is asynchronous and never gates the step; ignoring the offer leaves
+ * the decision pending for Settings, and no backup can overwrite iCloud meanwhile.
+ *
  * It is the blocking first-launch gate Home renders (tab bar hidden); acknowledging the disclaimer
  * is its first step and cannot be skipped (§13.3).
  */
@@ -22,8 +26,12 @@ import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { GOAL_GROUP } from '../lib/trainingOptions';
 import { DISCLAIMER_TEXT } from '../lib/disclaimer';
 import { LOGO } from '../lib/brand';
+import { checkForExistingBackup, formatBackupTime, keepThisPhonesData } from '../lib/icloudBackup';
+import type { BackupStat } from '../../modules/icloud-backup';
+import { useICloudRestore } from '../state/useICloudRestore';
 import { makeStyles, space } from '../theme';
 import { Button, Card, Screen, TopoPattern, Txt } from '../ui';
+import { KeepPhoneSheet } from './KeepPhoneSheet';
 import { LimitationPicker } from './LimitationPicker';
 import { TrainingOptionPicker } from './TrainingOptionPicker';
 
@@ -50,6 +58,19 @@ export function OnboardingFlow({ onDone }: { onDone: () => void }): React.JSX.El
   const [user, setUser] = useState(() => usersRepo.ensureUser(db, nowUtcInstant()));
   // A relaunch mid-setup resumes after the disclaimer, which is already acknowledged.
   const [index, setIndex] = useState(() => (user.onboardingInProgress ? 1 : 0));
+  const [offer, setOffer] = useState<BackupStat | null>(null);
+  const [confirmFresh, setConfirmFresh] = useState(false);
+  const { restoring, message, restore } = useICloudRestore();
+
+  useEffect(() => {
+    let cancelled = false;
+    void checkForExistingBackup(db).then((found) => {
+      if (!cancelled && found) setOffer(found);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [db]);
 
   const step = steps[index];
   const isLast = index === steps.length - 1;
@@ -107,6 +128,33 @@ export function OnboardingFlow({ onDone }: { onDone: () => void }): React.JSX.El
             A few quick questions set up workouts that fit you, whether this is your first workout
             or your thousandth. Every answer can be changed later in Settings.
           </Txt>
+          {offer ? (
+            <Card testID="restore-offer">
+              <Txt variant="bodyStrong">
+                Welcome back — there&apos;s a Wanderlift backup in your iCloud from{' '}
+                {formatBackupTime(offer.modifiedAt)}.
+              </Txt>
+              {message ? (
+                <Txt variant="small" color="text2" testID="restore-message">
+                  {message}
+                </Txt>
+              ) : null}
+              <Button
+                testID="restore-offer-restore"
+                label={restoring ? 'Restoring…' : 'Restore my data'}
+                disabled={restoring}
+                onPress={() => void restore()}
+              />
+              <Button
+                testID="restore-offer-fresh"
+                label="Start fresh"
+                variant="secondary"
+                size="md"
+                disabled={restoring}
+                onPress={() => setConfirmFresh(true)}
+              />
+            </Card>
+          ) : null}
           <Card>
             <Txt variant="body" color="text2" testID="disclaimer-gate-text">
               {DISCLAIMER_TEXT}
@@ -124,6 +172,17 @@ export function OnboardingFlow({ onDone }: { onDone: () => void }): React.JSX.El
             }}
           />
         </Screen>
+        <KeepPhoneSheet
+          visible={confirmFresh}
+          onClose={() => setConfirmFresh(false)}
+          title="Start fresh?"
+          confirmLabel="Start fresh"
+          onConfirm={() => {
+            keepThisPhonesData(db);
+            setConfirmFresh(false);
+            setOffer(null);
+          }}
+        />
       </View>
     );
   }

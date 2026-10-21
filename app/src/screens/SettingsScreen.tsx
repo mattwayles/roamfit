@@ -30,7 +30,14 @@ import { instrumentationRepo, progressionStateRepo, usersRepo } from '@roamfit/s
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
 import { requestHealthKitWritePermission } from '../lib/healthKit';
-import { formatBackupTime, getBackupStatus, runBackup } from '../lib/icloudBackup';
+import {
+  formatBackupTime,
+  getBackupStatus,
+  keepThisPhonesData,
+  runBackup,
+} from '../lib/icloudBackup';
+import { KeepPhoneSheet } from '../components/KeepPhoneSheet';
+import { useICloudRestore } from '../state/useICloudRestore';
 import type { BackupStatus } from '../lib/icloudBackup';
 import {
   DEFAULT_QUIET_HOURS_END,
@@ -124,6 +131,9 @@ export default function SettingsScreen(): React.JSX.Element {
   const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
   const [backingUp, setBackingUp] = useState(false);
   const [backupNote, setBackupNote] = useState<string | null>(null);
+  const [restoreOpen, setRestoreOpen] = useState(false);
+  const [keepOpen, setKeepOpen] = useState(false);
+  const { restoring, message: restoreMessage, restore } = useICloudRestore();
 
   const refresh = useCallback(() => {
     setUser(usersRepo.getUser(db) ?? usersRepo.ensureUser(db, nowUtcInstant()));
@@ -313,7 +323,7 @@ export default function SettingsScreen(): React.JSX.Element {
         ? `Last backed up: ${formatBackupTime(backupStatus.lastBackedUpAt)}`
         : 'Not backed up yet'));
   const backupCaption = user.backupDecisionPending
-    ? "A backup from another phone was found. Restore or keep this phone's data from Settings → Advanced."
+    ? "A backup from another phone was found. Restore it from Advanced below, or keep this phone's data here."
     : backupStatus && !backupStatus.available
       ? "iCloud isn't available on this phone right now. Your data is safe here."
       : 'Your workouts and progress are saved to your private iCloud, so a new phone can pick up where this one left off.';
@@ -574,6 +584,16 @@ export default function SettingsScreen(): React.JSX.Element {
               onPress={() => void backUpNow()}
             />
           ) : null}
+          {user.backupDecisionPending ? (
+            <NavRow
+              testID="keep-this-phone"
+              icon="shield"
+              tone="summit"
+              label="Keep this phone's data"
+              hint="Lets this phone's data replace the iCloud backup at the next backup"
+              onPress={() => setKeepOpen(true)}
+            />
+          ) : null}
         </Group>
       </Enter>
 
@@ -631,6 +651,26 @@ export default function SettingsScreen(): React.JSX.Element {
             </Txt>
             <Icon name={advancedOpen ? 'chevronUp' : 'chevronDown'} size={18} color="text3" />
           </Pressable>
+          {advancedOpen && backupStatus?.available && backupStatus.lastBackedUpAt != null ? (
+            <NavRow
+              testID="restore-icloud"
+              icon="refresh"
+              tone="summit"
+              label="Restore from iCloud backup"
+              value={restoring ? 'Restoring…' : formatBackupTime(backupStatus.lastBackedUpAt)}
+              hint="Replaces the data on this phone with your iCloud backup"
+              onPress={() => {
+                if (!restoring) setRestoreOpen(true);
+              }}
+            />
+          ) : null}
+          {advancedOpen && restoreMessage ? (
+            <View style={styles.advancedBlock}>
+              <Txt variant="small" color="text2" testID="restore-message">
+                {restoreMessage}
+              </Txt>
+            </View>
+          ) : null}
           {advancedOpen ? (
             <View style={styles.advancedBlock}>
               <Txt variant="h3">Diagnostics</Txt>
@@ -710,6 +750,51 @@ export default function SettingsScreen(): React.JSX.Element {
           />
         </View>
       </Sheet>
+
+      <Sheet
+        testID="restore-sheet"
+        visible={restoreOpen}
+        onClose={() => setRestoreOpen(false)}
+        title="Restore from iCloud?"
+      >
+        <Txt variant="small" color="text2" style={styles.sheetBody}>
+          This replaces the data on this phone with your backup from{' '}
+          {backupStatus?.lastBackedUpAt != null
+            ? formatBackupTime(backupStatus.lastBackedUpAt)
+            : ''}
+          .
+        </Txt>
+        <View style={styles.sheetButtons}>
+          <Button
+            testID="restore-confirm-cancel"
+            label="Keep this phone's data"
+            onPress={() => setRestoreOpen(false)}
+          />
+          <Button
+            testID="restore-confirm-yes"
+            label="Restore"
+            variant="secondary"
+            size="md"
+            fullWidth
+            onPress={() => {
+              setRestoreOpen(false);
+              void restore();
+            }}
+          />
+        </View>
+      </Sheet>
+
+      <KeepPhoneSheet
+        visible={keepOpen}
+        onClose={() => setKeepOpen(false)}
+        title="Keep this phone's data?"
+        confirmLabel="Keep this phone's data"
+        onConfirm={() => {
+          keepThisPhonesData(db);
+          setKeepOpen(false);
+          refresh();
+        }}
+      />
     </Screen>
   );
 }
