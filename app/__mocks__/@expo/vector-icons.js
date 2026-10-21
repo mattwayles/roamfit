@@ -14,5 +14,6 @@ function makeIconSet(displayName) {
 
 module.exports = {
   Ionicons: makeIconSet('Ionicons'),
+  FontAwesome: makeIconSet('FontAwesome'),
   createIconSet: () => makeIconSet('Icon'),
 };
