@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { makeStyles, radius, space, useTheme } from '../theme';
+import { makeStyles, radius, space } from '../theme';
 import { Icon, PressableScale, Txt } from '../ui';
 
 export interface MonthStepperProps {
@@ -29,7 +29,6 @@ export function MonthStepper({
   onPressLabel,
   testID,
 }: MonthStepperProps): React.JSX.Element {
-  const theme = useTheme();
   const styles = useStyles();
   return (
     <View testID={testID} style={styles.pill}>
