@@ -5,16 +5,23 @@ Last updated: 2026-10-20
   `__reset`, `__setLocalFile`, `__setStored`, `__failNext`… on the mock's default export, wired in
   `app/jest.setup.js`) + entitlements in `app/app.json` — 3ae9c24; evicted-file rotation fix 871d4b0.
   Swift NOT yet compiled (no Xcode build run).
+- [x] 43b store layer: migration 0039, `UserRecord.icloudBackupEnabled` / `backupDecisionPending`
+  via `usersRepo.getUser/updateUser`, `knownMigrationIds()`, `queuesRepo.deleteDeferredWorkOfKind`
+  — 5ea7f7e.
+- [x] 43b local layer: `app/src/db/backup.ts` (`createSnapshot`, `inspectSnapshot`,
+  `prepareRestoreIncomingPath`, `restoreFromSnapshot` → `RestoreResult`, `cleanupScratchFiles`),
+  `backupFiles.ts`, `closeDb` / `getLiveClient` / `reopenDuringRestore` in `db/index.ts` — edce778;
+  swap-marker recovery fix 6cd40df.
 ### In progress
 - Agents run sequentially in the main tree (worktrees lack node_modules; concurrent `npm run check`
   is known to hang).
-  - 43b: `app/src/db/backup.ts` (snapshot / verify / apply restore) + `closeDb()` in
-    `app/src/db/index.ts` + migration 0039 (`users.icloud_backup_enabled`,
-    `users.backup_decision_pending`) + store accessors, with tests.
+  - 43c: `app/src/lib/icloudBackup.ts` scheduler (triggers + guards, glues native module to
+    backup.ts) + Settings "iCloud backup" group.
 ### Next
-- 43c: backup scheduler (triggers + guards), Settings "iCloud backup" group, restore UI
-  (welcome-screen offer + Settings → Advanced), reschedule notifications after restore.
-- 43d: BACKLOG device-pass item; user enables iCloud capability + container on the Apple Developer
+- 43d: restore UI — welcome-screen offer on a fresh install (sets/clears `backup_decision_pending`),
+  Settings → Advanced "Restore from iCloud backup" with confirm, StoreProvider remount with the new
+  `Db` after restore, motivation notifications rescheduled.
+- 43e: BACKLOG device-pass item; user enables iCloud capability + container on the Apple Developer
   portal and builds to device.
 ### Decisions / gotchas
 - User decisions: backup ON by default; restore offered both on fresh install and from Settings
