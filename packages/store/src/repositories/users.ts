@@ -102,8 +102,6 @@ export interface UserRecord {
   /** Ask "how did that set feel?" as a modal over the rest screen (off = inline on it). */
   feedbackPromptEnabled: boolean;
   themePreference: ThemePreference;
-  /** Stable Spotify vibe ids the user picked; `[]` = no preference. */
-  spotifyVibes: string[];
   notificationPrefs: NotificationPrefs;
   /** Track 37a — the limitation choices the user picked (ids from `LIMITATION_CHOICES`), each
    *  with the local_date it was turned on. Unknown ids are dropped on read. */
@@ -124,7 +122,7 @@ export interface LimitationChoiceRecord {
   since: string;
 }
 
-/** The stored `limitation_choices` JSON, tolerant of damage the same way `parseStringArray` is. */
+/** The stored `limitation_choices` JSON, tolerant of damage: malformed JSON or a non-array yields no choices rather than throwing on every user read. */
 function parseLimitationChoices(raw: string): LimitationChoiceRecord[] {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -203,17 +201,6 @@ function mergeBandTensions(
   return out;
 }
 
-/** A stored JSON string array, tolerant of damage: malformed JSON, a non-array, or non-string
- *  entries yield `[]` / the surviving strings rather than throwing on every user read. */
-function parseStringArray(raw: string): string[] {
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
-  } catch {
-    return [];
-  }
-}
-
 function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
   return {
     id: row.id,
@@ -229,7 +216,6 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
     cueSoundsEnabled: row.cueSoundsEnabled,
     feedbackPromptEnabled: row.feedbackPromptEnabled,
     themePreference: row.themePreference as ThemePreference,
-    spotifyVibes: parseStringArray(row.spotifyVibes),
     notificationPrefs: JSON.parse(row.notificationPrefs) as NotificationPrefs,
     limitationChoices: parseLimitationChoices(row.limitationChoices),
     trainingPreferences: parseTrainingPreferences(row.trainingPrefs),
@@ -276,7 +262,6 @@ export interface UserPatch {
   feedbackPromptEnabled?: boolean;
   themePreference?: ThemePreference;
   /** Replaces the stored list wholesale (it is a selection, not a bag to merge into). */
-  spotifyVibes?: string[];
   /** Shallow-merged onto the existing `notificationPrefs`, not replaced wholesale — a settings
    *  screen editing one field must not clobber others it doesn't know about. */
   notificationPrefs?: NotificationPrefs;
@@ -301,7 +286,6 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
     values.feedbackPromptEnabled = patch.feedbackPromptEnabled;
   }
   if (patch.themePreference !== undefined) values.themePreference = patch.themePreference;
-  if (patch.spotifyVibes !== undefined) values.spotifyVibes = JSON.stringify(patch.spotifyVibes);
   if (patch.notificationPrefs !== undefined) {
     values.notificationPrefs = JSON.stringify({
       ...current.notificationPrefs,

@@ -6,12 +6,10 @@ and, as the user chose when asked, **all Firebase** too: Firestore sync, Cloud F
 proxy. The app becomes fully local. No traces left.
 
 ### Done
-(none yet)
+- [x] Increment A: Spotify removed (app, store, token-swap function, SDK dep + patch + patch-package, plugin, dev.sh/EAS/DESIGN/BACKLOG); migration 0037 drops spotify_playlists and users.spotify_vibes. `npm run check` green — see git log
 
 ### In progress
-- Increment A: Spotify. Delete app/src Spotify files + SpotifyControls in WorkoutScreen, store
-  `spotify_playlists` repo, `users.spotifyVibes`, token-swap function, SDK dep/plugin/patch,
-  dev.sh/EAS/docs mentions. Migration 0037 drops the table and the column.
+- Increment B: Firebase removal (starting).
 
 ### Next
 - Increment B: Firebase. Delete `functions/` workspace, firebase.json, firestore.*, app

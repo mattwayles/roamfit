@@ -98,7 +98,6 @@ import BandChip from '../components/BandChip';
 import HowToVideoButton from '../components/HowToVideoButton';
 import { repBasis } from '../lib/repBasis';
 import AbandonSessionButton from '../components/AbandonSessionButton';
-import SpotifyControls from '../components/SpotifyControls';
 import {
   configureWorkoutAudioSession,
   setCueSoundsEnabled,
@@ -1032,14 +1031,6 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets
         >
-          {/* Sits with the session-level controls (timer, pause, stop) rather than with the
-              exercise content, because that is what it is: something about this whole workout, not
-              about this set. Above the phase view so it is in the same place during a set and
-              during a rest — rest is when a user actually reaches for it, and a control that moves
-              between the two moments is a control you have to look for. Renders nothing at all when
-              there is no Spotify, so a user who doesn't use it never pays the row. */}
-          <SpotifyControls />
-
           <View style={styles.metaRow}>
             <Chip label={SECTION_LABEL[sessionSection] ?? entry.section} tone={sectionTone} />
             {paused && <PausedChip />}

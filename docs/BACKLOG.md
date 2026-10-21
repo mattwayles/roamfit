@@ -71,14 +71,6 @@ the record of what was completed and why.
   80pt stamps on a small phone, and Completion's "See it in your passport ›" link opening the right
   page. Not built: (1) a `stampLabel` param change arriving mid-turn isn't guarded, so the turn's end
   commit can override the jump; (2) the Journey teaser could show each stamp's first-visit date.
-- **Spotify vibes / recents / favorites — device pass owed.** Track 23 is Jest-verified only. On a
-  device with Spotify connected: (1) real vibe searches — do women-targeted / gendered playlists still
-  dominate for Rock, Metal, Hip-Hop, etc.? If so, tune the terms in `app/src/lib/spotifyVibes.ts` (a
-  small name exclusion is the fallback, deliberately not built); (2) refresh variety — does the
-  Fresh picks refresh button give a visibly different list for the same vibe, without relevance
-  collapsing; (3) recents and favorites persist across an app relaunch, a favorited recent moves
-  to Favorites and back, and the vibe selection is remembered; (4) airplane mode: Favorites/Recents
-  still render and play, with only Fresh picks showing the error.
 - **WorkoutScreen tests flake under a full `npm run check` (~1 run in 10).** A different
   `WorkoutScreen.*.test.tsx` fails each time (seen: `anchor`, `rest`, `keyboard`), always a
   `waitFor` timing out on the first screen element while the suite takes 8-10s, followed by "A
@@ -195,10 +187,5 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   - Using AI in workout generation based on previous retrospective input **(hold on this until we see how current progression is working)**
 - **Sync trigger is weak.** `runOpportunisticSync` fires only when the Home screen regains focus. A
   real connectivity-restored or app-foreground trigger would be better.
-- `progression_state` **/** `users` **/** `limitations` **/** `spotify_playlists` **/** `earned_badges` **(and `users.spotify_vibes`) don't sync.** Cut for scope. Would reuse the exact  
+- `progression_state` **/** `users` **/** `limitations` **/** `earned_badges` don't sync.** Cut for scope. Would reuse the exact  
   `resolveLastWriteWins` / `syncRows.ts` pattern already in place.
-- **Spotify: no Settings toggle and no per-workout hide.** The bar renders nothing when the native
-  module is absent, so a non-Spotify build is unaffected — but a Spotify user who wants a silent
-  session has no way to hide it short of not connecting. Add a toggle if the row proves to be
-  clutter; it would follow `cueSoundsEnabled`'s pattern exactly (one column, migration 0014 is the
-  precedent).

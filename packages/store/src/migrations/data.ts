@@ -689,6 +689,14 @@ ALTER TABLE rolled_up_stats DROP COLUMN week_streak;
 ALTER TABLE rolled_up_stats DROP COLUMN last_week_streak_check_local_date;
 `;
 
+const MIGRATION_0037_REMOVE_SPOTIFY = `-- 0037_remove_spotify.sql — Spotify is gone from the app (controls could not work offline), so its
+-- table and the per-user vibe selection are dropped rather than left as dead weight (same call as
+-- 0018_remove_enjoyment.sql).
+
+DROP TABLE spotify_playlists;
+ALTER TABLE users DROP COLUMN spotify_vibes;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -732,4 +740,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0034_badges.sql', sql: MIGRATION_0034_BADGES },
   { id: '0035_bands_set_up.sql', sql: MIGRATION_0035_BANDS_SET_UP },
   { id: '0036_remove_weekly_target.sql', sql: MIGRATION_0036_REMOVE_WEEKLY_TARGET },
+  { id: '0037_remove_spotify.sql', sql: MIGRATION_0037_REMOVE_SPOTIFY },
 ];

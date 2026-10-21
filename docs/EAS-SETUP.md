@@ -26,9 +26,3 @@ npx eas-cli submit --platform ios --latest
 
 Needs the app to exist in App Store Connect first (bundle ID `com.mattwayles.wanderlift`). This is a
 Release build: no Metro, no dev client.
-
-## Spotify
-
-`.env.local` is not on EAS's servers. Without `SPOTIFY_CLIENT_ID` and the two
-`EXPO_PUBLIC_SPOTIFY_TOKEN_*_URL` vars the build simply has no Spotify (see `docs/SPOTIFY-SETUP.md`).
-To include it, add all three as EAS environment variables for the profile, never a subset.
