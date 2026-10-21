@@ -25,11 +25,11 @@ import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { GOAL_GROUP } from '../lib/trainingOptions';
 import { DISCLAIMER_TEXT } from '../lib/disclaimer';
-import { LOGO } from '../lib/brand';
+import { LOGO_ASPECT, logoFor } from '../lib/brand';
 import { checkForExistingBackup, formatBackupTime, keepThisPhonesData } from '../lib/icloudBackup';
 import type { BackupStat } from '../../modules/icloud-backup';
 import { useICloudRestore } from '../state/useICloudRestore';
-import { makeStyles, space } from '../theme';
+import { makeStyles, space, useTheme } from '../theme';
 import { Button, Card, Screen, TopoPattern, Txt } from '../ui';
 import { KeepPhoneSheet } from './KeepPhoneSheet';
 import { LimitationPicker } from './LimitationPicker';
@@ -53,6 +53,7 @@ const STEP_INTROS: Partial<Record<StepId, string>> = {
 
 export function OnboardingFlow({ onDone }: { onDone: () => void }): React.JSX.Element {
   const { db } = useStore();
+  const theme = useTheme();
   const styles = useStyles();
   const steps = STEPS;
   const [user, setUser] = useState(() => usersRepo.ensureUser(db, nowUtcInstant()));
@@ -112,7 +113,7 @@ export function OnboardingFlow({ onDone }: { onDone: () => void }): React.JSX.El
           style={styles.gateScreen}
         >
           <Image
-            source={LOGO}
+            source={logoFor(theme.scheme)}
             style={styles.logo}
             resizeMode="contain"
             accessible={false}
@@ -277,7 +278,7 @@ const useStyles = makeStyles((tk) =>
       paddingVertical: space.xxl,
     },
     // Decorative: the wordmark below is the header. Negative margin pulls the glow padding in.
-    logo: { width: 122, height: 143, marginBottom: -space.lg },
+    logo: { width: 180, height: 180 / LOGO_ASPECT, marginBottom: -space.lg },
     wordmark: { textAlign: 'left' },
     content: { paddingTop: space.md, gap: space.xl },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

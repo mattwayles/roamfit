@@ -94,7 +94,6 @@ the record of what was completed and why.
   l3b, l8, l8b, l9; horizontal_pull l2; vertical_push l6, l6b, l7; vertical_pull l5-l9 and l6b;
   squat l0, l1, l4, l5, l7; hinge l7; lunge l0, l1, l7. Lower-rung recall softens it. Add siblings
   as people reach them; keep the 37c tagging standard and the text guards green.
-- **Logo source is low-res.** `app/assets/logo-source.png` is 430x542; the icon and splash are upscaled from it by `tools/build_brand_assets.py` (alpha-mask re-render). Replace with a vector or 2x+ export and re-run the script for crisp edges.
 - **Show the app version in Settings' footer.** `expo-constants` is hoisted in by `expo` but not declared in
   `app/package.json`; add it (`npx expo install expo-constants`) and read `Constants.expoConfig?.version`.
 

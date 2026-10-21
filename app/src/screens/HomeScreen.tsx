@@ -30,7 +30,7 @@ import type { TabScreenProps } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowEngineClock, nowUtcInstant } from '../lib/localClock';
 import { findCurrentEntry, sessionCompletionFraction } from '../lib/sessionProgress';
-import { LOGO, LOGO_ASPECT } from '../lib/brand';
+import { LOGO_ASPECT, logoFor } from '../lib/brand';
 import AbandonSessionButton from '../components/AbandonSessionButton';
 import { OnboardingFlow } from '../components/OnboardingFlow';
 import { nextUnlockHero, WEEKDAY_LABELS } from '../lib/dashboard';
@@ -230,7 +230,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
       <Enter index={next()} style={styles.header}>
         {/* The mark is the page's title now (no wordmark), so it carries the header role. */}
         <Image
-          source={LOGO}
+          source={logoFor(theme.scheme)}
           style={styles.logo}
           resizeMode="contain"
           accessible
