@@ -412,13 +412,7 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
           days without a workout (invariant 4). */}
       {week.length > 0 && (
         <Enter index={next()} style={styles.weekBlock}>
-          <SectionHeader
-            title="This week"
-            icon="today"
-            actionLabel="Open Journey"
-            onAction={() => navigation.navigate('Journey')}
-            testID="week-header"
-          />
+          <SectionHeader title="This week" icon="today" testID="week-header" />
           <View testID="week-strip" style={styles.weekRow}>
             {week.map((day, i) => (
               <View key={day.localDate} style={styles.weekDay}>
