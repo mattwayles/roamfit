@@ -17,7 +17,7 @@ import { progressText, type ShelfBadge } from '../lib/badges';
 import { formatFullLocalDate } from '../lib/sessionHistory';
 import { useDashboardData } from '../lib/useDashboardData';
 import { makeStyles, space } from '../theme';
-import { Button, Card, PressableScale, Screen, Sheet, Txt } from '../ui';
+import { Card, PressableScale, Screen, Sheet, Txt } from '../ui';
 import { BadgeEmblem, TIER_ACCENT } from '../components/BadgeEmblem';
 
 type Props = RootScreenProps<'Badges'>;
@@ -26,7 +26,7 @@ function nameOf(b: ShelfBadge): string {
   return b.mystery ? 'Hidden badge' : b.def.name;
 }
 
-export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
+export default function BadgesScreen(_props: Props): React.JSX.Element {
   const { db } = useStore();
   const styles = useStyles();
   const { data, reload } = useDashboardData();
@@ -152,20 +152,6 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
                     ? 'Earned'
                     : `Earned ${formatFullLocalDate(open.localDate)}`}
                 </Txt>
-                {open.sessionId && open.localDate ? (
-                  <Button
-                    testID="badge-sheet-session"
-                    label={`From your ${formatFullLocalDate(open.localDate)} workout`}
-                    variant="secondary"
-                    size="md"
-                    fullWidth
-                    onPress={() => {
-                      const sessionId = open.sessionId!;
-                      setOpenId(null);
-                      navigation.navigate('SessionHistory', { sessionId });
-                    }}
-                  />
-                ) : null}
               </View>
             ) : open.progress && !open.mystery ? (
               <Txt variant="bodyStrong" align="center" testID="badge-sheet-progress">

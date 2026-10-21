@@ -11,17 +11,12 @@ import { StoreProvider } from '../state/StoreContext';
 import { getDb } from '../db';
 import type { RootStackParamList } from '../navigation/types';
 import BadgesScreen from './BadgesScreen';
-import { Text } from 'react-native';
 
 const WAIT_OPTS: Parameters<typeof waitFor>[1] = { timeout: 5000, interval: 50 };
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-function History(): React.JSX.Element {
-  return <Text testID="history-stub">history</Text>;
-}
-
 describe('BadgesScreen', () => {
-  it('shows earned and locked badges, opens the sheet, links to the workout and marks badges seen', async () => {
+  it('shows earned and locked badges, opens the sheet and marks badges seen', async () => {
     const db = getDb();
     badgesRepo.insertEarnedBadges(
       db,
@@ -38,7 +33,6 @@ describe('BadgesScreen', () => {
         <NavigationContainer>
           <Stack.Navigator>
             <Stack.Screen name="Badges" component={BadgesScreen} />
-            <Stack.Screen name="SessionHistory" component={History} />
           </Stack.Navigator>
         </NavigationContainer>
       </StoreProvider>,
@@ -67,10 +61,9 @@ describe('BadgesScreen', () => {
     expect(screen.getByTestId('badge-sheet-progress').props.children).toBe('0 of 5');
     fireEvent.press(screen.getByTestId('badge-sheet-backdrop'));
 
-    // Earned sheet: date and the workout link.
+    // Earned sheet: the date, and no link out to the workout.
     fireEvent.press(screen.getByTestId('badge-sessions_1'));
-    await waitFor(() => expect(screen.getByTestId('badge-sheet-session')).toBeTruthy(), WAIT_OPTS);
-    fireEvent.press(screen.getByTestId('badge-sheet-session'));
-    await waitFor(() => expect(screen.getByTestId('history-stub')).toBeTruthy(), WAIT_OPTS);
+    await waitFor(() => expect(screen.getByTestId('badge-sheet-earned')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.queryByTestId('badge-sheet-session')).toBeNull();
   });
 });
