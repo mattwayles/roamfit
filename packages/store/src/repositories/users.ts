@@ -96,6 +96,10 @@ export interface UserRecord {
   bandSettings: BandSettings;
   /** Track 40 — the user has chosen their bands, so Generate need not offer Your bands. */
   bandsSetUp: boolean;
+  /** Track 43 — back up to iCloud (on by default). */
+  icloudBackupEnabled: boolean;
+  /** Track 43 — a backup exists and the user has not yet restored or started fresh. */
+  backupDecisionPending: boolean;
   passportEnabled: boolean;
   healthWriteEnabled: boolean;
   cueSoundsEnabled: boolean;
@@ -211,6 +215,8 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
     ),
     bandSettings: parseBandSettings(row.bandSettings),
     bandsSetUp: row.bandsSetUp,
+    icloudBackupEnabled: row.icloudBackupEnabled,
+    backupDecisionPending: row.backupDecisionPending,
     passportEnabled: row.passportEnabled,
     healthWriteEnabled: row.healthWriteEnabled,
     cueSoundsEnabled: row.cueSoundsEnabled,
@@ -270,6 +276,8 @@ export interface UserPatch {
   /** Track 37i — merged onto the stored band settings. */
   bandSettings?: Partial<BandSettings>;
   bandsSetUp?: boolean;
+  icloudBackupEnabled?: boolean;
+  backupDecisionPending?: boolean;
 }
 
 export function updateUser(db: Db, patch: UserPatch, now: string): void {
@@ -296,6 +304,11 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
     values.bandSettings = JSON.stringify({ ...current.bandSettings, ...patch.bandSettings });
   }
   if (patch.bandsSetUp !== undefined) values.bandsSetUp = patch.bandsSetUp;
+  if (patch.icloudBackupEnabled !== undefined)
+    values.icloudBackupEnabled = patch.icloudBackupEnabled;
+  if (patch.backupDecisionPending !== undefined) {
+    values.backupDecisionPending = patch.backupDecisionPending;
+  }
   if (patch.trainingPreferences !== undefined) {
     values.trainingPrefs = JSON.stringify({
       ...current.trainingPreferences,

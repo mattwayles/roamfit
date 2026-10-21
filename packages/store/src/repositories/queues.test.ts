@@ -1,5 +1,6 @@
 import { createTestDb } from '../testHarness';
 import {
+  deleteDeferredWorkOfKind,
   enqueueDeferredWork,
   getEligibleDeferredWork,
   getPendingDeferredWork,
@@ -102,5 +103,24 @@ describe('§11.3 deferred work queue — exponential backoff', () => {
   it('a failure never throws even for an id that does not exist (queue processing must never crash)', () => {
     const { db } = createTestDb();
     expect(() => recordDeferredWorkFailure(db, 'no-such-id', T0)).not.toThrow();
+  });
+});
+
+describe('deleteDeferredWorkOfKind', () => {
+  it('removes every job of that kind (any status) and leaves other kinds alone', () => {
+    const { db, close } = createTestDb();
+    try {
+      enqueueDeferredWork(db, 'healthkit_write', 's1', {}, T0);
+      enqueueDeferredWork(db, 'healthkit_write', 's2', {}, T0);
+      enqueueDeferredWork(db, 'passport_geocode', 's1', {}, T0);
+      const first = getPendingDeferredWork(db).find((j) => j.kind === 'healthkit_write')!;
+      markDeferredWorkDone(db, first.id, T0);
+
+      deleteDeferredWorkOfKind(db, 'healthkit_write');
+
+      expect(getPendingDeferredWork(db).map((j) => j.kind)).toEqual(['passport_geocode']);
+    } finally {
+      close();
+    }
   });
 });

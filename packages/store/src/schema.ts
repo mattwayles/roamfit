@@ -69,6 +69,15 @@ export const users = sqliteTable('users', {
   /** Track 40 — the user has chosen their bands (Your bands, or Generate's set-up prompt). Gates
    *  that prompt (migration 0035). */
   bandsSetUp: integer('bands_set_up', { mode: 'boolean' }).notNull().default(false),
+  /** Track 43 — iCloud backup switch; ON by default (migration 0039). */
+  icloudBackupEnabled: integer('icloud_backup_enabled', { mode: 'boolean' })
+    .notNull()
+    .default(true),
+  /** Track 43 — a backup exists and the user has not yet chosen Restore or Start fresh; no
+   *  uploads while set. */
+  backupDecisionPending: integer('backup_decision_pending', { mode: 'boolean' })
+    .notNull()
+    .default(false),
   /** JSON: { enabled, quiet_hours, observed_training_window }. */
   notificationPrefs: text('notification_prefs').notNull().default('{}'),
   /** §12 — the tz_id last observed for this device; compared against a new session's tz_id to

@@ -243,3 +243,49 @@ describe('bandsSetUp (migration 0035)', () => {
     }
   });
 });
+
+describe('iCloud backup settings (migration 0039)', () => {
+  it('a new user has backup enabled and no pending decision; both round-trip through updateUser', () => {
+    const { db, close } = createTestDb();
+    try {
+      const fresh = ensureUser(db, utcInstantFor('2026-10-20'));
+      expect(fresh.icloudBackupEnabled).toBe(true);
+      expect(fresh.backupDecisionPending).toBe(false);
+
+      updateUser(db, { backupDecisionPending: true }, utcInstantFor('2026-10-20'));
+      expect(getUser(db)).toMatchObject({ icloudBackupEnabled: true, backupDecisionPending: true });
+      updateUser(
+        db,
+        { icloudBackupEnabled: false, backupDecisionPending: false },
+        utcInstantFor('2026-10-20'),
+      );
+      expect(getUser(db)).toMatchObject({
+        icloudBackupEnabled: false,
+        backupDecisionPending: false,
+      });
+      updateUser(db, { cueSoundsEnabled: false }, utcInstantFor('2026-10-20'));
+      expect(getUser(db)!.icloudBackupEnabled).toBe(false);
+    } finally {
+      close();
+    }
+  });
+
+  it('opts every user row that existed before the migration in, with no pending decision', () => {
+    const raw = new Database(':memory:');
+    try {
+      const index = MIGRATIONS.findIndex((m) => m.id === '0039_icloud_backup.sql');
+      for (const m of MIGRATIONS.slice(0, index)) raw.exec(m.sql);
+      raw
+        .prepare(
+          "INSERT INTO users (id, anchors_available, created_at, updated_at) VALUES ('local', '[]', 'x', 'x')",
+        )
+        .run();
+      raw.exec(MIGRATIONS[index].sql);
+      expect(
+        raw.prepare('SELECT icloud_backup_enabled, backup_decision_pending FROM users').get(),
+      ).toEqual({ icloud_backup_enabled: 1, backup_decision_pending: 0 });
+    } finally {
+      raw.close();
+    }
+  });
+});

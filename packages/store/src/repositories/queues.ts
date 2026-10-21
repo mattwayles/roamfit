@@ -22,6 +22,13 @@ export function enqueueDeferredWork(
     .run();
 }
 
+/** Deletes every queued job of `kind`, whatever its status. After an iCloud restore the queued
+ *  `healthkit_write` jobs are dropped: Health already syncs across the Apple ID, so replaying
+ *  them on the restored device would duplicate workouts. */
+export function deleteDeferredWorkOfKind(db: Db, kind: DeferredWorkKind): void {
+  db.delete(schema.deferredWork).where(eq(schema.deferredWork.kind, kind)).run();
+}
+
 export interface DeferredWorkRecord {
   id: string;
   kind: DeferredWorkKind;

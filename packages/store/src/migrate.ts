@@ -18,6 +18,12 @@ export interface MigrationExecutor {
   recordApplied(id: string, appliedAt: string): void;
 }
 
+/** Every migration id this build ships, oldest first — what a restored backup's `_migrations`
+ *  is checked against (a backup with an id outside this list came from a newer build). */
+export function knownMigrationIds(): string[] {
+  return MIGRATIONS.map((m) => m.id);
+}
+
 export function pendingMigrationFiles(applied: readonly string[]): string[] {
   const appliedSet = new Set(applied);
   return MIGRATIONS.map((m) => m.id).filter((id) => !appliedSet.has(id));

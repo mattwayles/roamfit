@@ -708,6 +708,15 @@ DROP TABLE sync_cursor;
 DELETE FROM deferred_work WHERE kind IN ('llm_distillation', 'llm_coach_voice');
 `;
 
+const MIGRATION_0039_ICLOUD_BACKUP = `-- 0039_icloud_backup.sql — Track 43: iCloud backup. \`icloud_backup_enabled\` is the Settings switch
+-- (ON by default, so every existing row opts in too). \`backup_decision_pending\` is set at first
+-- launch when a backup already exists in iCloud and cleared by Restore or "Start fresh"; while it
+-- is set the app never uploads, so an empty fresh install cannot overwrite a real backup.
+
+ALTER TABLE users ADD COLUMN icloud_backup_enabled INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE users ADD COLUMN backup_decision_pending INTEGER NOT NULL DEFAULT 0;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -753,4 +762,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0036_remove_weekly_target.sql', sql: MIGRATION_0036_REMOVE_WEEKLY_TARGET },
   { id: '0037_remove_spotify.sql', sql: MIGRATION_0037_REMOVE_SPOTIFY },
   { id: '0038_remove_firebase.sql', sql: MIGRATION_0038_REMOVE_FIREBASE },
+  { id: '0039_icloud_backup.sql', sql: MIGRATION_0039_ICLOUD_BACKUP },
 ];
