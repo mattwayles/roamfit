@@ -3,6 +3,7 @@
  * `completeSession` is wrapped so a test can declare which badge ids the session "earned" (their
  * rows are written for real, retroactive or not); the first test uses the real award path.
  */
+import * as icloudBackup from '../lib/icloudBackup';
 import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -197,5 +198,12 @@ describe('badges on the completion screen', () => {
     await waitFor(() => expect(screen.getByText(name)).toBeTruthy(), EVENTUALLY);
     expect(reduce).toHaveBeenCalled();
     expect(screen.getByTestId('badge-0-emblem')).toBeTruthy();
+  });
+
+  it('finishing a workout fires an iCloud backup in the background without blocking the screen', async () => {
+    const backup = jest.spyOn(icloudBackup, 'runBackup').mockResolvedValue({ kind: 'failed' });
+    const { db } = await finishASession();
+    expect(backup).toHaveBeenCalledTimes(1);
+    expect(backup).toHaveBeenCalledWith(db, { reason: 'session-complete' });
   });
 });

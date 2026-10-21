@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import RootNavigator from './src/navigation/RootNavigator';
 import { StoreProvider } from './src/state/StoreContext';
+import { useBackupOnBackground } from './src/state/useBackupOnBackground';
 import { ThemeProvider } from './src/state/ThemeProvider';
 import { fontAssets, themeFor, useTheme } from './src/theme';
 
@@ -35,9 +36,11 @@ export default function App() {
   );
 }
 
-/** Everything that takes its chrome from the theme: navigation colors and the status bar. */
+/** Everything that takes its chrome from the theme: navigation colors and the status bar. Also
+ *  mounts the iCloud background-backup trigger once, under the store. */
 function ThemedShell() {
   const theme = useTheme();
+  useBackupOnBackground();
   return (
     <>
       <NavigationContainer theme={theme.navTheme}>

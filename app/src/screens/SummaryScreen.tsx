@@ -66,6 +66,7 @@ import {
 import { buildSessionCompletionStats } from '../lib/sessionStats';
 import { badgeShareText, completionBadges, type ShelfBadge } from '../lib/badges';
 import { lookupNewStamp, type NewStamp } from '../lib/newStamp';
+import { runBackup } from '../lib/icloudBackup';
 import {
   cueLevelUp,
   cueStampImpact,
@@ -905,6 +906,9 @@ export default function SummaryScreen({ navigation, route }: Props): React.JSX.E
     setMilestones(milestonesRepo.getMilestonesForSession(db, sessionId));
     setWorkoutCount(sessionsRepo.countCompletedSessions(db));
     setFinished(true);
+    // Track 43 — back the finished workout up to iCloud. Fire-and-forget: it never throws and the
+    // celebration does not wait for it.
+    void runBackup(db, { reason: 'session-complete' });
   };
 
   const retrospectiveAccessoryId = 'retrospective-accessory';
