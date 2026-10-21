@@ -198,7 +198,7 @@ describe('§8.1 warm-up/cool-down feedback: every set rests; the exercise is ask
     expect(screen.queryByTestId('stage-feedback')).toBeNull();
   }, 20000);
 
-  it('the last cool-down set gets its own rest page too, and Next is what ends the workout', async () => {
+  it('the last cool-down rest holds for its feedback prompt, then goes straight to Summary', async () => {
     let db!: Db;
     render(
       <StoreProvider>
@@ -231,7 +231,7 @@ describe('§8.1 warm-up/cool-down feedback: every set rests; the exercise is ask
       expect(entry.difficultyFeedback).toBe('too_hard');
     }, WAIT_OPTS);
 
-    await fireEvent.press(screen.getByTestId('rest-next'));
+    // Answering the prompt was the last thing the rest was waiting on: it is skipped.
     await waitFor(
       () => expect(navigation.replace).toHaveBeenCalledWith('Summary', { sessionId }),
       WAIT_OPTS,

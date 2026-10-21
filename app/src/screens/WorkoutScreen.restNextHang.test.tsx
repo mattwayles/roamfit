@@ -16,7 +16,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { createRng, seedFromString } from '@roamfit/engine';
 import { exerciseLibrary, familyLibrary } from '@roamfit/data';
 import { eq } from 'drizzle-orm';
-import { generate, schema, sessionsRepo } from '@roamfit/store';
+import { generate, schema, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { Db } from '@roamfit/store';
 import WorkoutScreen from './WorkoutScreen';
 import { StoreProvider, useStore } from '../state/StoreContext';
@@ -181,6 +181,59 @@ describe('final rest "Next" from a Summary round trip', () => {
 
     await fireEvent.press(screen.getByTestId('rest-next'));
 
+    await waitFor(
+      () => expect(navigation.replace).toHaveBeenCalledWith('Summary', { sessionId }),
+      WAIT_OPTS,
+    );
+  }, 20000);
+});
+
+describe('the final rest is skipped', () => {
+  async function completeVeryLastSet(feedbackPromptEnabled: boolean) {
+    let db!: Db;
+    render(
+      <StoreProvider>
+        <Setup onReady={(d) => (db = d)} />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(db).toBeDefined(), WAIT_OPTS);
+    usersRepo.updateUser(db, { feedbackPromptEnabled }, nowUtcInstant());
+    const sessionId = await sessionAtVeryLastSet(db, 'final-rest-skipped-seed');
+
+    const navigation = mockNavigation();
+    render(
+      <StoreProvider>
+        <WorkoutScreen
+          navigation={navigation as never}
+          route={{ key: 'Workout', name: 'Workout', params: { sessionId } } as never}
+        />
+      </StoreProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('complete-set')).toBeTruthy(), WAIT_OPTS);
+    await fireEvent.press(screen.getByTestId('complete-set'));
+    return { navigation, sessionId };
+  }
+
+  it('with the prompt off, the inline question holds it until NEXT', async () => {
+    const { navigation, sessionId } = await completeVeryLastSet(false);
+    await waitFor(() => expect(screen.getByTestId('rest-next')).toBeTruthy(), WAIT_OPTS);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(navigation.replace).not.toHaveBeenCalled();
+
+    await fireEvent.press(screen.getByTestId('rest-next'));
+    await waitFor(
+      () => expect(navigation.replace).toHaveBeenCalledWith('Summary', { sessionId }),
+      WAIT_OPTS,
+    );
+  }, 20000);
+
+  it('waits for the feedback prompt, then goes to Summary', async () => {
+    const { navigation, sessionId } = await completeVeryLastSet(true);
+    await waitFor(() => expect(screen.getByTestId('feedback-prompt')).toBeTruthy(), WAIT_OPTS);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(navigation.replace).not.toHaveBeenCalled();
+
+    await fireEvent.press(screen.getByTestId('feedback-prompt-skip'));
     await waitFor(
       () => expect(navigation.replace).toHaveBeenCalledWith('Summary', { sessionId }),
       WAIT_OPTS,

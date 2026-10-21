@@ -2386,13 +2386,16 @@ function RestPhase({
 
   // The rest ends itself: at zero the next set starts, as if NEXT had been tapped. It waits while
   // the feedback modal is open and goes the moment that is answered or skipped. The last rest has
-  // no next set (`nextSetText` is null), so it still waits for NEXT rather than ending the workout
-  // on its own. Once only, so a re-render at zero cannot advance twice.
+  // no next set (`nextSetText` is null) and so nothing to wait for: it is skipped, straight to
+  // Summary, as soon as no feedback question is holding it. Once only, so a re-render at zero cannot
+  // advance twice.
   const autoAdvancedRef = useRef(false);
   useEffect(() => {
-    if (remainingMs > 0 || holdAutoAdvance || nextSetText == null || autoAdvancedRef.current) {
-      return;
-    }
+    const isLastRest = nextSetText == null;
+    // The inline question has no dismissal to wait for, so on the last rest it is what keeps the
+    // page up: NEXT is how that answer is finished with.
+    const held = holdAutoAdvance || (isLastRest && feedbackQuestion != null);
+    if ((remainingMs > 0 && !isLastRest) || held || autoAdvancedRef.current) return;
     autoAdvancedRef.current = true;
     handleNext();
   });
