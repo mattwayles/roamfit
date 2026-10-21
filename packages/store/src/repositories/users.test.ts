@@ -153,3 +153,93 @@ describe('themePreference (migration 0022)', () => {
     }
   });
 });
+
+describe('feedbackPromptEnabled (migration 0025)', () => {
+  it('defaults to on and round-trips through updateUser', () => {
+    const { db, close } = createTestDb();
+    try {
+      expect(ensureUser(db, utcInstantFor('2026-08-01')).feedbackPromptEnabled).toBe(true);
+      updateUser(db, { feedbackPromptEnabled: false }, utcInstantFor('2026-08-02'));
+      expect(getUser(db)!.feedbackPromptEnabled).toBe(false);
+      updateUser(db, { units: 'kg' }, utcInstantFor('2026-08-03'));
+      expect(getUser(db)!.feedbackPromptEnabled).toBe(false);
+    } finally {
+      close();
+    }
+  });
+});
+
+describe('anchorsAvailable for a new user (track 37b)', () => {
+  it('starts empty, so nothing needing a fixed point, bar or bench is programmed until chosen', () => {
+    const { db, close } = createTestDb();
+    try {
+      expect(ensureUser(db, utcInstantFor('2026-10-18')).anchorsAvailable).toEqual([]);
+      updateUser(db, { anchorsAvailable: ['anchor-mid'] }, utcInstantFor('2026-10-18'));
+      expect(getUser(db)!.anchorsAvailable).toEqual(['anchor-mid']);
+    } finally {
+      close();
+    }
+  });
+});
+
+describe('onboarding state (migration 0032)', () => {
+  it('begins with the disclaimer, survives a relaunch in progress, and finishes', () => {
+    const { db, close } = createTestDb();
+    try {
+      const fresh = ensureUser(db, utcInstantFor('2026-10-18'));
+      expect(fresh.hasAcknowledgedDisclaimer).toBe(false);
+      expect(fresh.onboardingInProgress).toBe(false);
+      beginOnboarding(db, utcInstantFor('2026-10-18'));
+      expect(getUser(db)).toMatchObject({
+        hasAcknowledgedDisclaimer: true,
+        onboardingInProgress: true,
+      });
+      finishOnboarding(db, utcInstantFor('2026-10-18'));
+      expect(getUser(db)!.onboardingInProgress).toBe(false);
+    } finally {
+      close();
+    }
+  });
+
+  it('acknowledging the disclaimer alone (an install from before onboarding) is not in progress', () => {
+    const { db, close } = createTestDb();
+    try {
+      acknowledgeDisclaimer(db, utcInstantFor('2026-10-18'));
+      expect(getUser(db)!.onboardingInProgress).toBe(false);
+    } finally {
+      close();
+    }
+  });
+});
+
+describe('bandsSetUp (migration 0035)', () => {
+  it('is false for a new user and round-trips through updateUser', () => {
+    const { db, close } = createTestDb();
+    try {
+      expect(ensureUser(db, utcInstantFor('2026-10-18')).bandsSetUp).toBe(false);
+      updateUser(db, { bandsSetUp: true }, utcInstantFor('2026-10-18'));
+      expect(getUser(db)!.bandsSetUp).toBe(true);
+      updateUser(db, { cueSoundsEnabled: false }, utcInstantFor('2026-10-18'));
+      expect(getUser(db)!.bandsSetUp).toBe(true);
+    } finally {
+      close();
+    }
+  });
+
+  it('counts every user row that existed before the migration as set up', () => {
+    const raw = new Database(':memory:');
+    try {
+      const index = MIGRATIONS.findIndex((m) => m.id === '0035_bands_set_up.sql');
+      for (const m of MIGRATIONS.slice(0, index)) raw.exec(m.sql);
+      raw
+        .prepare(
+          "INSERT INTO users (id, anchors_available, created_at, updated_at) VALUES ('local', '[]', 'x', 'x')",
+        )
+        .run();
+      raw.exec(MIGRATIONS[index].sql);
+      expect(raw.prepare('SELECT bands_set_up FROM users').get()).toEqual({ bands_set_up: 1 });
+    } finally {
+      raw.close();
+    }
+  });
+});
