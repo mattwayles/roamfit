@@ -451,11 +451,12 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       today: clock.today,
       history: sessionsRepo.getHistoryForGeneration(db),
       exerciseStates: exerciseStateRepo.getAllExerciseStates(db),
+      workoutExerciseIds: session ? activeEntries(session).map((e) => e.exerciseId) : undefined,
       // The sheet's "different anchor point" filter went with it. Auto-swap already avoids the
       // current exercise, and narrowing the pool further without a control to un-narrow it would
       // just make "no alternative fits" more likely.
     });
-  }, [entry, exercise, db, library]);
+  }, [entry, exercise, session, db, library]);
 
   if (!session) {
     return (

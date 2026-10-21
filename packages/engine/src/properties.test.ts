@@ -7,7 +7,7 @@
  * than randomly sampled, which for a space this size is stronger coverage than random sampling
  * and stays fully deterministic without needing its own RNG.
  */
-import { exerciseLibrary, familyLibrary } from '@roamfit/data';
+import { exerciseLibrary, familyLibrary, movementKey } from '@roamfit/data';
 import type { Exercise, Focus, ProgressionFamilyId } from '@roamfit/data';
 import { generateSession } from './pipeline';
 import { createRng } from './rng';
@@ -132,6 +132,11 @@ describe('property: invariants hold across the full request sweep', () => {
               });
 
               const allEntries = [...plan.warmup, ...plan.main, ...plan.cooldown];
+
+              // One of a movement per workout: never a banded exercise and its bodyweight version
+              // (or the same exercise twice), across warm-up, main and cool-down together.
+              const movements = allEntries.map((e) => movementKey(e.exerciseId));
+              expect(new Set(movements).size).toBe(movements.length);
 
               // Never a contraindicated exercise.
               const activeTags = new Set(userState.profile.limitations.map((l) => l.tag));

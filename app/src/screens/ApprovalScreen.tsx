@@ -32,7 +32,7 @@ import {
 } from '@roamfit/engine';
 import { exerciseStateRepo, generate, sessionsRepo, usersRepo } from '@roamfit/store';
 import type { SessionRecord } from '@roamfit/store';
-import { isCardioExercise } from '@roamfit/data';
+import { isCardioExercise, movementKey } from '@roamfit/data';
 import type {
   AnchorClass,
   Exercise,
@@ -385,6 +385,9 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
       today: clock.today,
       history: sessionsRepo.getHistoryForGeneration(db),
       exerciseStates: exerciseStateRepo.getAllExerciseStates(db),
+      workoutExerciseIds: session.entries
+        .filter((e) => e.entryStatus !== 'removed_at_approval')
+        .map((e) => e.exerciseId),
       maxResults: 1,
     });
     if (!best) {
@@ -404,10 +407,11 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
   const candidatesFor = (section: Section): Exercise[] => {
     const clock = nowEngineClock();
     const profile = usersRepo.buildUserProfile(db, clock.today);
+    // By movement: a banded exercise in the plan also rules out its bodyweight version.
     const alreadyInSession = new Set(
       session.entries
         .filter((e) => e.entryStatus !== 'removed_at_approval')
-        .map((e) => e.exerciseId),
+        .map((e) => movementKey(e.exerciseId)),
     );
     const hardFiltered = applyHardFilters({
       library: library.exercises,
@@ -419,7 +423,7 @@ export default function ApprovalScreen({ navigation, route }: Props): React.JSX.
       ownsBands: (profile.bands?.owned.length ?? 1) > 0,
     });
     const roleFiltered = hardFiltered.filter(
-      (e) => e.roles.includes(SECTION_ROLE[section]) && !alreadyInSession.has(e.id),
+      (e) => e.roles.includes(SECTION_ROLE[section]) && !alreadyInSession.has(movementKey(e.id)),
     );
     return scopeMainCandidatesToFocus(roleFiltered, session.focus, section);
   };

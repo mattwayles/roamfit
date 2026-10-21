@@ -1,4 +1,4 @@
-import { exerciseLibrary, familyLibrary, isCardioExercise } from './index';
+import { exerciseLibrary, familyLibrary, isCardioExercise, movementKey } from './index';
 import type { Exercise } from './schema';
 
 describe('@roamfit/data wiring', () => {
@@ -187,5 +187,28 @@ describe('alternating flag', () => {
       expect.arrayContaining(['bw-bicycle-crunch', 'bw-scissors', 'bw-alternating-crunch']),
     );
     expect(alternating.filter((e) => e.unilateral)).toEqual([]);
+  });
+});
+
+describe('movementKey — banded and bodyweight versions of one movement', () => {
+  const groups = new Map<string, Exercise[]>();
+  for (const e of exerciseLibrary.exercises) {
+    const key = movementKey(e.id);
+    groups.set(key, [...(groups.get(key) ?? []), e]);
+  }
+  const pairs = [...groups.values()].filter((g) => g.length > 1);
+
+  it('groups the known pairs', () => {
+    expect(movementKey('banded-push-up')).toBe(movementKey('bw-push-up'));
+    expect(movementKey('bw-bicycle-crunch')).toBe(movementKey('banded-bicycle-crunch'));
+    expect(movementKey('self-anchored-crunch')).toBe(movementKey('bw-crunch'));
+    expect(movementKey('bw-plank')).not.toBe(movementKey('bw-high-plank'));
+  });
+
+  it('every group is exactly one band version and one bodyweight version', () => {
+    expect(pairs.length).toBeGreaterThan(30);
+    for (const group of pairs) {
+      expect(group.map((e) => e.equipment).sort()).toEqual(['band', 'bodyweight']);
+    }
   });
 });

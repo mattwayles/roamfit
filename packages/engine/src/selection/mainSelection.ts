@@ -23,6 +23,7 @@
  * request should still favor a medium exercise over an eligible easy one, and a hard request a
  * hard exercise over an eligible medium one — via `DIFFICULTY_PREFERENCE_BONUS` in `score()`.
  */
+import { isSameMovement } from '@roamfit/data';
 import type { Exercise, Focus, Pattern } from '@roamfit/data';
 import type { TemplateSlot } from '../template/focusTemplate';
 import { isDifficultyEligible } from '../filters/hardFilters';
@@ -93,9 +94,13 @@ function sameMuscleSet(a: readonly string[], b: readonly string[]): boolean {
  * `reverse-curl`'s different primary muscle) is unaffected — this only catches the case where
  * *everything* matches except the unilateral flag, which is specifically "the same lift, split
  * across two slots" rather than a different movement.
+ *
+ * The banded and bodyweight versions of one movement (Banded Push-Up / Push-Up) are twins too,
+ * whatever else differs: a workout holds one of them (`isSameMovement`).
  */
 function isMovementTwin(a: Exercise, b: Exercise): boolean {
   if (a.id === b.id) return false;
+  if (isSameMovement(a, b)) return true;
   if (a.pattern !== b.pattern) return false;
   if (a.equipment !== b.equipment) return false;
   if (a.unilateral === b.unilateral) return false;

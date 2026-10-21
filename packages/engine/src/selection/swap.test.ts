@@ -393,3 +393,47 @@ describe('§10.6 swap — cardio', () => {
     expect(withRope.some((a) => a.exercise.id === 'jump-rope-alt')).toBe(true);
   });
 });
+
+describe('alternativesForSlot — one version of a movement per workout', () => {
+  const push = (id: string, equipment: Exercise['equipment']) =>
+    ex({ id, pattern: 'horizontal_push', equipment, anchor: 'none', anchor_class: 'none' });
+  const library = [
+    push('banded-row-x', 'band'),
+    push('bw-row-x', 'bodyweight'),
+    push('banded-press-y', 'band'),
+    push('bw-press-y', 'bodyweight'),
+    push('plain-z', 'band'),
+  ];
+  const base = {
+    library,
+    anchorsAvailable: ['none'] as const,
+    limitations: [],
+    disabledExerciseIds: [],
+    today: '2026-08-31',
+    history: [] as SessionHistoryRecord[],
+    exerciseStates: {},
+  };
+  const ids = (req: Parameters<typeof alternativesForSlot>[0]) =>
+    alternativesForSlot(req).map((a) => a.exercise.id);
+
+  it('never offers an exercise already in the workout, or its banded/bodyweight version', () => {
+    const offered = ids({
+      ...base,
+      entry: entry({ exerciseId: 'plain-z' }),
+      workoutExerciseIds: ['plain-z', 'banded-row-x'],
+    });
+    expect(offered).not.toContain('banded-row-x');
+    expect(offered).not.toContain('bw-row-x');
+    expect(offered).toEqual(expect.arrayContaining(['banded-press-y', 'bw-press-y']));
+  });
+
+  it('still offers the other version of the exercise being replaced', () => {
+    const offered = ids({
+      ...base,
+      entry: entry({ exerciseId: 'banded-row-x' }),
+      workoutExerciseIds: ['banded-row-x'],
+    });
+    expect(offered).toContain('bw-row-x');
+    expect(offered).not.toContain('banded-row-x');
+  });
+});

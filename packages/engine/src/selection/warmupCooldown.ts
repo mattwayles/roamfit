@@ -3,6 +3,7 @@
  * full BLOCKED/PREFERRED machinery (the 9-warmup/12-cooldown pool would exhaust it). Still
  * respects REPEATEDLY-SKIPPED suppression, a per-exercise-state fact independent of pool size.
  */
+import { movementKey } from '@roamfit/data';
 import type { Exercise, Focus, Role } from '@roamfit/data';
 import type { Rng, UserState, LocalDate } from '../types';
 import { buildCandidates } from './candidates';
@@ -37,7 +38,12 @@ export function selectWarmupCooldown(input: SelectWarmupCooldownInput): Exercise
   // under a band-only equipment preference the abs cool-down pool is a single band stretch — if
   // the warm-up took it, the session ended up with no cool-down at all.)
   const rolePool = pool.filter((e) => e.roles.includes(role));
-  const available = excludeIds ? rolePool.filter((e) => !excludeIds.has(e.id)) : rolePool;
+  // By movement, not id: the banded version of a lift in the session excludes its bodyweight
+  // version too, and the other way round.
+  const excludedMovements = new Set([...(excludeIds ?? [])].map(movementKey));
+  const available = excludeIds
+    ? rolePool.filter((e) => !excludedMovements.has(movementKey(e.id)))
+    : rolePool;
   const focusPool = available.filter((e) => e.focus.includes(focus));
   // A leg day must not warm up shoulders, and an upper day must not stretch quads — falling all
   // the way back to the unfiltered role pool (as this used to) can hand a legs session an

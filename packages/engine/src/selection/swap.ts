@@ -17,7 +17,7 @@
  * or rank candidates itself.
  */
 import type { Anchor, Exercise, Pattern } from '@roamfit/data';
-import { isCardioExercise } from '@roamfit/data';
+import { isCardioExercise, movementKey } from '@roamfit/data';
 import { applyHardFilters, difficultyCapForExercise } from '../filters/hardFilters';
 import { repExerciseSec, timedExerciseSec } from '../timefit/formulas';
 import { CARDIO_INTERVAL_TABLE, DIFFICULTY_TABLE } from '../prescription/difficultyTable';
@@ -59,6 +59,10 @@ export interface SwapSlotRequest {
   /** §10.6 "different anchor" quick-filter — excludes the replaced exercise's own anchor point,
    *  or any anchor the caller names, from the alternatives offered. */
   excludeAnchor?: Anchor;
+  /** Every exercise id in the workout, the replaced one included. A replacement is never one of
+   *  these, nor the banded/bodyweight version of one — only the replaced exercise's own
+   *  other version stays on offer, since that is the one leaving. Absent = no such exclusion. */
+  workoutExerciseIds?: readonly string[];
   /** Default 5 (spec: "3-5 alternatives"). */
   maxResults?: number;
   /** Track 37i — the user's bands; absent = every single band owned, no stacking. */
@@ -195,11 +199,18 @@ export function alternativesForSlot(req: SwapSlotRequest): SwapAlternative[] {
   const pattern: Pattern = req.entry.pattern;
   const excludeAnchor = req.excludeAnchor ?? undefined;
 
+  const takenMovements = new Set(
+    (req.workoutExerciseIds ?? [])
+      .filter((id) => id !== req.entry.exerciseId)
+      .map((id) => movementKey(id)),
+  );
+
   const pool = hardFiltered.filter(
     (e) =>
       e.pattern === pattern &&
       e.roles.includes('main') &&
       e.id !== req.entry.exerciseId &&
+      !takenMovements.has(movementKey(e.id)) &&
       (!excludeAnchor ||
         e.anchor !== excludeAnchor ||
         (e.anchor_alt !== null && e.anchor_alt !== excludeAnchor)),
