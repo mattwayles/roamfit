@@ -636,7 +636,7 @@ const useStyles = makeStyles((t) =>
     header: { alignItems: 'center', justifyContent: 'center' },
     settings: { position: 'absolute', right: 0, top: 0, bottom: 0, justifyContent: 'center' },
     // The image carries glow padding; the negative margins pull the top edge and the next card in.
-    logo: { height: 88, width: 88 * LOGO_ASPECT, marginTop: -8, marginBottom: -4 },
+    logo: { height: 72, width: 72 * LOGO_ASPECT, marginTop: -8, marginBottom: -4 },
     banner: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
     bannerText: { flex: 1, gap: 2, paddingTop: 2 },
     bannerActions: {
