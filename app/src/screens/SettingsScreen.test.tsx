@@ -20,6 +20,8 @@ import { nowUtcInstant } from '../lib/localClock';
 import { daybreak, midnightTheme } from '../theme';
 import { DISCLAIMER_TEXT } from './SettingsScreen';
 import * as healthKit from '../lib/healthKit';
+import * as icloudBackup from '../lib/icloudBackup';
+import ICloudMock from '../../modules/icloud-backup/src/ICloudBackupModule';
 import { WAIT, flat, ready } from '../ui/test-utils';
 
 beforeAll(() => {
@@ -84,7 +86,7 @@ describe('appearance', () => {
 });
 
 describe('settings', () => {
-  it('lays the groups out in order: Appearance, Your body, Training, Motivation, Travel & privacy, Apple Health, Learn, disclaimer, Advanced', async () => {
+  it('lays the groups out in order: Appearance, Your body, Training, Motivation, Travel & privacy, Apple Health, iCloud backup, Learn, disclaimer, Advanced', async () => {
     await openSettings();
     const order = screen
       .getAllByTestId(/^settings-section-/)
@@ -96,6 +98,7 @@ describe('settings', () => {
       'Motivation',
       'Travel & privacy',
       'Apple Health',
+      'iCloud backup',
       'Learn',
       'Medical disclaimer',
       'Advanced',
@@ -362,5 +365,89 @@ describe('Apple Health (track 37m)', () => {
     await fireEvent.press(screen.getByTestId('toggle-healthkit-write'));
     expect(usersRepo.getUser(getDb())!.healthWriteEnabled).toBe(false);
     expect(request).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('iCloud backup', () => {
+  const mock = ICloudMock as unknown as {
+    __reset(): void;
+    __setAvailable(a: boolean): void;
+    __setStored(w: 'latest' | 'previous', b: string | null, at?: number): void;
+    __setLocalFile(p: string, b: string): void;
+  };
+
+  beforeEach(() => {
+    mock.__reset();
+    icloudBackup.__resetBackupSchedulerForTesting();
+    usersRepo.updateUser(
+      getDb(),
+      { icloudBackupEnabled: true, backupDecisionPending: false, icloudBackupLinked: false },
+      nowUtcInstant(),
+    );
+  });
+
+  it('is on by default, says "Not backed up yet", and the switch persists', async () => {
+    await openSettings();
+    expect(checked('toggle-icloud-backup')).toBe(true);
+    await waitFor(
+      () => expect(screen.getByTestId('backup-now-value')).toHaveTextContent('Not backed up yet'),
+      WAIT,
+    );
+    fireEvent.press(screen.getByTestId('toggle-icloud-backup'));
+    await waitFor(() => expect(checked('toggle-icloud-backup')).toBe(false), WAIT);
+    expect(usersRepo.getUser(getDb())!.icloudBackupEnabled).toBe(false);
+    expect(screen.queryByTestId('backup-now')).toBeNull();
+  });
+
+  it('shows the last backup time in local time', async () => {
+    mock.__setStored('latest', 'x', new Date(2026, 9, 12, 18, 30).getTime());
+    await openSettings();
+    await waitFor(
+      () =>
+        expect(screen.getByTestId('backup-now-value')).toHaveTextContent(
+          'Last backed up: Oct 12 at 6:30 PM',
+        ),
+      WAIT,
+    );
+  });
+
+  it('"Back up now" runs a manual backup through to the status line', async () => {
+    const run = jest.spyOn(icloudBackup, 'runBackup').mockImplementation(async () => {
+      mock.__setStored('latest', 'x', Date.now());
+      return { kind: 'uploaded', at: Date.now() };
+    });
+    await openSettings();
+    fireEvent.press(screen.getByTestId('backup-now'));
+    await waitFor(
+      () => expect(run).toHaveBeenCalledWith(expect.anything(), { reason: 'manual' }),
+      WAIT,
+    );
+    await waitFor(
+      () =>
+        expect(screen.getByTestId('backup-now-value')).toHaveTextContent(
+          /^Last backed up: Today at/,
+        ),
+      WAIT,
+    );
+  });
+
+  it('is calm when iCloud is unavailable', async () => {
+    mock.__setAvailable(false);
+    await openSettings();
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText(
+            "iCloud isn't available on this phone right now. Your data is safe here.",
+          ),
+        ).toBeTruthy(),
+      WAIT,
+    );
+  });
+
+  it('points to Advanced when a backup from another phone is waiting', async () => {
+    usersRepo.updateUser(getDb(), { backupDecisionPending: true }, nowUtcInstant());
+    await openSettings();
+    expect(screen.getByText(/^A backup from another phone was found\./)).toBeTruthy();
   });
 });

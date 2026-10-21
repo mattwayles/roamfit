@@ -1,6 +1,6 @@
 /**
  * §13.3/§13.5 Settings — a grouped, iOS-style list on `bg` (DESIGN.md §5.10), most-changed first:
- * Appearance, Training, Motivation, Travel & privacy, Apple Health, the Medical disclaimer card, and the rare
+ * Appearance, Training, Motivation, Travel & privacy, Apple Health, iCloud backup, the Medical disclaimer card, and the rare
  * stuff (diagnostics, reset) tucked behind an Advanced disclosure. It is the permanent home for:
  *
  *  - §13.3's medical disclaimer, permanently available (not just the first-launch prompt).
@@ -30,6 +30,8 @@ import { instrumentationRepo, progressionStateRepo, usersRepo } from '@roamfit/s
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
 import { requestHealthKitWritePermission } from '../lib/healthKit';
+import { formatBackupTime, getBackupStatus, runBackup } from '../lib/icloudBackup';
+import type { BackupStatus } from '../lib/icloudBackup';
 import {
   DEFAULT_QUIET_HOURS_END,
   DEFAULT_QUIET_HOURS_START,
@@ -119,11 +121,53 @@ export default function SettingsScreen(): React.JSX.Element {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
 
+  const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
+  const [backingUp, setBackingUp] = useState(false);
+  const [backupNote, setBackupNote] = useState<string | null>(null);
+
   const refresh = useCallback(() => {
     setUser(usersRepo.getUser(db) ?? usersRepo.ensureUser(db, nowUtcInstant()));
   }, [db]);
 
   useFocusEffect(refresh);
+
+  const refreshBackupStatus = useCallback(async () => {
+    setBackupStatus(await getBackupStatus());
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      void getBackupStatus().then((status) => {
+        if (!cancelled) setBackupStatus(status);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
+
+  const toggleBackup = useCallback(
+    (value: boolean) => {
+      usersRepo.updateUser(db, { icloudBackupEnabled: value }, nowUtcInstant());
+      setBackupNote(null);
+      refresh();
+    },
+    [db, refresh],
+  );
+
+  const backUpNow = useCallback(async () => {
+    if (backingUp) return;
+    setBackingUp(true);
+    setBackupNote(null);
+    const outcome = await runBackup(db, { reason: 'manual' });
+    if (outcome.kind === 'failed') {
+      setBackupNote("Couldn't back up just now. Your data is safe here; try again in a moment.");
+    }
+    refresh();
+    await refreshBackupStatus();
+    setBackingUp(false);
+  }, [backingUp, db, refresh, refreshBackupStatus]);
 
   const toggleHealthWrite = useCallback(
     (value: boolean) => {
@@ -261,6 +305,18 @@ export default function SettingsScreen(): React.JSX.Element {
       `Explicit feedback captured: ${Math.round(explicitFeedback.rate * 100)}% of entries`,
     ];
   }, [snapshot]);
+
+  const backupStatusLine = backingUp
+    ? 'Backing up…'
+    : (backupNote ??
+      (backupStatus?.lastBackedUpAt != null
+        ? `Last backed up: ${formatBackupTime(backupStatus.lastBackedUpAt)}`
+        : 'Not backed up yet'));
+  const backupCaption = user.backupDecisionPending
+    ? "A backup from another phone was found. Restore or keep this phone's data from Settings → Advanced."
+    : backupStatus && !backupStatus.available
+      ? "iCloud isn't available on this phone right now. Your data is safe here."
+      : 'Your workouts and progress are saved to your private iCloud, so a new phone can pick up where this one left off.';
 
   return (
     <Screen scroll testID="settings-screen" contentStyle={styles.content}>
@@ -498,6 +554,30 @@ export default function SettingsScreen(): React.JSX.Element {
       </Enter>
 
       <Enter index={7}>
+        <Group title="iCloud backup" caption={backupCaption}>
+          <SwitchRow
+            testID="toggle-icloud-backup"
+            icon="cloud"
+            tone="summit"
+            label="Back up to iCloud"
+            value={user.icloudBackupEnabled}
+            onValueChange={toggleBackup}
+          />
+          {user.icloudBackupEnabled ? (
+            <NavRow
+              testID="backup-now"
+              icon="refresh"
+              tone="summit"
+              label="Back up now"
+              value={backupStatusLine}
+              hint="Saves a backup to iCloud"
+              onPress={() => void backUpNow()}
+            />
+          ) : null}
+        </Group>
+      </Enter>
+
+      <Enter index={8}>
         <Group title="Learn">
           <NavRow
             testID="settings-anchor-safety"
@@ -518,7 +598,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </Group>
       </Enter>
 
-      <Enter index={8}>
+      <Enter index={9}>
         <Card padding="md" style={styles.disclaimer} testID="settings-section-Medical disclaimer">
           <IconBadge icon="shield" tone="gold" size={40} />
           <View style={styles.disclaimerBody}>
@@ -532,7 +612,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </Card>
       </Enter>
 
-      <Enter index={9}>
+      <Enter index={10}>
         <Group title="Advanced">
           <Pressable
             testID="settings-advanced-toggle"

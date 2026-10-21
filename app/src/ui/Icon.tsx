@@ -81,6 +81,7 @@ export const iconMap = {
   up: 'arrow-up',
   down: 'arrow-down',
   fitness: 'fitness',
+  cloud: 'cloud-upload',
 } as const satisfies Record<string, Glyph>;
 
 export type IconName = keyof typeof iconMap;
