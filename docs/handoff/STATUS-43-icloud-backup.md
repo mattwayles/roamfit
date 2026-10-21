@@ -17,14 +17,15 @@ Last updated: 2026-10-20
   `keepThisPhonesData`, `downloadAndRestore`, `formatBackupTime`); triggers in SummaryScreen
   `handleFinish` and `useBackupOnBackground` (App.tsx `ThemedShell`) — 8b1594c.
 - [x] 43c Settings "iCloud backup" group (after Apple Health) — ca42f59.
+- [x] 43d restore UI: `StoreProvider.replaceDb` remount, `useICloudRestore`, welcome-step offer,
+  `KeepPhoneSheet`, Settings → Advanced restore + keep-this-phone row, Today welcome-back banner —
+  8d3df68.
+- [x] 43e device-pass item in `docs/BACKLOG.md`.
 ### In progress
-- Agents run sequentially in the main tree (worktrees lack node_modules; concurrent `npm run check`
-  is known to hang).
-  - 43d: restore UI — welcome-screen offer on a fresh install (sets/clears `backup_decision_pending`),
-  Settings → Advanced "Restore from iCloud backup" with confirm, StoreProvider remount with the new
-  `Db` after restore, motivation notifications rescheduled.
-- 43e: BACKLOG device-pass item; user enables iCloud capability + container on the Apple Developer
-  portal and builds to device.
+- (none — code complete; Jest-only)
+### Next
+- User: enable iCloud capability + container on the Apple Developer portal, prebuild, build to
+  device; then the BACKLOG device pass. Expect to fix Swift compile errors on first build.
 ### Decisions / gotchas
 - User decisions: backup ON by default; restore offered both on fresh install and from Settings
   (with confirm); backup file hidden from the Files app (no `NSUbiquitousContainers` entry).
