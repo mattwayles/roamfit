@@ -386,9 +386,6 @@ export default function ExerciseDetailScreen({ route, navigation }: Props): Reac
                 wide
               />
             </View>
-            <Txt testID="detail-field-Library id" variant="caption" color="text3">
-              Library id · {exercise.id}
-            </Txt>
           </Card>
         </Enter>
 

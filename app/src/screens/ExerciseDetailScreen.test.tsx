@@ -164,7 +164,6 @@ describe('the exercise detail page', () => {
       'Sections',
       'Progression',
       'Contraindications',
-      'Library id',
     ]) {
       expect(screen.getByTestId(`detail-field-${field}`)).toBeTruthy();
     }
@@ -308,14 +307,12 @@ describe('the exercise detail page', () => {
     );
   });
 
-  it('shows the details as a spec grid with the library id last, and gains as chips', async () => {
+  it('shows the details as a spec grid, and gains as chips', async () => {
     const exercise = exerciseLibrary.exercises.find((e) => e.id === improvedExerciseId)!;
     await openDetail(exercise.name);
 
     expect(screen.getByTestId('detail-field-Equipment')).toBeTruthy();
-    expect(screen.getByTestId('detail-field-Library id')).toHaveTextContent(
-      new RegExp(exercise.id),
-    );
+    expect(screen.queryByTestId('detail-field-Library id')).toBeNull();
 
     // An improved dimension is a teal chip with first -> best; the rest are neutral.
     const best = screen.getByTestId('detail-gain-Best set');
