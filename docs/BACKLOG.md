@@ -190,3 +190,7 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   them the resolver walks down to the nearest rung it can serve, so a user with no bands and no
   fixed points climbs squat, lunge and core fully, horizontal pull to l2, vertical pull to l3, and
   stalls at the first rung needing a fixed point on the others.
+
+- **Settings polish — owed on device.** Set the real `FEEDBACK_EMAIL` (`app/src/lib/feedback.ts`),
+  rebuild the dev client for `@react-native-community/datetimepicker`, and check the compact time
+  picker and the Mail hand-off on a phone.

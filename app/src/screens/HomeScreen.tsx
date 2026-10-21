@@ -91,9 +91,6 @@ export default function HomeScreen({ navigation }: Props): React.JSX.Element {
         scheduleMotivationNotifications({
           motivationEnabled: user.notificationPrefs.motivationEnabled ?? true,
           motivationTimes: user.notificationPrefs.motivationTimes ?? ['18:00'],
-          quietHoursEnabled: user.notificationPrefs.quietHoursEnabled ?? true,
-          quietHoursStart: user.notificationPrefs.quietHoursStart,
-          quietHoursEnd: user.notificationPrefs.quietHoursEnd,
           motivationContext: { hero: nextUnlockHero(board) },
           todayLocalDate,
           skipToday: alreadyCompletedToday || isTravelDayToday,

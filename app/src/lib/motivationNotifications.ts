@@ -3,8 +3,7 @@
  * now driven by user feedback, not the deleted spec). Requirements, verbatim from the request:
  * a large pool of varied messages randomly picked each day (not the same nudge every time); skip
  * the day entirely once a workout is already done or the day is marked "in transit"; a Settings
- * on/off switch; a user-chosen count of notifications per day, each at a user-chosen time; and
- * every one of those times still respects the existing quiet-hours setting.
+ * on/off switch; and a user-chosen count of notifications per day, each at a user-chosen time.
  *
  * This supersedes the earlier "seven fixed weekday triggers, one adaptive nudge + a Sunday
  * summary" design (STATUS-5-motivation.md) — that scheme had no user-facing count/time controls
@@ -27,9 +26,6 @@ import { buildMotivationPool, pickDailyMessages } from './motivationMessages';
 import type { MotivationContext } from './motivationMessages';
 
 const IDENTIFIER_PREFIX = 'motivation-slot-';
-/** Track 37f — the default quiet window, 10pm-7am; the user can move either end in Settings. */
-export const DEFAULT_QUIET_HOURS_START = 22;
-export const DEFAULT_QUIET_HOURS_END = 7;
 /** How many days ahead to keep scheduled — see the module doc's "honest limitation." */
 const SCHEDULE_WINDOW_DAYS = 7;
 /** Hard ceiling on notifications/day, enforced in Settings too — keeps the scheduled total well
@@ -49,29 +45,6 @@ export async function ensureNotificationPermission(): Promise<void> {
   }
 }
 
-/** A "HH:MM" local time, clamped out of the quiet window (default 10pm-7am) when it's enabled.
- *  Moved to the window's own end (a gentle morning default), never silently dropped — matches the
- *  original single-nudge behavior's rule, just applied per user-chosen time instead of once. A
- *  window whose start equals its end is empty. */
-export function clampToQuietHours(
-  time: string,
-  enabled = true,
-  startHour = DEFAULT_QUIET_HOURS_START,
-  endHour = DEFAULT_QUIET_HOURS_END,
-): string {
-  const [hour, minute] = parseTime(time);
-  if (!enabled) return time;
-  const inQuiet =
-    startHour > endHour ? hour >= startHour || hour < endHour : hour >= startHour && hour < endHour;
-  return inQuiet ? formatTime(endHour, 0) : formatTime(hour, minute);
-}
-
-/** "10pm–7am" for a quiet window. */
-export function quietHoursLabel(startHour: number, endHour: number): string {
-  const h = (n: number) => `${n % 12 === 0 ? 12 : n % 12}${n < 12 ? 'am' : 'pm'}`;
-  return `${h(startHour)}–${h(endHour)}`;
-}
-
 function parseTime(time: string): [number, number] {
   const [h, m] = time.split(':').map((n) => Number(n));
   return [Number.isFinite(h) ? h : 18, Number.isFinite(m) ? m : 0];
@@ -81,15 +54,17 @@ function formatTime(hour: number, minute: number): string {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
-/** Settings' time-of-day stepper — a plain +/- N minutes on a "HH:MM" string, wrapping around
- *  midnight. No new date-picker dependency (none is installed, see backlog's native-wheel-picker
- *  item) — a stepper is enough for a handful of daily times and needs no native rebuild. */
-export function shiftTime(time: string, deltaMinutes: number): string {
+/** A "HH:MM" string as a `Date` today at that local time — what the native time picker takes. */
+export function timeToDate(time: string): Date {
   const [h, m] = parseTime(time);
-  const minutesPerDay = 24 * 60;
-  let total = (h * 60 + m + deltaMinutes) % minutesPerDay;
-  if (total < 0) total += minutesPerDay;
-  return formatTime(Math.floor(total / 60), total % 60);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+/** The picker's `Date` back to a "HH:MM" string in the device's local time. */
+export function dateToTime(date: Date): string {
+  return formatTime(date.getHours(), date.getMinutes());
 }
 
 export interface ScheduleMotivationNotificationsInput {
@@ -97,10 +72,6 @@ export interface ScheduleMotivationNotificationsInput {
   motivationEnabled: boolean;
   /** "HH:MM" 24-hour local times — one notification/day per entry. Empty = none scheduled. */
   motivationTimes: string[];
-  quietHoursEnabled: boolean;
-  /** Track 37f — the quiet window's hours (0-23); default 22 and 7. */
-  quietHoursStart?: number;
-  quietHoursEnd?: number;
   motivationContext: MotivationContext;
   /** Today's local date (`YYYY-MM-DD`), for both the schedule window's start and the daily rng
    *  seed — same date format used everywhere else in the store (invariant 6). */
@@ -148,13 +119,7 @@ export async function scheduleMotivationNotifications(
     const messages = pickDailyMessages(pool, times.length, rng);
 
     for (let slot = 0; slot < times.length; slot += 1) {
-      const clamped = clampToQuietHours(
-        times[slot],
-        input.quietHoursEnabled,
-        input.quietHoursStart,
-        input.quietHoursEnd,
-      );
-      const [hour, minute] = parseTime(clamped);
+      const [hour, minute] = parseTime(times[slot]);
       const fireAt = dateForLocalTime(input.todayLocalDate, dayOffset, hour, minute);
       if (fireAt.getTime() <= now.getTime()) continue; // already passed — today's slot only
 

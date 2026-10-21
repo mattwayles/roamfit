@@ -2,13 +2,15 @@
  * Settings, reached the way a user reaches it: the gear on Today, through the real navigator and
  * the real on-device store. What matters here is that every boolean is a design-system `Switch`
  * row whose press really patches the user record, that the groups sit in the documented order
- * (DESIGN.md §5.10), that the motivation times keep their -/+/remove/add behavior, and that the
+ * (DESIGN.md §5.10), that the motivation times are set with the native time picker and keep their
+ * remove/add behavior, and that the
  * reset confirm is a `Sheet` whose safe choice does nothing.
  *
  * The `toggle-*` id is on the row itself (tap anywhere); its `accessibilityState.checked` is the
  * value. There is no native `Switch` to fire `valueChange` at any more.
  */
 import React from 'react';
+import { Linking } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { progressionStateRepo, usersRepo } from '@roamfit/store';
@@ -17,6 +19,7 @@ import { StoreProvider } from '../state/StoreContext';
 import { ThemeProvider } from '../state/ThemeProvider';
 import { getDb } from '../db';
 import { nowUtcInstant } from '../lib/localClock';
+import { dateToTime, timeToDate } from '../lib/motivationNotifications';
 import { daybreak, midnightTheme } from '../theme';
 import { DISCLAIMER_TEXT } from './SettingsScreen';
 import * as healthKit from '../lib/healthKit';
@@ -85,7 +88,7 @@ describe('appearance', () => {
 });
 
 describe('settings', () => {
-  it('lays the groups out in order: Appearance, Your body, Training, Motivation, Travel & privacy, Apple Health, iCloud backup, Learn, disclaimer, Advanced', async () => {
+  it('lays the groups out in order: Appearance, Your body, Training, Motivation, Travel & privacy, Apple Health, iCloud backup, Learn, Feedback, disclaimer, Advanced', async () => {
     await openSettings();
     const order = screen
       .getAllByTestId(/^settings-section-/)
@@ -99,6 +102,7 @@ describe('settings', () => {
       'Apple Health',
       'iCloud backup',
       'Learn',
+      'Feedback',
       'Medical disclaimer',
       'Advanced',
     ]);
@@ -111,10 +115,6 @@ describe('settings', () => {
     ['toggle-feedback-prompt', (u: usersRepo.UserRecord) => u.feedbackPromptEnabled],
     ['toggle-passport', (u: usersRepo.UserRecord) => u.passportEnabled],
     ['toggle-healthkit-write', (u: usersRepo.UserRecord) => u.healthWriteEnabled],
-    [
-      'toggle-quiet-hours',
-      (u: usersRepo.UserRecord) => u.notificationPrefs.quietHoursEnabled ?? true,
-    ],
     [
       'toggle-motivation',
       (u: usersRepo.UserRecord) => u.notificationPrefs.motivationEnabled ?? true,
@@ -136,25 +136,28 @@ describe('settings', () => {
     expect(checked(id)).toBe(before);
   });
 
-  it('steps a motivation time by 15 minutes, adds up to the cap and removes down to one', async () => {
+  it('sets a motivation time with the time picker, adds up to the cap and removes down to one', async () => {
     usersRepo.updateUser(
       getDb(),
       { notificationPrefs: { motivationEnabled: true, motivationTimes: ['18:00'] } },
       nowUtcInstant(),
     );
     await openSettings();
-    const value = (i: number) => screen.getByTestId(`motivation-time-${i}-value`);
+    const picker = (i: number) => screen.getByTestId(`motivation-time-${i}-picker`);
 
-    expect(value(0)).toHaveTextContent('18:00');
+    expect(picker(0).props.mode).toBe('time');
+    expect(dateToTime(new Date(picker(0).props.date))).toBe('18:00');
     // The only time can't be removed: the master toggle is what turns the feature off.
     expect(screen.queryByTestId('motivation-time-0-remove')).toBeNull();
 
-    await fireEvent.press(screen.getByTestId('motivation-time-0-plus'));
-    await waitFor(() => expect(value(0)).toHaveTextContent('18:15'));
-    await fireEvent.press(screen.getByTestId('motivation-time-0-minus'));
-    await fireEvent.press(screen.getByTestId('motivation-time-0-minus'));
-    await waitFor(() => expect(value(0)).toHaveTextContent('17:45'));
-    expect(usersRepo.getUser(getDb())!.notificationPrefs.motivationTimes).toEqual(['17:45']);
+    const picked = timeToDate('07:30');
+    await fireEvent(picker(0), 'onChange', { nativeEvent: { timestamp: picked.getTime() } });
+    await waitFor(() => expect(dateToTime(new Date(picker(0).props.date))).toBe('07:30'));
+    expect(usersRepo.getUser(getDb())!.notificationPrefs.motivationTimes).toEqual(['07:30']);
+
+    // A dismissed picker changes nothing.
+    await fireEvent(picker(0), 'onPickerDismiss');
+    expect(usersRepo.getUser(getDb())!.notificationPrefs.motivationTimes).toEqual(['07:30']);
 
     await fireEvent.press(screen.getByTestId('motivation-time-add'));
     await waitFor(() => expect(screen.getByTestId('motivation-time-row-1')).toBeTruthy());
@@ -169,6 +172,40 @@ describe('settings', () => {
     await waitFor(() => expect(screen.queryByTestId('motivation-time-row-4')).toBeNull());
     expect(usersRepo.getUser(getDb())!.notificationPrefs.motivationTimes).toHaveLength(4);
     expect(screen.getByTestId('motivation-time-add')).toBeTruthy();
+  });
+
+  it('puts the one-line explanations directly under the Motivation and iCloud backup labels', async () => {
+    await openSettings();
+    expect(screen.getByText('Push notifications to help get you going')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Your workouts and progress are saved to iCloud when connected to the internet',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByTestId('toggle-quiet-hours')).toBeNull();
+    expect(screen.queryByTestId('quiet-hours-window')).toBeNull();
+  });
+
+  it('labels the Passport switch plainly, with no explanation under it', async () => {
+    await openSettings();
+    expect(screen.getByLabelText('Passport')).toBeTruthy();
+    expect(screen.queryByText(/place on completion/)).toBeNull();
+    expect(screen.queryByText(/opt-in, coarse/)).toBeNull();
+  });
+
+  it('shows the installed version at the bottom and opens a feedback email', async () => {
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    await openSettings();
+    expect(screen.getByTestId('app-version')).toHaveTextContent(/^Version \S/);
+    await fireEvent.press(screen.getByTestId('settings-feedback'));
+    await waitFor(() => expect(open).toHaveBeenCalledWith(expect.stringMatching(/^mailto:/)));
+
+    open.mockRejectedValueOnce(new Error('no mail app'));
+    await fireEvent.press(screen.getByTestId('settings-feedback'));
+    await waitFor(() =>
+      expect(screen.getByTestId('settings-feedback-value')).toHaveTextContent(/Set up Mail/),
+    );
+    open.mockRestore();
   });
 
   it('hides the motivation times while daily motivation is off', async () => {
@@ -285,7 +322,6 @@ describe('training preferences (track 37f)', () => {
       getDb(),
       {
         trainingPreferences: { goal: 'general', pace: 'steady' },
-        notificationPrefs: { quietHoursEnabled: true, quietHoursStart: 22, quietHoursEnd: 7 },
       },
       nowUtcInstant(),
     );
@@ -306,18 +342,6 @@ describe('training preferences (track 37f)', () => {
     expect(screen.getByTestId('pref-goal-strength').props.accessibilityRole).toBe('radio');
     const user = usersRepo.getUser(getDb())!;
     expect(user.trainingPreferences).toMatchObject({ goal: 'strength', pace: 'patient' });
-  });
-
-  it('the quiet window moves by the hour and the label follows', async () => {
-    await openSettings();
-    expect(screen.getByText('Quiet hours (10pm–7am)')).toBeTruthy();
-    await fireEvent.press(screen.getByTestId('quiet-start-minus'));
-    await fireEvent.press(screen.getByTestId('quiet-end-plus'));
-    expect(screen.getByText('Quiet hours (9pm–8am)')).toBeTruthy();
-    expect(usersRepo.getUser(getDb())!.notificationPrefs).toMatchObject({
-      quietHoursStart: 21,
-      quietHoursEnd: 8,
-    });
   });
 });
 

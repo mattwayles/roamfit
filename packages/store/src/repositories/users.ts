@@ -30,18 +30,11 @@ const USER_ID = 'local';
 /** Shape of the `notification_prefs` JSON column. Every field optional/absent-means-default so an
  *  existing row (or a fresh `{}`) is always valid — see `DEFAULT_NOTIFICATION_PREFS`. */
 export interface NotificationPrefs {
-  /** §9.8/§10.8 — issue #20. Off disables the 10pm-7am clamp entirely (notifications may land at
-   *  any observed-training hour); on (the default) is the original always-on behavior. */
-  quietHoursEnabled?: boolean;
-  /** Track 37f — the quiet window's start and end hours (0-23). Absent = 22 and 7. */
-  quietHoursStart?: number;
-  quietHoursEnd?: number;
   /** Master on/off for the daily motivational-pool notification (a request-driven feature, not
    *  from the deleted spec). Off cancels every scheduled one and stops scheduling new ones. */
   motivationEnabled?: boolean;
   /** "HH:MM" 24-hour local times, one per notification the user wants that day. Count is just
-   *  this array's length — there is no separate count field. User-editable in Settings; always
-   *  clamped through `quietHoursEnabled` at schedule time, never stored pre-clamped. */
+   *  this array's length — there is no separate count field. User-editable in Settings. */
   motivationTimes?: string[];
 }
 
@@ -74,11 +67,8 @@ export const DEFAULT_BAND_TENSIONS: Record<SingleBandId, BandTension> = {
 };
 
 export const DEFAULT_NOTIFICATION_PREFS: Required<NotificationPrefs> = {
-  quietHoursEnabled: true,
   motivationEnabled: true,
   motivationTimes: ['18:00'],
-  quietHoursStart: 22,
-  quietHoursEnd: 7,
 };
 
 /** Which look the app wears: follow iOS, Daybreak (light), or Midnight (dark). */

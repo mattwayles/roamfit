@@ -18,15 +18,17 @@ const TILE = 32;
 const ROW_PAD = space.lg;
 const DIVIDER_INSET = ROW_PAD + TILE + space.md;
 
-/** An iOS-style group: eyebrow above, a `surface` card of rows (hairlines between them), and an
- *  optional caption beneath. `testID` is `settings-section-${title}`. */
+/** An iOS-style group: eyebrow above (with an optional one-line `subtitle` directly under it), a
+ *  `surface` card of rows (hairlines between them), and an optional caption beneath. `testID` is `settings-section-${title}`. */
 export function Group({
   title,
+  subtitle,
   caption,
   question = false,
   children,
 }: {
   title: string;
+  subtitle?: string;
   caption?: string;
   /** A full-sentence title (a question) reads as a sentence, not an uppercase eyebrow. */
   question?: boolean;
@@ -44,6 +46,11 @@ export function Group({
       >
         {title}
       </Txt>
+      {subtitle ? (
+        <Txt variant="caption" color="text3" style={styles.groupSubtitle}>
+          {subtitle}
+        </Txt>
+      ) : null}
       <Card padding="none" style={styles.groupCard}>
         {rows.map((row, i) => (
           <React.Fragment key={i}>
@@ -223,6 +230,7 @@ const useStyles = makeStyles((tk) =>
     group: { gap: space.sm },
     groupTitle: { marginLeft: space.xs },
     groupCard: { overflow: 'hidden' },
+    groupSubtitle: { marginHorizontal: space.xs, marginTop: -space.xs },
     groupCaption: { marginHorizontal: space.xs },
     divider: {
       height: StyleSheet.hairlineWidth,

@@ -7,8 +7,8 @@
  *  - §13.5 privacy copy: location opt-in (city-level, one lookup at completion, strings only),
  *    health data (written, never read, never leaves the device), and freeform text sent for
  *    distillation being user content.
- *  - HealthKit write opt-in (issue #37) and notification quiet-hours (issue #20) — both were
- *    already backed by a real store column/patch with no UI to reach them.
+ *  - HealthKit write opt-in (issue #37), which was already backed by a real store column/patch
+ *    with no UI to reach it.
  *  - A read-only §15 instrumentation diagnostics panel — purely local, purely a read, no network.
  *
  * No business logic lives here — every toggle is a straight `usersRepo.updateUser` patch, and the
@@ -21,6 +21,7 @@
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
@@ -39,13 +40,9 @@ import {
 import { KeepPhoneSheet } from '../components/KeepPhoneSheet';
 import { useICloudRestore } from '../state/useICloudRestore';
 import type { BackupStatus } from '../lib/icloudBackup';
-import {
-  DEFAULT_QUIET_HOURS_END,
-  DEFAULT_QUIET_HOURS_START,
-  MAX_DAILY_MOTIVATION_TIMES,
-  quietHoursLabel,
-  shiftTime,
-} from '../lib/motivationNotifications';
+import { MAX_DAILY_MOTIVATION_TIMES, dateToTime, timeToDate } from '../lib/motivationNotifications';
+import { appVersionLabel } from '../lib/appInfo';
+import { openFeedbackEmail } from '../lib/feedback';
 import { makeStyles, radius, space } from '../theme';
 import { useThemePreference } from '../state/ThemeProvider';
 import type { ThemePreference } from '@roamfit/store';
@@ -187,6 +184,12 @@ export default function SettingsScreen(): React.JSX.Element {
     [db, refresh],
   );
 
+  const [feedbackNote, setFeedbackNote] = useState<string | null>(null);
+  const sendFeedback = useCallback(async () => {
+    const opened = await openFeedbackEmail();
+    setFeedbackNote(opened ? null : 'Set up Mail on this phone, then try again');
+  }, []);
+
   const toggleCueSounds = useCallback(
     (value: boolean) => {
       usersRepo.updateUser(db, { cueSoundsEnabled: value }, nowUtcInstant());
@@ -198,18 +201,6 @@ export default function SettingsScreen(): React.JSX.Element {
   const toggleFeedbackPrompt = useCallback(
     (value: boolean) => {
       usersRepo.updateUser(db, { feedbackPromptEnabled: value }, nowUtcInstant());
-      refresh();
-    },
-    [db, refresh],
-  );
-
-  const toggleQuietHours = useCallback(
-    (value: boolean) => {
-      usersRepo.updateUser(
-        db,
-        { notificationPrefs: { quietHoursEnabled: value } },
-        nowUtcInstant(),
-      );
       refresh();
     },
     [db, refresh],
@@ -251,11 +242,10 @@ export default function SettingsScreen(): React.JSX.Element {
     [motivationTimes, saveMotivationTimes],
   );
 
-  const adjustMotivationTime = useCallback(
-    (index: number, deltaMinutes: number) => {
-      saveMotivationTimes(
-        motivationTimes.map((t, i) => (i === index ? shiftTime(t, deltaMinutes) : t)),
-      );
+  const setMotivationTime = useCallback(
+    (index: number, event: DateTimePickerEvent, picked?: Date) => {
+      if (event.type !== 'set' || !picked) return;
+      saveMotivationTimes(motivationTimes.map((t, i) => (i === index ? dateToTime(picked) : t)));
     },
     [motivationTimes, saveMotivationTimes],
   );
@@ -282,21 +272,6 @@ export default function SettingsScreen(): React.JSX.Element {
     setResetOpen(false);
   }, [db, families, library]);
 
-  const quietHoursEnabled = user.notificationPrefs.quietHoursEnabled ?? true;
-  const quietStart = user.notificationPrefs.quietHoursStart ?? DEFAULT_QUIET_HOURS_START;
-  const quietEnd = user.notificationPrefs.quietHoursEnd ?? DEFAULT_QUIET_HOURS_END;
-  const adjustQuietHour = (which: 'start' | 'end', delta: number) => {
-    const current = which === 'start' ? quietStart : quietEnd;
-    const next = (current + delta + 24) % 24;
-    usersRepo.updateUser(
-      db,
-      {
-        notificationPrefs: which === 'start' ? { quietHoursStart: next } : { quietHoursEnd: next },
-      },
-      nowUtcInstant(),
-    );
-    refresh();
-  };
   const motivationEnabled = user.notificationPrefs.motivationEnabled ?? true;
 
   const diagnosticsLines = useMemo(() => {
@@ -319,11 +294,12 @@ export default function SettingsScreen(): React.JSX.Element {
       (backupStatus?.lastBackedUpAt != null
         ? `Last backed up: ${formatBackupTime(backupStatus.lastBackedUpAt)}`
         : 'Not backed up yet'));
+  // The one-line explanation lives under the label; this only speaks up when something needs saying.
   const backupCaption = user.backupDecisionPending
     ? "A backup from another phone was found. Restore it from Advanced below, or keep this phone's data here."
     : backupStatus && !backupStatus.available
       ? "iCloud isn't available on this phone right now. Your data is safe here."
-      : 'Your workouts and progress are saved to your private iCloud, so a new phone can pick up where this one left off.';
+      : undefined;
 
   return (
     <Screen scroll testID="settings-screen" contentStyle={styles.content}>
@@ -397,12 +373,7 @@ export default function SettingsScreen(): React.JSX.Element {
       </Enter>
 
       <Enter index={4}>
-        <Group
-          title="Motivation"
-          caption={
-            'A short nudge picked from a large, always-varied pool — never the same message twice in a row where avoidable. Skipped automatically on a day you’ve already trained or marked “I’m in Transit,” and every time below still respects quiet hours.'
-          }
-        >
+        <Group title="Motivation" subtitle="Push notifications to help get you going">
           <SwitchRow
             testID="toggle-motivation"
             icon="sparkles"
@@ -411,75 +382,22 @@ export default function SettingsScreen(): React.JSX.Element {
             value={motivationEnabled}
             onValueChange={toggleMotivation}
           />
-          <SwitchRow
-            testID="toggle-quiet-hours"
-            icon="moon"
-            tone="teal"
-            label={`Quiet hours (${quietHoursLabel(quietStart, quietEnd)})`}
-            value={quietHoursEnabled}
-            onValueChange={toggleQuietHours}
-          />
-          {quietHoursEnabled ? (
-            <View style={styles.times} testID="quiet-hours-window">
-              {(
-                [
-                  ['start', 'Quiet from', quietStart],
-                  ['end', 'Until', quietEnd],
-                ] as const
-              ).map(([which, label, hour]) => (
-                <View key={which} style={styles.timeRow}>
-                  <Txt variant="bodyStrong">{label}</Txt>
-                  <View style={styles.timePill}>
-                    <IconButton
-                      testID={`quiet-${which}-minus`}
-                      icon="remove"
-                      accessibilityLabel={`${label} one hour earlier`}
-                      onPress={() => adjustQuietHour(which, -1)}
-                    />
-                    <Txt
-                      variant="h2"
-                      style={styles.timeValue}
-                      testID={`quiet-${which}-value`}
-                      accessibilityLabel={`${label} ${quietHoursLabel(hour, hour).split('–')[0]}`}
-                    >
-                      {quietHoursLabel(hour, hour).split('–')[0]}
-                    </Txt>
-                    <IconButton
-                      testID={`quiet-${which}-plus`}
-                      icon="add"
-                      accessibilityLabel={`${label} one hour later`}
-                      onPress={() => adjustQuietHour(which, 1)}
-                    />
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : null}
           {motivationEnabled ? (
             <View style={styles.times} testID="motivation-times">
               {motivationTimes.map((time, index) => (
                 <View key={index} style={styles.timeRow} testID={`motivation-time-row-${index}`}>
-                  <View style={styles.timePill}>
-                    <IconButton
-                      testID={`motivation-time-${index}-minus`}
-                      icon="remove"
-                      accessibilityLabel={`Move time ${index + 1} 15 minutes earlier`}
-                      onPress={() => adjustMotivationTime(index, -15)}
-                    />
-                    <Txt
-                      variant="h2"
-                      style={styles.timeValue}
-                      testID={`motivation-time-${index}-value`}
-                    >
-                      {time}
-                    </Txt>
-                    <IconButton
-                      testID={`motivation-time-${index}-plus`}
-                      icon="add"
-                      accessibilityLabel={`Move time ${index + 1} 15 minutes later`}
-                      onPress={() => adjustMotivationTime(index, 15)}
-                    />
-                  </View>
+                  <Txt variant="bodyStrong">
+                    {motivationTimes.length > 1 ? `Time ${index + 1}` : 'Time'}
+                  </Txt>
+                  <DateTimePicker
+                    testID={`motivation-time-${index}-picker`}
+                    mode="time"
+                    display="compact"
+                    value={timeToDate(time)}
+                    minuteInterval={5}
+                    accessibilityLabel={`Notification time ${index + 1}`}
+                    onChange={(event, picked) => setMotivationTime(index, event, picked)}
+                  />
                   {motivationTimes.length > 1 && (
                     <IconButton
                       testID={`motivation-time-${index}-remove`}
@@ -512,33 +430,16 @@ export default function SettingsScreen(): React.JSX.Element {
       </Enter>
 
       <Enter index={5}>
-        <View style={styles.privacyGroup}>
-          <Group title="Travel & privacy">
-            <SwitchRow
-              testID="toggle-passport"
-              icon="airplane"
-              tone="sky"
-              label="Passport (place on completion)"
-              value={user.passportEnabled}
-              onValueChange={togglePassport}
-            />
-          </Group>
-          <View style={styles.privacyCopy}>
-            <Txt variant="caption" color="text3">
-              Location: opt-in, coarse (nearest town or area) only, resolved once when you complete
-              a session. No coordinates and no continuous or background tracking — only place names
-              (like “Bend, OR, USA”) are ever stored.
-            </Txt>
-            <Txt variant="caption" color="text3">
-              Health data (workout duration and estimated energy) is written to Apple Health, never
-              read back, and never leaves this device.
-            </Txt>
-            <Txt variant="caption" color="text3">
-              If you add optional freeform notes, that text is your content and is sent off-device
-              only to generate a short coaching summary — never stored or used for anything else.
-            </Txt>
-          </View>
-        </View>
+        <Group title="Travel & privacy">
+          <SwitchRow
+            testID="toggle-passport"
+            icon="airplane"
+            tone="sky"
+            label="Passport"
+            value={user.passportEnabled}
+            onValueChange={togglePassport}
+          />
+        </Group>
       </Enter>
 
       <Enter index={6}>
@@ -555,7 +456,11 @@ export default function SettingsScreen(): React.JSX.Element {
       </Enter>
 
       <Enter index={7}>
-        <Group title="iCloud backup" caption={backupCaption}>
+        <Group
+          title="iCloud backup"
+          subtitle="Your workouts and progress are saved to iCloud when connected to the internet"
+          caption={backupCaption}
+        >
           <SwitchRow
             testID="toggle-icloud-backup"
             icon="cloud"
@@ -610,6 +515,20 @@ export default function SettingsScreen(): React.JSX.Element {
       </Enter>
 
       <Enter index={9}>
+        <Group title="Feedback">
+          <NavRow
+            testID="settings-feedback"
+            icon="mail"
+            tone="teal"
+            label="Send feedback"
+            value={feedbackNote ?? undefined}
+            hint="Opens an email to the developers"
+            onPress={() => void sendFeedback()}
+          />
+        </Group>
+      </Enter>
+
+      <Enter index={10}>
         <Card padding="md" style={styles.disclaimer} testID="settings-section-Medical disclaimer">
           <IconBadge icon="shield" tone="gold" size={40} />
           <View style={styles.disclaimerBody}>
@@ -623,7 +542,7 @@ export default function SettingsScreen(): React.JSX.Element {
         </Card>
       </Enter>
 
-      <Enter index={10}>
+      <Enter index={11}>
         <Group title="Advanced">
           <Pressable
             testID="settings-advanced-toggle"
@@ -711,6 +630,9 @@ export default function SettingsScreen(): React.JSX.Element {
         </Txt>
         <Txt variant="caption" color="text3">
           Train anywhere.
+        </Txt>
+        <Txt variant="caption" color="text3" testID="app-version">
+          Version {appVersionLabel()}
         </Txt>
       </View>
 
@@ -812,15 +734,6 @@ const useStyles = makeStyles((tk) =>
       borderTopColor: tk.colors.line,
     },
     timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    timePill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space.sm,
-      padding: space.xs,
-      borderRadius: radius.pill,
-      backgroundColor: tk.colors.surface2,
-    },
-    timeValue: { minWidth: 72, textAlign: 'center' },
     addTime: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -832,8 +745,6 @@ const useStyles = makeStyles((tk) =>
       borderColor: tk.colors.lineStrong,
     },
     addTimeLabel: { marginLeft: space.xs },
-    privacyGroup: { gap: space.sm },
-    privacyCopy: { gap: space.sm, marginHorizontal: space.xs },
     disclaimer: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
     disclaimerBody: { flex: 1, gap: space.xs },
     advancedBlock: {
