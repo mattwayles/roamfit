@@ -100,6 +100,8 @@ export interface UserRecord {
   icloudBackupEnabled: boolean;
   /** Track 43 — a backup exists and the user has not yet restored or started fresh. */
   backupDecisionPending: boolean;
+  /** Track 43 — this device's data has been reconciled with iCloud. */
+  icloudBackupLinked: boolean;
   passportEnabled: boolean;
   healthWriteEnabled: boolean;
   cueSoundsEnabled: boolean;
@@ -217,6 +219,7 @@ function rowToUser(row: typeof schema.users.$inferSelect): UserRecord {
     bandsSetUp: row.bandsSetUp,
     icloudBackupEnabled: row.icloudBackupEnabled,
     backupDecisionPending: row.backupDecisionPending,
+    icloudBackupLinked: row.icloudBackupLinked,
     passportEnabled: row.passportEnabled,
     healthWriteEnabled: row.healthWriteEnabled,
     cueSoundsEnabled: row.cueSoundsEnabled,
@@ -278,6 +281,7 @@ export interface UserPatch {
   bandsSetUp?: boolean;
   icloudBackupEnabled?: boolean;
   backupDecisionPending?: boolean;
+  icloudBackupLinked?: boolean;
 }
 
 export function updateUser(db: Db, patch: UserPatch, now: string): void {
@@ -309,6 +313,7 @@ export function updateUser(db: Db, patch: UserPatch, now: string): void {
   if (patch.backupDecisionPending !== undefined) {
     values.backupDecisionPending = patch.backupDecisionPending;
   }
+  if (patch.icloudBackupLinked !== undefined) values.icloudBackupLinked = patch.icloudBackupLinked;
   if (patch.trainingPreferences !== undefined) {
     values.trainingPrefs = JSON.stringify({
       ...current.trainingPreferences,

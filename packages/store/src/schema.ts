@@ -78,6 +78,9 @@ export const users = sqliteTable('users', {
   backupDecisionPending: integer('backup_decision_pending', { mode: 'boolean' })
     .notNull()
     .default(false),
+  /** Track 43 — this device's data has been reconciled with iCloud (uploaded, restored, or kept
+   *  on purpose); until then a backup that already exists is never overwritten (migration 0040). */
+  icloudBackupLinked: integer('icloud_backup_linked', { mode: 'boolean' }).notNull().default(false),
   /** JSON: { enabled, quiet_hours, observed_training_window }. */
   notificationPrefs: text('notification_prefs').notNull().default('{}'),
   /** §12 — the tz_id last observed for this device; compared against a new session's tz_id to

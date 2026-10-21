@@ -289,3 +289,37 @@ describe('iCloud backup settings (migration 0039)', () => {
     }
   });
 });
+
+describe('iCloud backup linked (migration 0040)', () => {
+  it('starts false and round-trips through updateUser without disturbing other fields', () => {
+    const { db, close } = createTestDb();
+    try {
+      expect(ensureUser(db, utcInstantFor('2026-10-20')).icloudBackupLinked).toBe(false);
+      updateUser(db, { icloudBackupLinked: true }, utcInstantFor('2026-10-20'));
+      expect(getUser(db)).toMatchObject({ icloudBackupLinked: true, icloudBackupEnabled: true });
+      updateUser(db, { cueSoundsEnabled: false }, utcInstantFor('2026-10-20'));
+      expect(getUser(db)!.icloudBackupLinked).toBe(true);
+    } finally {
+      close();
+    }
+  });
+
+  it('leaves every user row that existed before the migration unlinked', () => {
+    const raw = new Database(':memory:');
+    try {
+      const index = MIGRATIONS.findIndex((m) => m.id === '0040_icloud_backup_linked.sql');
+      for (const m of MIGRATIONS.slice(0, index)) raw.exec(m.sql);
+      raw
+        .prepare(
+          "INSERT INTO users (id, anchors_available, created_at, updated_at) VALUES ('local', '[]', 'x', 'x')",
+        )
+        .run();
+      raw.exec(MIGRATIONS[index].sql);
+      expect(raw.prepare('SELECT icloud_backup_linked FROM users').get()).toEqual({
+        icloud_backup_linked: 0,
+      });
+    } finally {
+      raw.close();
+    }
+  });
+});

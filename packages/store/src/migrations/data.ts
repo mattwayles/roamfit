@@ -717,6 +717,14 @@ ALTER TABLE users ADD COLUMN icloud_backup_enabled INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE users ADD COLUMN backup_decision_pending INTEGER NOT NULL DEFAULT 0;
 `;
 
+const MIGRATION_0040_ICLOUD_BACKUP_LINKED = `-- 0040_icloud_backup_linked.sql — Track 43: \`icloud_backup_linked\` means "this device's data has
+-- been reconciled with iCloud" (it has uploaded once, restored, or the user chose to keep this
+-- phone's data). While it is false and a backup already exists, the app never uploads, so a fresh
+-- install or second device cannot overwrite another phone's data. Existing rows start unlinked.
+
+ALTER TABLE users ADD COLUMN icloud_backup_linked INTEGER NOT NULL DEFAULT 0;
+`;
+
 /** Ordered oldest-first — `migrate.ts` applies whichever suffix of this list isn't yet recorded
  *  in `_migrations`. Append new migrations here (and as a new `.sql` file for review) in order;
  *  never edit or reorder an existing entry once shipped. */
@@ -763,4 +771,5 @@ export const MIGRATIONS: MigrationFile[] = [
   { id: '0037_remove_spotify.sql', sql: MIGRATION_0037_REMOVE_SPOTIFY },
   { id: '0038_remove_firebase.sql', sql: MIGRATION_0038_REMOVE_FIREBASE },
   { id: '0039_icloud_backup.sql', sql: MIGRATION_0039_ICLOUD_BACKUP },
+  { id: '0040_icloud_backup_linked.sql', sql: MIGRATION_0040_ICLOUD_BACKUP_LINKED },
 ];
