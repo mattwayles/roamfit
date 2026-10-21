@@ -104,8 +104,8 @@ describe('ADR 0012 — level up from the Trails on Journey', () => {
     await levelUpWithConfirm(FAMILY);
     await waitFor(() => expect(boardRowText(FAMILY)).toContain('Level 3 of'), WAIT_OPTS);
 
-    // ...and it says what it moved you to.
-    expect(screen.getByTestId('board-level-up-notice')).toBeTruthy();
+    // ...and leaves no lingering notice behind.
+    expect(screen.queryByTestId('board-level-up-notice')).toBeNull();
   });
 
   it('the level it lands on is a real rung of that family', async () => {

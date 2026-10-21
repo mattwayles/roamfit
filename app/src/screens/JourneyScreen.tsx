@@ -111,7 +111,6 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
   const { db, library, families } = useStore();
   /** ADR 0012 — one-line result of the last board level-up or level-down. Informational only:
    *  never blocks, never nags, replaced rather than stacked (invariant 4). */
-  const [levelUpNotice, setLevelUpNotice] = useState<string | null>(null);
   /** Which family row is showing its "are you sure" step, if any. One at a time. */
   const [confirmingLevelUp, setConfirmingLevelUp] = useState<ProgressionFamilyId | null>(null);
   /** Same shape as `confirmingLevelUp`, for the symmetric "too hard — level down" button. */
@@ -195,11 +194,11 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
    * board looks like something they would actually do.
    *
    * Everything real happens in `levelUpFamily` (which is the engine's work, via the store); this
-   * only decides what to say about the outcome and reloads the board.
+   * only reloads the board.
    */
   const handleLevelUp = (entry: FamilyBoardEntry) => {
     setConfirmingLevelUp(null);
-    const result = levelUpFamily(
+    levelUpFamily(
       db,
       {
         familyId: entry.familyId,
@@ -210,22 +209,17 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
       },
       nowUtcInstant(),
     );
-    if (result.status === 'levelled_up') {
-      setLevelUpNotice(`${entry.familyName}: now at ${result.exerciseName}.`);
-    } else if (result.status === 'at_max') {
-      setLevelUpNotice(`${entry.familyName} is already at the top of its ladder — nice.`);
-    }
     reload();
   };
 
   /**
    * The symmetric counterpart to `handleLevelUp` — the user says a rung is above them, so drop
    * it. Same shape, same reasoning, opposite direction: `levelDownFamily` is the engine's work
-   * via the store, and this only decides what to say about the outcome and reloads the board.
+   * via the store, and this only reloads the board.
    */
   const handleLevelDown = (entry: FamilyBoardEntry) => {
     setConfirmingLevelDown(null);
-    const result = levelDownFamily(
+    levelDownFamily(
       db,
       {
         familyId: entry.familyId,
@@ -236,11 +230,6 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
       },
       nowUtcInstant(),
     );
-    if (result.status === 'levelled_down') {
-      setLevelUpNotice(`${entry.familyName}: now at ${result.exerciseName}.`);
-    } else if (result.status === 'at_min') {
-      setLevelUpNotice(`${entry.familyName} is already at the bottom of its ladder.`);
-    }
     reload();
   };
 
@@ -514,14 +503,6 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
           </View>
         )}
         <View testID="progression-board" style={styles.board}>
-          {levelUpNotice != null && (
-            <View testID="board-level-up-notice" style={styles.note}>
-              <Icon name="trendingUp" size={18} color="sky" style={styles.noteIcon} />
-              <Txt variant="small" color="text" style={styles.noteText}>
-                {levelUpNotice}
-              </Txt>
-            </View>
-          )}
           {board.map((entry, index) => {
             const open = adjusting.has(entry.familyId);
             const chart = trailCharts.get(entry.familyId);
