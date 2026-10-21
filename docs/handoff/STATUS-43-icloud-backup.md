@@ -1,11 +1,13 @@
 ## Track: 43 — iCloud backup
 Last updated: 2026-10-20
 ### Done
-- (none yet)
+- [x] 43a native module `app/modules/icloud-backup` + TS wrapper + in-memory Jest fake (helpers
+  `__reset`, `__setLocalFile`, `__setStored`, `__failNext`… on the mock's default export, wired in
+  `app/jest.setup.js`) + entitlements in `app/app.json` — 3ae9c24; evicted-file rotation fix 871d4b0.
+  Swift NOT yet compiled (no Xcode build run).
 ### In progress
-- Wave 1, two agents in parallel worktrees:
-  - 43a: native module `app/modules/icloud-backup` (Swift, Expo Modules API) + TS wrapper + Jest mock
-    + iCloud entitlements in `app/app.json`.
+- Agents run sequentially in the main tree (worktrees lack node_modules; concurrent `npm run check`
+  is known to hang).
   - 43b: `app/src/db/backup.ts` (snapshot / verify / apply restore) + `closeDb()` in
     `app/src/db/index.ts` + migration 0039 (`users.icloud_backup_enabled`,
     `users.backup_decision_pending`) + store accessors, with tests.
