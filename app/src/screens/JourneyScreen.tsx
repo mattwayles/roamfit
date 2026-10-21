@@ -76,6 +76,7 @@ import { BadgeEmblem } from '../components/BadgeEmblem';
 import { progressText } from '../lib/badges';
 import { DayCell } from '../components/DayCell';
 import { EmptyState } from '../components/EmptyState';
+import { MonthStepper } from '../components/MonthStepper';
 import { PassportOptInCard } from '../components/PassportOptInCard';
 import { RungTrack } from '../components/RungTrack';
 import { TrailProgressChart } from '../components/TrailProgressChart';
@@ -445,32 +446,15 @@ export default function JourneyScreen({ navigation, route }: Props): React.JSX.E
             icon="today"
             tone="teal"
             right={
-              <View style={styles.monthNav}>
-                <IconButton
-                  testID="logbook-prev"
-                  icon="back"
-                  size="sm"
-                  disabled={atEarliest}
-                  accessibilityLabel="Previous month"
-                  onPress={() => setViewedMonth(shiftMonth(viewedMonth, -1))}
-                />
-                <Chip
-                  testID="logbook-month-label"
-                  label={monthLabel(viewedMonth, currentMonth)}
-                  tone="teal"
-                  size="sm"
-                  accessibilityLabel={`${monthLabel(viewedMonth)} — choose a month`}
-                  onPress={() => setMonthPickerOpen(true)}
-                />
-                <IconButton
-                  testID="logbook-next"
-                  icon="chevronRight"
-                  size="sm"
-                  disabled={atCurrent}
-                  accessibilityLabel="Next month"
-                  onPress={() => setViewedMonth(shiftMonth(viewedMonth, 1))}
-                />
-              </View>
+              <MonthStepper
+                label={monthLabel(viewedMonth, currentMonth)}
+                labelAccessibilityLabel={`${monthLabel(viewedMonth)} — choose a month`}
+                prevDisabled={atEarliest}
+                nextDisabled={atCurrent}
+                onPrev={() => setViewedMonth(shiftMonth(viewedMonth, -1))}
+                onNext={() => setViewedMonth(shiftMonth(viewedMonth, 1))}
+                onPressLabel={() => setMonthPickerOpen(true)}
+              />
             }
           />
           {hasSessions ? (
@@ -1096,7 +1080,6 @@ const useStyles = makeStyles((t) =>
     },
     muscleFill: { height: '100%' },
     muscleSets: { minWidth: 56, maxWidth: 110 },
-    monthNav: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
     pickerYear: { gap: space.sm, marginBottom: space.lg },
     pickerMonths: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
     pickerPill: {
