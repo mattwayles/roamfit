@@ -63,7 +63,12 @@ Last updated: 2026-10-21 (track done)
 - Hints: series-level `hint` on SeriesSpec; hidden badges have none (test enforces both ways).
 
 - Design approved by the user; do not re-litigate. No reanimated: RN Animated only.
-- Image share (react-native-view-shot) needs a native rebuild: parked in BACKLOG, text share only.
+- Image share added after the track at the user's request: new dependency
+  `react-native-view-shot` 5.1.0 (via `npx expo install`, native module, dev-client rebuild).
+  The sheet lays out `BadgeShareCard` off-screen (left -10000) and `lib/badgeShare.ts` captures it
+  to a tmpfile PNG and shares `{ url, message }`; capture failure falls back to text. Jest uses
+  `app/__mocks__/react-native-view-shot.js`. The card is a11y-hidden, so queries need
+  `includeHiddenElements: true`.
 - Commit bbd100b had removed the old "From your <date> workout" link; 44a deliberately
   reinstates it as an "Earned during" row, per the approved design.
 - Invariant 4: progress is always neutral ("12 of 25"); hints are positive, never a deficit.

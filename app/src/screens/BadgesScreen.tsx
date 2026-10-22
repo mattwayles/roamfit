@@ -8,7 +8,7 @@
  * removed, and there is no streak or expiry copy.
  */
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { ScrollView, Share, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import type { BadgeCategory } from '@roamfit/engine';
 import { useFocusEffect } from '@react-navigation/native';
 import { badgesRepo } from '@roamfit/store';
@@ -16,7 +16,6 @@ import type { RootScreenProps } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
 import {
-  badgeShareText,
   CATEGORY_INTROS,
   buildBadgeTimeline,
   buildSeriesTrails,
@@ -30,6 +29,7 @@ import {
 } from '../lib/badges';
 import { formatFullLocalDate } from '../lib/sessionHistory';
 import { useEarnedDuring } from '../lib/useEarnedDuring';
+import { shareBadge } from '../lib/badgeShare';
 import { haptics } from '../lib/haptics';
 import { useDashboardData } from '../lib/useDashboardData';
 import { makeStyles, space } from '../theme';
@@ -40,6 +40,7 @@ import { AlmostThereCard, ReachRow } from '../components/AlmostThereCard';
 import { BadgesHero } from '../components/BadgesHero';
 import { BadgeTimeline } from '../components/BadgeTimeline';
 import { TiltSheen } from '../components/TiltSheen';
+import { BadgeShareCard } from '../components/BadgeShareCard';
 
 type Props = RootScreenProps<'Badges'>;
 
@@ -88,6 +89,7 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
   const [view, setView] = useState<'collection' | 'timeline'>('collection');
   const { height } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
+  const shareCardRef = useRef<View>(null);
   const sectionY = useRef<Partial<Record<BadgeCategory, number>>>({});
   const timeline = useMemo(() => (data ? buildBadgeTimeline(data.badges.recent) : []), [data]);
   const trailSections = useMemo(
@@ -359,10 +361,20 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
                   size="md"
                   fullWidth
                   onPress={() => {
-                    // Text only; opens the native share sheet and never posts anything itself.
-                    void Share.share({ message: badgeShareText(open.def) });
+                    // A picture of the patch plus the line of text; the native share sheet does
+                    // the rest and the app never posts anything itself.
+                    void shareBadge(open.def, shareCardRef);
                   }}
                 />
+                {/* Laid out off-screen so it can be captured as the share image. */}
+                <View
+                  style={styles.shareCard}
+                  pointerEvents="none"
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                >
+                  <BadgeShareCard ref={shareCardRef} badge={open} />
+                </View>
               </View>
             ) : open.progress && !open.mystery ? (
               <View style={styles.sheetBody}>
@@ -415,6 +427,7 @@ const useStyles = makeStyles(() =>
     grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: space.lg },
     cell: { width: '33.33%', alignItems: 'center', gap: space.xs, paddingHorizontal: space.xs },
     sheetBody: { gap: space.md },
+    shareCard: { position: 'absolute', left: -10000, top: 0 },
     sheetEmblem: { alignItems: 'center', paddingVertical: space.sm },
     sheetEmblemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     seriesInfo: { alignItems: 'center', gap: space.xs },

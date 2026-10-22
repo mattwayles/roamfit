@@ -98,8 +98,16 @@ describe('BadgesScreen', () => {
     expect(screen.queryByTestId('badge-sheet-session')).toBeNull();
     expect(screen.queryByTestId('badge-sheet-hint')).toBeNull();
     expect(screen.getByTestId('badge-sheet-prev').props.accessibilityState.disabled).toBe(true);
+    expect(screen.getByTestId('badge-share-card', { includeHiddenElements: true })).toBeTruthy();
     fireEvent.press(screen.getByTestId('badge-sheet-share'));
-    expect(share).toHaveBeenCalledWith({ message: 'Earned the First Steps badge on Wanderlift' });
+    await waitFor(
+      () =>
+        expect(share).toHaveBeenCalledWith({
+          url: 'file:///tmp/badge-share.png',
+          message: 'Earned the First Steps badge on Wanderlift',
+        }),
+      WAIT_OPTS,
+    );
     share.mockRestore();
   });
 });

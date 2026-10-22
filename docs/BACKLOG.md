@@ -90,10 +90,6 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
 
 ## Future Features
 
-- **Share a badge as an image.** The badge sheet shares text only (`badgeShareText` via
-  `Share.share`). A card image (emblem, name, date) needs `react-native-view-shot` to capture a
-  styled view, which is a new native module and so a dev-client rebuild; note it in the status file
-  when added.
 - **Settings toggle to hide badges.** Badges have no off switch in v1 (Passport badges follow the
   Passport opt-in). If someone wants a quieter app, a Settings toggle that hides the Journey card,
   Today's Next badge row and the completion-screen cards would do it; awarding can keep running
@@ -143,13 +139,14 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   `RadialGradient` is now possible without a new dep), a muscle-worked visualization (SVG is available;
   nothing built), and — each needing a new native dep and another dev-client rebuild — 60fps UI-thread
   confetti at higher piece counts (`react-native-reanimated`), hold-to-charge interactions
-  (`react-native-gesture-handler`), and a rendered branded share-card image instead of text
-  (`react-native-view-shot`, already noted below as a §9.10 scope cut).
+  (`react-native-gesture-handler`), Also open: a rendered branded share-card image instead of text —
+  `react-native-view-shot` is now installed (badge share, Track 44); `BadgeShareCard` and
+  `lib/badgeShare.ts` are the pattern to copy.
 - **Passport — the open questions.** It is a stamp collection now (a seeded `Stamp` per city on
   Journey, opt-in in Settings), so "what is it for" is answered. Still undecided: (1) countries and
   milestones (level-ups, best sets) do not get stamps yet, only cities; (2) the Share button sends a
-  plain-text line — a rendered stamp-sheet image is the natural share, but needs `react-native-view-shot`
-  (see the Completion item above).
+  plain-text line — a rendered stamp-sheet image is the natural share, and `react-native-view-shot`
+  is now installed (copy the badge share in `lib/badgeShare.ts`).
 - **"This hurts" from the active workout — not yet (user decision, 2026-10-18).** Deferred from Track 37. The store already has `limitations.source = 'pain_report'` with an expiry and
   `ExerciseState.suppressedUntil`; a button mid-set would add a dated limitation and suppress the
   exercise, then offer a swap.
