@@ -1,0 +1,40 @@
+import { exerciseLibrary } from '@roamfit/data';
+import { MUSCLE_REGIONS, exerciseMuscleChart, muscleChart } from './muscleMap';
+
+describe('muscleMap', () => {
+  it('maps every muscle the library uses to a chart region', () => {
+    const used = new Set(exerciseLibrary.exercises.flatMap((e) => [...e.primary, ...e.secondary]));
+    for (const token of used) expect(MUSCLE_REGIONS[token]?.length ?? 0).toBeGreaterThan(0);
+  });
+
+  it('gives every exercise at least one primary region on the chart', () => {
+    for (const e of exerciseLibrary.exercises) {
+      const chart = exerciseMuscleChart(e);
+      expect(chart.front.primary.length + chart.back.primary.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('puts chest on the front and glutes on the back', () => {
+    const chest = muscleChart(['chest'], []);
+    expect(chest.front.primary).not.toBe('');
+    expect(chest.back.primary).toBe('');
+    const glutes = muscleChart(['glutes'], []);
+    expect(glutes.front.primary).toBe('');
+    expect(glutes.back.primary).not.toBe('');
+  });
+
+  it('draws a region once: primary wins over secondary, the rest is body', () => {
+    const both = muscleChart(['quads'], ['quads', 'abs']);
+    expect(both.front.secondary).not.toBe('');
+    const quadsOnly = muscleChart(['quads'], []);
+    // Abs moved from body to secondary; quads stayed primary.
+    expect(both.front.primary).toBe(quadsOnly.front.primary);
+    expect(both.front.body.length).toBeLessThan(quadsOnly.front.body.length);
+  });
+
+  it('memoises per muscle set regardless of order', () => {
+    expect(muscleChart(['chest', 'triceps'], ['abs'])).toBe(
+      muscleChart(['triceps', 'chest'], ['abs']),
+    );
+  });
+});

@@ -9,8 +9,8 @@
  *
  * A `FlatList` rather than a `ScrollView`: the whole library mounts here, and the title, search box
  * and chip row ride along as `ListHeaderComponent` so the rows below stay virtualised. Rows are
- * deliberately cheap — plain views and one memoised movement pictogram (a single three-shape Svg;
- * no TopoPattern, no gradient) — since hundreds of them can be on screen while flinging.
+ * deliberately cheap — plain views and one memoised muscle map (a single Svg of six merged
+ * paths; no TopoPattern, no gradient) — since hundreds of them can be on screen while flinging.
  *
  * Layout only — the filtering itself is `lib/exerciseCatalog.ts` (pure, unit-tested) and every
  * read is a `@roamfit/store` repository call, per the "components render, screens decide, and
@@ -46,19 +46,9 @@ import {
   useTheme,
   type AccentName,
 } from '../theme';
-import {
-  Button,
-  Chip,
-  Enter,
-  Icon,
-  IconButton,
-  MovementIcon,
-  PressableScale,
-  Screen,
-  Sheet,
-  Txt,
-} from '../ui';
+import { Button, Chip, Enter, Icon, IconButton, PressableScale, Screen, Sheet, Txt } from '../ui';
 import { EmptyState } from '../components/EmptyState';
+import { MuscleMap, MUSCLE_MAP_ASPECT } from '../components/MuscleMap';
 
 type Props = TabScreenProps<'Exercises'>;
 
@@ -404,7 +394,10 @@ function FilterRow<T extends string>({
   );
 }
 
-const AVATAR = 52;
+/** The muscle-map tile: front and back figures, padded inside a tinted rounded square. */
+const MAP_HEIGHT = 52;
+const AVATAR_PAD = 5;
+const AVATAR_W = Math.round(MAP_HEIGHT * MUSCLE_MAP_ASPECT) + AVATAR_PAD * 2;
 
 const ExerciseRow = React.memo(function ExerciseRow({
   exercise,
@@ -431,7 +424,7 @@ const ExerciseRow = React.memo(function ExerciseRow({
       onPress={onPress}
     >
       <View style={[styles.avatar, { backgroundColor: theme.tints[tone] }]}>
-        <MovementIcon pattern={exercise.pattern} size={30} color={tone} />
+        <MuscleMap exercise={exercise} height={MAP_HEIGHT} accent={tone} />
       </View>
       <View style={styles.rowMain}>
         <Txt variant="h3" numberOfLines={2}>
@@ -548,8 +541,8 @@ const useStyles = makeStyles((t) =>
     },
     rowDisabled: { opacity: 0.5 },
     avatar: {
-      width: AVATAR,
-      height: AVATAR,
+      width: AVATAR_W,
+      height: MAP_HEIGHT + AVATAR_PAD,
       borderRadius: radius.md,
       alignItems: 'center',
       justifyContent: 'center',
