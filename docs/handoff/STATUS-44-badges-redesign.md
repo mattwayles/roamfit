@@ -13,10 +13,12 @@ Last updated: 2026-10-21
 
 ### In progress
 
-- 44c: start with the "stitch in" for unseen badges. `BadgeEmblem` takes `showNew` today; add an
-  `animateIn` prop (RN Animated scale/opacity, off under `useReduceMotion`) and a `haptics.success`
-  on first view, driven from the `unseen` flags BadgesScreen already has on `shelf.recent`. Series
-  trail nodes (`BadgeTrail`) and the hero emblem are where unseen badges now appear.
+- 44c (started 2026-10-21), in order: (1) `components/badgeMotion.ts` (shared shimmer loop hook,
+  `useStitchIn`), BadgeEmblem props `animateIn` / `shimmer` / `sheen`; wire `animateIn={unseen}`
+  in BadgeTrail nodes, BadgesHero, singles; `haptics.success` once per visit in BadgesScreen
+  focus effect. (2) summit-open haptic (`haptics.medium`; PressableScale already ticks
+  `selection` on every press incl. IconButton/Card). (3) `TiltSheen` wrapper for the sheet emblem.
+  (4) tests. One commit per step.
 
 ### Next
 
