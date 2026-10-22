@@ -7,7 +7,7 @@ app/src/lib/filterLabels.ts (human labels), tests beside each.
 - [x] 46a — engine-only dimensions out, human labels, "No gear" quick chip, live "Show N moves" (commit 8044458)
 - [x] 46b — four collapsible sheet groups, body-area/movement-family grouping, No gear/Band choice, human muscle names on rows (lib 30d8bba; sheet, components, tests a829c5b)
 - [x] 46c — limitations switch (commit d2f02f7)
-- [x] 46d — tap-the-body picker (commit: see git log, "Field Guide 46d")
+- [x] 46d — tap-the-body picker (commit e4424db)
 
 ### In progress
 - none. Track 46 is done; device pass on picker tap accuracy is the only thing owed.
