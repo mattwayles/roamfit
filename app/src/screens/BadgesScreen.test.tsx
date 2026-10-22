@@ -40,25 +40,33 @@ describe('BadgesScreen', () => {
       </StoreProvider>,
     );
 
-    await waitFor(() => expect(screen.getByTestId('badge-sessions_1')).toBeTruthy(), WAIT_OPTS);
-    expect(screen.getByTestId('badges-count').props.children.join('')).toMatch(/^2 of \d+ earned$/);
-    // Earned and locked, by their labels.
-    expect(screen.getByTestId('badge-sessions_1').props.accessibilityLabel).toMatch(
-      /First Steps, earned/,
+    await waitFor(() => expect(screen.getByTestId('trail-sessions')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByTestId('badges-count').props.children).toMatch(/^2 of \d+ earned$/);
+    // The hero features the newest badge and the patches carry per-category counts.
+    expect(screen.getByTestId('badges-hero-name')).toBeTruthy();
+    expect(screen.getByTestId('badges-patch-showing_up').props.accessibilityLabel).toMatch(
+      /^Showing up, 1 of \d+ earned$/,
     );
-    expect(screen.getByTestId('badge-sessions_5').props.accessibilityLabel).toMatch(
-      /locked, 0 of 5/,
+    expect(screen.getByTestId('badges-tally-bronze').props.children).toMatch(/^Bronze \d$/);
+    // A series row names its current badge with neutral progress.
+    expect(screen.getByTestId('trail-sessions').props.accessibilityLabel).toMatch(
+      /1 of 8 earned, 0 of 5$/,
     );
-    // Hidden badges are not named.
+    // One-offs sit in the Singles grid; hidden ones are not named.
     expect(screen.getByTestId('badge-early_bird_1').props.accessibilityLabel).toBe(
       'Hidden badge, locked',
     );
     // NEW dots this visit, then seen in the store.
-    expect(screen.getByTestId('badge-emblem-sessions_1-new')).toBeTruthy();
+    expect(screen.getByTestId('trail-sessions-new')).toBeTruthy();
     await waitFor(() => expect(badgesRepo.countUnseen(db)).toBe(0), WAIT_OPTS);
 
-    // Locked sheet: progress.
-    fireEvent.press(screen.getByTestId('badge-sessions_5'));
+    // Series sheet: every tier; a locked tier shows neutral progress. Tapping one opens its sheet.
+    fireEvent.press(screen.getByTestId('trail-sessions'));
+    await waitFor(() => expect(screen.getByTestId('trail-sheet')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByTestId('trail-sheet-summary').props.children).toBe('1 of 8 earned');
+    expect(screen.getByTestId('trail-tier-sessions_1-meta').props.children).toMatch(/^Earned /);
+    expect(screen.getByTestId('trail-tier-sessions_5-meta').props.children).toBe('0 of 5');
+    fireEvent.press(screen.getByTestId('trail-tier-sessions_5'));
     await waitFor(() => expect(screen.getByTestId('badge-sheet-progress')).toBeTruthy(), WAIT_OPTS);
     expect(screen.getByTestId('badge-sheet-progress').props.children).toBe('0 of 5');
     expect(screen.getByTestId('badge-sheet-hint').props.children).toMatch(/\w/);
@@ -72,12 +80,20 @@ describe('BadgesScreen', () => {
         ),
       WAIT_OPTS,
     );
+    // Back to the series, then close.
+    fireEvent.press(screen.getByTestId('badge-sheet-back-series'));
+    await waitFor(() => expect(screen.getByTestId('trail-sheet')).toBeTruthy(), WAIT_OPTS);
     fireEvent.press(screen.getByTestId('badge-sheet-backdrop'));
 
     // Earned sheet: the date; no workout link because the session is not on file; share works;
     // the first of a series has nowhere to step back to.
     const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
-    fireEvent.press(screen.getByTestId('badge-sessions_1'));
+    fireEvent.press(screen.getByTestId('trail-sessions'));
+    await waitFor(
+      () => expect(screen.getByTestId('trail-tier-sessions_1')).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    fireEvent.press(screen.getByTestId('trail-tier-sessions_1'));
     await waitFor(() => expect(screen.getByTestId('badge-sheet-earned')).toBeTruthy(), WAIT_OPTS);
     expect(screen.queryByTestId('badge-sheet-session')).toBeNull();
     expect(screen.queryByTestId('badge-sheet-hint')).toBeNull();

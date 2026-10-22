@@ -55,8 +55,13 @@ describe('BadgesScreen earned-during link', () => {
         </NavigationContainer>
       </StoreProvider>,
     );
-    await waitFor(() => expect(screen.getByTestId('badge-sessions_1')).toBeTruthy(), WAIT_OPTS);
-    fireEvent.press(screen.getByTestId('badge-sessions_1'));
+    await waitFor(() => expect(screen.getByTestId('trail-sessions')).toBeTruthy(), WAIT_OPTS);
+    fireEvent.press(screen.getByTestId('trail-sessions'));
+    await waitFor(
+      () => expect(screen.getByTestId('trail-tier-sessions_1')).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    fireEvent.press(screen.getByTestId('trail-tier-sessions_1'));
     await waitFor(() => expect(screen.getByTestId('badge-sheet-session')).toBeTruthy(), WAIT_OPTS);
     expect(screen.getByTestId('badge-sheet-session').props.accessibilityLabel).toMatch(
       /^Earned during .* · Full body · \d+ min$/,

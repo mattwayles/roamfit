@@ -14,7 +14,8 @@ import { useTheme, type AccentName } from '../theme';
 import { Icon, Txt, iconMap, type IconName } from '../ui';
 import { badgeLabel, type ShelfBadge } from '../lib/badges';
 
-export type BadgeEmblemSize = 40 | 64 | 120;
+/** Any pixel size; the sheet uses 120, the grid 64, the trail rows 26-40. */
+export type BadgeEmblemSize = number;
 
 /** Ring accent per tier. Summit is always the top of a series. */
 export const TIER_ACCENT: Record<BadgeTier, AccentName> = {
