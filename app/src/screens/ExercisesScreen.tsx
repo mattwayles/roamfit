@@ -9,8 +9,8 @@
  *
  * A `FlatList` rather than a `ScrollView`: the whole library mounts here, and the title, search box
  * and chip row ride along as `ListHeaderComponent` so the rows below stay virtualised. Rows are
- * deliberately cheap — plain views and one icon glyph, no SVG (no TopoPattern, no gradient) — since
- * hundreds of them can be on screen while flinging.
+ * deliberately cheap — plain views and one memoised movement pictogram (a single three-shape Svg;
+ * no TopoPattern, no gradient) — since hundreds of them can be on screen while flinging.
  *
  * Layout only — the filtering itself is `lib/exerciseCatalog.ts` (pure, unit-tested) and every
  * read is a `@roamfit/store` repository call, per the "components render, screens decide, and
@@ -20,7 +20,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { exerciseCatalogRepo } from '@roamfit/store';
-import type { Exercise, Focus, Pattern } from '@roamfit/data';
+import type { Exercise, Focus } from '@roamfit/data';
 import type { TabScreenProps } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import {
@@ -52,11 +52,11 @@ import {
   Enter,
   Icon,
   IconButton,
+  MovementIcon,
   PressableScale,
   Screen,
   Sheet,
   Txt,
-  type IconName,
 } from '../ui';
 import { EmptyState } from '../components/EmptyState';
 
@@ -72,34 +72,6 @@ const PERFORMED_OPTIONS: { value: PerformedFilter; label: string }[] = [
 
 /** Focus chips in the quick row: the five session focuses, in Generate's order. */
 const QUICK_FOCUSES: Focus[] = ['upper', 'abs', 'legs', 'full', 'cardio'];
-
-/** The one place a movement pattern picks its avatar glyph (DESIGN.md §5.3): pushes and pulls point
- *  the way the load travels, squat/hinge/leg work is a body, trunk work is the core dot, and
- *  conditioning is a pulse. Every `Pattern` the library carries must appear here (the type makes
- *  a new one a compile error). */
-const PATTERN_ICON: Record<Pattern, IconName> = {
-  horizontal_push: 'push',
-  vertical_push: 'up',
-  shoulder_isolation: 'fitness',
-  vertical_pull: 'down',
-  horizontal_pull: 'pull',
-  elbow_flexion: 'barbell',
-  elbow_extension: 'barbell',
-  squat: 'body',
-  lunge: 'walk',
-  hinge: 'body',
-  knee_flexion: 'walk',
-  knee_extension: 'walk',
-  abduction: 'swap',
-  adduction: 'swap',
-  calf: 'walk',
-  hip_extension: 'body',
-  anti_rotation: 'core',
-  flexion: 'core',
-  anti_extension: 'core',
-  lateral_flexion: 'core',
-  conditioning: 'pulse',
-};
 
 /** An avatar is tinted by the exercise's first focus (a `full` exercise that also trains `upper`
  *  reads as its headline focus). */
@@ -459,7 +431,7 @@ const ExerciseRow = React.memo(function ExerciseRow({
       onPress={onPress}
     >
       <View style={[styles.avatar, { backgroundColor: theme.tints[tone] }]}>
-        <Icon name={PATTERN_ICON[exercise.pattern]} size={24} color={tone} />
+        <MovementIcon pattern={exercise.pattern} size={30} color={tone} />
       </View>
       <View style={styles.rowMain}>
         <Txt variant="h3" numberOfLines={2}>

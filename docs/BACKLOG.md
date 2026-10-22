@@ -90,6 +90,13 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
 
 ## Future Features
 
+- **Field Guide rows — the rest of the icon clean-up.** Rows now show a stick-figure pictogram per
+  movement pattern (`ui/MovementIcon.tsx`, data in `ui/movementGlyphs.ts`). Not built yet, in
+  suggested order: (1) the pattern in words in the row subtitle ("Horizontal push · Chest,
+  triceps"); (2) explain the tile tint (it is the exercise's first focus) by tinting the quick focus
+  chips the same way, so the chip row doubles as the legend; (3) tap the pictogram, or a "Movement"
+  section in the filter sheet, to filter by pattern; (4) a small band / no-gear corner marker on the
+  tile (`AnchorBadge` exists). The Exercise detail header could also show the pictogram large.
 - **Settings toggle to hide badges.** Badges have no off switch in v1 (Passport badges follow the
   Passport opt-in). If someone wants a quieter app, a Settings toggle that hides the Journey card,
   Today's Next badge row and the completion-screen cards would do it; awarding can keep running

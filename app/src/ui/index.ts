@@ -1,5 +1,7 @@
 export { Txt, type TxtProps } from './Txt';
 export { Icon, iconMap, type IconName, type IconProps } from './Icon';
+export { MovementIcon, type MovementIconProps } from './MovementIcon';
+export { MOVEMENT_GLYPHS, type MovementGlyph } from './movementGlyphs';
 export { Gradient, gradientPoints, type GradientProps } from './Gradient';
 export { TopoPattern, topoLoops, type TopoPatternProps } from './TopoPattern';
 export { Screen, type ScreenProps, type Edge } from './Screen';
