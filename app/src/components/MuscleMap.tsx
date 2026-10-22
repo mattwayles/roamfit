@@ -1,25 +1,25 @@
 /**
- * A front and back body chart with the muscles an exercise works filled in: primary muscles in
- * the given accent, secondary ones in the same accent faded, the rest of the body a quiet neutral.
- * One Svg, six merged paths (`lib/muscleMap.ts`), memoised - cheap enough for every Field Guide
- * row. Decorative unless given a label (the row already names the muscles).
+ * A single body figure with the muscles an exercise works filled in: primary muscles in the given
+ * accent, secondary ones in the same accent faded, the rest of the body a quiet neutral. Front or
+ * back, whichever shows the exercise's headline muscle (`exerciseChartSide`). One Svg, three
+ * merged paths (`lib/muscleMap.ts`), memoised - cheap enough for every Field Guide row.
+ * Decorative unless given a label (the row already names the muscle).
  */
 import React from 'react';
-import Svg, { G, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import type { Exercise } from '@roamfit/data';
 import { useTheme, type AccentName, type ColorName } from '../theme';
-import { exerciseMuscleChart, type BodyLayers } from '../lib/muscleMap';
+import { exerciseChartSide, exerciseMuscleChart } from '../lib/muscleMap';
 
-/** Horizontal crop of each 724-wide side (the figure sits in its middle) and the gap between the
- *  two figures, in asset units. The back side is slid left so the pair sits close. */
+/** The asset draws each side 724 x 1448, the back 724 to the right; the figure sits in the middle
+ *  of its side, so crop to it. */
+const SIDE_W = 724;
 const CROP_X = 140;
 const CROP_W = 444;
-const GAP = 60;
-const BACK_SHIFT = 724 - CROP_W - GAP;
-const VIEWBOX = `${CROP_X} 0 ${CROP_W * 2 + GAP} 1448`;
+const HEIGHT = 1448;
 
-/** Width / height of the drawn pair. */
-export const MUSCLE_MAP_ASPECT = (CROP_W * 2 + GAP) / 1448;
+/** Width / height of the drawn figure. */
+export const MUSCLE_MAP_ASPECT = CROP_W / HEIGHT;
 
 export interface MuscleMapProps {
   exercise: Exercise;
@@ -32,24 +32,6 @@ export interface MuscleMapProps {
   accessibilityLabel?: string;
 }
 
-function Side({
-  layers,
-  body,
-  accent,
-}: {
-  layers: BodyLayers;
-  body: string;
-  accent: string;
-}): React.JSX.Element {
-  return (
-    <>
-      <Path d={layers.body} fill={body} />
-      {layers.secondary ? <Path d={layers.secondary} fill={accent} fillOpacity={0.4} /> : null}
-      {layers.primary ? <Path d={layers.primary} fill={accent} /> : null}
-    </>
-  );
-}
-
 export const MuscleMap = React.memo(function MuscleMap({
   exercise,
   height,
@@ -59,24 +41,24 @@ export const MuscleMap = React.memo(function MuscleMap({
   accessibilityLabel,
 }: MuscleMapProps): React.JSX.Element {
   const theme = useTheme();
-  const chart = exerciseMuscleChart(exercise);
+  const side = exerciseChartSide(exercise);
+  const layers = exerciseMuscleChart(exercise)[side];
   const fill = theme.colors[accent];
-  const body = theme.colors[bodyColor];
+  const x = (side === 'back' ? SIDE_W : 0) + CROP_X;
   return (
     <Svg
       width={Math.round(height * MUSCLE_MAP_ASPECT)}
       height={height}
-      viewBox={VIEWBOX}
+      viewBox={`${x} 0 ${CROP_W} ${HEIGHT}`}
       testID={testID}
       accessibilityLabel={accessibilityLabel}
       accessible={accessibilityLabel != null}
       importantForAccessibility={accessibilityLabel != null ? 'yes' : 'no-hide-descendants'}
       accessibilityElementsHidden={accessibilityLabel == null}
     >
-      <Side layers={chart.front} body={body} accent={fill} />
-      <G transform={`translate(${-BACK_SHIFT} 0)`}>
-        <Side layers={chart.back} body={body} accent={fill} />
-      </G>
+      <Path d={layers.body} fill={theme.colors[bodyColor]} />
+      {layers.secondary ? <Path d={layers.secondary} fill={fill} fillOpacity={0.4} /> : null}
+      {layers.primary ? <Path d={layers.primary} fill={fill} /> : null}
     </Svg>
   );
 });

@@ -39,6 +39,40 @@ export const MUSCLE_REGIONS: Record<string, readonly Slug[]> = {
   calves: ['calves'],
 };
 
+/** Which figure shows a muscle best. Regions drawn on both figures (delts, triceps, calves,
+ *  traps, adductors, forearms) go where that muscle is mostly seen. */
+export const MUSCLE_SIDE: Record<string, ChartSide> = {
+  chest: 'front',
+  front_delts: 'front',
+  side_delts: 'front',
+  rear_delts: 'back',
+  triceps: 'back',
+  biceps: 'front',
+  forearms: 'front',
+  traps: 'back',
+  upper_back: 'back',
+  lats: 'back',
+  lower_back: 'back',
+  abs: 'front',
+  obliques: 'front',
+  hip_flexors: 'front',
+  quads: 'front',
+  hamstrings: 'back',
+  glutes: 'back',
+  abductors: 'back',
+  adductors: 'front',
+  calves: 'back',
+};
+
+export type ChartSide = 'front' | 'back';
+
+/** The figure to show for an exercise: the side of its headline (first) primary muscle - the
+ *  same muscle the row's subtitle names. Front when there is none. */
+export function exerciseChartSide(exercise: Exercise): ChartSide {
+  const first = exercise.primary[0];
+  return (first && MUSCLE_SIDE[first]) || 'front';
+}
+
 export interface BodyLayers {
   body: string;
   secondary: string;
@@ -49,9 +83,6 @@ export interface MuscleChart {
   front: BodyLayers;
   back: BodyLayers;
 }
-
-/** The asset's viewBoxes: each side is 724 x 1448, the back drawn 724 to the right. */
-export const CHART_SIDE = { width: 724, height: 1448, backOffsetX: 724 } as const;
 
 function partPaths(p: Part): string[] {
   const d = p.path ?? {};

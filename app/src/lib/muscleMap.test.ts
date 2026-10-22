@@ -1,5 +1,11 @@
 import { exerciseLibrary } from '@roamfit/data';
-import { MUSCLE_REGIONS, exerciseMuscleChart, muscleChart } from './muscleMap';
+import {
+  MUSCLE_REGIONS,
+  MUSCLE_SIDE,
+  exerciseChartSide,
+  exerciseMuscleChart,
+  muscleChart,
+} from './muscleMap';
 
 describe('muscleMap', () => {
   it('maps every muscle the library uses to a chart region', () => {
@@ -7,11 +13,24 @@ describe('muscleMap', () => {
     for (const token of used) expect(MUSCLE_REGIONS[token]?.length ?? 0).toBeGreaterThan(0);
   });
 
-  it('gives every exercise at least one primary region on the chart', () => {
+  it('assigns every muscle the library uses a side', () => {
+    const used = new Set(exerciseLibrary.exercises.flatMap((e) => [...e.primary, ...e.secondary]));
+    for (const token of used) expect(MUSCLE_SIDE[token]).toBeDefined();
+  });
+
+  it('shows every exercise on a side where its headline muscle is highlighted', () => {
     for (const e of exerciseLibrary.exercises) {
-      const chart = exerciseMuscleChart(e);
-      expect(chart.front.primary.length + chart.back.primary.length).toBeGreaterThan(0);
+      const side = exerciseChartSide(e);
+      expect(exerciseMuscleChart(e)[side].primary).not.toBe('');
     }
+  });
+
+  it('picks the side from the first primary muscle', () => {
+    const base = exerciseLibrary.exercises[0]!;
+    expect(exerciseChartSide({ ...base, primary: ['quads', 'glutes'] })).toBe('front');
+    expect(exerciseChartSide({ ...base, primary: ['glutes', 'quads'] })).toBe('back');
+    expect(exerciseChartSide({ ...base, primary: ['rear_delts'] })).toBe('back');
+    expect(exerciseChartSide({ ...base, primary: [] })).toBe('front');
   });
 
   it('puts chest on the front and glutes on the back', () => {

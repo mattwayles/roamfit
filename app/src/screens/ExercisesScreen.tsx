@@ -9,7 +9,7 @@
  *
  * A `FlatList` rather than a `ScrollView`: the whole library mounts here, and the title, search box
  * and chip row ride along as `ListHeaderComponent` so the rows below stay virtualised. Rows are
- * deliberately cheap — plain views and one memoised muscle map (a single Svg of six merged
+ * deliberately cheap — plain views and one memoised muscle map (a single Svg of three merged
  * paths; no TopoPattern, no gradient) — since hundreds of them can be on screen while flinging.
  *
  * Layout only — the filtering itself is `lib/exerciseCatalog.ts` (pure, unit-tested) and every
@@ -48,7 +48,7 @@ import {
 } from '../theme';
 import { Button, Chip, Enter, Icon, IconButton, PressableScale, Screen, Sheet, Txt } from '../ui';
 import { EmptyState } from '../components/EmptyState';
-import { MuscleMap, MUSCLE_MAP_ASPECT } from '../components/MuscleMap';
+import { MuscleMap } from '../components/MuscleMap';
 
 type Props = TabScreenProps<'Exercises'>;
 
@@ -394,10 +394,9 @@ function FilterRow<T extends string>({
   );
 }
 
-/** The muscle-map tile: front and back figures, padded inside a tinted rounded square. */
-const MAP_HEIGHT = 52;
-const AVATAR_PAD = 5;
-const AVATAR_W = Math.round(MAP_HEIGHT * MUSCLE_MAP_ASPECT) + AVATAR_PAD * 2;
+/** The muscle-map tile: one figure, centred in a tinted rounded square. */
+const AVATAR = 52;
+const MAP_HEIGHT = 46;
 
 const ExerciseRow = React.memo(function ExerciseRow({
   exercise,
@@ -541,8 +540,8 @@ const useStyles = makeStyles((t) =>
     },
     rowDisabled: { opacity: 0.5 },
     avatar: {
-      width: AVATAR_W,
-      height: MAP_HEIGHT + AVATAR_PAD,
+      width: AVATAR,
+      height: AVATAR,
       borderRadius: radius.md,
       alignItems: 'center',
       justifyContent: 'center',
