@@ -73,6 +73,18 @@ describe('badge catalog', () => {
     for (const id of ids) expect(id).toMatch(/^[a-z_]+_[a-z0-9]+$/);
   });
 
+  it('every non-hidden live badge has a positive how-to hint, and hidden ones have none', () => {
+    for (const b of BADGES.filter((x) => !x.retired)) {
+      if (b.hidden) {
+        expect(b.hint).toBeUndefined();
+      } else {
+        expect(b.hint && b.hint.length > 10).toBe(true);
+        // Never a deficit: no "need", "left", "remaining", "more" counting.
+        expect(b.hint).not.toMatch(/\b(need|left|remaining|missing|behind|only)\b/i);
+      }
+    }
+  });
+
   it('ids are <series>_<suffix> and every series is known to the test', () => {
     for (const b of BADGES) {
       expect(b.id.startsWith(`${b.series}_`)).toBe(true);

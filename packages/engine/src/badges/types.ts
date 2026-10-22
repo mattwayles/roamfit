@@ -86,6 +86,9 @@ export interface BadgeDefinition {
   name: string;
   /** Positive copy only; never mentions a gap, a miss or a deficit. */
   description: string;
+  /** A positive, concrete "how to" line shown on the locked badge (never a deficit). Absent on
+   *  hidden badges, which stay a mystery. */
+  hint?: string;
   /** An `IconName` from `app/src/ui/Icon.tsx` (kept a plain string so the engine stays RN-free). */
   icon: string;
   /** Hidden until earned (a "?" while locked). */

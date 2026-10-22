@@ -27,7 +27,9 @@ interface SeriesSpec {
   icon: string;
   measure: (f: BadgeFacts) => number;
   /** One entry per tier: the threshold, the id suffix (defaults to the threshold), name, copy. */
-  tiers: { target: number; suffix?: string; name: string; description: string }[];
+  tiers: { target: number; suffix?: string; name: string; description: string; hint?: string }[];
+  /** A positive "how to" line shown on a locked badge; each tier may override it with its own. */
+  hint?: string;
   hidden?: boolean;
   passport?: boolean;
 }
@@ -41,6 +43,7 @@ function series(spec: SeriesSpec): BadgeDefinition[] {
     category: spec.category,
     name: t.name,
     description: t.description,
+    ...(t.hint ?? spec.hint ? { hint: (t.hint ?? spec.hint)! } : {}),
     icon: spec.icon,
     ...(spec.hidden ? { hidden: true } : {}),
     ...(spec.passport ? { passport: true } : {}),
@@ -55,6 +58,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   // ---- Showing up ----
   ...series({
     series: 'sessions',
+    hint: 'Finish a workout and it counts, whatever the length.',
     category: 'showing_up',
     icon: 'walk',
     measure: (f) => f.sessionsCompleted,
@@ -71,6 +75,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'minutes',
+    hint: 'Every minute of a finished workout adds up.',
     category: 'showing_up',
     icon: 'timer',
     measure: (f) => f.totalMinutes,
@@ -84,6 +89,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'active_weeks',
+    hint: 'Any workout in a week counts that week, one is plenty.',
     category: 'showing_up',
     icon: 'sun',
     measure: (f) => f.distinctActiveWeeks,
@@ -97,6 +103,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'all_rounder',
+    hint: 'Generate a workout for each focus: upper, abs, legs and full body.',
     category: 'showing_up',
     icon: 'body',
     measure: (f) => ALL_ROUNDER_FOCUSES.filter((x) => f.focusesTrained.includes(x)).length,
@@ -126,6 +133,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'comeback',
+    hint: 'Take your time; the next workout you finish after a break counts.',
     category: 'showing_up',
     icon: 'refresh',
     measure: (f) => f.comebacks,
@@ -140,6 +148,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'recovery_week',
+    hint: 'Choose a recovery week when you generate a workout, and let it be lighter.',
     category: 'showing_up',
     icon: 'leaf',
     measure: (f) => f.recoveryWeeksCompleted,
@@ -151,6 +160,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   // ---- Climbing ----
   ...series({
     series: 'level_ups',
+    hint: 'Keep logging your sets; the engine moves you up when you are ready.',
     category: 'climbing',
     icon: 'trendingUp',
     measure: (f) => f.levelUpsTotal,
@@ -164,6 +174,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'high_rung',
+    hint: 'Keep climbing any one ladder; each rung leads to the next.',
     category: 'climbing',
     icon: 'up',
     measure: (f) => f.highestLevelOrdinal,
@@ -176,6 +187,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'summit',
+    hint: 'Stay with one ladder until you reach its top rung.',
     category: 'climbing',
     icon: 'flag',
     measure: (f) => f.familiesAtTop.length,
@@ -192,6 +204,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'well_rounded',
+    hint: 'Train every movement pattern so each ladder reaches rung 3.',
     category: 'climbing',
     icon: 'shield',
     measure: (f) => f.familiesAtOrAbove3,
@@ -207,6 +220,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   // Measured as band index + 1 so "no band yet" (-1) is 0 and B1 shows as 1 step along.
   ...series({
     series: 'heavy_band',
+    hint: 'Move up a band when a set feels easy, then finish a set with it.',
     category: 'climbing',
     icon: 'barbell',
     measure: (f) => f.heaviestBandOrdinal + 1,
@@ -241,6 +255,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   // ---- Pushing ----
   ...series({
     series: 'best_sets',
+    hint: 'Beat your reps or hold time on an exercise to set a best.',
     category: 'pushing',
     icon: 'star',
     measure: (f) => f.bestSetPrsTotal,
@@ -262,6 +277,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'hard_sessions',
+    hint: 'Choose Hard when you generate a workout.',
     category: 'pushing',
     icon: 'flame',
     measure: (f) => f.hardSessionsCompleted,
@@ -274,6 +290,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'clean_sweep',
+    hint: 'Generate a workout of 6 or more sets and complete every one.',
     category: 'pushing',
     icon: 'checkCircle',
     measure: (f) => f.cleanSweepSessions,
@@ -289,6 +306,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'reps',
+    hint: 'Every completed rep counts, in any workout.',
     category: 'pushing',
     icon: 'fitness',
     measure: (f) => f.lifetimeReps,
@@ -302,6 +320,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'hold_time',
+    hint: 'Planks and other holds add their seconds to the total.',
     category: 'pushing',
     icon: 'pause',
     measure: (f) => f.lifetimeHoldSeconds,
@@ -313,6 +332,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'long_haul',
+    hint: 'Generate a longer workout and finish it at your own pace.',
     category: 'pushing',
     icon: 'time',
     measure: (f) => f.longestSessionMinutes,
@@ -325,6 +345,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   // ---- Exploring ----
   ...series({
     series: 'exercises_tried',
+    hint: 'Different workouts bring in new exercises, so each one counts.',
     category: 'exploring',
     icon: 'search',
     measure: (f) => f.distinctExercisesPerformed,
@@ -337,6 +358,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'cities',
+    hint: 'Turn on Passport and work out while you travel.',
     category: 'exploring',
     icon: 'pin',
     passport: true,
@@ -349,6 +371,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'countries',
+    hint: 'Turn on Passport and work out while you travel.',
     category: 'exploring',
     icon: 'globe',
     passport: true,
