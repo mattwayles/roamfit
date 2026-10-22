@@ -53,16 +53,6 @@ the record of what was completed and why.
   80pt stamps on a small phone, and Completion's "See it in your passport ›" link opening the right
   page. Not built: (1) a `stampLabel` param change arriving mid-turn isn't guarded, so the turn's end
   commit can override the jump; (2) the Journey teaser could show each stamp's first-visit date.
-- **WorkoutScreen tests flake under a full `npm run check` (~1 run in 10).** A different
-  `WorkoutScreen.*.test.tsx` fails each time (seen: `anchor`, `rest`, `keyboard`), always a
-  `waitFor` timing out on the first screen element while the suite takes 8-10s, followed by "A
-  worker process has failed to exit gracefully". Same rate with and without the fitted-text change
-  (1/9 vs 1/10), so it predates it. Likely the suites' `WAIT_OPTS` timeout is too tight for the
-  first Workout render under parallel load, or a leaked timer; try `--detectOpenHandles` first.
-  Since Track 44 (874 app tests) it is wider and more frequent (~1 run in 3): seen also on
-  `TrailProgressChart` (39s suite), `ApprovalScreen.daybreak` and `HomeScreen.syncIsolation`, all
-  passing when rerun alone. Suspect the same parallel-load timeouts; `--maxWorkers=50%` is a cheap
-  first experiment.
 - **Rungs with a single exercise.** Track 37k gave siblings to the high rungs the old backlog item
   named (horizontal_push l7, horizontal_pull l4-l8, anti_extension l4/l6), but 23 rungs still hold
   one exercise, so at that level the current-rung draw (~60%) always repeats it: horizontal_push
