@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { render, screen } from '@testing-library/react-native';
 import { buildBadgeShelf, buildSeriesTrails, tierTally } from '../lib/badges';
 import { earnedRow, emptyBadgeFacts } from '../lib/badges.fixtures';
 import { ready } from '../ui/test-utils';

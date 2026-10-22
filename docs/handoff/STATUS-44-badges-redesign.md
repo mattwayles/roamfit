@@ -14,10 +14,12 @@ Last updated: 2026-10-21
 
 ### In progress
 
-- 44d: start with the Collection | Timeline toggle on `BadgesScreen.tsx`: a segmented control under
-  the hero (look at existing segmented/Tabs controls in `app/src/ui`), a pure
-  `buildBadgeTimeline(shelf.recent)` in `lib/badges.ts` (month-grouped earned badges, newest
-  first, linked workout via `sessionId`) with a test, then the Timeline list component.
+- 44d item 1 (Collection | Timeline): `buildBadgeTimeline` in `lib/badges.ts` + test, then
+  `components/BadgeTimeline.tsx` (entry = emblem + name + date + linked workout via a shared
+  `lib/useEarnedDuring` hook), Chip toggle in BadgesScreen (session-only state). Also item 5
+  (fresh test lint) is done in the same first commit.
+- Then 44d items 2 (riddles), 3 (within reach + progress bar + Generate prefill), 4 (category
+  intros), in that order, one commit each.
 
 ### Next
 

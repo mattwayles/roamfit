@@ -4,6 +4,7 @@ import {
   badgeLabel,
   badgeShareText,
   buildBadgeShelf,
+  buildBadgeTimeline,
   completionBadges,
   earnedDuringLabel,
   progressText,
@@ -251,5 +252,33 @@ describe('tierTally', () => {
     const t = tierTally(shelf);
     expect(t.bronze + t.silver + t.gold + t.summit).toBe(2);
     expect(t.summit).toBe(0);
+  });
+});
+
+describe('buildBadgeTimeline', () => {
+  it('groups by local month newest first, with found-in-history badges in their own group', () => {
+    const shelf = buildBadgeShelf(
+      [
+        earnedRow('sessions_1', { localDate: '2026-09-30', earnedAt: '2026-10-01T02:00:00.000Z' }),
+        earnedRow('sessions_5', { localDate: '2026-10-02' }),
+        earnedRow('minutes_60', { localDate: '2026-10-09' }),
+        earnedRow('level_ups_1', { localDate: '2026-08-01', retroactive: true }),
+      ],
+      emptyBadgeFacts(),
+    );
+    const groups = buildBadgeTimeline(shelf.recent);
+    expect(groups.map((g) => g.title)).toEqual([
+      'October 2026',
+      'September 2026',
+      'Found in your history',
+    ]);
+    // Local date decides the month, not the UTC instant.
+    expect(groups[1]!.badges.map((b) => b.def.id)).toEqual(['sessions_1']);
+    expect(groups[0]!.badges.map((b) => b.def.id)).toEqual(['minutes_60', 'sessions_5']);
+    expect(groups[2]!.badges.map((b) => b.def.id)).toEqual(['level_ups_1']);
+  });
+
+  it('is empty for a fresh user', () => {
+    expect(buildBadgeTimeline([])).toEqual([]);
   });
 });

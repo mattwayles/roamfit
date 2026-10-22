@@ -11,12 +11,13 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ScrollView, Share, StyleSheet, View, useWindowDimensions } from 'react-native';
 import type { BadgeCategory } from '@roamfit/engine';
 import { useFocusEffect } from '@react-navigation/native';
-import { badgesRepo, sessionsRepo } from '@roamfit/store';
+import { badgesRepo } from '@roamfit/store';
 import type { RootScreenProps } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
 import {
   badgeShareText,
+  buildBadgeTimeline,
   buildSeriesTrails,
   earnedDuringLabel,
   progressText,
@@ -24,14 +25,27 @@ import {
   tierTally,
   type ShelfBadge,
 } from '../lib/badges';
-import { buildSessionHistoryView, formatFullLocalDate } from '../lib/sessionHistory';
+import { formatFullLocalDate } from '../lib/sessionHistory';
+import { useEarnedDuring } from '../lib/useEarnedDuring';
 import { haptics } from '../lib/haptics';
 import { useDashboardData } from '../lib/useDashboardData';
 import { makeStyles, space } from '../theme';
-import { Button, Card, Icon, IconButton, Pips, PressableScale, Screen, Sheet, Txt } from '../ui';
+import {
+  Button,
+  Card,
+  Chip,
+  Icon,
+  IconButton,
+  Pips,
+  PressableScale,
+  Screen,
+  Sheet,
+  Txt,
+} from '../ui';
 import { BadgeEmblem, TIER_ACCENT } from '../components/BadgeEmblem';
 import { BadgeSeriesList, BadgeTrail } from '../components/BadgeTrail';
 import { BadgesHero } from '../components/BadgesHero';
+import { BadgeTimeline } from '../components/BadgeTimeline';
 import { TiltSheen } from '../components/TiltSheen';
 
 type Props = RootScreenProps<'Badges'>;
@@ -49,14 +63,8 @@ function EarnedDuring({
   badge: ShelfBadge;
   onOpen: (sessionId: string) => void;
 }): React.JSX.Element | null {
-  const { db, library } = useStore();
   const styles = useStyles();
-  const sessionId = badge.earned && !badge.retroactive ? badge.sessionId : null;
-  const view = useMemo(() => {
-    if (!sessionId) return null;
-    const session = sessionsRepo.getCompletedSessionDetail(db, sessionId);
-    return session ? buildSessionHistoryView(session, library.exercises) : null;
-  }, [db, library, sessionId]);
+  const view = useEarnedDuring(badge);
   if (!view) return null;
   return (
     <PressableScale
@@ -83,9 +91,12 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
   const { data, reload } = useDashboardData();
   const [openId, setOpenId] = useState<string | null>(null);
   const [trailSeries, setTrailSeries] = useState<string | null>(null);
+  // Remembered for this visit only (component state, not stored).
+  const [view, setView] = useState<'collection' | 'timeline'>('collection');
   const { height } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const sectionY = useRef<Partial<Record<BadgeCategory, number>>>({});
+  const timeline = useMemo(() => (data ? buildBadgeTimeline(data.badges.recent) : []), [data]);
   const trailSections = useMemo(
     () => (data ? buildSeriesTrails(data.badges.sections) : []),
     [data],
@@ -143,7 +154,32 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
         }}
       />
 
-      {shelf.almostThere.length > 0 ? (
+      <View style={styles.toggle} accessibilityRole="tablist" testID="badges-view-toggle">
+        <Chip
+          testID="badges-view-collection"
+          label="Collection"
+          selected={view === 'collection'}
+          onPress={() => setView('collection')}
+          accessibilityLabel="Collection view"
+        />
+        <Chip
+          testID="badges-view-timeline"
+          label="Timeline"
+          selected={view === 'timeline'}
+          onPress={() => setView('timeline')}
+          accessibilityLabel="Timeline view"
+        />
+      </View>
+
+      {view === 'timeline' ? (
+        <BadgeTimeline
+          groups={timeline}
+          onOpenBadge={(b) => openBadge(b)}
+          onOpenSession={(sessionId) => navigation.navigate('SessionHistory', { sessionId })}
+        />
+      ) : null}
+
+      {view === 'collection' && shelf.almostThere.length > 0 ? (
         <View style={styles.section} testID="badges-almost">
           <Txt variant="eyebrow" color="text3" accessibilityRole="header">
             Almost there
@@ -175,7 +211,7 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
         </View>
       ) : null}
 
-      {trailSections.map((section) => (
+      {(view === 'collection' ? trailSections : []).map((section) => (
         <View
           key={section.category}
           style={styles.section}
@@ -367,6 +403,7 @@ const useStyles = makeStyles(() =>
   StyleSheet.create({
     content: { paddingTop: space.lg, paddingBottom: space.huge + space.xxl, gap: space.xxl },
     head: { gap: space.xs },
+    toggle: { flexDirection: 'row', gap: space.sm },
     section: { gap: space.md },
     singles: { gap: space.sm, marginTop: space.sm },
     almostRow: { gap: space.md },

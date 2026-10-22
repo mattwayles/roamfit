@@ -328,3 +328,57 @@ export function tierTally(shelf: Pick<BadgeShelf, 'recent'>): Record<BadgeTier, 
   for (const b of shelf.recent) tally[b.def.tier] += 1;
   return tally;
 }
+
+export interface TimelineGroup {
+  /** `YYYY-MM`, or `found` for badges the backfill discovered in your history. */
+  key: string;
+  /** "October 2026", or "Found in your history". */
+  title: string;
+  /** Newest first. */
+  badges: ShelfBadge[];
+}
+
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/** "October 2026" from a `YYYY-MM-DD` local date (string math only: no UTC, invariant 6). */
+export function monthTitle(localDate: string): string {
+  const [y, m] = localDate.split('-');
+  return `${MONTH_NAMES[Number(m) - 1] ?? ''} ${y}`.trim();
+}
+
+/** Earned badges grouped by the local month they were earned in, newest month first. Badges
+ *  found by the history backfill were not "earned on" a day, so they sit in their own group at
+ *  the end, worded as a find rather than a gap. */
+export function buildBadgeTimeline(recent: readonly ShelfBadge[]): TimelineGroup[] {
+  const earned = recent.filter((b) => b.earned);
+  const byDateDesc = (a: ShelfBadge, b: ShelfBadge) =>
+    (b.localDate ?? '').localeCompare(a.localDate ?? '');
+  const groups = new Map<string, ShelfBadge[]>();
+  for (const b of [...earned.filter((x) => !x.retroactive && x.localDate)].sort(byDateDesc)) {
+    const key = b.localDate!.slice(0, 7);
+    const list = groups.get(key);
+    if (list) list.push(b);
+    else groups.set(key, [b]);
+  }
+  const out: TimelineGroup[] = [...groups.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([key, badges]) => ({ key, title: monthTitle(`${key}-01`), badges }));
+  const found = earned.filter((x) => x.retroactive || !x.localDate);
+  if (found.length > 0) {
+    out.push({ key: 'found', title: 'Found in your history', badges: [...found].sort(byDateDesc) });
+  }
+  return out;
+}
