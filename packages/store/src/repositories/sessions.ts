@@ -575,6 +575,37 @@ export function activeElapsedSec(
   return Math.max(0, gross - session.pausedTotalSec - openPause);
 }
 
+/** How long a running workout may go with nothing logged before its clock stops itself. */
+export const IDLE_PAUSE_SEC = 5 * 60;
+
+/**
+ * When the session clock should have stopped for lack of activity, or null if it should still be
+ * running. Activity is a set logged (completed or skipped); a workout with none yet counts from
+ * `startedAt`. `since` lifts that floor to a later instant (the user just resumed, or came back to
+ * the screen), so an idle pause is never back-dated across time the user deliberately restarted.
+ *
+ * The answer is the instant the threshold was crossed, not `now`: pausing there means the idle
+ * stretch beyond the threshold is not counted, even if the JS thread was suspended past it.
+ */
+export function idlePauseInstant(
+  session: Pick<SessionRecord, 'startedAt' | 'pausedAt' | 'entries'>,
+  now: string,
+  since?: string,
+): string | null {
+  if (!session.startedAt || session.pausedAt) return null;
+  let last = Date.parse(session.startedAt);
+  if (since) last = Math.max(last, Date.parse(since));
+  for (const e of session.entries) {
+    for (const s of e.setLogs) {
+      if (s.status === 'not_reached') continue;
+      const t = Date.parse(s.completedAt ?? s.startedAt ?? '');
+      if (Number.isFinite(t) && t > last) last = t;
+    }
+  }
+  const stopAt = last + IDLE_PAUSE_SEC * 1000;
+  return stopAt <= Date.parse(now) ? new Date(stopAt).toISOString() : null;
+}
+
 /**
  * The instant a finished session's clock should stop at: the last completed set, not the moment
  * the user remembered to press Stop. A workout left running (phone down, Stop forgotten) would

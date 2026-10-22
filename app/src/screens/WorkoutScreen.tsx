@@ -246,6 +246,13 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
    *  the set just completed instead of letting it move on. */
   const arrivalHandledRef = useRef(false);
 
+  /** Latest loaded session, for the interval above (which outlives any one render). */
+  const sessionRef = useRef<typeof session>(null);
+  sessionRef.current = session;
+  /** Floor for the idle auto-pause: this screen's mount, then each manual resume. Not persisted —
+   *  coming back to a workout starts a fresh five minutes rather than pausing it on arrival. */
+  const idleSinceRef = useRef<string>(nowUtcInstant());
+
   const reload = useCallback(
     () => setSession(sessionsRepo.getSession(db, sessionId)),
     [db, sessionId],
@@ -253,7 +260,16 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
 
   useEffect(() => {
     reload();
-    const id = setInterval(() => forceElapsedTick((n) => n + 1), 1000);
+    const id = setInterval(() => {
+      forceElapsedTick((n) => n + 1);
+      const s = sessionRef.current;
+      if (!s) return;
+      const stopAt = sessionsRepo.idlePauseInstant(s, nowUtcInstant(), idleSinceRef.current);
+      if (stopAt) {
+        sessionsRepo.pauseSession(db, sessionId, stopAt);
+        reload();
+      }
+    }, 1000);
     // §10.8 — configured once for the life of the session, re-asserted here rather than only at
     // app boot: the guard against Wave 6's YouTube player having last left the shared audio
     // session in a different shape (see workoutAudio.ts's file header).
@@ -263,7 +279,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
       clearInterval(id);
       stopBackgroundKeepAlive();
     };
-  }, [reload]);
+  }, [db, sessionId, reload]);
 
   /** The workout's own front edge: §10.8's derived "first not-yet-logged set". This is what says
    *  whether the workout is finished, regardless of which set the user is currently looking at. */
@@ -572,6 +588,7 @@ export default function WorkoutScreen({ navigation, route }: Props): React.JSX.E
     reload();
   };
   const handleResume = () => {
+    idleSinceRef.current = nowUtcInstant();
     sessionsRepo.resumeSession(db, sessionId, nowUtcInstant());
     reload();
   };
