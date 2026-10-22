@@ -59,6 +59,10 @@ the record of what was completed and why.
   worker process has failed to exit gracefully". Same rate with and without the fitted-text change
   (1/9 vs 1/10), so it predates it. Likely the suites' `WAIT_OPTS` timeout is too tight for the
   first Workout render under parallel load, or a leaked timer; try `--detectOpenHandles` first.
+  Since Track 44 (874 app tests) it is wider and more frequent (~1 run in 3): seen also on
+  `TrailProgressChart` (39s suite), `ApprovalScreen.daybreak` and `HomeScreen.syncIsolation`, all
+  passing when rerun alone. Suspect the same parallel-load timeouts; `--maxWorkers=50%` is a cheap
+  first experiment.
 - **Rungs with a single exercise.** Track 37k gave siblings to the high rungs the old backlog item
   named (horizontal_push l7, horizontal_pull l4-l8, anti_extension l4/l6), but 23 rungs still hold
   one exercise, so at that level the current-rung draw (~60%) always repeats it: horizontal_push
