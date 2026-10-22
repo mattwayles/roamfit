@@ -15,7 +15,7 @@ import { exerciseStateRepo, usersRepo } from '@roamfit/store';
 import RootNavigator from '../navigation/RootNavigator';
 import { StoreProvider } from '../state/StoreContext';
 import { getDb } from '../db';
-import { nowUtcInstant } from '../lib/localClock';
+import { localDateFromDate, nowUtcInstant } from '../lib/localClock';
 import { daybreakTheme } from '../theme';
 import { WAIT, flat, inDaybreak } from '../ui/test-utils';
 
@@ -370,5 +370,61 @@ describe('the exercise library', () => {
     await search('push-up');
     await fireEvent.press(screen.getByTestId(`exercise-card-${PUSH_UP.id}`));
     await waitFor(() => expect(screen.getByTestId('detail-name')).toHaveTextContent(PUSH_UP.name));
+  });
+});
+
+describe('the "suits my limitations" switch', () => {
+  const total = exerciseLibrary.exercises.length;
+  const overhead = exerciseLibrary.exercises.filter((e) =>
+    e.contraindications.includes('shoulder_overhead'),
+  ).length;
+
+  afterEach(() => {
+    usersRepo.setLimitationChoices(getDb(), [], '2026-10-21', nowUtcInstant());
+  });
+
+  it('is disabled with a neutral note when no limitations are saved, and points to Settings', async () => {
+    await openExercises();
+    await openFilters();
+    await openSection('fit');
+    expect(screen.getByTestId('filter-toggle-suitsLimitations').props.accessibilityState).toEqual(
+      expect.objectContaining({ disabled: true, checked: false }),
+    );
+    expect(screen.getByTestId('no-limitations-note')).toHaveTextContent('No limitations saved.');
+    await fireEvent.press(screen.getByTestId('filter-toggle-suitsLimitations'));
+    expect(screen.getByTestId('filters-done')).toHaveTextContent(`Show ${total} moves`);
+    await fireEvent.press(screen.getByTestId('edit-limitations'));
+    await waitFor(() => expect(screen.getByTestId('limitations-screen')).toBeTruthy(), WAIT);
+  });
+
+  it('hides what the generator would skip, shows a removable chip and counts it', async () => {
+    usersRepo.setLimitationChoices(
+      getDb(),
+      ['shoulder_overhead'],
+      localDateFromDate(new Date()),
+      nowUtcInstant(),
+    );
+    await openExercises();
+    expect(screen.getByTestId('exercise-count')).toHaveTextContent(`${total} moves`);
+    await openFilters();
+    await openSection('fit');
+    expect(screen.queryByTestId('no-limitations-note')).toBeNull();
+    await fireEvent.press(screen.getByTestId('filter-toggle-suitsLimitations'));
+    await waitFor(() =>
+      expect(screen.getByTestId('filters-done')).toHaveTextContent(
+        `Show ${total - overhead} moves`,
+      ),
+    );
+    await fireEvent.press(screen.getByTestId('filters-done'));
+    await waitFor(() =>
+      expect(screen.getByTestId('active-filter-suitsLimitations')).toHaveTextContent(
+        'Suits my limitations',
+      ),
+    );
+    expect(screen.getByTestId('filters-badge')).toHaveTextContent('1');
+    await fireEvent.press(screen.getByTestId('active-filter-suitsLimitations'));
+    await waitFor(() =>
+      expect(screen.getByTestId('exercise-count')).toHaveTextContent(`${total} moves`),
+    );
   });
 });

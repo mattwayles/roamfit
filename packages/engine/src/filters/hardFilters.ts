@@ -89,7 +89,9 @@ function isLimitationActive(l: Limitation, today: LocalDate): boolean {
   return daysBetween(today, l.expiresAt) >= 0;
 }
 
-function isInjuryEligible(
+/** The injury hard filter for one exercise — exported so read-only browsing (the Field Guide's
+ *  "suits my limitations" switch) asks exactly the question generation does. */
+export function isInjuryEligible(
   exercise: Exercise,
   limitations: readonly Limitation[],
   today: LocalDate,

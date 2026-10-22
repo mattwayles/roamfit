@@ -196,6 +196,7 @@ export function sectionSummaries(
     ...(state.performed === 'all' ? [] : [PERFORMED_SUMMARY[state.performed]]),
     ...(state.timedHolds ? ['Timed holds'] : []),
     ...(state.onLadder ? ['On a ladder'] : []),
+    ...(state.suitsLimitations ? ['Suits my limitations'] : []),
   ];
   return {
     works: summarizeLabels(works),

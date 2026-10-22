@@ -4,6 +4,7 @@
  * against hand-built records where it is about the rule itself.
  */
 import { exerciseLibrary } from '@roamfit/data';
+import { applyHardFilters, type Limitation } from '@roamfit/engine';
 import type { Exercise } from '@roamfit/data';
 import type { exerciseCatalogRepo } from '@roamfit/store';
 import {
@@ -178,7 +179,6 @@ describe('library dimensions', () => {
     ['no gear', { noGear: true }, ['plank']],
     ['laterality', { laterality: ['unilateral' as const] }, ['pullup']],
     ['difficulty', { difficulty: ['hard' as const] }, ['pullup']],
-    ['contraindication', { contraindication: ['elbow' as const] }, ['pullup']],
   ])('filters by %s', (_label, patch, expected) => {
     expect(all(exercises, { ...EMPTY_FILTERS, ...patch })).toEqual(expected);
   });
@@ -192,12 +192,6 @@ describe('library dimensions', () => {
 
   it('ANDs across dimensions', () => {
     expect(all(exercises, { ...EMPTY_FILTERS, difficulty: ['hard'], focus: ['abs'] })).toEqual([]);
-  });
-
-  it('matches an exercise carrying any of the selected contraindications, not all of them', () => {
-    expect(
-      all(exercises, { ...EMPTY_FILTERS, contraindication: ['elbow', 'core_pressure'] }),
-    ).toEqual(['plank', 'pullup']);
   });
 
   it('"On a ladder" leaves out unladdered moves (warmups, stretches, finishers)', () => {
@@ -353,5 +347,70 @@ describe('the gear choice', () => {
     expect(withBand(none, true).noGear).toBe(false);
     expect(withNoGear(none, false)).toEqual(EMPTY_FILTERS);
     expect(withBand(band, false)).toEqual(EMPTY_FILTERS);
+  });
+});
+
+describe('suits my limitations', () => {
+  const TODAY = '2026-10-21';
+  const lim = (tag: Limitation['tag'], extra: Partial<Limitation> = {}): Limitation => ({
+    tag,
+    createdAt: '2026-10-01',
+    source: 'user',
+    ...extra,
+  });
+  const injury = (limitations: Limitation[]) => ({ limitations, today: TODAY });
+  const on = { ...EMPTY_FILTERS, suitsLimitations: true };
+  const run = (state: typeof on, limitations: Limitation[], list = exerciseLibrary.exercises) =>
+    filterExercises(list, state, {}, FALLBACK, injury(limitations)).map((e) => e.id);
+  const generator = (limitations: Limitation[]) =>
+    applyHardFilters({
+      library: exerciseLibrary.exercises,
+      request: {},
+      anchorsAvailable: [
+        'anchor-low',
+        'anchor-mid',
+        'anchor-high',
+        'low-bar',
+        'pullup-bar',
+        'body-support',
+      ],
+      limitations,
+      disabledExerciseIds: new Set(),
+      today: TODAY,
+    }).map((e) => e.id);
+
+  it('hides exactly what the generator drops for a shoulder limitation, overhead presses included', () => {
+    const limitations = [lim('shoulder_overhead')];
+    const shown = new Set(run(on, limitations));
+    const hidden = exerciseLibrary.exercises.filter((e) => !shown.has(e.id));
+    expect(hidden.length).toBeGreaterThan(0);
+    expect(hidden.every((e) => e.contraindications.includes('shoulder_overhead'))).toBe(true);
+    expect(hidden.some((e) => e.pattern === 'vertical_push')).toBe(true);
+    // Everything the generator keeps (before gear gating) is shown, and nothing it drops is.
+    const kept = new Set(generator(limitations));
+    for (const id of kept) expect(shown.has(id)).toBe(true);
+    for (const e of hidden) expect(kept.has(e.id)).toBe(false);
+  });
+
+  it('is off by default: nothing is hidden', () => {
+    expect(run(EMPTY_FILTERS as typeof on, [lim('shoulder_overhead')])).toHaveLength(
+      exerciseLibrary.exercises.length,
+    );
+  });
+
+  it('ignores expired limitations, using the same local_date rule as generation', () => {
+    const expired = lim('shoulder_overhead', { source: 'pain_report', expiresAt: '2026-10-20' });
+    expect(run(on, [expired])).toHaveLength(exerciseLibrary.exercises.length);
+    const today = lim('shoulder_overhead', { source: 'pain_report', expiresAt: TODAY });
+    expect(run(on, [today]).length).toBeLessThan(exerciseLibrary.exercises.length);
+  });
+
+  it('hides nothing with no limitations, and counts as one filter when on', () => {
+    expect(run(on, [])).toHaveLength(exerciseLibrary.exercises.length);
+    expect(activeFilterCount(on)).toBe(1);
+  });
+
+  it('is a labelled switch', () => {
+    expect(TOGGLE_LABELS.suitsLimitations).toBe('Suits my limitations');
   });
 });

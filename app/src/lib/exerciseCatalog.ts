@@ -9,15 +9,9 @@
  * as a chip that always yields an empty list, and a value added to the library later would need
  * this file edited to become filterable.
  */
-import type {
-  Anchor,
-  Contraindication,
-  Difficulty,
-  Equipment,
-  Exercise,
-  Focus,
-  Pattern,
-} from '@roamfit/data';
+import type { Anchor, Difficulty, Equipment, Exercise, Focus, Pattern } from '@roamfit/data';
+import { isInjuryEligible } from '@roamfit/engine';
+import type { Limitation } from '@roamfit/engine';
 import type { exerciseCatalogRepo } from '@roamfit/store';
 import { MUSCLE_LABELS } from './filterLabels';
 
@@ -37,7 +31,6 @@ export interface ExerciseFilterState {
   laterality: LateralityFilter[];
   /** Primary muscle worked — the field the card headlines. */
   primary: string[];
-  contraindication: Contraindication[];
   /** Needs nothing to be set up or owned — see `needsNoGear`. */
   noGear: boolean;
   /** Held for time rather than counted in reps. */
@@ -45,6 +38,16 @@ export interface ExerciseFilterState {
   /** Sits on a progression ladder (`progression_family` non-null), so it has an easier and a
    *  harder version to move between. */
   onLadder: boolean;
+  /** Hide what the generator would skip for the user's active limitations — exclusion, applied by
+   *  the engine's own injury filter (see `filterExercises`' `injury` argument). */
+  suitsLimitations: boolean;
+}
+
+/** The user's limitations as generation reads them (`usersRepo.buildUserProfile`) and the
+ *  local_date it judged expiry against. */
+export interface InjuryContext {
+  limitations: readonly Limitation[];
+  today: string;
 }
 
 export const EMPTY_FILTERS: ExerciseFilterState = {
@@ -57,20 +60,21 @@ export const EMPTY_FILTERS: ExerciseFilterState = {
   difficulty: [],
   laterality: [],
   primary: [],
-  contraindication: [],
   noGear: false,
   timedHolds: false,
   onLadder: false,
+  suitsLimitations: false,
 };
 
 /** The on/off switches, in sheet order. */
-export const TOGGLE_KEYS = ['noGear', 'timedHolds', 'onLadder'] as const;
+export const TOGGLE_KEYS = ['noGear', 'timedHolds', 'onLadder', 'suitsLimitations'] as const;
 export type ToggleKey = (typeof TOGGLE_KEYS)[number];
 
 export const TOGGLE_LABELS: Record<ToggleKey, string> = {
   noGear: 'No gear',
   timedHolds: 'Timed holds',
   onLadder: 'On a ladder',
+  suitsLimitations: 'Suits my limitations',
 };
 
 /** Every multi-select dimension, in the order the filter sheet lays them out. Single source for
@@ -83,7 +87,6 @@ export const MULTI_SELECT_KEYS = [
   'anchor',
   'laterality',
   'difficulty',
-  'contraindication',
 ] as const;
 
 export type MultiSelectKey = (typeof MULTI_SELECT_KEYS)[number];
@@ -96,7 +99,6 @@ export const MULTI_SELECT_LABELS: Record<MultiSelectKey, string> = {
   anchor: 'Setup',
   laterality: 'Sides',
   difficulty: 'Difficulty',
-  contraindication: 'Limitations',
 };
 
 export type FilterOptions = Record<MultiSelectKey, string[]>;
@@ -170,6 +172,7 @@ export function filterExercises(
   state: ExerciseFilterState,
   catalog: Record<string, CatalogState>,
   fallback: CatalogState,
+  injury?: InjuryContext,
 ): Exercise[] {
   return exercises
     .filter((exercise) => {
@@ -194,10 +197,11 @@ export function filterExercises(
         (!state.noGear || needsNoGear(exercise)) &&
         (!state.timedHolds || exercise.metric === 'time') &&
         (!state.onLadder || exercise.progression_family !== null) &&
-        // A contraindication chip asks "which exercises carry this flag?", which is how you find
-        // everything a given limitation would rule out. It never *applies* the safety filter —
-        // that lives in the engine, in code, before anything is generated (invariant 3).
-        matchesAny(state.contraindication, exercise.contraindications)
+        // Browsing only: the engine's own injury filter decides, so the list hides exactly what a
+        // generated session would skip (invariant 3). No active limitations -> nothing to hide.
+        (!state.suitsLimitations ||
+          !injury ||
+          isInjuryEligible(exercise, injury.limitations, injury.today))
       );
     })
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -224,7 +228,6 @@ export function buildFilterOptions(exercises: Exercise[]): FilterOptions {
       new Set(exercises.map((e) => (e.unilateral ? 'unilateral' : 'bilateral'))),
     ),
     difficulty: inOrder(['easy', 'medium', 'hard'], new Set(exercises.map((e) => e.difficulty))),
-    contraindication: collect((e) => e.contraindications),
   };
 }
 

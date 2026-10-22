@@ -8,7 +8,7 @@
  * Anchor wording reuses `equipment.ts` (Generate's checklist) so the same fixed point has one name
  * across the app; the band-held-by-your-body anchors take their phrasing from the glossary.
  */
-import type { Anchor, Contraindication, Difficulty, Equipment, Pattern } from '@roamfit/data';
+import type { Anchor, Difficulty, Equipment, Pattern } from '@roamfit/data';
 import { ANCHOR_GROUPS } from './equipment';
 import { DIFFICULTY_LABELS, FOCUS_LABELS } from './focusLabels';
 
@@ -95,23 +95,6 @@ export const LATERALITY_LABELS: Record<string, string> = {
   unilateral: 'One side at a time',
 };
 
-export const CONTRAINDICATION_LABELS: Record<Contraindication, string> = {
-  shoulder_overhead: 'Shoulders, overhead',
-  shoulder_horizontal: 'Shoulders, pressing out front',
-  elbow: 'Elbows',
-  wrist_extension: 'Wrists, bent back',
-  knee_flexion_loaded: 'Knees, loaded bend',
-  knee_impact: 'Knees, impact',
-  hip: 'Hips',
-  lower_back_flexion: 'Lower back, rounding',
-  lower_back_extension: 'Lower back, arching',
-  neck: 'Neck',
-  ankle: 'Ankles',
-  core_pressure: 'Core pressure',
-  lying_supine: 'Lying on your back',
-  lying_prone: 'Lying face down',
-};
-
 const DIMENSION_LABELS = {
   focus: FOCUS_LABELS as Record<string, string>,
   primary: MUSCLE_LABELS,
@@ -120,7 +103,6 @@ const DIMENSION_LABELS = {
   anchor: ANCHOR_LABELS as Record<string, string>,
   laterality: LATERALITY_LABELS,
   difficulty: DIFFICULTY_LABELS as Record<Difficulty, string>,
-  contraindication: CONTRAINDICATION_LABELS as Record<string, string>,
 } as const;
 
 export type LabelledKey = keyof typeof DIMENSION_LABELS;

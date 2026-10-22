@@ -17,16 +17,18 @@
  * app/ writes no queries" convention this codebase already follows.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { exerciseCatalogRepo } from '@roamfit/store';
+import { exerciseCatalogRepo, usersRepo } from '@roamfit/store';
 import type { Exercise, Focus } from '@roamfit/data';
 import type { TabScreenProps } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
+import { nowEngineClock } from '../lib/localClock';
 import {
   activeFilterCount,
   buildFilterOptions,
   EMPTY_FILTERS,
+  type InjuryContext,
   filterExercises,
   MULTI_SELECT_KEYS,
   MULTI_SELECT_LABELS,
@@ -66,7 +68,18 @@ import {
   useTheme,
   type AccentName,
 } from '../theme';
-import { Button, Chip, Enter, Icon, IconButton, PressableScale, Screen, Sheet, Txt } from '../ui';
+import {
+  Button,
+  Chip,
+  Enter,
+  Icon,
+  IconButton,
+  PressableScale,
+  Screen,
+  Sheet,
+  Switch,
+  Txt,
+} from '../ui';
 import { EmptyState } from '../components/EmptyState';
 import { FilterSection } from '../components/FilterSection';
 import { GroupedChips } from '../components/GroupedChips';
@@ -96,6 +109,8 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
   const theme = useTheme();
   const styles = useStyles();
   const [catalog, setCatalog] = useState<Record<string, CatalogState>>({});
+  // The limitations generation would use today (choices + unexpired pain reports), via the store.
+  const [injury, setInjury] = useState<InjuryContext>({ limitations: [], today: '' });
   const [filters, setFilters] = useState<ExerciseFilterState>(EMPTY_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
   // Sheet layout state lives here, not in the sheet: the sheet's body unmounts when it closes, and
@@ -108,14 +123,16 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
   useFocusEffect(
     useCallback(() => {
       setCatalog(exerciseCatalogRepo.getExerciseCatalogState(db));
+      const { today } = nowEngineClock();
+      setInjury({ limitations: usersRepo.buildUserProfile(db, today).limitations, today });
     }, [db]),
   );
 
   const options = useMemo(() => buildFilterOptions(library.exercises), [library]);
   const fallback = useMemo(() => exerciseCatalogRepo.emptyCatalogState(), []);
   const visible = useMemo(
-    () => filterExercises(library.exercises, filters, catalog, fallback),
-    [library, filters, catalog, fallback],
+    () => filterExercises(library.exercises, filters, catalog, fallback, injury),
+    [library, filters, catalog, fallback, injury],
   );
 
   const appliedCount = activeFilterCount(filters);
@@ -205,6 +222,10 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
     }),
   );
 
+  // Disabled with nothing saved — unless it is already on (limitations cleared since), so it can
+  // always be turned off.
+  const hasLimitations = injury.limitations.length > 0 || filters.suitsLimitations;
+  const noneSaved = injury.limitations.length === 0;
   const moveCount = visible.length;
 
   const header = (
@@ -523,6 +544,51 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
                     value={filters.performed}
                     onChange={setPerformed}
                   />
+                  <View style={styles.filterGroup}>
+                    <Pressable
+                      testID="filter-toggle-suitsLimitations"
+                      accessibilityRole="switch"
+                      accessibilityLabel="Hide moves that don't suit my limitations"
+                      accessibilityState={{
+                        checked: filters.suitsLimitations,
+                        disabled: !hasLimitations,
+                      }}
+                      disabled={!hasLimitations}
+                      onPress={() => toggleSwitch('suitsLimitations')}
+                      style={[styles.switchRow, !hasLimitations && styles.switchRowOff]}
+                    >
+                      <Txt variant="body" style={styles.switchLabel}>
+                        Hide moves that don't suit my limitations
+                      </Txt>
+                      <Switch
+                        value={filters.suitsLimitations}
+                        disabled={!hasLimitations}
+                        onValueChange={() => toggleSwitch('suitsLimitations')}
+                        accessibilityLabel="Hide moves that don't suit my limitations"
+                      />
+                    </Pressable>
+                    {noneSaved && (
+                      <View style={styles.switchNote}>
+                        <Txt testID="no-limitations-note" variant="caption" color="text2">
+                          No limitations saved.
+                        </Txt>
+                        <PressableScale
+                          testID="edit-limitations"
+                          accessibilityRole="link"
+                          accessibilityLabel="Add limitations in Settings"
+                          hitSlop={8}
+                          onPress={() => {
+                            setFiltersOpen(false);
+                            navigation.navigate('Limitations');
+                          }}
+                        >
+                          <Txt variant="caption" color="teal">
+                            Add some in Settings
+                          </Txt>
+                        </PressableScale>
+                      </View>
+                    )}
+                  </View>
                   <ChipGroup label="Also">
                     {(['timedHolds', 'onLadder'] as const).map((key) => (
                       <Chip
@@ -539,24 +605,6 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
               )}
             </FilterSection>
           ))}
-
-          {/* Kept as-is until 46c swaps these for a single "hide what doesn't suit me" switch. */}
-          <View style={styles.filterGroup}>
-            <Txt variant="eyebrow" color="text3">
-              {MULTI_SELECT_LABELS.contraindication}
-            </Txt>
-            <View style={styles.chipWrap}>
-              {options.contraindication.map((value) => (
-                <ValueChip
-                  key={value}
-                  dimension="contraindication"
-                  value={value}
-                  selected={filters.contraindication.includes(value as never)}
-                  onPress={() => toggleValue('contraindication', value)}
-                />
-              ))}
-            </View>
-          </View>
         </ScrollView>
 
         {/* Live count; with nothing matching it still closes, and says so without a dead end. */}
@@ -818,6 +866,10 @@ const useStyles = makeStyles((t) =>
     sheetScroll: { flexGrow: 0 },
     sheetBody: { gap: space.xl, paddingBottom: space.md },
     filterGroup: { gap: space.sm },
+    switchRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+    switchRowOff: { opacity: 0.5 },
+    switchLabel: { flex: 1 },
+    switchNote: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm },
     chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
     sheetDone: { marginTop: space.lg },
   }),
