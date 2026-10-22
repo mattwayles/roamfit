@@ -14,6 +14,8 @@ import {
   formatToken,
   MULTI_SELECT_KEYS,
   needsNoGear,
+  withBand,
+  withNoGear,
   primaryMuscleLabel,
   TOGGLE_KEYS,
   TOGGLE_LABELS,
@@ -326,8 +328,30 @@ describe('card copy', () => {
     );
   });
 
+  it('uses the human muscle name on the second line', () => {
+    expect(primaryMuscleLabel(exercise({ id: 'x', name: 'X', primary: ['front_delts'] }))).toBe(
+      'Front shoulders',
+    );
+    expect(primaryMuscleLabel(exercise({ id: 'x', name: 'X', primary: ['abductors'] }))).toBe(
+      'Outer hips',
+    );
+  });
+
   it('says nothing punishing about an exercise never done', () => {
     expect(timesCompletedLabel(0)).toBe('Not done yet');
     expect(timesCompletedLabel(3)).toBe('3× completed');
+  });
+});
+
+describe('the gear choice', () => {
+  it('No gear and Band are mutually exclusive', () => {
+    const band = withBand(EMPTY_FILTERS, true);
+    expect(band.equipment).toEqual(['band']);
+    const none = withNoGear(band, true);
+    expect(none.noGear).toBe(true);
+    expect(none.equipment).toEqual([]);
+    expect(withBand(none, true).noGear).toBe(false);
+    expect(withNoGear(none, false)).toEqual(EMPTY_FILTERS);
+    expect(withBand(band, false)).toEqual(EMPTY_FILTERS);
   });
 });

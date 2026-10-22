@@ -19,6 +19,7 @@ import type {
   Pattern,
 } from '@roamfit/data';
 import type { exerciseCatalogRepo } from '@roamfit/store';
+import { MUSCLE_LABELS } from './filterLabels';
 
 type CatalogState = exerciseCatalogRepo.ExerciseCatalogState;
 
@@ -143,6 +144,20 @@ export function needsNoGear(exercise: Exercise): boolean {
 }
 
 /**
+ * The "What you need" choice is one of two: No gear, or Band. They are mutually exclusive because
+ * "No gear" means bodyweight with no anchor, which no band move can be — turning one on turns the
+ * other off rather than letting the pair silently match nothing. The quick-row "No gear" chip and
+ * the sheet's No gear control both go through here, so they can't disagree.
+ */
+export function withNoGear(state: ExerciseFilterState, on: boolean): ExerciseFilterState {
+  return { ...state, noGear: on, equipment: on ? [] : state.equipment };
+}
+
+export function withBand(state: ExerciseFilterState, on: boolean): ExerciseFilterState {
+  return { ...state, noGear: on ? false : state.noGear, equipment: on ? ['band'] : [] };
+}
+
+/**
  * The whole filter pipeline, ending in the alphabetical order the list is always in. Sorting is
  * not a user-facing option: an A–Z list is what makes a 219-exercise library scannable, and a
  * changing sort would defeat the muscle memory of knowing roughly where something sits.
@@ -223,7 +238,8 @@ export function formatToken(token: string): string {
 /** The card's second line: the primary muscle the exercise works. A handful of records list more
  *  than one; the first is the headline and the rest are on the detail page. */
 export function primaryMuscleLabel(exercise: Exercise): string {
-  return exercise.primary.length > 0 ? formatToken(exercise.primary[0]) : '—';
+  if (exercise.primary.length === 0) return '—';
+  return MUSCLE_LABELS[exercise.primary[0]] ?? formatToken(exercise.primary[0]);
 }
 
 export function timesCompletedLabel(timesCompleted: number): string {
