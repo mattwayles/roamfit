@@ -19,18 +19,8 @@ the record of what was completed and why.
   `eas build --platform ios --profile development`. Check the install link works on the phone and the
   build connects to `./scripts/dev.sh --tunnel`. TestFlight (`production` profile) is also untried and
   needs the App Store Connect app record first.
-- **iCloud backup (Track 43) — portal setup and device pass owed.** Only Jest (with an in-memory fake
-  of `app/modules/icloud-backup`) has seen this; the Swift module has never been compiled. First:
-  on the Apple Developer portal enable the iCloud capability for `com.mattwayles.wanderlift` and
-  create the container `iCloud.com.mattwayles.wanderlift` (or let EAS sync capabilities), then
-  `expo prebuild` and build to the phone — fix any Swift compile errors (likely spots:
-  `NSFileCoordinator` closure signatures, `Exception` init, `.runOnQueue`). Then on device: finish a
-  workout and see "Last backed up" update in Settings; delete the app, reinstall, and get the
-  "Welcome back" card on the welcome step; Restore lands on Today with history intact and onboarding
-  gone; a second phone on the same Apple ID gets the offer rather than overwriting; "Start fresh"
-  and "Keep this phone's data" confirms; iCloud signed out shows the calm unavailable copy; check
-  `stat` reports a real date for an evicted backup. Also: a restored user with no completed session
-  keeps the old phone's motivation notifications until Today next schedules (rare; untested).
+- **Restored user with no completed session** keeps the old phone's motivation notifications until
+  Today next schedules (rare; untested).
 - **Badges visuals (Track 38c) - device pass owed.** Only Jest has seen these. On a device check: the
   four patch shapes (circle, shield, hexagon, rounded square) and tier rings read clearly in Midnight
   and Daybreak, locked (dashed, faint glyph) vs earned is obvious at 40/64/120; the Badges grid at
