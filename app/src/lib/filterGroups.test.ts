@@ -126,7 +126,12 @@ describe('filtering is unchanged by grouping', () => {
   it('a family selection matches its member patterns', () => {
     const push = PATTERN_FAMILIES.find((g) => g.id === 'push')!;
     const pattern = toggleGroup(push, [], options.pattern) as ExerciseFilterState['pattern'];
-    const got = filterExercises(exerciseLibrary.exercises, { ...EMPTY_FILTERS, pattern }, {}, fallback);
+    const got = filterExercises(
+      exerciseLibrary.exercises,
+      { ...EMPTY_FILTERS, pattern },
+      {},
+      fallback,
+    );
     expect(got).toHaveLength(
       exerciseLibrary.exercises.filter((e) => push.members.includes(e.pattern)).length,
     );

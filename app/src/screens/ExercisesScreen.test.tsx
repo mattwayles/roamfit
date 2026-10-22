@@ -63,6 +63,11 @@ async function openFilters() {
   await waitFor(() => expect(screen.getByTestId('filter-panel')).toBeTruthy());
 }
 
+async function openSection(id: 'works' | 'moves' | 'need' | 'fit') {
+  await fireEvent.press(screen.getByTestId(`filter-section-${id}`));
+  await waitFor(() => expect(screen.getByTestId(`filter-section-${id}`)).toBeTruthy());
+}
+
 async function search(text: string) {
   await fireEvent.changeText(screen.getByTestId('exercise-search'), text);
   await waitFor(() => expect(screen.getByTestId('exercise-count')).toBeTruthy());
@@ -131,6 +136,7 @@ describe('the exercise library', () => {
     expect(shown).toBeGreaterThan(0);
     await fireEvent.press(screen.getByTestId('toggle-filters'));
     await waitFor(() => expect(screen.getByTestId('filter-panel')).toBeTruthy());
+    await openSection('fit');
     await fireEvent.press(screen.getByTestId('filter-performed-performed'));
     await waitFor(() => expect(screen.getByTestId('exercise-count')).toHaveTextContent('1 move'));
     expect(screen.getByTestId('exercise-count')).not.toHaveTextContent('moves');
@@ -169,13 +175,12 @@ describe('the exercise library', () => {
   it('filters by a library dimension, and counts what is applied', async () => {
     await openExercises();
     await openFilters();
-    await fireEvent.press(screen.getByTestId('filter-equipment-bodyweight'));
+    await openSection('need');
+    await fireEvent.press(screen.getByTestId('filter-equipment-band'));
 
     await waitFor(() => expect(screen.getByTestId('filters-badge')).toHaveTextContent('1'));
     const shown = Number(screen.getByTestId('exercise-count').props.children[0]);
-    expect(shown).toBe(
-      exerciseLibrary.exercises.filter((e) => e.equipment === 'bodyweight').length,
-    );
+    expect(shown).toBe(exerciseLibrary.exercises.filter((e) => e.equipment === 'band').length);
 
     await fireEvent.press(screen.getByTestId('clear-filters'));
     await waitFor(() =>
@@ -189,17 +194,16 @@ describe('the exercise library', () => {
   it('shows applied filters inline — removable chips, a quick focus chip and a clear-all', async () => {
     await openExercises();
     await openFilters();
-    await fireEvent.press(screen.getByTestId('filter-equipment-bodyweight'));
+    await openSection('need');
+    await fireEvent.press(screen.getByTestId('filter-equipment-band'));
     await fireEvent.press(screen.getByTestId('filters-done'));
 
-    // The equipment filter has no quick chip, so it surfaces as a removable one.
-    await waitFor(() =>
-      expect(screen.getByTestId('active-filter-equipment-bodyweight')).toBeTruthy(),
-    );
+    // The band filter has no quick chip, so it surfaces as a removable one.
+    await waitFor(() => expect(screen.getByTestId('active-filter-equipment-band')).toBeTruthy());
     await fireEvent.press(screen.getByTestId('quick-filter-focus-legs'));
     await waitFor(() => expect(screen.getByTestId('filters-badge')).toHaveTextContent('2'));
 
-    await fireEvent.press(screen.getByTestId('active-filter-equipment-bodyweight'));
+    await fireEvent.press(screen.getByTestId('active-filter-equipment-band'));
     await waitFor(() => expect(screen.getByTestId('filters-badge')).toHaveTextContent('1'));
 
     await fireEvent.press(screen.getByTestId('clear-filters-inline'));
@@ -222,6 +226,7 @@ describe('the exercise library', () => {
   it('keeps the sheet button live as filters change, and still closes with no match', async () => {
     await openExercises();
     await openFilters();
+    await openSection('fit');
     const total = exerciseLibrary.exercises.length;
     expect(screen.getByTestId('filters-done')).toHaveTextContent(`Show ${total} moves`);
     await fireEvent.press(screen.getByTestId('filter-performed-performed'));
@@ -230,8 +235,9 @@ describe('the exercise library', () => {
     );
     // Completed + a dimension PUSH_UP isn't in: nothing left.
     await fireEvent.press(screen.getByTestId('filter-difficulty-hard'));
-    await fireEvent.press(screen.getByTestId('filter-equipment-bodyweight'));
     await fireEvent.press(screen.getByTestId('filter-toggle-timedHolds'));
+    await openSection('need');
+    await fireEvent.press(screen.getByTestId('filter-toggle-noGear'));
     await waitFor(() =>
       expect(screen.getByTestId('filters-done')).toHaveTextContent('No moves match'),
     );
@@ -242,6 +248,8 @@ describe('the exercise library', () => {
   it('labels applied filters in plain words', async () => {
     await openExercises();
     await openFilters();
+    await openSection('need');
+    await openSection('fit');
     await fireEvent.press(screen.getByTestId('filter-anchor-anchor-mid'));
     await fireEvent.press(screen.getByTestId('filter-toggle-timedHolds'));
     await fireEvent.press(screen.getByTestId('filters-done'));
@@ -253,9 +261,89 @@ describe('the exercise library', () => {
     expect(screen.getByTestId('active-filter-timedHolds')).toHaveTextContent('Timed holds');
   });
 
+  it('opens only "What it works", and keeps open/closed state across closing the sheet', async () => {
+    await openExercises();
+    await openFilters();
+    expect(screen.getByTestId('filter-section-works')).toHaveProp('accessibilityState', {
+      expanded: true,
+    });
+    expect(screen.getByTestId('filter-section-moves')).toHaveProp('accessibilityState', {
+      expanded: false,
+    });
+    expect(screen.getByTestId('filter-group-primary-legs')).toBeTruthy();
+    expect(screen.queryByTestId('filter-group-pattern-push')).toBeNull();
+
+    await openSection('moves');
+    expect(screen.getByTestId('filter-group-pattern-push')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('filter-section-works'));
+    expect(screen.queryByTestId('filter-group-primary-legs')).toBeNull();
+
+    await fireEvent.press(screen.getByTestId('filters-done'));
+    await openFilters();
+    expect(screen.getByTestId('filter-group-pattern-push')).toBeTruthy();
+    expect(screen.queryByTestId('filter-group-primary-legs')).toBeNull();
+  });
+
+  it('summarises a closed section and selects a whole body area from one chip', async () => {
+    await openExercises();
+    await openFilters();
+    await fireEvent.press(screen.getByTestId('filter-group-primary-arms'));
+    const arms = ['biceps', 'triceps', 'forearms'];
+    await waitFor(() =>
+      expect(screen.getByTestId('exercise-count')).toHaveTextContent(
+        `${exerciseLibrary.exercises.filter((e) => e.primary.some((p) => arms.includes(p))).length} moves`,
+      ),
+    );
+    await fireEvent.press(screen.getByTestId('filter-section-works'));
+    expect(screen.getByTestId('filter-section-works-summary')).toHaveTextContent('Arms');
+
+    // Expanding the area shows the members, and dropping one makes the group partial.
+    await fireEvent.press(screen.getByTestId('filter-section-works'));
+    await fireEvent.press(screen.getByTestId('filter-expand-primary-arms'));
+    await fireEvent.press(screen.getByTestId('filter-primary-forearms'));
+    await waitFor(() =>
+      expect(screen.getByTestId('filter-group-primary-arms')).toHaveTextContent('Arms 2/3'),
+    );
+    await fireEvent.press(screen.getByTestId('filters-done'));
+    await waitFor(() =>
+      expect(screen.getByTestId('active-filter-primary-biceps')).toHaveTextContent('Biceps'),
+    );
+  });
+
+  it('shows a whole body area as one removable chip in the quick row', async () => {
+    await openExercises();
+    await openFilters();
+    await fireEvent.press(screen.getByTestId('filter-group-primary-core'));
+    await fireEvent.press(screen.getByTestId('filters-done'));
+    await waitFor(() =>
+      expect(screen.getByTestId('active-filter-primary-group-core')).toBeTruthy(),
+    );
+    await fireEvent.press(screen.getByTestId('active-filter-primary-group-core'));
+    await waitFor(() => expect(screen.queryByTestId('filters-badge')).toBeNull());
+  });
+
+  it('the sheet "No gear" control and the quick chip are the same state', async () => {
+    await openExercises();
+    await fireEvent.press(screen.getByTestId('quick-filter-no-gear'));
+    await openFilters();
+    await openSection('need');
+    expect(screen.getByTestId('filter-toggle-noGear')).toHaveProp('accessibilityState', undefined);
+    await fireEvent.press(screen.getByTestId('filter-equipment-band'));
+    // Band replaces No gear rather than silently matching nothing.
+    await waitFor(() => expect(screen.getByTestId('filters-badge')).toHaveTextContent('1'));
+    await fireEvent.press(screen.getByTestId('filters-done'));
+    expect(screen.getByTestId('quick-filter-no-gear')).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByTestId('exercise-count')).toHaveTextContent(
+        `${exerciseLibrary.exercises.filter((e) => e.equipment === 'band').length} moves`,
+      ),
+    );
+  });
+
   it('narrows to the exercises you have actually completed', async () => {
     await openExercises();
     await openFilters();
+    await openSection('fit');
     await fireEvent.press(screen.getByTestId('filter-performed-performed'));
     await waitFor(() => expect(screen.getByTestId('exercise-count')).toHaveTextContent('1 move'));
     expect(screen.getByTestId(`exercise-card-${PUSH_UP.id}`)).toBeTruthy();

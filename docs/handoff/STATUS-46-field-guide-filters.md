@@ -5,12 +5,15 @@ app/src/lib/filterLabels.ts (human labels), tests beside each.
 
 ### Done
 - [x] 46a — engine-only dimensions out, human labels, "No gear" quick chip, live "Show N moves" (commit 8044458)
+- [x] 46b — four collapsible sheet groups, body-area/movement-family grouping, No gear/Band choice, human muscle names on rows (lib 30d8bba; sheet + components + tests in the commit after it, see git log)
 
 ### In progress
-- 46b-1: app/src/lib/filterGroups.ts (MUSCLE_GROUPS, PATTERN_FAMILIES, helpers, summaries) + test; then FilterSection component + sheet rewrite in ExercisesScreen.tsx; then primaryMuscleLabel -> MUSCLE_LABELS.
+- 46c not started: find the saved-limitations store field (and the engine's limitation ->
+  contraindication mapping), then replace the `contraindication` chips at the bottom of the sheet
+  (ExercisesScreen.tsx, the "Limitations" block after the FilterSection map) with one switch.
 
 ### Next
-- 46b: reorganise the sheet into four collapsible groups — "What it works" (Focus + Body area:
+- (done) 46b: reorganise the sheet into four collapsible groups — "What it works" (Focus + Body area:
   20 muscles into ~8 groups, each expandable), "How it moves" (21 patterns into ~7 families: Push,
   Pull, Squat, Hinge, Lunge, Core, Cardio), "What you need" (No gear / Band, then setup in human
   terms), "Your fit" (difficulty, one side at a time, history). Closed sections show a summary
@@ -43,3 +46,25 @@ app/src/lib/filterLabels.ts (human labels), tests beside each.
 - Card line 2 (`primaryMuscleLabel`) still uses formatToken ("Front delts"); only filter labels
   were in scope. Consider switching it to MUSCLE_LABELS for consistency later.
 - Known full-suite flake: rerun a failing suite alone with `cd app && npx jest <file>`.
+- 46b groupings (lib/filterGroups.ts, a test asserts each library value is in exactly one group):
+  Body area (8): Chest; Shoulders (front/side/rear delts); Back (upper back, lats, traps, lower
+  back); Arms (biceps, triceps, forearms); Core (abs, obliques); Glutes; Legs (quads, hamstrings,
+  hip flexors, outer hips, inner thighs); Calves. Movement families (8): Push (horizontal, vertical);
+  Pull (horizontal, vertical); Squat; Hinge (hinge, hip extension); Lunge; Core (4 anti-/flexion
+  patterns); Cardio; Isolation (shoulder raises, curls, triceps ext., leg curl/extension, hips
+  out/in, calf) -- single-joint patterns have no natural compound home, so one family, not
+  scattered. Hamstring curl / leg extension live in Isolation rather than Hinge / Squat.
+- Group chip semantics: tap fills a partial group, clears a full one; chevron beside multi-member
+  groups expands to member chips (`filter-primary-<muscle>`, `filter-pattern-<pattern>`); group
+  chip is `filter-group-<dim>-<id>`; partial shows "Arms 2/3" in tint, full is solid. State still
+  holds individual values, so filtering is identical to tapping each member.
+- Applied (quick-row) chips collapse a fully selected group to its name (`active-filter-primary-group-core`).
+- Gear: "No gear" (`noGear`) and "Band" (`equipment: ['band']`) are mutually exclusive via
+  `withNoGear`/`withBand` in exerciseCatalog.ts; quick chip and sheet use the same function. The
+  bodyweight equipment chip is gone from the UI (it is meaningless beside No gear). Setup (anchor
+  chips) is always shown, not only with Band: bodyweight moves also have anchors (pull-up bar etc.).
+- Sheet layout state (open sections, expanded groups) lives in ExercisesScreen so it survives the
+  sheet closing; resets only when the screen unmounts. History option label is now "Done" in the
+  sheet (the quick chip still says "Completed").
+- Tests: open a section first (`openSection` helper in ExercisesScreen.test.tsx) before pressing
+  chips in a closed section; RNTL string toHaveTextContent is an exact match.

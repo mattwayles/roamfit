@@ -34,6 +34,8 @@ import {
   TOGGLE_KEYS,
   TOGGLE_LABELS,
   timesCompletedLabel,
+  withBand,
+  withNoGear,
 } from '../lib/exerciseCatalog';
 import type {
   ExerciseFilterState,
@@ -42,6 +44,17 @@ import type {
   ToggleKey,
 } from '../lib/exerciseCatalog';
 import { filterValueLabel } from '../lib/filterLabels';
+import {
+  DEFAULT_OPEN_SECTIONS,
+  FILTER_SECTION_ORDER,
+  FILTER_SECTION_TITLES,
+  MUSCLE_GROUPS,
+  PATTERN_FAMILIES,
+  sectionSummaries,
+  selectionChips,
+  toggleGroup,
+} from '../lib/filterGroups';
+import type { FilterGroup, FilterSectionId } from '../lib/filterGroups';
 import { FOCUS_LABELS, FOCUS_TONE } from '../lib/focusLabels';
 import {
   fontFamily,
@@ -55,6 +68,8 @@ import {
 } from '../theme';
 import { Button, Chip, Enter, Icon, IconButton, PressableScale, Screen, Sheet, Txt } from '../ui';
 import { EmptyState } from '../components/EmptyState';
+import { FilterSection } from '../components/FilterSection';
+import { GroupedChips } from '../components/GroupedChips';
 import { MuscleMap } from '../components/MuscleMap';
 
 type Props = TabScreenProps<'Exercises'>;
@@ -63,7 +78,7 @@ type CatalogState = exerciseCatalogRepo.ExerciseCatalogState;
 
 const PERFORMED_OPTIONS: { value: PerformedFilter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'performed', label: 'Completed' },
+  { value: 'performed', label: 'Done' },
   { value: 'never', label: 'Not yet' },
 ];
 
@@ -83,6 +98,10 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
   const [catalog, setCatalog] = useState<Record<string, CatalogState>>({});
   const [filters, setFilters] = useState<ExerciseFilterState>(EMPTY_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // Sheet layout state lives here, not in the sheet: the sheet's body unmounts when it closes, and
+  // a reopened sheet should come back as the user left it.
+  const [openSections, setOpenSections] = useState(DEFAULT_OPEN_SECTIONS);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
 
   // Re-read on focus: a session completed (or an exercise disabled) since has to be reflected
   // when the user comes back.
@@ -111,7 +130,39 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
     });
   };
 
-  const toggleSwitch = (key: ToggleKey) => setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleSwitch = (key: ToggleKey) =>
+    setFilters((prev) =>
+      key === 'noGear' ? withNoGear(prev, !prev.noGear) : { ...prev, [key]: !prev[key] },
+    );
+
+  const toggleBand = () => setFilters((prev) => withBand(prev, !prev.equipment.includes('band')));
+
+  const toggleSection = (id: FilterSectionId) =>
+    setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const toggleExpanded = (dimension: string, groupId: string) => {
+    const id = `${dimension}:${groupId}`;
+    setExpandedGroups((prev) => (prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]));
+  };
+  const expandedFor = (dimension: string) =>
+    expandedGroups.filter((g) => g.startsWith(`${dimension}:`)).map((g) => g.split(':')[1]);
+
+  const toggleFilterGroup = (key: 'primary' | 'pattern', group: FilterGroup) =>
+    setFilters(
+      (prev) =>
+        ({ ...prev, [key]: toggleGroup(group, prev[key], options[key]) }) as ExerciseFilterState,
+    );
+
+  const removeValues = (key: MultiSelectKey, values: string[]) =>
+    setFilters(
+      (prev) =>
+        ({
+          ...prev,
+          [key]: (prev[key] as string[]).filter((v) => !values.includes(v)),
+        }) as ExerciseFilterState,
+    );
+
+  const summaries = useMemo(() => sectionSummaries(filters, options), [filters, options]);
 
   const clearAll = () => setFilters((prev) => ({ ...EMPTY_FILTERS, query: prev.query }));
 
@@ -121,14 +172,29 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
   // Applied filters that the quick row has no chip for (equipment, muscle, ...) surface as
   // removable chips ahead of the quick ones, so nothing narrowing the list is ever hidden in the
   // sheet.
-  const appliedExtras = MULTI_SELECT_KEYS.filter((key) => key !== 'focus').flatMap((key) =>
-    (filters[key] as string[]).map((value) => ({
-      id: `${key}-${value}`,
-      label: filterValueLabel(key, value),
+  // Body area and movement patterns collapse a fully-selected family to one chip under its name.
+  const GROUPS_FOR: Partial<Record<MultiSelectKey, readonly FilterGroup[]>> = {
+    primary: MUSCLE_GROUPS,
+    pattern: PATTERN_FAMILIES,
+  };
+  const appliedExtras = MULTI_SELECT_KEYS.filter((key) => key !== 'focus').flatMap((key) => {
+    const groups = GROUPS_FOR[key];
+    const chips = groups
+      ? selectionChips(groups, filters[key] as string[], options[key], (v) =>
+          filterValueLabel(key, v),
+        )
+      : (filters[key] as string[]).map((value) => ({
+          id: value,
+          label: filterValueLabel(key, value),
+          values: [value],
+        }));
+    return chips.map((chip) => ({
+      id: `${key}-${chip.id}`,
+      label: chip.label,
       group: MULTI_SELECT_LABELS[key],
-      remove: () => toggleValue(key, value),
-    })),
-  );
+      remove: () => removeValues(key, chip.values),
+    }));
+  });
   // "No gear" has its own quick chip, so only the other two switches ride along here.
   const appliedSwitches = TOGGLE_KEYS.filter((key) => key !== 'noGear' && filters[key]).map(
     (key) => ({
@@ -341,52 +407,152 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
         </View>
 
         <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetBody}>
-          {/* Facts about this user's own state, not properties of the exercise record, sit first
-              as a single-choice row. */}
-          <FilterRow
-            testIdPrefix="filter-performed"
-            label="Your history"
-            options={PERFORMED_OPTIONS}
-            value={filters.performed}
-            onChange={setPerformed}
-          />
-
-          {MULTI_SELECT_KEYS.map((key) => (
-            <View key={key} style={styles.filterGroup}>
-              <Txt variant="eyebrow" color="text3">
-                {MULTI_SELECT_LABELS[key]}
-              </Txt>
-              <View style={styles.chipWrap}>
-                {options[key].map((value) => {
-                  const selected = (filters[key] as string[]).includes(value);
-                  return (
-                    <Chip
-                      key={value}
-                      testID={`filter-${key}-${value}`}
-                      label={filterValueLabel(key, value)}
-                      tone={selected ? 'teal' : 'neutral'}
-                      selected={selected}
-                      onPress={() => toggleValue(key, value)}
+          {FILTER_SECTION_ORDER.map((id) => (
+            <FilterSection
+              key={id}
+              testID={`filter-section-${id}`}
+              title={FILTER_SECTION_TITLES[id]}
+              summary={summaries[id]}
+              open={openSections[id]}
+              onToggle={() => toggleSection(id)}
+            >
+              {id === 'works' && (
+                <>
+                  <ChipGroup label="Focus">
+                    {options.focus.map((value) => (
+                      <ValueChip
+                        key={value}
+                        dimension="focus"
+                        value={value}
+                        selected={filters.focus.includes(value as Focus)}
+                        onPress={() => toggleValue('focus', value)}
+                      />
+                    ))}
+                  </ChipGroup>
+                  <View style={styles.filterGroup}>
+                    <Txt variant="eyebrow" color="text3">
+                      {MULTI_SELECT_LABELS.primary}
+                    </Txt>
+                    <GroupedChips
+                      dimension="primary"
+                      groups={MUSCLE_GROUPS}
+                      available={options.primary}
+                      selected={filters.primary}
+                      labelFor={(v) => filterValueLabel('primary', v)}
+                      expanded={expandedFor('primary')}
+                      onToggleGroup={(g) => toggleFilterGroup('primary', g)}
+                      onToggleValue={(v) => toggleValue('primary', v)}
+                      onToggleExpanded={(g) => toggleExpanded('primary', g)}
                     />
-                  );
-                })}
-              </View>
-            </View>
+                  </View>
+                </>
+              )}
+              {id === 'moves' && (
+                <GroupedChips
+                  dimension="pattern"
+                  groups={PATTERN_FAMILIES}
+                  available={options.pattern}
+                  selected={filters.pattern}
+                  labelFor={(v) => filterValueLabel('pattern', v)}
+                  expanded={expandedFor('pattern')}
+                  onToggleGroup={(g) => toggleFilterGroup('pattern', g)}
+                  onToggleValue={(v) => toggleValue('pattern', v)}
+                  onToggleExpanded={(g) => toggleExpanded('pattern', g)}
+                />
+              )}
+              {id === 'need' && (
+                <>
+                  {/* One choice, not a list: the same "no gear" the quick chip applies. */}
+                  <ChipGroup label="Gear">
+                    <Chip
+                      testID="filter-toggle-noGear"
+                      label={TOGGLE_LABELS.noGear}
+                      tone={filters.noGear ? 'teal' : 'neutral'}
+                      selected={filters.noGear}
+                      onPress={() => toggleSwitch('noGear')}
+                    />
+                    <Chip
+                      testID="filter-equipment-band"
+                      label="Band"
+                      tone={filters.equipment.includes('band') ? 'teal' : 'neutral'}
+                      selected={filters.equipment.includes('band')}
+                      onPress={toggleBand}
+                    />
+                  </ChipGroup>
+                  <ChipGroup label={MULTI_SELECT_LABELS.anchor}>
+                    {options.anchor.map((value) => (
+                      <ValueChip
+                        key={value}
+                        dimension="anchor"
+                        value={value}
+                        selected={filters.anchor.includes(value as never)}
+                        onPress={() => toggleValue('anchor', value)}
+                      />
+                    ))}
+                  </ChipGroup>
+                </>
+              )}
+              {id === 'fit' && (
+                <>
+                  <ChipGroup label={MULTI_SELECT_LABELS.difficulty}>
+                    {options.difficulty.map((value) => (
+                      <ValueChip
+                        key={value}
+                        dimension="difficulty"
+                        value={value}
+                        selected={filters.difficulty.includes(value as never)}
+                        onPress={() => toggleValue('difficulty', value)}
+                      />
+                    ))}
+                  </ChipGroup>
+                  <ChipGroup label={MULTI_SELECT_LABELS.laterality}>
+                    {options.laterality.map((value) => (
+                      <ValueChip
+                        key={value}
+                        dimension="laterality"
+                        value={value}
+                        selected={filters.laterality.includes(value as never)}
+                        onPress={() => toggleValue('laterality', value)}
+                      />
+                    ))}
+                  </ChipGroup>
+                  <FilterRow
+                    testIdPrefix="filter-performed"
+                    label="Your history"
+                    options={PERFORMED_OPTIONS}
+                    value={filters.performed}
+                    onChange={setPerformed}
+                  />
+                  <ChipGroup label="Also">
+                    {(['timedHolds', 'onLadder'] as const).map((key) => (
+                      <Chip
+                        key={key}
+                        testID={`filter-toggle-${key}`}
+                        label={TOGGLE_LABELS[key]}
+                        tone={filters[key] ? 'teal' : 'neutral'}
+                        selected={filters[key]}
+                        onPress={() => toggleSwitch(key)}
+                      />
+                    ))}
+                  </ChipGroup>
+                </>
+              )}
+            </FilterSection>
           ))}
 
+          {/* Kept as-is until 46c swaps these for a single "hide what doesn't suit me" switch. */}
           <View style={styles.filterGroup}>
             <Txt variant="eyebrow" color="text3">
-              Good to know
+              {MULTI_SELECT_LABELS.contraindication}
             </Txt>
             <View style={styles.chipWrap}>
-              {TOGGLE_KEYS.map((key) => (
-                <Chip
-                  key={key}
-                  testID={`filter-toggle-${key}`}
-                  label={TOGGLE_LABELS[key]}
-                  tone={filters[key] ? 'teal' : 'neutral'}
-                  selected={filters[key]}
-                  onPress={() => toggleSwitch(key)}
+              {options.contraindication.map((value) => (
+                <ValueChip
+                  key={value}
+                  dimension="contraindication"
+                  value={value}
+                  selected={filters.contraindication.includes(value as never)}
+                  onPress={() => toggleValue('contraindication', value)}
                 />
               ))}
             </View>
@@ -396,12 +562,57 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
         {/* Live count; with nothing matching it still closes, and says so without a dead end. */}
         <Button
           testID="filters-done"
-          label={moveCount === 0 ? 'No moves match' : `Show ${moveCount} ${moveCount === 1 ? 'move' : 'moves'}`}
+          label={
+            moveCount === 0
+              ? 'No moves match'
+              : `Show ${moveCount} ${moveCount === 1 ? 'move' : 'moves'}`
+          }
           onPress={() => setFiltersOpen(false)}
           style={styles.sheetDone}
         />
       </Sheet>
     </Screen>
+  );
+}
+
+function ChipGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const styles = useStyles();
+  return (
+    <View style={styles.filterGroup}>
+      <Txt variant="eyebrow" color="text3">
+        {label}
+      </Txt>
+      <View style={styles.chipWrap}>{children}</View>
+    </View>
+  );
+}
+
+/** One chip of a flat multi-select dimension, labelled in plain words. */
+function ValueChip({
+  dimension,
+  value,
+  selected,
+  onPress,
+}: {
+  dimension: MultiSelectKey;
+  value: string;
+  selected: boolean;
+  onPress: () => void;
+}): React.JSX.Element {
+  return (
+    <Chip
+      testID={`filter-${dimension}-${value}`}
+      label={filterValueLabel(dimension, value)}
+      tone={selected ? 'teal' : 'neutral'}
+      selected={selected}
+      onPress={onPress}
+    />
   );
 }
 
