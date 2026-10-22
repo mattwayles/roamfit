@@ -4,10 +4,10 @@ Files: app/src/screens/ExercisesScreen.tsx, app/src/lib/exerciseCatalog.ts (stat
 app/src/lib/filterLabels.ts (human labels), tests beside each.
 
 ### Done
-- [ ] 46a — engine-only dimensions out, human labels, "No gear" quick chip, live "Show N moves" (sha: see below)
+- [x] 46a — engine-only dimensions out, human labels, "No gear" quick chip, live "Show N moves" (commit 8044458)
 
 ### In progress
-- 46a committing (this file written first).
+- 46b not started: first step is the MUSCLE_GROUPS / PATTERN_FAMILIES mapping (see Next).
 
 ### Next
 - 46b: reorganise the sheet into four collapsible groups — "What it works" (Focus + Body area:
