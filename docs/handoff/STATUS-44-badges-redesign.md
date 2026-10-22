@@ -7,7 +7,7 @@ Last updated: 2026-10-21
 - [x] 44a engine `hint` + catalog hints + test — ce92cc9
 - [x] 44a BadgeEmblem `showProgress` arc (grid + Almost there) — 1033d01
 - [x] 44a sheet: Earned during link, Share (text), series Pips + prev/next, locked hint,
-      BACKLOG image-share item — see git log (commit after 1033d01)
+      BACKLOG image-share item — 9689f22
 
 ### In progress
 
