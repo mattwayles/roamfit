@@ -30,6 +30,11 @@ the record of what was completed and why.
 - **`travel_days_this_week` is now write-only.** It reduced the weekly-target denominator, which went
   with days per week (Track 40). `recordTravelDay` still bumps it; the calendar reads the
   `travel_day` signal event instead. Drop the column and the bump with a migration.
+- **Badges motion (Track 44c) — device pass owed.** Jest-verified wiring only. On a device, in
+  Midnight and Daybreak, with Reduce Motion off then on: the stitch-in on a fresh unseen badge (and
+  its single success haptic), the slow summit shimmer on the page, tilt-to-sheen on an earned
+  gold/summit sheet emblem (smooth? does it fight the sheet's swipe-down?), medium impact on opening
+  a summit badge. With Reduce Motion on, all of it should be static.
 - **Today / Journey / Field guide headers (Track 41) — device pass owed.** The Today header is the
   logo alone, centred (now 72pt) with the gear on the right: glow not clipped, size right in
   Midnight and Daybreak, gear never overlaps the logo on a small phone. The Journey / Field guide

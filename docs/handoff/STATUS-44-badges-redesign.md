@@ -10,15 +10,14 @@ Last updated: 2026-10-21
 - [x] 44b BadgeTrail, BadgesHero, BadgesScreen swap, tests - see git log
 - [x] 44a sheet: Earned during link, Share (text), series Pips + prev/next, locked hint,
       BACKLOG image-share item — 9689f22
+- [x] 44c delight pass: stitch-in, summit shimmer, tilt-to-sheen, haptics, tests - fa1f692
 
 ### In progress
 
-- 44c (started 2026-10-21), in order: (1) `components/badgeMotion.ts` (shared shimmer loop hook,
-  `useStitchIn`), BadgeEmblem props `animateIn` / `shimmer` / `sheen`; wire `animateIn={unseen}`
-  in BadgeTrail nodes, BadgesHero, singles; `haptics.success` once per visit in BadgesScreen
-  focus effect. (2) summit-open haptic (`haptics.medium`; PressableScale already ticks
-  `selection` on every press incl. IconButton/Card). (3) `TiltSheen` wrapper for the sheet emblem.
-  (4) tests. One commit per step.
+- 44d: start with the Collection | Timeline toggle on `BadgesScreen.tsx`: a segmented control under
+  the hero (look at existing segmented/Tabs controls in `app/src/ui`), a pure
+  `buildBadgeTimeline(shelf.recent)` in `lib/badges.ts` (month-grouped earned badges, newest
+  first, linked workout via `sessionId`) with a test, then the Timeline list component.
 
 ### Next
 
@@ -61,3 +60,22 @@ Last updated: 2026-10-21
   `Screen`'s existing `scrollRef` plus each section's `onLayout` y.
 - Test ids: `trail-<series>`, `trail-tier-<id>`, `badges-patch-<category>`, `badges-hero-*`,
   `badges-count` (now a single string child). Singles keep `badge-<id>`.
+
+- 44c: stitch-in is a native-driven scale+opacity pop of the whole emblem with the glyph fading in
+  220ms later (NOT an animated strokeDashoffset: svg props can't use the native driver and the
+  dash draw was not verifiable without a device). `animateIn` replays each time it turns true.
+  Motion lives in `components/badgeMotion.ts`; BadgeEmblem only mounts the Reduce Motion
+  subscription (`MotionEmblem`) when `animateIn`/summit `shimmer`/`sheen` is set, so the other
+  ~60 emblems on the page stay hook-free. Shimmer and tilt highlight are the same `SheenBand`
+  (gradient Rect clipped to the outline by a ClipPath, x animated on the JS driver); shimmer is
+  one module-level looping value shared by all summit emblems. `PressableScale` already ticks
+  `selection` on every press (cells, trail rows, hero, IconButton prev/next), so no extra tick
+  was added; earned-summit open uses `haptics.medium` via `openBadge`. Success haptic fires once
+  per focus when anything was unseen (also under Reduce Motion: it is a haptic, not motion).
+  TiltSheen's PanResponder claims only touches that start on the emblem.
+- Motion is NOT verified visually (Jest cannot); needs a device pass: stitch-in feel, shimmer
+  subtlety on Daybreak, tilt vs. the native sheet's swipe-down, JS-driver sheen smoothness.
+  Add to BACKLOG verification if not already there.
+- Jest: RNTL render is async here (`await render`, `await fireEvent`); sync render trips the act
+  environment. The RN accessibility mock is a plain jest.fn, so a `mockResolvedValue(true)` leaks
+  across tests unless reset in afterEach.
