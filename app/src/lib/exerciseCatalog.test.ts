@@ -13,9 +13,13 @@ import {
   filterExercises,
   formatToken,
   MULTI_SELECT_KEYS,
+  needsNoGear,
   primaryMuscleLabel,
+  TOGGLE_KEYS,
+  TOGGLE_LABELS,
   timesCompletedLabel,
 } from './exerciseCatalog';
+import { filterValueLabel } from './filterLabels';
 
 type CatalogState = exerciseCatalogRepo.ExerciseCatalogState;
 
@@ -167,12 +171,11 @@ describe('library dimensions', () => {
     ['pattern', { pattern: ['vertical_pull' as const] }, ['pullup']],
     ['primary muscle', { primary: ['lats'] }, ['pullup']],
     ['anchor', { anchor: ['pullup-bar' as const] }, ['pullup']],
-    ['anchor class', { anchorClass: ['none' as const] }, ['plank']],
-    ['metric', { metric: ['time' as const] }, ['plank']],
+    ['timed holds', { timedHolds: true }, ['plank']],
+    ['on a ladder', { onLadder: true }, ['plank', 'pullup']],
+    ['no gear', { noGear: true }, ['plank']],
     ['laterality', { laterality: ['unilateral' as const] }, ['pullup']],
     ['difficulty', { difficulty: ['hard' as const] }, ['pullup']],
-    ['tier', { tier: ['stretch' as const] }, ['pullup']],
-    ['progression family', { family: ['anti_extension' as const] }, ['plank']],
     ['contraindication', { contraindication: ['elbow' as const] }, ['pullup']],
   ])('filters by %s', (_label, patch, expected) => {
     expect(all(exercises, { ...EMPTY_FILTERS, ...patch })).toEqual(expected);
@@ -195,9 +198,32 @@ describe('library dimensions', () => {
     ).toEqual(['plank', 'pullup']);
   });
 
-  it('treats an unladdered exercise as the "none" family, which is filterable', () => {
+  it('"On a ladder" leaves out unladdered moves (warmups, stretches, finishers)', () => {
     const accessory = [...exercises, exercise({ id: 'stretch', name: 'Chest Stretch' })];
-    expect(all(accessory, { ...EMPTY_FILTERS, family: ['none'] })).toEqual(['stretch']);
+    expect(all(accessory, { ...EMPTY_FILTERS, onLadder: true })).toEqual(['plank', 'pullup']);
+  });
+
+  it('"No gear" is bodyweight with no anchor — not a bar, bench or rope, and not a band', () => {
+    const gear = [
+      exercise({ id: 'squat', name: 'Squat', equipment: 'bodyweight', band: null }),
+      exercise({
+        id: 'bench',
+        name: 'Step-Up',
+        equipment: 'bodyweight',
+        band: null,
+        anchor: 'body-support',
+      }),
+      exercise({
+        id: 'rope',
+        name: 'Jump Rope',
+        equipment: 'bodyweight',
+        band: null,
+        anchor: 'jump-rope',
+      }),
+      exercise({ id: 'row', name: 'Band Row', anchor: 'stance' }),
+    ];
+    expect(gear.filter(needsNoGear).map((e) => e.id)).toEqual(['squat']);
+    expect(all(gear, { ...EMPTY_FILTERS, noGear: true })).toEqual(['squat']);
   });
 });
 
@@ -217,6 +243,10 @@ describe('activeFilterCount', () => {
       }),
     ).toBe(4);
   });
+
+  it('counts each switch that is on', () => {
+    expect(activeFilterCount({ ...EMPTY_FILTERS, noGear: true, timedHolds: true })).toBe(2);
+  });
 });
 
 describe('buildFilterOptions, against the real library', () => {
@@ -230,8 +260,6 @@ describe('buildFilterOptions, against the real library', () => {
 
   it('keeps the ordered vocabularies in their natural order, not alphabetical', () => {
     expect(options.difficulty).toEqual(['easy', 'medium', 'hard']);
-    expect(options.role).toEqual(['warmup', 'main', 'cooldown']);
-    expect(options.tier).toEqual(['core', 'fill', 'stretch']);
   });
 
   it('offers no chip that matches nothing — every option yields at least one exercise', () => {
@@ -249,6 +277,40 @@ describe('buildFilterOptions, against the real library', () => {
     for (const key of MULTI_SELECT_KEYS) {
       expect(new Set(options[key]).size).toBe(options[key].length);
     }
+  });
+});
+
+describe('filter labels, against the real library', () => {
+  const options = buildFilterOptions(exerciseLibrary.exercises);
+  const labelled = MULTI_SELECT_KEYS;
+
+  it('has a hand-written label for every value, none falling back to the raw id', () => {
+    for (const key of labelled) {
+      for (const value of options[key]) {
+        const label = filterValueLabel(key, value);
+        expect(label).not.toBe(value);
+        expect(label).not.toMatch(/[_]|anchor-/);
+        expect(label).toBe(label.trim());
+      }
+    }
+  });
+
+  it('gives different values different labels within a dimension', () => {
+    for (const key of labelled) {
+      const names = options[key].map((v) => filterValueLabel(key, v));
+      expect(new Set(names).size).toBe(names.length);
+    }
+  });
+
+  it('reuses the existing anchor wording', () => {
+    expect(filterValueLabel('anchor', 'anchor-mid')).toBe(
+      'Mid band anchor point, waist to chest height',
+    );
+    expect(filterValueLabel('anchor', 'body-support')).toBe('Bench or step');
+  });
+
+  it('has a label for every switch', () => {
+    for (const key of TOGGLE_KEYS) expect(TOGGLE_LABELS[key]).toBeTruthy();
   });
 });
 

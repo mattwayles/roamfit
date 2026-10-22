@@ -207,6 +207,52 @@ describe('the exercise library', () => {
     expect(screen.queryByTestId('clear-filters-inline')).toBeNull();
   });
 
+  it('"No gear" in the quick row narrows to bodyweight moves with no anchor', async () => {
+    await openExercises();
+    await fireEvent.press(screen.getByTestId('quick-filter-no-gear'));
+    await waitFor(() => expect(screen.getByTestId('filters-badge')).toHaveTextContent('1'));
+    const expected = exerciseLibrary.exercises.filter(
+      (e) => e.equipment === 'bodyweight' && e.anchor === 'none',
+    ).length;
+    expect(screen.getByTestId('exercise-count')).toHaveTextContent(`${expected} moves`);
+    // It's the quick chip itself, not a duplicate removable chip.
+    expect(screen.queryByTestId('active-filter-noGear')).toBeNull();
+  });
+
+  it('keeps the sheet button live as filters change, and still closes with no match', async () => {
+    await openExercises();
+    await openFilters();
+    const total = exerciseLibrary.exercises.length;
+    expect(screen.getByTestId('filters-done')).toHaveTextContent(`Show ${total} moves`);
+    await fireEvent.press(screen.getByTestId('filter-performed-performed'));
+    await waitFor(() =>
+      expect(screen.getByTestId('filters-done')).toHaveTextContent('Show 1 move'),
+    );
+    // Completed + a dimension PUSH_UP isn't in: nothing left.
+    await fireEvent.press(screen.getByTestId('filter-difficulty-hard'));
+    await fireEvent.press(screen.getByTestId('filter-equipment-bodyweight'));
+    await fireEvent.press(screen.getByTestId('filter-toggle-timedHolds'));
+    await waitFor(() =>
+      expect(screen.getByTestId('filters-done')).toHaveTextContent('No moves match'),
+    );
+    await fireEvent.press(screen.getByTestId('filters-done'));
+    await waitFor(() => expect(screen.getByTestId('exercise-empty')).toBeTruthy());
+  });
+
+  it('labels applied filters in plain words', async () => {
+    await openExercises();
+    await openFilters();
+    await fireEvent.press(screen.getByTestId('filter-anchor-anchor-mid'));
+    await fireEvent.press(screen.getByTestId('filter-toggle-timedHolds'));
+    await fireEvent.press(screen.getByTestId('filters-done'));
+    await waitFor(() =>
+      expect(screen.getByTestId('active-filter-anchor-anchor-mid')).toHaveTextContent(
+        'Mid band anchor point, waist to chest height',
+      ),
+    );
+    expect(screen.getByTestId('active-filter-timedHolds')).toHaveTextContent('Timed holds');
+  });
+
   it('narrows to the exercises you have actually completed', async () => {
     await openExercises();
     await openFilters();

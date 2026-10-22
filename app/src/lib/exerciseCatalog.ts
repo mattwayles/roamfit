@@ -11,17 +11,12 @@
  */
 import type {
   Anchor,
-  AnchorClass,
   Contraindication,
   Difficulty,
   Equipment,
   Exercise,
   Focus,
-  Metric,
   Pattern,
-  ProgressionFamilyId,
-  Role,
-  Tier,
 } from '@roamfit/data';
 import type { exerciseCatalogRepo } from '@roamfit/store';
 
@@ -29,9 +24,6 @@ type CatalogState = exerciseCatalogRepo.ExerciseCatalogState;
 
 export type PerformedFilter = 'all' | 'performed' | 'never';
 export type LateralityFilter = 'unilateral' | 'bilateral';
-/** A family chip, plus the real and useful "belongs to no ladder" case (warmups, stretches,
- *  finishers — `progression_family: null` on the record). */
-export type FamilyFilter = ProgressionFamilyId | 'none';
 
 export interface ExerciseFilterState {
   query: string;
@@ -40,16 +32,18 @@ export interface ExerciseFilterState {
   pattern: Pattern[];
   equipment: Equipment[];
   anchor: Anchor[];
-  anchorClass: AnchorClass[];
-  metric: Metric[];
-  tier: Tier[];
-  role: Role[];
   difficulty: Difficulty[];
   laterality: LateralityFilter[];
-  family: FamilyFilter[];
   /** Primary muscle worked — the field the card headlines. */
   primary: string[];
   contraindication: Contraindication[];
+  /** Needs nothing to be set up or owned — see `needsNoGear`. */
+  noGear: boolean;
+  /** Held for time rather than counted in reps. */
+  timedHolds: boolean;
+  /** Sits on a progression ladder (`progression_family` non-null), so it has an easier and a
+   *  harder version to move between. */
+  onLadder: boolean;
 }
 
 export const EMPTY_FILTERS: ExerciseFilterState = {
@@ -59,15 +53,23 @@ export const EMPTY_FILTERS: ExerciseFilterState = {
   pattern: [],
   equipment: [],
   anchor: [],
-  anchorClass: [],
-  metric: [],
-  tier: [],
-  role: [],
   difficulty: [],
   laterality: [],
-  family: [],
   primary: [],
   contraindication: [],
+  noGear: false,
+  timedHolds: false,
+  onLadder: false,
+};
+
+/** The on/off switches, in sheet order. */
+export const TOGGLE_KEYS = ['noGear', 'timedHolds', 'onLadder'] as const;
+export type ToggleKey = (typeof TOGGLE_KEYS)[number];
+
+export const TOGGLE_LABELS: Record<ToggleKey, string> = {
+  noGear: 'No gear',
+  timedHolds: 'Timed holds',
+  onLadder: 'On a ladder',
 };
 
 /** Every multi-select dimension, in the order the filter sheet lays them out. Single source for
@@ -78,13 +80,8 @@ export const MULTI_SELECT_KEYS = [
   'pattern',
   'equipment',
   'anchor',
-  'anchorClass',
-  'metric',
   'laterality',
   'difficulty',
-  'tier',
-  'role',
-  'family',
   'contraindication',
 ] as const;
 
@@ -92,18 +89,13 @@ export type MultiSelectKey = (typeof MULTI_SELECT_KEYS)[number];
 
 export const MULTI_SELECT_LABELS: Record<MultiSelectKey, string> = {
   focus: 'Focus',
-  primary: 'Primary muscle',
-  pattern: 'Movement pattern',
+  primary: 'Body area',
+  pattern: 'How it moves',
   equipment: 'Equipment',
-  anchor: 'Anchor',
-  anchorClass: 'Anchor class',
-  metric: 'Metric',
+  anchor: 'Setup',
   laterality: 'Sides',
   difficulty: 'Difficulty',
-  tier: 'Tier',
-  role: 'Section',
-  family: 'Progression family',
-  contraindication: 'Contraindications',
+  contraindication: 'Limitations',
 };
 
 export type FilterOptions = Record<MultiSelectKey, string[]>;
@@ -113,7 +105,8 @@ export type FilterOptions = Record<MultiSelectKey, string[]>;
  *  text and its own clear affordance. */
 export function activeFilterCount(state: ExerciseFilterState): number {
   const multi = MULTI_SELECT_KEYS.reduce((n, key) => n + state[key].length, 0);
-  return multi + (state.performed === 'all' ? 0 : 1);
+  const toggles = TOGGLE_KEYS.filter((key) => state[key]).length;
+  return multi + toggles + (state.performed === 'all' ? 0 : 1);
 }
 
 /**
@@ -139,8 +132,14 @@ function matchesAny<T extends string>(selected: T[], values: T[]): boolean {
   return selected.length === 0 || values.some((v) => selected.includes(v));
 }
 
-export function familyOf(exercise: Exercise): FamilyFilter {
-  return exercise.progression_family ?? 'none';
+/**
+ * "No gear": nothing to own and nothing to rig. That is a bodyweight exercise with no anchor —
+ * `equipment` alone isn't enough, because bodyweight records also cover a pull-up bar, a
+ * waist-height bar, a bench or step (`body-support`) and a jump rope, all of which need something.
+ * Band exercises never qualify, even when the band is held by the body (`stance`, `self-low`).
+ */
+export function needsNoGear(exercise: Exercise): boolean {
+  return exercise.equipment === 'bodyweight' && exercise.anchor === 'none';
 }
 
 /**
@@ -175,13 +174,11 @@ export function filterExercises(
           state.anchor,
           exercise.anchor_alt ? [exercise.anchor, exercise.anchor_alt] : [exercise.anchor],
         ) &&
-        matchesAny(state.anchorClass, [exercise.anchor_class]) &&
-        matchesAny(state.metric, [exercise.metric]) &&
         matchesAny(state.laterality, [exercise.unilateral ? 'unilateral' : 'bilateral']) &&
         matchesAny(state.difficulty, [exercise.difficulty]) &&
-        matchesAny(state.tier, [exercise.tier]) &&
-        matchesAny(state.role, exercise.roles) &&
-        matchesAny(state.family, [familyOf(exercise)]) &&
+        (!state.noGear || needsNoGear(exercise)) &&
+        (!state.timedHolds || exercise.metric === 'time') &&
+        (!state.onLadder || exercise.progression_family !== null) &&
         // A contraindication chip asks "which exercises carry this flag?", which is how you find
         // everything a given limitation would rule out. It never *applies* the safety filter —
         // that lives in the engine, in code, before anything is generated (invariant 3).
@@ -207,16 +204,11 @@ export function buildFilterOptions(exercises: Exercise[]): FilterOptions {
     pattern: collect((e) => [e.pattern]),
     equipment: collect((e) => [e.equipment]),
     anchor: collect((e) => (e.anchor_alt ? [e.anchor, e.anchor_alt] : [e.anchor])),
-    anchorClass: collect((e) => [e.anchor_class]),
-    metric: collect((e) => [e.metric]),
     laterality: inOrder(
       ['bilateral', 'unilateral'],
       new Set(exercises.map((e) => (e.unilateral ? 'unilateral' : 'bilateral'))),
     ),
     difficulty: inOrder(['easy', 'medium', 'hard'], new Set(exercises.map((e) => e.difficulty))),
-    tier: inOrder(['core', 'fill', 'stretch'], new Set(exercises.map((e) => e.tier))),
-    role: inOrder(['warmup', 'main', 'cooldown'], new Set(exercises.flatMap((e) => e.roles))),
-    family: collect((e) => [familyOf(e)]),
     contraindication: collect((e) => e.contraindications),
   };
 }

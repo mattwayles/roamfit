@@ -28,13 +28,20 @@ import {
   buildFilterOptions,
   EMPTY_FILTERS,
   filterExercises,
-  formatToken,
   MULTI_SELECT_KEYS,
   MULTI_SELECT_LABELS,
   primaryMuscleLabel,
+  TOGGLE_KEYS,
+  TOGGLE_LABELS,
   timesCompletedLabel,
 } from '../lib/exerciseCatalog';
-import type { ExerciseFilterState, MultiSelectKey, PerformedFilter } from '../lib/exerciseCatalog';
+import type {
+  ExerciseFilterState,
+  MultiSelectKey,
+  PerformedFilter,
+  ToggleKey,
+} from '../lib/exerciseCatalog';
+import { filterValueLabel } from '../lib/filterLabels';
 import { FOCUS_LABELS, FOCUS_TONE } from '../lib/focusLabels';
 import {
   fontFamily,
@@ -104,6 +111,8 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
     });
   };
 
+  const toggleSwitch = (key: ToggleKey) => setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
+
   const clearAll = () => setFilters((prev) => ({ ...EMPTY_FILTERS, query: prev.query }));
 
   const setPerformed = (performed: PerformedFilter) =>
@@ -113,7 +122,21 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
   // removable chips ahead of the quick ones, so nothing narrowing the list is ever hidden in the
   // sheet.
   const appliedExtras = MULTI_SELECT_KEYS.filter((key) => key !== 'focus').flatMap((key) =>
-    (filters[key] as string[]).map((value) => ({ key, value })),
+    (filters[key] as string[]).map((value) => ({
+      id: `${key}-${value}`,
+      label: filterValueLabel(key, value),
+      group: MULTI_SELECT_LABELS[key],
+      remove: () => toggleValue(key, value),
+    })),
+  );
+  // "No gear" has its own quick chip, so only the other two switches ride along here.
+  const appliedSwitches = TOGGLE_KEYS.filter((key) => key !== 'noGear' && filters[key]).map(
+    (key) => ({
+      id: key,
+      label: TOGGLE_LABELS[key],
+      group: 'Filter',
+      remove: () => toggleSwitch(key),
+    }),
   );
 
   const moveCount = visible.length;
@@ -203,16 +226,16 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
           )}
         </PressableScale>
 
-        {appliedExtras.map(({ key, value }) => (
+        {[...appliedExtras, ...appliedSwitches].map(({ id, label, group, remove }) => (
           <Chip
-            key={`${key}:${value}`}
-            testID={`active-filter-${key}-${value}`}
-            label={formatToken(value)}
+            key={id}
+            testID={`active-filter-${id}`}
+            label={label}
             icon="close"
             tone="teal"
             selected
-            accessibilityLabel={`Remove filter ${MULTI_SELECT_LABELS[key]}: ${formatToken(value)}`}
-            onPress={() => toggleValue(key, value)}
+            accessibilityLabel={`Remove filter ${group}: ${label}`}
+            onPress={remove}
           />
         ))}
 
@@ -226,6 +249,13 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
             onPress={() => toggleValue('focus', f)}
           />
         ))}
+        <Chip
+          testID="quick-filter-no-gear"
+          label={TOGGLE_LABELS.noGear}
+          tone={filters.noGear ? 'teal' : 'neutral'}
+          selected={filters.noGear}
+          onPress={() => toggleSwitch('noGear')}
+        />
         <Chip
           testID="quick-filter-completed"
           label="Completed"
@@ -333,7 +363,7 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
                     <Chip
                       key={value}
                       testID={`filter-${key}-${value}`}
-                      label={formatToken(value)}
+                      label={filterValueLabel(key, value)}
                       tone={selected ? 'teal' : 'neutral'}
                       selected={selected}
                       onPress={() => toggleValue(key, value)}
@@ -343,11 +373,30 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
               </View>
             </View>
           ))}
+
+          <View style={styles.filterGroup}>
+            <Txt variant="eyebrow" color="text3">
+              Good to know
+            </Txt>
+            <View style={styles.chipWrap}>
+              {TOGGLE_KEYS.map((key) => (
+                <Chip
+                  key={key}
+                  testID={`filter-toggle-${key}`}
+                  label={TOGGLE_LABELS[key]}
+                  tone={filters[key] ? 'teal' : 'neutral'}
+                  selected={filters[key]}
+                  onPress={() => toggleSwitch(key)}
+                />
+              ))}
+            </View>
+          </View>
         </ScrollView>
 
+        {/* Live count; with nothing matching it still closes, and says so without a dead end. */}
         <Button
           testID="filters-done"
-          label={`Show ${moveCount} ${moveCount === 1 ? 'move' : 'moves'}`}
+          label={moveCount === 0 ? 'No moves match' : `Show ${moveCount} ${moveCount === 1 ? 'move' : 'moves'}`}
           onPress={() => setFiltersOpen(false)}
           style={styles.sheetDone}
         />
