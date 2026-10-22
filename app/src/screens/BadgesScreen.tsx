@@ -77,7 +77,7 @@ export default function BadgesScreen(_props: Props): React.JSX.Element {
                 accessibilityLabel={`${b.def.name}, ${progressText(b.progress!)}`}
                 style={styles.almostCard}
               >
-                <BadgeEmblem badge={b} size={40} />
+                <BadgeEmblem badge={b} size={40} showProgress />
                 <View style={styles.almostText}>
                   <Txt variant="bodyStrong">{b.def.name}</Txt>
                   <Txt variant="small" color="text2">
@@ -112,6 +112,7 @@ export default function BadgesScreen(_props: Props): React.JSX.Element {
                 <BadgeEmblem
                   badge={b}
                   size={64}
+                  showProgress
                   showNew={b.unseen}
                   testID={`badge-emblem-${b.def.id}`}
                 />

@@ -2,7 +2,9 @@
  * Track 38c — a badge as an embroidered patch. The outline comes from the category (circle,
  * shield, hexagon, rounded square), the ring colour from the tier, and the glyph from the shared
  * `Icon` set; every colour is a theme token, so Midnight and Daybreak both work. Locked = a
- * dashed, desaturated outline with a faint glyph; hidden + locked = a "?".
+ * dashed, desaturated outline with a faint glyph; hidden + locked = a "?". `showProgress` lays a
+ * thin arc in the tier colour over a locked outline, as long as the badge's progress fraction
+ * (nothing at 0, and never on a mystery badge, which must not give away how close it is).
  */
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -27,24 +29,43 @@ const SHAPE_PATHS: Partial<Record<BadgeCategory, string>> = {
 };
 const HEXAGON = '50,4 90,27 90,73 50,96 10,73 10,27';
 
+/** Length of each outline's stroke path in the 100-unit viewBox, so a dash can cover a fraction
+ *  of it. Measured from the shapes below; the circle and rounded square are exact. */
+const PERIMETER: Record<BadgeCategory, number> = {
+  showing_up: 289,
+  climbing: 272.6,
+  pushing: 276.6,
+  exploring: 294.8,
+};
+
+/** Fraction of the outline to draw as progress: 0 for none (earned, mystery, or no progress). */
+export function progressArcFraction(badge: ShelfBadge): number {
+  if (badge.earned || badge.mystery || !badge.progress) return 0;
+  const f = badge.progress.fraction;
+  return Number.isFinite(f) ? Math.min(1, Math.max(0, f)) : 0;
+}
+
 function Outline({
   category,
   fill,
   stroke,
   strokeWidth,
   dash,
+  cap,
 }: {
   category: BadgeCategory;
   fill: string;
   stroke: string;
   strokeWidth: number;
   dash?: string;
+  cap?: 'round';
 }): React.JSX.Element {
   const common = {
     fill,
     stroke,
     strokeWidth,
     strokeDasharray: dash,
+    strokeLinecap: cap,
     strokeLinejoin: 'round' as const,
   };
   if (category === 'climbing') return <Path d={SHAPE_PATHS.climbing!} {...common} />;
@@ -63,6 +84,8 @@ export interface BadgeEmblemProps {
   size?: BadgeEmblemSize;
   /** A NEW dot on the corner. */
   showNew?: boolean;
+  /** A thin progress arc around a locked outline (see the header). */
+  showProgress?: boolean;
   testID?: string;
 }
 
@@ -70,6 +93,7 @@ export function BadgeEmblem({
   badge,
   size = 64,
   showNew = false,
+  showProgress = false,
   testID,
 }: BadgeEmblemProps): React.JSX.Element {
   const theme = useTheme();
@@ -78,6 +102,7 @@ export function BadgeEmblem({
   const glyph = isIconName(def.icon) ? def.icon : 'star';
   const iconSize = Math.round(size * 0.42);
   const ring = Math.max(2, size >= 120 ? 3 : 4);
+  const arc = showProgress ? progressArcFraction(badge) : 0;
 
   return (
     <View
@@ -108,13 +133,27 @@ export function BadgeEmblem({
             </G>
           </>
         ) : (
-          <Outline
-            category={def.category}
-            fill={theme.colors.surface2}
-            stroke={theme.colors.lineStrong}
-            strokeWidth={ring * 1.2}
-            dash="6 5"
-          />
+          <>
+            <Outline
+              category={def.category}
+              fill={theme.colors.surface2}
+              stroke={theme.colors.lineStrong}
+              strokeWidth={ring * 1.2}
+              dash="6 5"
+            />
+            {arc > 0 ? (
+              <G testID={testID ? `${testID}-arc` : undefined} opacity={0.6}>
+                <Outline
+                  category={def.category}
+                  fill="none"
+                  stroke={accent}
+                  strokeWidth={ring * 1.2}
+                  dash={`${(PERIMETER[def.category] * arc).toFixed(1)} ${PERIMETER[def.category]}`}
+                  cap="round"
+                />
+              </G>
+            ) : null}
+          </>
         )}
       </Svg>
       <View style={styles.glyph} pointerEvents="none">

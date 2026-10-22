@@ -1,12 +1,20 @@
 ## Track: 44 — Badges page redesign
+
 Last updated: 2026-10-21
+
 ### Done
-- (nothing committed yet)
+
+- [x] 44a engine `hint` + catalog hints + test — ce92cc9
+- [x] 44a BadgeEmblem `showProgress` arc (grid + Almost there) — see git log
+
 ### In progress
-- 44a: engine `hint` on BadgeDefinition/SeriesSpec + catalog hints (+ test); then BadgeEmblem
-  progress arc (`progress` prop, `app/src/components/BadgeEmblem.tsx`); then the sheet in
-  `app/src/screens/BadgesScreen.tsx` (Earned during, Share, series nav, hint).
+
+- 44a sheet in `app/src/screens/BadgesScreen.tsx`: Earned during row (new lib fn in
+  `app/src/lib/badges.ts` + `sessionsRepo.getCompletedSessionDetail`), Share (`Share.share` +
+  `badgeShareText`), series nav (prev/next chevrons + Pips), locked hint; BACKLOG item for image share.
+
 ### Next
+
 - 44b: series "trail" rows replacing the flat grid (one row per series, nodes on a path, partial
   ring on the current node, tap opens a series sheet with every tier on a vertical trail with
   dates; one-off badges in a compact "Singles" grid per category) + hero header (newest badge
@@ -18,7 +26,9 @@ Last updated: 2026-10-21
   workout) + riddle hints for hidden badges with "N of M secrets found"; smarter Almost there
   (progress bar; "Within reach today" label + one-tap into Generate with a suggested setting —
   the engine still selects exercises); one-line category intros under each section eyebrow.
+
 ### Decisions / gotchas
+
 - Design approved by the user; do not re-litigate. No reanimated: RN Animated only.
 - Image share (react-native-view-shot) needs a native rebuild: parked in BACKLOG, text share only.
 - Commit bbd100b had removed the old "From your <date> workout" link; 44a deliberately

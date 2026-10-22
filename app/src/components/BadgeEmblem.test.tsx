@@ -4,7 +4,7 @@ import { BADGES } from '@roamfit/engine';
 import { buildBadgeShelf } from '../lib/badges';
 import { earnedRow, emptyBadgeFacts } from '../lib/badges.fixtures';
 import { inDaybreak, ready } from '../ui/test-utils';
-import { BadgeEmblem } from './BadgeEmblem';
+import { BadgeEmblem, progressArcFraction } from './BadgeEmblem';
 
 const shelf = buildBadgeShelf(
   [earnedRow('sessions_1', { localDate: '2026-10-01' })],
@@ -58,5 +58,35 @@ describe('BadgeEmblem', () => {
   it('shows a NEW dot only when asked', async () => {
     render(<BadgeEmblem badge={pick('sessions_1')} showNew testID="e" />);
     await ready('e-new');
+  });
+
+  it('draws a progress arc on a locked badge with progress, only when asked', async () => {
+    render(
+      <>
+        <BadgeEmblem badge={pick('sessions_5')} showProgress testID="on" />
+        <BadgeEmblem badge={pick('sessions_5')} testID="off" />
+      </>,
+    );
+    await ready('on');
+    expect(screen.queryByTestId('on-arc')).toBeTruthy();
+    expect(screen.queryByTestId('off-arc')).toBeNull();
+  });
+
+  it('draws no arc at zero progress, on a mystery badge, or on an earned one', async () => {
+    render(
+      <>
+        <BadgeEmblem badge={pick('minutes_60')} showProgress testID="zero" />
+        <BadgeEmblem badge={pick('early_bird_1')} showProgress testID="mystery" />
+        <BadgeEmblem badge={pick('sessions_1')} showProgress testID="earned" />
+      </>,
+    );
+    await ready('zero');
+    for (const id of ['zero', 'mystery', 'earned']) {
+      expect(screen.queryByTestId(`${id}-arc`)).toBeNull();
+    }
+    expect(progressArcFraction(pick('minutes_60'))).toBe(0);
+    expect(progressArcFraction(pick('early_bird_1'))).toBe(0);
+    expect(progressArcFraction(pick('sessions_1'))).toBe(0);
+    expect(progressArcFraction(pick('sessions_5'))).toBeCloseTo(0.6);
   });
 });

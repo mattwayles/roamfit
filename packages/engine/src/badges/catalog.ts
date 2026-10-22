@@ -43,7 +43,7 @@ function series(spec: SeriesSpec): BadgeDefinition[] {
     category: spec.category,
     name: t.name,
     description: t.description,
-    ...(t.hint ?? spec.hint ? { hint: (t.hint ?? spec.hint)! } : {}),
+    ...((t.hint ?? spec.hint) ? { hint: (t.hint ?? spec.hint)! } : {}),
     icon: spec.icon,
     ...(spec.hidden ? { hidden: true } : {}),
     ...(spec.passport ? { passport: true } : {}),
