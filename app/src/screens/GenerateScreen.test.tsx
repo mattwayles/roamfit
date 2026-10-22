@@ -52,7 +52,10 @@ function Setup({
 /** Mounts the screen with a db-grabbing sibling, so each test mounts exactly ONE tree. Two
  *  `render()` calls in a single test leave both mounted and their effects then fight over
  *  `screen`, which shows up as unrelated tests timing out. */
-function renderScreen({ bandsSetUp = true }: { bandsSetUp?: boolean } = {}) {
+function renderScreen({
+  bandsSetUp = true,
+  params,
+}: { bandsSetUp?: boolean; params?: Record<string, unknown> } = {}) {
   const navigation = mockNavigation();
   let db!: ReturnType<typeof useStore>['db'];
   render(
@@ -60,7 +63,7 @@ function renderScreen({ bandsSetUp = true }: { bandsSetUp?: boolean } = {}) {
       <Setup onReady={(d) => (db = d)} bandsSetUp={bandsSetUp} />
       <GenerateScreen
         navigation={navigation as never}
-        route={{ key: 'Generate', name: 'Generate', params: undefined } as never}
+        route={{ key: 'Generate', name: 'Generate', params } as never}
       />
     </StoreProvider>,
   );
@@ -68,6 +71,20 @@ function renderScreen({ bandsSetUp = true }: { bandsSetUp?: boolean } = {}) {
 }
 
 describe('§10.2 Generate screen', () => {
+  it('pre-fills difficulty and length from route params without generating (44d)', async () => {
+    const { navigation } = renderScreen({ params: { difficulty: 'hard', minutes: 45 } });
+    await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);
+    expect(screen.getByTestId('time-picker-option-45').props.accessibilityState.selected).toBe(
+      true,
+    );
+    expect(
+      screen.getByTestId('difficulty-picker-option-hard').props.accessibilityState.selected,
+    ).toBe(true);
+    // Only a pre-fill: nothing was generated or navigated.
+    expect(navigation.navigate).not.toHaveBeenCalled();
+    expect(navigation.replace).not.toHaveBeenCalled();
+  });
+
   it('lays every length out up front, with the current one selected', async () => {
     renderScreen();
     await waitFor(() => expect(screen.getByTestId('time-picker')).toBeTruthy(), WAIT_OPTS);

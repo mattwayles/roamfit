@@ -20,10 +20,19 @@ Last updated: 2026-10-21
 
 ### In progress
 
-- 44d item 3 (Almost there): progress bar on cards; pure `withinReach(badge, facts?)` helper in
-  `lib/badges.ts` + test; "Within reach today" label; one-tap Generate prefill (route param
-  `Generate: { recoveryWeek?, difficulty?, minutes? }` wired into GenerateScreen initial state).
-- Then item 4 (category intros).
+- 44d item 4: one-line category intros (`CATEGORY_INTROS` in `lib/badges.ts`, shown under each
+  section eyebrow on BadgesScreen) + test. Then mark the track done, prune BACKLOG.
+
+### Done (44d item 3)
+
+- [x] item 3: `AlmostThereCard` (thin bar, "Within reach today"), `withinReach` rule, Generate route
+      params `difficulty`/`minutes` pre-filled in GenerateScreen state. The label+action also show
+      in the locked badge sheet (Almost there only lists badges with progress > 0, so a recovery
+      week or 45-minute long haul would otherwise never surface). Rule is deliberately narrow:
+      sessions/hard/clean_sweep when one short; recovery_week; long_haul 45 only (60 left out);
+      minutes (<=20 left) and reps (<=100 left). comeback/active_weeks/climbing/best sets never.
+      Clean sweep, sessions, minutes, reps get the label without an action (no Generate setting
+      maps directly).
 
 ### Next
 

@@ -88,9 +88,13 @@ export default function GenerateScreen({ navigation, route }: Props): React.JSX.
       ),
     [db, library],
   );
-  const [minutes, setMinutes] = useState(30);
+  const [minutes, setMinutes] = useState(
+    route.params?.minutes !== undefined && TIME_OPTIONS.includes(route.params.minutes)
+      ? route.params.minutes
+      : 30,
+  );
   const [focus, setFocus] = useState<Focus>(recommended.focus);
-  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+  const [difficulty, setDifficulty] = useState<Difficulty>(route.params?.difficulty ?? 'medium');
   const [anchors, setAnchors] = useState<Anchor[]>([]);
   const [bandSettings, setBandSettings] = useState<BandSettings>(DEFAULT_BAND_SETTINGS);
   const bands = hasBands(bandSettings);

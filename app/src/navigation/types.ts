@@ -1,6 +1,7 @@
 import type { CompositeScreenProps, NavigatorScreenParams } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { Difficulty } from '@roamfit/engine';
 import type { SessionPosition } from '../lib/sessionProgress';
 
 /**
@@ -22,8 +23,9 @@ export type RootStackParamList = {
    *  full-screen with no tab bar. Reach a tab with `navigate('Tabs', { screen: 'Home' })`. */
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
   /** §9.9 — an accepted Recovery Week auto-suggestion (or the manual toggle) pre-fills Generate's
-   *  toggle; still requires the user to tap Generate, never applied silently. */
-  Generate: { recoveryWeek?: boolean } | undefined;
+   *  toggle; still requires the user to tap Generate, never applied silently. `difficulty` and
+   *  `minutes` (Track 44d, from a badge's "within reach" card) pre-fill the same way. */
+  Generate: { recoveryWeek?: boolean; difficulty?: Difficulty; minutes?: number } | undefined;
   Approval: { sessionId: string };
   /** `reviewFromSummary` — arriving back from Summary before FINISH, to look at or fix something
    *  in an already-fully-logged session. See WorkoutScreen's review-mode handling.

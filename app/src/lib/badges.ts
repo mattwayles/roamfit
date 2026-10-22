@@ -393,3 +393,69 @@ export function secretsFound(
   const found = hidden.filter((b) => b.earned).length;
   return { found, total: hidden.length, text: `${found} of ${hidden.length} secrets found` };
 }
+
+/** A Generate setting a badge card can pre-fill. The user still taps Generate; the engine still
+ *  picks every exercise (invariant 2). */
+export interface WithinReachAction {
+  label: string;
+  params: { difficulty?: 'hard'; minutes?: number; recoveryWeek?: boolean };
+}
+
+export interface WithinReach {
+  label: string;
+  /** Present only where one Generate setting maps directly onto the badge. */
+  action: WithinReachAction | null;
+}
+
+export const WITHIN_REACH_LABEL = 'Within reach today';
+
+/** Lengths the Generate screen offers (kept in step with `TIME_OPTIONS` there). */
+const REACH_MINUTES = 45;
+/** A normal session is 20-45 minutes and a few hundred reps; the margins below are deliberately
+ *  smaller than that so the label is never a stretch. */
+const REACH_TOTAL_MINUTES = 20;
+const REACH_REPS = 100;
+
+/** Whether one ordinary workout could plausibly earn this locked badge. Conservative: only
+ *  series that count once per workout (sessions, Hard, clean sweep, recovery week), the
+ *  longest-session badge when its length is a normal one, and the running totals (minutes, reps)
+ *  when a single workout comfortably covers what is left. Everything else (climbing, best sets,
+ *  comeback, active weeks, exploring, hold time) depends on more than one workout's worth of
+ *  luck or time, so it is never flagged. Hidden badges are never flagged (nothing is named). */
+export function withinReach(b: ShelfBadge): WithinReach | null {
+  if (b.earned || b.mystery || b.def.retired || !b.progress) return null;
+  const { current, target } = b.progress;
+  const remaining = target - current;
+  if (remaining <= 0) return null;
+  const reach = (action: WithinReachAction | null = null): WithinReach => ({
+    label: WITHIN_REACH_LABEL,
+    action,
+  });
+  switch (b.def.series) {
+    case 'sessions':
+      return remaining === 1 ? reach() : null;
+    case 'hard_sessions':
+      return remaining === 1
+        ? reach({ label: 'Set up a Hard workout', params: { difficulty: 'hard' } })
+        : null;
+    case 'clean_sweep':
+      return remaining === 1 ? reach() : null;
+    case 'recovery_week':
+      return reach({ label: 'Set up a recovery week', params: { recoveryWeek: true } });
+    case 'long_haul':
+      return target <= REACH_MINUTES
+        ? reach({ label: `Set up a ${target} min workout`, params: { minutes: target } })
+        : null;
+    case 'minutes':
+      return remaining <= REACH_TOTAL_MINUTES ? reach() : null;
+    case 'reps':
+      return remaining <= REACH_REPS ? reach() : null;
+    default:
+      return null;
+  }
+}
+
+/** 0..1 fill for a thin progress bar. */
+export function progressFraction(p: BadgeProgress): number {
+  return Math.max(0, Math.min(1, p.fraction));
+}

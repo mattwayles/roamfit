@@ -12,6 +12,8 @@ import {
   seriesContext,
   buildSeriesTrails,
   tierTally,
+  withinReach,
+  progressFraction,
 } from './badges';
 import { earnedRow, emptyBadgeFacts } from './badges.fixtures';
 import { iconMap } from '../ui';
@@ -296,5 +298,51 @@ describe('secretsFound', () => {
     const one = buildBadgeShelf([earnedRow('early_bird_1')], emptyBadgeFacts());
     expect(secretsFound(one.sections)?.found).toBe(1);
     expect(secretsFound([])).toBeNull();
+  });
+});
+
+describe('withinReach', () => {
+  const locked = (id: string, over: Parameters<typeof emptyBadgeFacts>[0] = {}) => {
+    const shelf = buildBadgeShelf([], emptyBadgeFacts(over));
+    return shelf.sections.flatMap((s) => s.badges).find((b) => b.def.id === id)!;
+  };
+
+  it('flags one-more-workout counts and offers the matching Generate setting', () => {
+    expect(withinReach(locked('sessions_5', { sessionsCompleted: 4 }))?.label).toBe(
+      'Within reach today',
+    );
+    expect(withinReach(locked('sessions_5', { sessionsCompleted: 3 }))).toBeNull();
+    const hard = withinReach(locked('hard_sessions_10', { hardSessionsCompleted: 9 }));
+    expect(hard?.action?.params).toEqual({ difficulty: 'hard' });
+    expect(withinReach(locked('hard_sessions_10', { hardSessionsCompleted: 8 }))).toBeNull();
+    expect(withinReach(locked('clean_sweep_10', { cleanSweepSessions: 9 }))?.action).toBeNull();
+  });
+
+  it('recovery week and a normal-length long haul map to a setting; a 60 minute one does not', () => {
+    expect(withinReach(locked('recovery_week_1'))?.action?.params).toEqual({ recoveryWeek: true });
+    expect(withinReach(locked('long_haul_45'))?.action?.params).toEqual({ minutes: 45 });
+    expect(withinReach(locked('long_haul_60'))).toBeNull();
+  });
+
+  it('running totals count only when one workout comfortably covers what is left', () => {
+    expect(withinReach(locked('minutes_60', { totalMinutes: 45 }))).not.toBeNull();
+    expect(withinReach(locked('minutes_60', { totalMinutes: 20 }))).toBeNull();
+    expect(withinReach(locked('reps_1000', { lifetimeReps: 950 }))).not.toBeNull();
+    expect(withinReach(locked('reps_1000', { lifetimeReps: 500 }))).toBeNull();
+  });
+
+  it('never flags luck-based, slow, hidden or earned badges', () => {
+    expect(withinReach(locked('level_ups_5', { levelUpsTotal: 4 }))).toBeNull();
+    expect(withinReach(locked('best_sets_10', { bestSetPrsTotal: 9 }))).toBeNull();
+    expect(withinReach(locked('comeback_1'))).toBeNull();
+    expect(withinReach(locked('early_bird_1'))).toBeNull();
+    const shelf = buildBadgeShelf([earnedRow('sessions_1')], emptyBadgeFacts());
+    expect(withinReach(shelf.recent[0]!)).toBeNull();
+  });
+
+  it('progressFraction is clamped to 0..1', () => {
+    expect(progressFraction({ current: 5, target: 10, fraction: 0.5 })).toBe(0.5);
+    expect(progressFraction({ current: 0, target: 10, fraction: -1 })).toBe(0);
+    expect(progressFraction({ current: 12, target: 10, fraction: 1.2 })).toBe(1);
   });
 });

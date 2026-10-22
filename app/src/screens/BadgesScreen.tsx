@@ -24,6 +24,7 @@ import {
   secretsFound,
   seriesContext,
   tierTally,
+  withinReach,
   type ShelfBadge,
 } from '../lib/badges';
 import { formatFullLocalDate } from '../lib/sessionHistory';
@@ -31,20 +32,10 @@ import { useEarnedDuring } from '../lib/useEarnedDuring';
 import { haptics } from '../lib/haptics';
 import { useDashboardData } from '../lib/useDashboardData';
 import { makeStyles, space } from '../theme';
-import {
-  Button,
-  Card,
-  Chip,
-  Icon,
-  IconButton,
-  Pips,
-  PressableScale,
-  Screen,
-  Sheet,
-  Txt,
-} from '../ui';
+import { Button, Chip, Icon, IconButton, Pips, PressableScale, Screen, Sheet, Txt } from '../ui';
 import { BadgeEmblem, TIER_ACCENT } from '../components/BadgeEmblem';
 import { BadgeSeriesList, BadgeTrail } from '../components/BadgeTrail';
+import { AlmostThereCard, ReachRow } from '../components/AlmostThereCard';
 import { BadgesHero } from '../components/BadgesHero';
 import { BadgeTimeline } from '../components/BadgeTimeline';
 import { TiltSheen } from '../components/TiltSheen';
@@ -129,6 +120,7 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
   const all = shelf.sections.flatMap((s) => s.badges);
   const open = openId ? (all.find((b) => b.def.id === openId) ?? null) : null;
   const series = open ? seriesContext(all, open) : null;
+  const openReach = open ? withinReach(open) : null;
   const openTrail = trailSeries
     ? (trailSections.flatMap((t) => t.trails).find((t) => t.series === trailSeries) ?? null)
     : null;
@@ -192,22 +184,12 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
             contentContainerStyle={styles.almostRow}
           >
             {shelf.almostThere.map((b) => (
-              <Card
+              <AlmostThereCard
                 key={b.def.id}
-                testID={`badges-almost-${b.def.id}`}
-                padding="md"
+                badge={b}
                 onPress={() => openBadge(b)}
-                accessibilityLabel={`${b.def.name}, ${progressText(b.progress!)}`}
-                style={styles.almostCard}
-              >
-                <BadgeEmblem badge={b} size={40} showProgress />
-                <View style={styles.almostText}>
-                  <Txt variant="bodyStrong">{b.def.name}</Txt>
-                  <Txt variant="small" color="text2">
-                    {progressText(b.progress!)}
-                  </Txt>
-                </View>
-              </Card>
+                onGenerate={(params) => navigation.navigate('Generate', params)}
+              />
             ))}
           </ScrollView>
         </View>
@@ -383,6 +365,17 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
                 <Txt variant="bodyStrong" align="center" testID="badge-sheet-progress">
                   {progressText(open.progress)}
                 </Txt>
+                {openReach ? (
+                  <ReachRow
+                    badgeId={`sheet-${open.def.id}`}
+                    reach={openReach}
+                    onAction={(params) => {
+                      setOpenId(null);
+                      setTrailSeries(null);
+                      navigation.navigate('Generate', params);
+                    }}
+                  />
+                ) : null}
                 {open.def.hint ? (
                   <Txt variant="small" color="text2" align="center" testID="badge-sheet-hint">
                     {open.def.hint}
@@ -415,8 +408,6 @@ const useStyles = makeStyles(() =>
     section: { gap: space.md },
     singles: { gap: space.sm, marginTop: space.sm },
     almostRow: { gap: space.md },
-    almostCard: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-    almostText: { gap: 2 },
     grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: space.lg },
     cell: { width: '33.33%', alignItems: 'center', gap: space.xs, paddingHorizontal: space.xs },
     sheetBody: { gap: space.md },
