@@ -14,27 +14,8 @@ the record of what was completed and why.
 
 ## Desired Fixes
 
-- **EAS development build — first run owed.** `app/eas.json` and `docs/EAS-SETUP.md` are written but
-  never run. Needs `eas login`, `eas device:create` for the iPhone, then
-  `eas build --platform ios --profile development`. Check the install link works on the phone and the
-  build connects to `./scripts/dev.sh --tunnel`. TestFlight (`production` profile) is also untried and
-  needs the App Store Connect app record first.
 - **Restored user with no completed session** keeps the old phone's motivation notifications until
   Today next schedules (rare; untested).
-- **Badges visuals (Track 38c) - device pass owed.** Only Jest has seen these. On a device check: the
-  four patch shapes (circle, shield, hexagon, rounded square) and tier rings read clearly in Midnight
-  and Daybreak, locked (dashed, faint glyph) vs earned is obvious at 40/64/120; the Badges grid at
-  large Dynamic Type (names wrap, three columns still fit, nothing clips); the Journey Badges card;
-  and the Today "Next badge" row's placement under Next unlock (is Today still uncluttered?).
-  Also the completion-screen badge cards (Track 38d): they land after the level-up cards and before the
-  passport stamp, the emblem pop and level-up cue feel right, a session with more than three badges
-  scrolls cleanly to the "+N more badges" chip, Reduce Motion shows still cards, and the share sheet
-  text reads "Earned the <name> badge on Wanderlift".
-- **Next Unlock → Journey scroll — device pass owed.** Tapping the Next Unlock card on Today now opens
-  Journey scrolled to that family's Trail card (`focusFamilyId` route param; offsets come from
-  `onLayout`, tested in Jest with synthetic layouts only). On a device check the card lands just under
-  the top edge with the chart's height settled (cards are taller once their charts mount), that it
-  works both from a cold Journey and with Journey already open, and that Reduce Motion is fine.
 - **Demo-video leftovers are now dead weight.** The Demo card, the paste-a-link flow and the
   video-flag demotion are gone (How to now has a "Watch a demo" button opening a YouTube search for
   "<name> Exercise"; `lib/youtubeSearch.ts`). Left in place, unread: `exercise_state.user_video_id`,
@@ -49,20 +30,10 @@ the record of what was completed and why.
 - **`travel_days_this_week` is now write-only.** It reduced the weekly-target denominator, which went
   with days per week (Track 40). `recordTravelDay` still bumps it; the calendar reads the
   `travel_day` signal event instead. Drop the column and the bump with a migration.
-- **Setup trim and the bands prompt (Track 40) — device pass owed.** Setup is now welcome, goal,
-  limitations. On a device: a fresh install's Generate → Available equipment → Resistance bands
-  opens "Set up your bands first?"; "Set up my bands" opens Your bands and coming back shows the
-  row ticked once a band is chosen; "Use all five for now" ticks it and never asks again.
-  Track 41: the Today header is the logo alone, centred at 88pt with the gear on the right (glow
-  not clipped, size right in Midnight and Daybreak, gear never overlaps the logo on a small
-  phone), and the Journey / Field guide gears line up with
-  their titles without crowding the Field guide move count on a small phone.
-- **Apple Health write — device pass owed.** Track 37m: turning on "Write workouts to Apple Health"
-  requests write-only access, and the first write of each launch re-requests silently (the flag is
-  in-memory), so workouts queued before a relaunch are no longer dropped. Jest-verified with a mocked
-  module only. On a device: the iOS sheet appears once on enabling; a completed workout appears in
-  Health as Functional Strength Training with duration and energy; a denial is silent; relaunch
-  before the queue drains still writes.
+- **Today / Journey / Field guide headers (Track 41) — device pass owed.** The Today header is the
+  logo alone, centred (now 72pt) with the gear on the right: glow not clipped, size right in
+  Midnight and Daybreak, gear never overlaps the logo on a small phone. The Journey / Field guide
+  gears line up with their titles without crowding the Field guide move count on a small phone.
 - **Passport book — device pass owed, and two loose ends.** Track 39
   (`docs/handoff/STATUS-39-passport.md`, Jest-verified only; the full device-check list is there).
   On a device, in Midnight and Daybreak: the cover emboss and guilloché page lines, the 460pt page on
