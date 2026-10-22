@@ -194,3 +194,48 @@ export function completionBadges(
 export function badgeShareText(def: BadgeDefinition): string {
   return `Earned the ${def.name} badge on Wanderlift`;
 }
+
+export interface SeriesContext {
+  /** 0-based position of the badge within its series. */
+  index: number;
+  total: number;
+  earnedCount: number;
+  /** Per member, in order: earned or not (for Pips). */
+  earned: boolean[];
+  /** "3rd of 8 in this series". */
+  label: string;
+  prev: ShelfBadge | null;
+  next: ShelfBadge | null;
+}
+
+function ordinal(n: number): string {
+  const rest = n % 100;
+  if (rest >= 11 && rest <= 13) return `${n}th`;
+  return `${n}${({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th'}`;
+}
+
+/** Where a badge sits in its series, among the badges the shelf shows (catalog order is tier
+ *  order). Null for a lone badge, which has no series to step through. */
+export function seriesContext(all: readonly ShelfBadge[], badge: ShelfBadge): SeriesContext | null {
+  const members = all.filter((b) => b.def.series === badge.def.series);
+  const index = members.findIndex((b) => b.def.id === badge.def.id);
+  if (members.length < 2 || index < 0) return null;
+  return {
+    index,
+    total: members.length,
+    earnedCount: members.filter((b) => b.earned).length,
+    earned: members.map((b) => b.earned),
+    label: `${ordinal(index + 1)} of ${members.length} in this series`,
+    prev: members[index - 1] ?? null,
+    next: members[index + 1] ?? null,
+  };
+}
+
+/** "Thursday, October 1, 2026 · Full body · 24 min" - the workout a badge was earned in. */
+export function earnedDuringLabel(view: {
+  dateLabel: string;
+  focusLabel: string;
+  minutes: number;
+}): string {
+  return `${view.dateLabel} · ${view.focusLabel} · ${view.minutes} min`;
+}

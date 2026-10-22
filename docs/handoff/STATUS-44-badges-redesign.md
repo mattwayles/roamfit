@@ -5,13 +5,16 @@ Last updated: 2026-10-21
 ### Done
 
 - [x] 44a engine `hint` + catalog hints + test — ce92cc9
-- [x] 44a BadgeEmblem `showProgress` arc (grid + Almost there) — see git log
+- [x] 44a BadgeEmblem `showProgress` arc (grid + Almost there) — 1033d01
+- [x] 44a sheet: Earned during link, Share (text), series Pips + prev/next, locked hint,
+      BACKLOG image-share item — see git log (commit after 1033d01)
 
 ### In progress
 
-- 44a sheet in `app/src/screens/BadgesScreen.tsx`: Earned during row (new lib fn in
-  `app/src/lib/badges.ts` + `sessionsRepo.getCompletedSessionDetail`), Share (`Share.share` +
-  `badgeShareText`), series nav (prev/next chevrons + Pips), locked hint; BACKLOG item for image share.
+- 44b: start in `app/src/lib/badges.ts` — add a pure `buildSeriesTrails(sections)` view model
+  (one trail per series: nodes in tier order, current node = first locked, singles split out per
+  category) with tests; then `app/src/components/BadgeTrail.tsx` and swap the flat grid in
+  `BadgesScreen.tsx`; hero header last.
 
 ### Next
 
@@ -28,6 +31,15 @@ Last updated: 2026-10-21
   the engine still selects exercises); one-line category intros under each section eyebrow.
 
 ### Decisions / gotchas
+
+- Sheet helpers live in `lib/badges.ts` (`seriesContext`, `earnedDuringLabel`); the sheet's emblem
+  also passes `showProgress` (a locked badge shows its arc at 120px). `EarnedDuring` in
+  BadgesScreen reads `sessionsRepo.getCompletedSessionDetail` + `buildSessionHistoryView`.
+- Progress arc uses per-category stroke perimeters (`PERIMETER` in BadgeEmblem) with a dasharray,
+  because react-native-svg's `pathLength` is not reliable across shapes. Change a shape, update it.
+- Jest: a second render in the same file after an async-heavy test hits a broken act environment;
+  `BadgesScreen.session.test.tsx` is its own file for that reason.
+- Hints: series-level `hint` on SeriesSpec; hidden badges have none (test enforces both ways).
 
 - Design approved by the user; do not re-litigate. No reanimated: RN Animated only.
 - Image share (react-native-view-shot) needs a native rebuild: parked in BACKLOG, text share only.

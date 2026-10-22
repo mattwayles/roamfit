@@ -6,18 +6,24 @@
  * Never punish (invariant 4): locked badges show neutral progress ("12 of 25"), nothing is ever
  * removed, and there is no streak or expiry copy.
  */
-import React, { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { badgesRepo } from '@roamfit/store';
+import { badgesRepo, sessionsRepo } from '@roamfit/store';
 import type { RootScreenProps } from '../navigation/types';
 import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
-import { progressText, type ShelfBadge } from '../lib/badges';
-import { formatFullLocalDate } from '../lib/sessionHistory';
+import {
+  badgeShareText,
+  earnedDuringLabel,
+  progressText,
+  seriesContext,
+  type ShelfBadge,
+} from '../lib/badges';
+import { buildSessionHistoryView, formatFullLocalDate } from '../lib/sessionHistory';
 import { useDashboardData } from '../lib/useDashboardData';
 import { makeStyles, space } from '../theme';
-import { Card, PressableScale, Screen, Sheet, Txt } from '../ui';
+import { Button, Card, Icon, IconButton, Pips, PressableScale, Screen, Sheet, Txt } from '../ui';
 import { BadgeEmblem, TIER_ACCENT } from '../components/BadgeEmblem';
 
 type Props = RootScreenProps<'Badges'>;
@@ -26,7 +32,44 @@ function nameOf(b: ShelfBadge): string {
   return b.mystery ? 'Hidden badge' : b.def.name;
 }
 
-export default function BadgesScreen(_props: Props): React.JSX.Element {
+/** "Earned during <date · focus · minutes>", a link to the read-only finished-workout page. Only
+ *  for a badge earned in a session (a retroactive one has none) whose workout is still on file. */
+function EarnedDuring({
+  badge,
+  onOpen,
+}: {
+  badge: ShelfBadge;
+  onOpen: (sessionId: string) => void;
+}): React.JSX.Element | null {
+  const { db, library } = useStore();
+  const styles = useStyles();
+  const sessionId = badge.earned && !badge.retroactive ? badge.sessionId : null;
+  const view = useMemo(() => {
+    if (!sessionId) return null;
+    const session = sessionsRepo.getCompletedSessionDetail(db, sessionId);
+    return session ? buildSessionHistoryView(session, library.exercises) : null;
+  }, [db, library, sessionId]);
+  if (!view) return null;
+  return (
+    <PressableScale
+      testID="badge-sheet-session"
+      onPress={() => onOpen(view.sessionId)}
+      accessibilityRole="link"
+      accessibilityLabel={`Earned during ${earnedDuringLabel(view)}`}
+      style={styles.duringRow}
+    >
+      <View style={styles.duringText}>
+        <Txt variant="eyebrow" color="text3">
+          Earned during
+        </Txt>
+        <Txt variant="bodyStrong">{earnedDuringLabel(view)}</Txt>
+      </View>
+      <Icon name="chevronRight" size={18} color="text3" />
+    </PressableScale>
+  );
+}
+
+export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
   const { db } = useStore();
   const styles = useStyles();
   const { data, reload } = useDashboardData();
@@ -46,6 +89,7 @@ export default function BadgesScreen(_props: Props): React.JSX.Element {
   const shelf = data.badges;
   const all = shelf.sections.flatMap((s) => s.badges);
   const open = openId ? (all.find((b) => b.def.id === openId) ?? null) : null;
+  const series = open ? seriesContext(all, open) : null;
 
   return (
     <Screen scroll testID="badges-screen" contentStyle={styles.content}>
@@ -133,14 +177,52 @@ export default function BadgesScreen(_props: Props): React.JSX.Element {
       >
         {open ? (
           <View style={styles.sheetBody}>
-            <View style={styles.sheetEmblem}>
-              <BadgeEmblem badge={open} size={120} />
+            <View style={styles.sheetEmblemRow}>
+              {series ? (
+                <IconButton
+                  testID="badge-sheet-prev"
+                  icon="back"
+                  size="md"
+                  accessibilityLabel="Previous badge in this series"
+                  disabled={!series.prev}
+                  onPress={() => series.prev && setOpenId(series.prev.def.id)}
+                />
+              ) : null}
+              <View style={styles.sheetEmblem}>
+                <BadgeEmblem badge={open} size={120} showProgress />
+              </View>
+              {series ? (
+                <IconButton
+                  testID="badge-sheet-next"
+                  icon="chevronRight"
+                  size="md"
+                  accessibilityLabel="Next badge in this series"
+                  disabled={!series.next}
+                  onPress={() => series.next && setOpenId(series.next.def.id)}
+                />
+              ) : null}
             </View>
             <Txt variant="body" color="text2" align="center">
               {open.mystery
                 ? 'A hidden badge - keep training and it may turn up.'
                 : open.def.description}
             </Txt>
+            {series && !open.mystery ? (
+              <View style={styles.seriesInfo}>
+                <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <Pips
+                    testID="badge-sheet-pips"
+                    count={series.total}
+                    filled={series.earned}
+                    current={series.index}
+                    size={10}
+                  />
+                </View>
+                <Txt variant="small" color="text2" testID="badge-sheet-series">
+                  {series.label}
+                </Txt>
+              </View>
+            ) : null}
             {open.earned ? (
               <View style={styles.sheetBody}>
                 <Txt
@@ -153,11 +235,37 @@ export default function BadgesScreen(_props: Props): React.JSX.Element {
                     ? 'Earned'
                     : `Earned ${formatFullLocalDate(open.localDate)}`}
                 </Txt>
+                <EarnedDuring
+                  badge={open}
+                  onOpen={(sessionId) => {
+                    setOpenId(null);
+                    navigation.navigate('SessionHistory', { sessionId });
+                  }}
+                />
+                <Button
+                  testID="badge-sheet-share"
+                  label="Share"
+                  icon="share"
+                  variant="secondary"
+                  size="md"
+                  fullWidth
+                  onPress={() => {
+                    // Text only; opens the native share sheet and never posts anything itself.
+                    void Share.share({ message: badgeShareText(open.def) });
+                  }}
+                />
               </View>
             ) : open.progress && !open.mystery ? (
-              <Txt variant="bodyStrong" align="center" testID="badge-sheet-progress">
-                {progressText(open.progress)}
-              </Txt>
+              <View style={styles.sheetBody}>
+                <Txt variant="bodyStrong" align="center" testID="badge-sheet-progress">
+                  {progressText(open.progress)}
+                </Txt>
+                {open.def.hint ? (
+                  <Txt variant="small" color="text2" align="center" testID="badge-sheet-hint">
+                    {open.def.hint}
+                  </Txt>
+                ) : null}
+              </View>
             ) : null}
           </View>
         ) : null}
@@ -178,5 +286,9 @@ const useStyles = makeStyles(() =>
     cell: { width: '33.33%', alignItems: 'center', gap: space.xs, paddingHorizontal: space.xs },
     sheetBody: { gap: space.md },
     sheetEmblem: { alignItems: 'center', paddingVertical: space.sm },
+    sheetEmblemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    seriesInfo: { alignItems: 'center', gap: space.xs },
+    duringRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+    duringText: { flex: 1, gap: 2 },
   }),
 );

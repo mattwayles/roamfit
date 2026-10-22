@@ -1,8 +1,10 @@
 /**
  * Track 38c - the Badges screen: count, earned and locked emblems, the detail sheet (with the
- * link to the workout it came from), and opening the screen marks what it shows as seen.
+ * "Earned during" link to the workout it came from, share, series stepping, how-to hints for
+ * locked badges), and opening the screen marks what it shows as seen.
  */
 import React from 'react';
+import { Share } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -59,11 +61,29 @@ describe('BadgesScreen', () => {
     fireEvent.press(screen.getByTestId('badge-sessions_5'));
     await waitFor(() => expect(screen.getByTestId('badge-sheet-progress')).toBeTruthy(), WAIT_OPTS);
     expect(screen.getByTestId('badge-sheet-progress').props.children).toBe('0 of 5');
+    expect(screen.getByTestId('badge-sheet-hint').props.children).toMatch(/\w/);
+    expect(screen.getByTestId('badge-sheet-series').props.children).toBe('2nd of 8 in this series');
+    // Step to the next badge in the series without closing the sheet.
+    fireEvent.press(screen.getByTestId('badge-sheet-next'));
+    await waitFor(
+      () =>
+        expect(screen.getByTestId('badge-sheet-series').props.children).toBe(
+          '3rd of 8 in this series',
+        ),
+      WAIT_OPTS,
+    );
     fireEvent.press(screen.getByTestId('badge-sheet-backdrop'));
 
-    // Earned sheet: the date, and no link out to the workout.
+    // Earned sheet: the date; no workout link because the session is not on file; share works;
+    // the first of a series has nowhere to step back to.
+    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
     fireEvent.press(screen.getByTestId('badge-sessions_1'));
     await waitFor(() => expect(screen.getByTestId('badge-sheet-earned')).toBeTruthy(), WAIT_OPTS);
     expect(screen.queryByTestId('badge-sheet-session')).toBeNull();
+    expect(screen.queryByTestId('badge-sheet-hint')).toBeNull();
+    expect(screen.getByTestId('badge-sheet-prev').props.accessibilityState.disabled).toBe(true);
+    fireEvent.press(screen.getByTestId('badge-sheet-share'));
+    expect(share).toHaveBeenCalledWith({ message: 'Earned the First Steps badge on Wanderlift' });
+    share.mockRestore();
   });
 });

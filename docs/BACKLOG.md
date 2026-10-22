@@ -76,6 +76,10 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
 
 ## Future Features
 
+- **Share a badge as an image.** The badge sheet shares text only (`badgeShareText` via
+  `Share.share`). A card image (emblem, name, date) needs `react-native-view-shot` to capture a
+  styled view, which is a new native module and so a dev-client rebuild; note it in the status file
+  when added.
 - **Settings toggle to hide badges.** Badges have no off switch in v1 (Passport badges follow the
   Passport opt-in). If someone wants a quieter app, a Settings toggle that hides the Journey card,
   Today's Next badge row and the completion-screen cards would do it; awarding can keep running

@@ -5,7 +5,9 @@ import {
   badgeShareText,
   buildBadgeShelf,
   completionBadges,
+  earnedDuringLabel,
   progressText,
+  seriesContext,
 } from './badges';
 import { earnedRow, emptyBadgeFacts } from './badges.fixtures';
 import { iconMap } from '../ui';
@@ -117,6 +119,44 @@ describe('badgeShareText', () => {
   it('names the badge', () => {
     const def = getBadge('sessions_1')!;
     expect(badgeShareText(def)).toBe(`Earned the ${def.name} badge on Wanderlift`);
+  });
+});
+
+describe('seriesContext', () => {
+  const shelf = buildBadgeShelf([earnedRow('sessions_1')], emptyBadgeFacts());
+  const all = shelf.sections.flatMap((s) => s.badges);
+  const pick = (id: string) => all.find((b) => b.def.id === id)!;
+
+  it('says where a badge sits in its series and who its neighbours are', () => {
+    const c = seriesContext(all, pick('sessions_10'))!;
+    expect(c.label).toBe('3rd of 8 in this series');
+    expect(c.prev?.def.id).toBe('sessions_5');
+    expect(c.next?.def.id).toBe('sessions_25');
+    expect(c.earned.filter(Boolean)).toHaveLength(1);
+    expect(c.earnedCount).toBe(1);
+  });
+
+  it('has no previous at the start or next at the end, and uses 11th-13th correctly', () => {
+    expect(seriesContext(all, pick('sessions_1'))!.prev).toBeNull();
+    expect(seriesContext(all, pick('sessions_500'))!.next).toBeNull();
+    expect(seriesContext(all, pick('sessions_1'))!.label).toBe('1st of 8 in this series');
+  });
+
+  it('is null for a lone badge', () => {
+    expect(seriesContext(all, pick('all_rounder_4'))).toBeNull();
+    expect(seriesContext(all, pick('early_bird_1'))).toBeNull();
+  });
+});
+
+describe('earnedDuringLabel', () => {
+  it('joins date, focus and minutes', () => {
+    expect(
+      earnedDuringLabel({
+        dateLabel: 'Thursday, October 1, 2026',
+        focusLabel: 'Legs',
+        minutes: 24,
+      }),
+    ).toBe('Thursday, October 1, 2026 · Legs · 24 min');
   });
 });
 
