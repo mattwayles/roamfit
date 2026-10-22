@@ -6,7 +6,6 @@ Last updated: 2026-10-21
   motivation times use the native iOS time picker; version line in the footer; "Send feedback"
   row (mailto draft).
 ### Next
-- Set `FEEDBACK_EMAIL` in `app/src/lib/feedback.ts` (placeholder `feedback@example.com`).
 - Rebuild the dev client (new native dependency) and check the picker and Mail hand-off on device.
 ### Decisions / gotchas
 - New dependencies: `@react-native-community/datetimepicker` (native; needs pod install + dev-client

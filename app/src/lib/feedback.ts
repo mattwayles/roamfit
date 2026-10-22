@@ -7,8 +7,8 @@
 import { Linking, Platform } from 'react-native';
 import { appVersionLabel } from './appInfo';
 
-/** Where feedback goes. TODO(owner): set this to the real developer inbox before release. */
-export const FEEDBACK_EMAIL = 'feedback@example.com';
+/** Where feedback goes — the developer's inbox. */
+export const FEEDBACK_EMAIL = 'mattwayles@gmail.com';
 
 export function buildFeedbackUrl(): string {
   const subject = `Wanderlift feedback (v${appVersionLabel()})`;
