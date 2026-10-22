@@ -140,7 +140,7 @@ export function BadgeTrail({
 
 /** Row detail for one tier of the series sheet. */
 function tierDetail(b: ShelfBadge): string {
-  if (b.mystery) return 'A hidden badge - keep training and it may turn up.';
+  if (b.mystery) return b.def.riddle ?? 'A hidden badge - keep training and it may turn up.';
   return b.def.description;
 }
 

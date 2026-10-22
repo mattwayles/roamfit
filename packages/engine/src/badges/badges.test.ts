@@ -85,6 +85,18 @@ describe('badge catalog', () => {
     }
   });
 
+  it('every hidden badge has a riddle that never names it, and no other badge has one', () => {
+    for (const b of BADGES.filter((x) => !x.retired)) {
+      if (b.hidden) {
+        expect(b.riddle && b.riddle.length > 10).toBe(true);
+        expect(b.riddle!.toLowerCase()).not.toContain(b.name.toLowerCase());
+        expect(b.riddle).not.toMatch(/\b(need|left|remaining|missing|behind|only)\b/i);
+      } else {
+        expect(b.riddle).toBeUndefined();
+      }
+    }
+  });
+
   it('ids are <series>_<suffix> and every series is known to the test', () => {
     for (const b of BADGES) {
       expect(b.id.startsWith(`${b.series}_`)).toBe(true);

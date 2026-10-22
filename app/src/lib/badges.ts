@@ -382,3 +382,14 @@ export function buildBadgeTimeline(recent: readonly ShelfBadge[]): TimelineGroup
   }
   return out;
 }
+
+/** "1 of 3 secrets found": hidden badges the shelf shows, and how many are earned. Null when
+ *  there are none. Neutral, never a count of what is left. */
+export function secretsFound(
+  sections: readonly ShelfSection[],
+): { found: number; total: number; text: string } | null {
+  const hidden = sections.flatMap((s) => s.badges).filter((b) => b.def.hidden);
+  if (hidden.length === 0) return null;
+  const found = hidden.filter((b) => b.earned).length;
+  return { found, total: hidden.length, text: `${found} of ${hidden.length} secrets found` };
+}

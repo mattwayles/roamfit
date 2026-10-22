@@ -89,6 +89,9 @@ export interface BadgeDefinition {
   /** A positive, concrete "how to" line shown on the locked badge (never a deficit). Absent on
    *  hidden badges, which stay a mystery. */
   hint?: string;
+  /** A short, positive riddle shown on a locked hidden badge in place of a hint; it hints at the
+   *  badge without naming it. Every hidden badge has one. */
+  riddle?: string;
   /** An `IconName` from `app/src/ui/Icon.tsx` (kept a plain string so the engine stays RN-free). */
   icon: string;
   /** Hidden until earned (a "?" while locked). */

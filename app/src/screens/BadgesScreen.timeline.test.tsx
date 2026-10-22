@@ -38,6 +38,16 @@ describe('BadgesScreen timeline', () => {
     await waitFor(() => expect(screen.getByTestId('trail-sessions')).toBeTruthy(), WAIT_OPTS);
     expect(screen.queryByTestId('badge-timeline')).toBeNull();
 
+    // Hidden badges: a "secrets found" line, and a locked one shows its riddle, never its name.
+    expect(screen.getByTestId('badges-secrets').props.children).toMatch(/^0 of \d+ secrets found$/);
+    await fireEvent.press(screen.getByTestId('badge-early_bird_1'));
+    await waitFor(
+      () => expect(screen.getByText('The trail is quietest before sunrise.')).toBeTruthy(),
+      WAIT_OPTS,
+    );
+    expect(screen.queryByText('Early Bird')).toBeNull();
+    await fireEvent.press(screen.getByTestId('badge-sheet-backdrop'));
+
     await fireEvent.press(screen.getByTestId('badges-view-timeline'));
     await waitFor(() => expect(screen.getByTestId('badge-timeline')).toBeTruthy(), WAIT_OPTS);
     expect(screen.queryByTestId('trail-sessions')).toBeNull();

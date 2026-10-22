@@ -30,6 +30,8 @@ interface SeriesSpec {
   tiers: { target: number; suffix?: string; name: string; description: string; hint?: string }[];
   /** A positive "how to" line shown on a locked badge; each tier may override it with its own. */
   hint?: string;
+  /** A positive riddle for a hidden series (shown while the badge is still a mystery). */
+  riddle?: string;
   hidden?: boolean;
   passport?: boolean;
 }
@@ -45,6 +47,7 @@ function series(spec: SeriesSpec): BadgeDefinition[] {
     description: t.description,
     ...((t.hint ?? spec.hint) ? { hint: (t.hint ?? spec.hint)! } : {}),
     icon: spec.icon,
+    ...(spec.riddle ? { riddle: spec.riddle } : {}),
     ...(spec.hidden ? { hidden: true } : {}),
     ...(spec.passport ? { passport: true } : {}),
     target: t.target,
@@ -117,6 +120,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'early_bird',
+    riddle: 'The trail is quietest before sunrise.',
     category: 'showing_up',
     icon: 'sun',
     hidden: true,
@@ -125,6 +129,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'night_owl',
+    riddle: 'Some paths are best walked under the stars.',
     category: 'showing_up',
     icon: 'moon',
     hidden: true,
@@ -269,6 +274,7 @@ export const BADGES: readonly BadgeDefinition[] = [
   }),
   ...series({
     series: 'record_day',
+    riddle: 'One good day can outshine a whole week.',
     category: 'pushing',
     icon: 'sparkles',
     hidden: true,

@@ -6,6 +6,7 @@ import {
   buildBadgeShelf,
   buildBadgeTimeline,
   completionBadges,
+  secretsFound,
   earnedDuringLabel,
   progressText,
   seriesContext,
@@ -280,5 +281,20 @@ describe('buildBadgeTimeline', () => {
 
   it('is empty for a fresh user', () => {
     expect(buildBadgeTimeline([])).toEqual([]);
+  });
+});
+
+describe('secretsFound', () => {
+  it('counts earned hidden badges against the hidden badges shown', () => {
+    const none = buildBadgeShelf([], emptyBadgeFacts());
+    const total = BADGES.filter((b) => b.hidden && !b.retired).length;
+    expect(secretsFound(none.sections)).toEqual({
+      found: 0,
+      total,
+      text: `0 of ${total} secrets found`,
+    });
+    const one = buildBadgeShelf([earnedRow('early_bird_1')], emptyBadgeFacts());
+    expect(secretsFound(one.sections)?.found).toBe(1);
+    expect(secretsFound([])).toBeNull();
   });
 });

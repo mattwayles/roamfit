@@ -21,6 +21,7 @@ import {
   buildSeriesTrails,
   earnedDuringLabel,
   progressText,
+  secretsFound,
   seriesContext,
   tierTally,
   type ShelfBadge,
@@ -124,6 +125,7 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
 
   if (!data) return <Screen testID="badges-screen" />;
   const shelf = data.badges;
+  const secrets = secretsFound(shelf.sections);
   const all = shelf.sections.flatMap((s) => s.badges);
   const open = openId ? (all.find((b) => b.def.id === openId) ?? null) : null;
   const series = open ? seriesContext(all, open) : null;
@@ -209,6 +211,12 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
             ))}
           </ScrollView>
         </View>
+      ) : null}
+
+      {view === 'collection' && secrets ? (
+        <Txt variant="small" color="text2" testID="badges-secrets">
+          {secrets.text}
+        </Txt>
       ) : null}
 
       {(view === 'collection' ? trailSections : []).map((section) => (
@@ -319,7 +327,7 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
             </View>
             <Txt variant="body" color="text2" align="center">
               {open.mystery
-                ? 'A hidden badge - keep training and it may turn up.'
+                ? (open.def.riddle ?? 'A hidden badge - keep training and it may turn up.')
                 : open.def.description}
             </Txt>
             {series && !open.mystery ? (

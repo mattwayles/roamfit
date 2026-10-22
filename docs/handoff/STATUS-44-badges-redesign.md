@@ -12,14 +12,18 @@ Last updated: 2026-10-21
       BACKLOG image-share item — 9689f22
 - [x] 44c delight pass: stitch-in, summit shimmer, tilt-to-sheen, haptics, tests - fa1f692
 
+- [x] 44d item 1 Collection | Timeline toggle, `buildBadgeTimeline`, `BadgeTimeline`, item 5 lint
+      fix - 8cb9495
+- [x] 44d item 2 riddles (`riddle` on BadgeDefinition/SeriesSpec, engine test, sheet shows it) and
+      a "N of M secrets found" line (`secretsFound`, `badges-secrets`) placed under Almost there,
+      above the first section, Collection view only - see git log
+
 ### In progress
 
-- 44d item 1 (Collection | Timeline): `buildBadgeTimeline` in `lib/badges.ts` + test, then
-  `components/BadgeTimeline.tsx` (entry = emblem + name + date + linked workout via a shared
-  `lib/useEarnedDuring` hook), Chip toggle in BadgesScreen (session-only state). Also item 5
-  (fresh test lint) is done in the same first commit.
-- Then 44d items 2 (riddles), 3 (within reach + progress bar + Generate prefill), 4 (category
-  intros), in that order, one commit each.
+- 44d item 3 (Almost there): progress bar on cards; pure `withinReach(badge, facts?)` helper in
+  `lib/badges.ts` + test; "Within reach today" label; one-tap Generate prefill (route param
+  `Generate: { recoveryWeek?, difficulty?, minutes? }` wired into GenerateScreen initial state).
+- Then item 4 (category intros).
 
 ### Next
 
@@ -36,6 +40,9 @@ Last updated: 2026-10-21
   the engine still selects exercises); one-line category intros under each section eyebrow.
 
 ### Decisions / gotchas
+
+- Test-suite flake is wider than WorkoutScreen: a random suite (BandChip, SpotifyButton, HomeScreen,
+  JourneyScreen) 'fails to run' under full-load `npm run check`, also on a clean tree. Rerun.
 
 - Sheet helpers live in `lib/badges.ts` (`seriesContext`, `earnedDuringLabel`); the sheet's emblem
   also passes `showProgress` (a locked badge shows its arc at 120px). `EarnedDuring` in
