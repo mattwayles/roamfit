@@ -1,5 +1,5 @@
 ## Track: 46 — Field Guide filter redesign
-Last updated: 2026-10-21 (46c done)
+Last updated: 2026-10-21 (46d done; Track 46 complete)
 Files: app/src/screens/ExercisesScreen.tsx, app/src/lib/exerciseCatalog.ts (state, predicates),
 app/src/lib/filterLabels.ts (human labels), tests beside each.
 
@@ -7,11 +7,10 @@ app/src/lib/filterLabels.ts (human labels), tests beside each.
 - [x] 46a — engine-only dimensions out, human labels, "No gear" quick chip, live "Show N moves" (commit 8044458)
 - [x] 46b — four collapsible sheet groups, body-area/movement-family grouping, No gear/Band choice, human muscle names on rows (lib 30d8bba; sheet, components, tests a829c5b)
 - [x] 46c — limitations switch (commit d2f02f7)
+- [x] 46d — tap-the-body picker (commit: see git log, "Field Guide 46d")
 
 ### In progress
-- 46d not started: tap-the-body picker for Body area. Start by reading app/src/components/MuscleMap.tsx
-  and the muscle-map data (muscleMap.ts), then add a front/back toggle picker in the "What it works"
-  section writing to `filters.primary` (chips stay as the accessible fallback).
+- none. Track 46 is done; device pass on picker tap accuracy is the only thing owed.
 
 ### Next
 - (done) 46b: reorganise the sheet into four collapsible groups — "What it works" (Focus + Body area:
@@ -80,3 +79,14 @@ app/src/lib/filterLabels.ts (human labels), tests beside each.
   "No limitations saved." plus a link that closes the sheet and navigates to the Limitations screen;
   stays enabled if already on so it can be turned off. Not filtered: anchors/equipment/disabled
   exercises (generation also gates those; this switch is limitations only).
+- 46d picker (components/BodyAreaPicker.tsx, lib/muscleMap.ts `pickerRegions`/`pickerShapes`): a view on
+  `filters.primary`, no state of its own except the Front/Back toggle (two Chips). Region->token rule: a
+  muscle is tappable only on its `MUSCLE_SIDE` figure, under each slug `MUSCLE_REGIONS` gives it, limited
+  to muscles the library has. So front deltoid = front+side delts, back deltoid = rear delts; back
+  upper-back = upper back + lats; back gluteal = glutes + abductors; front quadriceps = quads + hip
+  flexors. Regions with no muscle on that side (front trapezius, back adductors, head, hands, feet,
+  knees, ankles, neck...) are not drawn as paths and ignore taps. Tap: all tokens on unless all already on
+  (same as group chips), then all off; partial fills up. Fill: all = accent, partial = accent at 0.45,
+  none = neutral. Hit area: svg Paths have no hitSlop, so forearms/calves are as small as drawn; chips are
+  the fallback (device pass owed). Figure is accessibilityElementsHidden; tests query it with
+  `{ hidden: true }`. Caption "Tap a muscle, or pick below".

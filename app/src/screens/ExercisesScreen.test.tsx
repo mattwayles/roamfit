@@ -63,6 +63,8 @@ async function openFilters() {
   await waitFor(() => expect(screen.getByTestId('filter-panel')).toBeTruthy());
 }
 
+const HID = { hidden: true };
+
 async function openSection(id: 'works' | 'moves' | 'need' | 'fit') {
   await fireEvent.press(screen.getByTestId(`filter-section-${id}`));
   await waitFor(() => expect(screen.getByTestId(`filter-section-${id}`)).toBeTruthy());
@@ -282,6 +284,23 @@ describe('the exercise library', () => {
     await openFilters();
     expect(screen.getByTestId('filter-group-pattern-push')).toBeTruthy();
     expect(screen.queryByTestId('filter-group-primary-legs')).toBeNull();
+  });
+
+  it('keeps the body picker and the body-area chips in sync both ways', async () => {
+    await openExercises();
+    await openFilters();
+    await fireEvent.press(screen.getByTestId('body-picker-region-chest', HID));
+    await waitFor(() =>
+      expect(screen.getByTestId('filter-group-primary-chest').props.accessibilityState).toEqual(
+        expect.objectContaining({ selected: true }),
+      ),
+    );
+    await fireEvent.press(screen.getByTestId('filter-group-primary-chest'));
+    await waitFor(() =>
+      expect(screen.getByTestId('body-picker-region-chest', HID).props.fill).toEqual(
+        screen.getByTestId('body-picker-region-abs', HID).props.fill,
+      ),
+    );
   });
 
   it('summarises a closed section and selects a whole body area from one chip', async () => {

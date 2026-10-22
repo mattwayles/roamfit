@@ -83,6 +83,7 @@ import {
 import { EmptyState } from '../components/EmptyState';
 import { FilterSection } from '../components/FilterSection';
 import { GroupedChips } from '../components/GroupedChips';
+import { BodyAreaPicker } from '../components/BodyAreaPicker';
 import { MuscleMap } from '../components/MuscleMap';
 
 type Props = TabScreenProps<'Exercises'>;
@@ -454,6 +455,11 @@ export default function ExercisesScreen({ navigation }: Props): React.JSX.Elemen
                     <Txt variant="eyebrow" color="text3">
                       {MULTI_SELECT_LABELS.primary}
                     </Txt>
+                    <BodyAreaPicker
+                      available={options.primary}
+                      selected={filters.primary}
+                      onChange={(next) => setFilters((prev) => ({ ...prev, primary: next }))}
+                    />
                     <GroupedChips
                       dimension="primary"
                       groups={MUSCLE_GROUPS}

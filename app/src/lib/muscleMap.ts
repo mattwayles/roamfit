@@ -133,3 +133,62 @@ export function muscleChart(primary: readonly string[], secondary: readonly stri
 export function exerciseMuscleChart(exercise: Exercise): MuscleChart {
   return muscleChart(exercise.primary, exercise.secondary);
 }
+
+/**
+ * Tap-the-body picker. Each library muscle is tappable on exactly one figure - its `MUSCLE_SIDE`
+ * - under each region `MUSCLE_REGIONS` gives it. So the front deltoid stands for front + side
+ * delts and the back deltoid for rear delts; the back's upper-back for upper back + lats, and the
+ * gluteal for glutes + abductors. A region with no muscle on that side (the front's trapezius, the
+ * back's adductors; head, hands, feet, knees, ...) is not tappable. Restricted to muscles the
+ * library actually has (`available`).
+ */
+export interface PickerRegion {
+  slug: Slug;
+  /** The muscle tokens a tap on this region toggles together. */
+  tokens: string[];
+}
+
+export function pickerRegions(side: ChartSide, available: readonly string[]): PickerRegion[] {
+  const bySlug = new Map<Slug, string[]>();
+  for (const token of available) {
+    if (MUSCLE_SIDE[token] !== side) continue;
+    for (const slug of MUSCLE_REGIONS[token] ?? []) {
+      bySlug.set(slug, [...(bySlug.get(slug) ?? []), token]);
+    }
+  }
+  return [...bySlug].map(([slug, tokens]) => ({ slug, tokens }));
+}
+
+export interface PickerShapes {
+  /** Merged path of every part that is not a tappable region. */
+  body: string;
+  /** One merged path per slug. */
+  regions: Map<Slug, string>;
+}
+
+const shapeCache = new Map<ChartSide, Map<string, PickerShapes>>();
+
+/** Path strings for one figure, memoised per set of tappable slugs. */
+export function pickerShapes(side: ChartSide, tappable: readonly Slug[]): PickerShapes {
+  const key = [...tappable].sort().join(',');
+  const sideCache = shapeCache.get(side) ?? new Map<string, PickerShapes>();
+  shapeCache.set(side, sideCache);
+  const hit = sideCache.get(key);
+  if (hit) return hit;
+  const body: string[] = [];
+  const parts = new Map<Slug, string[]>();
+  for (const part of side === 'front' ? bodyFront : bodyBack) {
+    const slug = part.slug;
+    if (slug && tappable.includes(slug)) {
+      parts.set(slug, [...(parts.get(slug) ?? []), ...partPaths(part)]);
+    } else {
+      body.push(...partPaths(part));
+    }
+  }
+  const out: PickerShapes = {
+    body: body.join(' '),
+    regions: new Map([...parts].map(([s, p]) => [s, p.join(' ')])),
+  };
+  sideCache.set(key, out);
+  return out;
+}

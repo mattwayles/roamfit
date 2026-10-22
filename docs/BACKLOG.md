@@ -94,8 +94,7 @@ _List exercises that you'd like to incldue in the library here. Any exercise you
   (`components/MuscleMap.tsx`, `lib/muscleMap.ts`). Not built yet, in suggested order: (1) the
   movement pattern in words in the row subtitle ("Horizontal push · Chest, triceps") - the map shows
   what is worked, not the movement; (2) explain the tile tint (the exercise's first focus) by
-  tinting the quick focus chips the same way; (3) a "Movement" section in the filter sheet to
-  filter by pattern; (4) a small band / no-gear corner marker on the tile (`AnchorBadge` exists).
+  tinting the quick focus chips the same way; (3) a small band / no-gear corner marker on the tile (`AnchorBadge` exists).
   The Exercise detail header could also show the map large, labelled.
 - **Settings toggle to hide badges.** Badges have no off switch in v1 (Passport badges follow the
   Passport opt-in). If someone wants a quieter app, a Settings toggle that hides the Journey card,

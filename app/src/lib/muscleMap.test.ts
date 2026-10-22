@@ -5,6 +5,8 @@ import {
   exerciseChartSide,
   exerciseMuscleChart,
   muscleChart,
+  pickerRegions,
+  pickerShapes,
 } from './muscleMap';
 
 describe('muscleMap', () => {
@@ -55,5 +57,37 @@ describe('muscleMap', () => {
     expect(muscleChart(['chest', 'triceps'], ['abs'])).toBe(
       muscleChart(['triceps', 'chest'], ['abs']),
     );
+  });
+});
+
+describe('picker regions', () => {
+  const available = [
+    ...new Set(exerciseLibrary.exercises.flatMap((e) => [...e.primary, ...e.secondary])),
+  ];
+
+  it('makes every library muscle tappable on exactly one figure, in one or more regions', () => {
+    for (const token of available) {
+      const sides = (['front', 'back'] as const).filter((side) =>
+        pickerRegions(side, available).some((r) => r.tokens.includes(token)),
+      );
+      expect(sides).toEqual([MUSCLE_SIDE[token]]);
+    }
+  });
+
+  it('groups muscles that share a region and splits delts by side', () => {
+    const tokens = (side: 'front' | 'back', slug: string) =>
+      pickerRegions(side, available).find((r) => r.slug === slug)?.tokens;
+    expect(tokens('back', 'upper-back')).toEqual(expect.arrayContaining(['upper_back', 'lats']));
+    expect(tokens('back', 'gluteal')).toEqual(expect.arrayContaining(['glutes', 'abductors']));
+    expect(tokens('front', 'deltoids')).toEqual(['front_delts', 'side_delts']);
+    expect(tokens('back', 'deltoids')).toEqual(['rear_delts']);
+    expect(tokens('front', 'head')).toBeUndefined();
+  });
+
+  it('draws tappable regions separately from the body', () => {
+    const shapes = pickerShapes('front', ['chest']);
+    expect(shapes.regions.get('chest')).toBeTruthy();
+    expect(shapes.body).not.toBe('');
+    expect(pickerShapes('front', ['chest'])).toBe(shapes);
   });
 });
