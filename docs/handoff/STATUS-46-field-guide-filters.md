@@ -7,7 +7,7 @@ app/src/lib/filterLabels.ts (human labels), tests beside each.
 - [x] 46a — engine-only dimensions out, human labels, "No gear" quick chip, live "Show N moves" (commit 8044458)
 
 ### In progress
-- 46b not started: first step is the MUSCLE_GROUPS / PATTERN_FAMILIES mapping (see Next).
+- 46b-1: app/src/lib/filterGroups.ts (MUSCLE_GROUPS, PATTERN_FAMILIES, helpers, summaries) + test; then FilterSection component + sheet rewrite in ExercisesScreen.tsx; then primaryMuscleLabel -> MUSCLE_LABELS.
 
 ### Next
 - 46b: reorganise the sheet into four collapsible groups — "What it works" (Focus + Body area:
