@@ -71,7 +71,13 @@ export function BadgesHero({
           }
           style={styles.featured}
         >
-          <BadgeEmblem badge={featured} size={96} testID="badges-hero-emblem" />
+          <BadgeEmblem
+            badge={featured}
+            size={96}
+            animateIn={featured.unseen}
+            shimmer
+            testID="badges-hero-emblem"
+          />
           <View style={styles.featuredText}>
             <Txt variant="eyebrow" color="text3">
               {latest ? 'Latest badge' : 'Your first badge'}

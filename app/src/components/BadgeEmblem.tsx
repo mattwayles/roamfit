@@ -7,12 +7,24 @@
  * (nothing at 0, and never on a mystery badge, which must not give away how close it is).
  */
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import Svg, { G, Path, Polygon, Rect } from 'react-native-svg';
+import { Animated, StyleSheet, View } from 'react-native';
+import Svg, {
+  ClipPath,
+  Defs,
+  G,
+  LinearGradient,
+  Path,
+  Polygon,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 import type { BadgeCategory, BadgeTier } from '@roamfit/engine';
 import { useTheme, type AccentName } from '../theme';
-import { Icon, Txt, iconMap, type IconName } from '../ui';
+import { Icon, Txt, iconMap, useReduceMotion, type IconName } from '../ui';
 import { badgeLabel, type ShelfBadge } from '../lib/badges';
+import { useSharedShimmer, useStitchIn, type StitchIn } from './badgeMotion';
+
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 /** Any pixel size; the sheet uses 120, the grid 64, the trail rows 26-40. */
 export type BadgeEmblemSize = number;
@@ -87,16 +99,77 @@ export interface BadgeEmblemProps {
   showNew?: boolean;
   /** A thin progress arc around a locked outline (see the header). */
   showProgress?: boolean;
+  /** First-view reveal: the patch pops in and its glyph follows. Plays once each time this turns
+   *  true; nothing at all under Reduce Motion. */
+  animateIn?: boolean;
+  /** A soft, slow glint across an earned summit emblem (ignored for any other badge). */
+  shimmer?: boolean;
+  /** Drives a diagonal highlight band across the emblem: 0 is just off the left edge, 1 just
+   *  off the right. Used by `TiltSheen`; the caller owns Reduce Motion. */
+  sheen?: Animated.Value;
   testID?: string;
 }
 
-export function BadgeEmblem({
+export function BadgeEmblem(props: BadgeEmblemProps): React.JSX.Element {
+  const shimmerWanted = !!props.shimmer && props.badge.earned && props.badge.def.tier === 'summit';
+  // The Reduce Motion subscription is only paid for by emblems that can actually move.
+  if (props.animateIn || shimmerWanted || props.sheen) {
+    return <MotionEmblem {...props} shimmer={shimmerWanted} />;
+  }
+  return <EmblemBody {...props} />;
+}
+
+function MotionEmblem(props: BadgeEmblemProps): React.JSX.Element {
+  const still = useReduceMotion();
+  const stitch = useStitchIn(!!props.animateIn, still);
+  const shimmerValue = useSharedShimmer(!!props.shimmer && !still);
+  return <EmblemBody {...props} stitch={stitch} band={props.sheen ?? shimmerValue} />;
+}
+
+/** The soft band, clipped to the emblem's own outline so it never spills past the patch. */
+function SheenBand({
+  category,
+  progress,
+  id,
+}: {
+  category: BadgeCategory;
+  progress: Animated.Value;
+  id: string;
+}): React.JSX.Element {
+  const x = progress.interpolate({ inputRange: [0, 1], outputRange: [-40, 120] });
+  return (
+    <>
+      <Defs>
+        <ClipPath id={`${id}-clip`}>
+          <Outline category={category} fill="#000" stroke="none" strokeWidth={0} />
+        </ClipPath>
+        <LinearGradient id={`${id}-grad`} x1="0" y1="0" x2="1" y2="0">
+          <Stop offset="0" stopColor="#fff" stopOpacity={0} />
+          <Stop offset="0.5" stopColor="#fff" stopOpacity={0.55} />
+          <Stop offset="1" stopColor="#fff" stopOpacity={0} />
+        </LinearGradient>
+      </Defs>
+      <G clipPath={`url(#${id}-clip)`}>
+        <G rotation={25} origin="50, 50">
+          <AnimatedRect x={x} y={-40} width={26} height={180} fill={`url(#${id}-grad)`} />
+        </G>
+      </G>
+    </>
+  );
+}
+
+function EmblemBody({
   badge,
   size = 64,
   showNew = false,
   showProgress = false,
   testID,
-}: BadgeEmblemProps): React.JSX.Element {
+  stitch = null,
+  band = null,
+}: BadgeEmblemProps & {
+  stitch?: StitchIn | null;
+  band?: Animated.Value | null;
+}): React.JSX.Element {
   const theme = useTheme();
   const { def, earned, mystery } = badge;
   const accent = theme.colors[TIER_ACCENT[def.tier]];
@@ -113,59 +186,83 @@ export function BadgeEmblem({
       accessibilityLabel={badgeLabel(badge)}
       style={{ width: size, height: size }}
     >
-      <Svg width={size} height={size} viewBox="0 0 100 100">
-        {earned ? (
-          <>
-            <Outline
-              category={def.category}
-              fill={theme.tints[TIER_ACCENT[def.tier]]}
-              stroke={accent}
-              strokeWidth={ring * 1.6}
-            />
-            {/* The stitched inner line. */}
-            <G transform="translate(50 50) scale(0.8) translate(-50 -50)">
+      <Animated.View
+        testID={stitch && testID ? `${testID}-stitch` : undefined}
+        style={
+          stitch
+            ? {
+                opacity: stitch.pop.interpolate({
+                  inputRange: [0, 0.3, 1],
+                  outputRange: [0, 1, 1],
+                  extrapolate: 'clamp',
+                }),
+                transform: [
+                  { scale: stitch.pop.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) },
+                ],
+              }
+            : undefined
+        }
+      >
+        <Svg width={size} height={size} viewBox="0 0 100 100">
+          {earned ? (
+            <>
               <Outline
                 category={def.category}
-                fill="none"
+                fill={theme.tints[TIER_ACCENT[def.tier]]}
                 stroke={accent}
-                strokeWidth={1.6}
-                dash="3 3"
+                strokeWidth={ring * 1.6}
               />
-            </G>
-          </>
-        ) : (
-          <>
-            <Outline
-              category={def.category}
-              fill={theme.colors.surface2}
-              stroke={theme.colors.lineStrong}
-              strokeWidth={ring * 1.2}
-              dash="6 5"
-            />
-            {arc > 0 ? (
-              <G testID={testID ? `${testID}-arc` : undefined} opacity={0.6}>
+              {/* The stitched inner line. */}
+              <G transform="translate(50 50) scale(0.8) translate(-50 -50)">
                 <Outline
                   category={def.category}
                   fill="none"
                   stroke={accent}
-                  strokeWidth={ring * 1.2}
-                  dash={`${(PERIMETER[def.category] * arc).toFixed(1)} ${PERIMETER[def.category]}`}
-                  cap="round"
+                  strokeWidth={1.6}
+                  dash="3 3"
                 />
               </G>
-            ) : null}
-          </>
-        )}
-      </Svg>
-      <View style={styles.glyph} pointerEvents="none">
-        {mystery ? (
-          <Txt variant="h2" color="text3" style={{ fontSize: Math.round(size * 0.4) }}>
-            ?
-          </Txt>
-        ) : (
-          <Icon name={glyph} size={iconSize} color={earned ? TIER_ACCENT[def.tier] : 'text3'} />
-        )}
-      </View>
+            </>
+          ) : (
+            <>
+              <Outline
+                category={def.category}
+                fill={theme.colors.surface2}
+                stroke={theme.colors.lineStrong}
+                strokeWidth={ring * 1.2}
+                dash="6 5"
+              />
+              {arc > 0 ? (
+                <G testID={testID ? `${testID}-arc` : undefined} opacity={0.6}>
+                  <Outline
+                    category={def.category}
+                    fill="none"
+                    stroke={accent}
+                    strokeWidth={ring * 1.2}
+                    dash={`${(PERIMETER[def.category] * arc).toFixed(1)} ${PERIMETER[def.category]}`}
+                    cap="round"
+                  />
+                </G>
+              ) : null}
+            </>
+          )}
+          {band ? (
+            <SheenBand category={def.category} progress={band} id={`sheen-${def.id}`} />
+          ) : null}
+        </Svg>
+        <Animated.View
+          style={[styles.glyph, stitch ? { opacity: stitch.glyph } : null]}
+          pointerEvents="none"
+        >
+          {mystery ? (
+            <Txt variant="h2" color="text3" style={{ fontSize: Math.round(size * 0.4) }}>
+              ?
+            </Txt>
+          ) : (
+            <Icon name={glyph} size={iconSize} color={earned ? TIER_ACCENT[def.tier] : 'text3'} />
+          )}
+        </Animated.View>
+      </Animated.View>
       {showNew ? (
         <View
           testID={testID ? `${testID}-new` : undefined}

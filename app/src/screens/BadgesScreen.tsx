@@ -25,12 +25,14 @@ import {
   type ShelfBadge,
 } from '../lib/badges';
 import { buildSessionHistoryView, formatFullLocalDate } from '../lib/sessionHistory';
+import { haptics } from '../lib/haptics';
 import { useDashboardData } from '../lib/useDashboardData';
 import { makeStyles, space } from '../theme';
 import { Button, Card, Icon, IconButton, Pips, PressableScale, Screen, Sheet, Txt } from '../ui';
 import { BadgeEmblem, TIER_ACCENT } from '../components/BadgeEmblem';
 import { BadgeSeriesList, BadgeTrail } from '../components/BadgeTrail';
 import { BadgesHero } from '../components/BadgesHero';
+import { TiltSheen } from '../components/TiltSheen';
 
 type Props = RootScreenProps<'Badges'>;
 
@@ -95,9 +97,19 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
       // `fresh` still carries the unseen flags, so this visit shows the NEW dots; the next
       // visit (and Journey) will not.
       const unseen = fresh.badges.recent.filter((b) => b.unseen).map((b) => b.def.id);
-      if (unseen.length > 0) badgesRepo.markBadgesSeen(db, unseen, nowUtcInstant());
+      if (unseen.length > 0) {
+        badgesRepo.markBadgesSeen(db, unseen, nowUtcInstant());
+        // One quiet confirmation for the whole reveal, not one per badge.
+        haptics.success();
+      }
     }, [db, reload]),
   );
+
+  /** Opening an earned summit badge lands harder than an ordinary tap (which already ticks). */
+  const openBadge = (b: ShelfBadge) => {
+    if (b.earned && b.def.tier === 'summit') haptics.medium();
+    setOpenId(b.def.id);
+  };
 
   if (!data) return <Screen testID="badges-screen" />;
   const shelf = data.badges;
@@ -123,7 +135,7 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
         next={shelf.next}
         sections={trailSections}
         tally={tierTally(shelf)}
-        onOpenBadge={(b) => setOpenId(b.def.id)}
+        onOpenBadge={(b) => openBadge(b)}
         onJump={(category) => {
           const y = sectionY.current[category];
           if (y !== undefined)
@@ -146,7 +158,7 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
                 key={b.def.id}
                 testID={`badges-almost-${b.def.id}`}
                 padding="md"
-                onPress={() => setOpenId(b.def.id)}
+                onPress={() => openBadge(b)}
                 accessibilityLabel={`${b.def.name}, ${progressText(b.progress!)}`}
                 style={styles.almostCard}
               >
@@ -194,7 +206,7 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
                   <PressableScale
                     key={b.def.id}
                     testID={`badge-${b.def.id}`}
-                    onPress={() => setOpenId(b.def.id)}
+                    onPress={() => openBadge(b)}
                     accessibilityRole="button"
                     accessibilityLabel={`${nameOf(b)}${b.earned ? ', earned' : b.progress && !b.mystery ? `, locked, ${progressText(b.progress)}` : ', locked'}`}
                     style={styles.cell}
@@ -204,6 +216,8 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
                       size={64}
                       showProgress
                       showNew={b.unseen}
+                      animateIn={b.unseen}
+                      shimmer
                       testID={`badge-emblem-${b.def.id}`}
                     />
                     <Txt variant="small" align="center" color={b.earned ? 'text' : 'text3'}>
@@ -236,7 +250,7 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
                 : openTrail.subtitle}
             </Txt>
             <ScrollView style={{ maxHeight: height * 0.6 }} showsVerticalScrollIndicator={false}>
-              <BadgeSeriesList trail={openTrail} onSelect={(b) => setOpenId(b.def.id)} />
+              <BadgeSeriesList trail={openTrail} onSelect={(b) => openBadge(b)} />
             </ScrollView>
           </View>
         ) : null}
@@ -250,11 +264,11 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
                   size="md"
                   accessibilityLabel="Previous badge in this series"
                   disabled={!series.prev}
-                  onPress={() => series.prev && setOpenId(series.prev.def.id)}
+                  onPress={() => series.prev && openBadge(series.prev)}
                 />
               ) : null}
               <View style={styles.sheetEmblem}>
-                <BadgeEmblem badge={open} size={120} showProgress />
+                <TiltSheen badge={open} size={120} />
               </View>
               {series ? (
                 <IconButton
@@ -263,7 +277,7 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
                   size="md"
                   accessibilityLabel="Next badge in this series"
                   disabled={!series.next}
-                  onPress={() => series.next && setOpenId(series.next.def.id)}
+                  onPress={() => series.next && openBadge(series.next)}
                 />
               ) : null}
             </View>

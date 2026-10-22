@@ -114,7 +114,13 @@ export function BadgeTrail({
                 style={{ width: size, height: size, justifyContent: 'center' }}
               >
                 {node.earned || isCurrent ? (
-                  <BadgeEmblem badge={node} size={size} showProgress={isCurrent} />
+                  <BadgeEmblem
+                    badge={node}
+                    size={size}
+                    showProgress={isCurrent}
+                    animateIn={node.unseen}
+                    shimmer
+                  />
                 ) : (
                   <View
                     style={[
