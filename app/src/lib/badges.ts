@@ -16,6 +16,7 @@ import {
   type BadgeDefinition,
   type BadgeFacts,
   type BadgeProgress,
+  type BadgeTier,
 } from '@roamfit/engine';
 import type { badgesRepo } from '@roamfit/store';
 import { formatFullLocalDate } from './sessionHistory';
@@ -238,4 +239,92 @@ export function earnedDuringLabel(view: {
   minutes: number;
 }): string {
   return `${view.dateLabel} · ${view.focusLabel} · ${view.minutes} min`;
+}
+
+export interface SeriesTrail {
+  series: string;
+  category: BadgeCategory;
+  /** Members the shelf shows, in tier order. Always 2 or more. */
+  nodes: ShelfBadge[];
+  earnedCount: number;
+  /** First locked node; null once the whole trail is earned. */
+  current: ShelfBadge | null;
+  /** Index of `current` in `nodes`; -1 when complete. */
+  currentIndex: number;
+  /** The badge the row is named after: the current node, or the last one once complete. A hidden
+   *  badge that is still locked stays "Hidden badge". */
+  title: string;
+  /** Neutral progress toward the current node ("31 of 50"), else "3 of 8 earned" / "All 8 earned". */
+  subtitle: string;
+}
+
+export interface SectionTrails {
+  category: BadgeCategory;
+  title: string;
+  /** Multi-badge series, in catalog order. */
+  trails: SeriesTrail[];
+  /** One-off badges (a series that shows just one badge). */
+  singles: ShelfBadge[];
+  earned: number;
+  total: number;
+}
+
+/** Trail name for a badge: a locked hidden one is never named. */
+function trailName(b: ShelfBadge): string {
+  return b.mystery ? 'Hidden badge' : b.def.name;
+}
+
+/** Splits each shelf section into series trails and singles. The shelf has already applied the
+ *  visibility rules (Passport, retired-only-if-earned, mystery), so a series is judged by the
+ *  members it shows: one visible member makes it a single. */
+export function buildSeriesTrails(sections: readonly ShelfSection[]): SectionTrails[] {
+  return sections.map((section) => {
+    const bySeries = new Map<string, ShelfBadge[]>();
+    for (const b of section.badges) {
+      const list = bySeries.get(b.def.series);
+      if (list) list.push(b);
+      else bySeries.set(b.def.series, [b]);
+    }
+    const trails: SeriesTrail[] = [];
+    const singles: ShelfBadge[] = [];
+    for (const [series, nodes] of bySeries) {
+      if (nodes.length < 2) {
+        singles.push(nodes[0]!);
+        continue;
+      }
+      const earnedCount = nodes.filter((n) => n.earned).length;
+      const currentIndex = nodes.findIndex((n) => !n.earned);
+      const current = currentIndex >= 0 ? nodes[currentIndex]! : null;
+      const subtitle = !current
+        ? `All ${nodes.length} earned`
+        : current.progress && !current.mystery
+          ? progressText(current.progress)
+          : `${earnedCount} of ${nodes.length} earned`;
+      trails.push({
+        series,
+        category: section.category,
+        nodes,
+        earnedCount,
+        current,
+        currentIndex,
+        title: trailName(current ?? nodes[nodes.length - 1]!),
+        subtitle,
+      });
+    }
+    return {
+      category: section.category,
+      title: section.title,
+      trails,
+      singles,
+      earned: section.badges.filter((b) => b.earned).length,
+      total: section.badges.length,
+    };
+  });
+}
+
+/** Earned badges per tier, for the hero's tally. */
+export function tierTally(shelf: Pick<BadgeShelf, 'recent'>): Record<BadgeTier, number> {
+  const tally: Record<BadgeTier, number> = { bronze: 0, silver: 0, gold: 0, summit: 0 };
+  for (const b of shelf.recent) tally[b.def.tier] += 1;
+  return tally;
 }

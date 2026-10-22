@@ -11,10 +11,10 @@ Last updated: 2026-10-21
 
 ### In progress
 
-- 44b: start in `app/src/lib/badges.ts` — add a pure `buildSeriesTrails(sections)` view model
-  (one trail per series: nodes in tier order, current node = first locked, singles split out per
-  category) with tests; then `app/src/components/BadgeTrail.tsx` and swap the flat grid in
-  `BadgesScreen.tsx`; hero header last.
+- 44b: view model `buildSeriesTrails`/`tierTally` landed in `app/src/lib/badges.ts`. Next:
+  `app/src/components/BadgeTrail.tsx` (row + series sheet content), then BadgesScreen swap, then
+  hero header (`BadgesHero.tsx`). Decision: tapping a tier in the series sheet closes it and opens
+  the existing single-badge sheet (no embedding). `Screen` already has `scrollRef`.
 
 ### Next
 

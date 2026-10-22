@@ -8,6 +8,8 @@ import {
   earnedDuringLabel,
   progressText,
   seriesContext,
+  buildSeriesTrails,
+  tierTally,
 } from './badges';
 import { earnedRow, emptyBadgeFacts } from './badges.fixtures';
 import { iconMap } from '../ui';
@@ -165,5 +167,89 @@ describe('glossary', () => {
     const term = GLOSSARY.flatMap((g) => g.terms).find((t) => t.term === 'Badges');
     expect(term?.definition).toMatch(/for good/);
     expect(term?.definition).toMatch(/no streaks/);
+  });
+});
+
+describe('buildSeriesTrails', () => {
+  const facts = emptyBadgeFacts({ sessionsCompleted: 20 });
+  const shelf = buildBadgeShelf(
+    [earnedRow('sessions_1'), earnedRow('sessions_5'), earnedRow('sessions_10')],
+    facts,
+  );
+  const sections = buildSeriesTrails(shelf.sections);
+  const showing = sections.find((s) => s.category === 'showing_up')!;
+
+  it('makes a trail of each multi-badge series and collects the one-offs as singles', () => {
+    const sessions = showing.trails.find((t) => t.series === 'sessions')!;
+    expect(sessions.nodes).toHaveLength(8);
+    expect(sessions.nodes[0]!.def.id).toBe('sessions_1');
+    expect(sessions.earnedCount).toBe(3);
+    expect(sessions.currentIndex).toBe(3);
+    expect(sessions.current!.def.id).toBe('sessions_25');
+    expect(sessions.title).toBe(sessions.current!.def.name);
+    expect(sessions.subtitle).toBe('20 of 25');
+    expect(showing.trails.every((t) => t.nodes.length >= 2)).toBe(true);
+    expect(showing.singles.map((b) => b.def.id)).toContain('all_rounder_4');
+    // Every shown badge lands in exactly one place.
+    for (const s of sections) {
+      const placed = s.trails.reduce((n, t) => n + t.nodes.length, 0) + s.singles.length;
+      expect(placed).toBe(s.total);
+    }
+    expect(sections.reduce((n, s) => n + s.earned, 0)).toBe(3);
+  });
+
+  it('a finished trail is named for its last badge and counted as all earned', () => {
+    const ids = BADGES.filter((b) => b.series === 'sessions').map((b) => b.id);
+    const done = buildSeriesTrails(
+      buildBadgeShelf(
+        ids.map((id) => earnedRow(id)),
+        facts,
+      ).sections,
+    );
+    const t = done[0]!.trails.find((x) => x.series === 'sessions')!;
+    expect(t.current).toBeNull();
+    expect(t.currentIndex).toBe(-1);
+    expect(t.subtitle).toBe('All 8 earned');
+    expect(t.title).toBe(getBadge(ids[ids.length - 1]!)!.name);
+  });
+
+  it('keeps passport series out while Passport is off, and in when on', () => {
+    const all = (s: typeof sections) => s.flatMap((x) => x.trails.map((t) => t.series));
+    expect(all(sections)).not.toContain('cities');
+    const on = buildSeriesTrails(
+      buildBadgeShelf([], emptyBadgeFacts({ passportEnabled: true })).sections,
+    );
+    expect(all(on)).toContain('cities');
+  });
+
+  it('never names a locked hidden badge', () => {
+    const singles = sections.flatMap((s) => s.singles);
+    const early = singles.find((b) => b.def.id === 'early_bird_1')!;
+    expect(early.mystery).toBe(true);
+    // A trail whose current node were hidden would read "Hidden badge", never its real name.
+    const fake = buildSeriesTrails([
+      {
+        category: 'showing_up',
+        title: 'x',
+        badges: [
+          { ...early, def: { ...early.def, series: 's' } },
+          { ...early, def: { ...early.def, series: 's' } },
+        ],
+      },
+    ]);
+    expect(fake[0]!.trails[0]!.title).toBe('Hidden badge');
+    expect(fake[0]!.trails[0]!.subtitle).toBe('0 of 2 earned');
+  });
+});
+
+describe('tierTally', () => {
+  it('counts earned badges by tier', () => {
+    const shelf = buildBadgeShelf(
+      [earnedRow('sessions_1'), earnedRow('sessions_5')],
+      emptyBadgeFacts(),
+    );
+    const t = tierTally(shelf);
+    expect(t.bronze + t.silver + t.gold + t.summit).toBe(2);
+    expect(t.summit).toBe(0);
   });
 });
