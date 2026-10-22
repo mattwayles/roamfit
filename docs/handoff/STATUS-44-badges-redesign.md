@@ -1,6 +1,6 @@
 ## Track: 44 — Badges page redesign
 
-Last updated: 2026-10-21
+Last updated: 2026-10-21 (track done)
 
 ### Done
 
@@ -20,10 +20,9 @@ Last updated: 2026-10-21
 
 ### In progress
 
-- 44d item 4: one-line category intros (`CATEGORY_INTROS` in `lib/badges.ts`, shown under each
-  section eyebrow on BadgesScreen) + test. Then mark the track done, prune BACKLOG.
+- Nothing. Track 44 (a-d) is DONE. Only the device passes in BACKLOG remain.
 
-### Done (44d item 3)
+### Done (44d, items 3-4)
 
 - [x] item 3: `AlmostThereCard` (thin bar, "Within reach today"), `withinReach` rule, Generate route
       params `difficulty`/`minutes` pre-filled in GenerateScreen state. The label+action also show
@@ -33,6 +32,7 @@ Last updated: 2026-10-21
       minutes (<=20 left) and reps (<=100 left). comeback/active_weeks/climbing/best sets never.
       Clean sweep, sessions, minutes, reps get the label without an action (no Generate setting
       maps directly).
+- [x] item 4: `CATEGORY_INTROS` under each section eyebrow (`badges-intro-<category>`) - see git log
 
 ### Next
 

@@ -5,6 +5,8 @@ import {
   badgeShareText,
   buildBadgeShelf,
   buildBadgeTimeline,
+  CATEGORY_INTROS,
+  CATEGORY_TITLES,
   completionBadges,
   secretsFound,
   earnedDuringLabel,
@@ -344,5 +346,18 @@ describe('withinReach', () => {
     expect(progressFraction({ current: 5, target: 10, fraction: 0.5 })).toBe(0.5);
     expect(progressFraction({ current: 0, target: 10, fraction: -1 })).toBe(0);
     expect(progressFraction({ current: 12, target: 10, fraction: 1.2 })).toBe(1);
+  });
+});
+
+describe('CATEGORY_INTROS', () => {
+  it('has one positive line per category, in step with the glossary wording', () => {
+    const badgesTerm = GLOSSARY.flatMap((g) => g.terms).find((t) => t.term === 'Badges')!;
+    for (const category of Object.keys(CATEGORY_TITLES) as (keyof typeof CATEGORY_TITLES)[]) {
+      expect(CATEGORY_INTROS[category].length).toBeGreaterThan(10);
+      expect(CATEGORY_INTROS[category]).not.toMatch(
+        /\b(need|left|remaining|missing|behind|streak)\b/i,
+      );
+    }
+    expect(badgesTerm.definition).toMatch(/climbing the ladders/);
   });
 });

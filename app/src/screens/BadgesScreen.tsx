@@ -17,6 +17,7 @@ import { useStore } from '../state/StoreContext';
 import { nowUtcInstant } from '../lib/localClock';
 import {
   badgeShareText,
+  CATEGORY_INTROS,
   buildBadgeTimeline,
   buildSeriesTrails,
   earnedDuringLabel,
@@ -212,6 +213,9 @@ export default function BadgesScreen({ navigation }: Props): React.JSX.Element {
         >
           <Txt variant="eyebrow" color="text3" accessibilityRole="header">
             {section.title}
+          </Txt>
+          <Txt variant="small" color="text2" testID={`badges-intro-${section.category}`}>
+            {CATEGORY_INTROS[section.category]}
           </Txt>
           {section.trails.map((trail) => (
             <BadgeTrail

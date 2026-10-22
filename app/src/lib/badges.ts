@@ -67,6 +67,15 @@ export const CATEGORY_TITLES: Record<BadgeCategory, string> = {
   exploring: 'Exploring',
 };
 
+/** One line under each section eyebrow. Worded after the Badges entry in the glossary
+ *  ("showing up, climbing the ladders, pushing a little harder, and exploring"). */
+export const CATEGORY_INTROS: Record<BadgeCategory, string> = {
+  showing_up: 'Every workout you finish counts.',
+  climbing: 'Moving up your exercise ladders.',
+  pushing: 'Pushing a little harder.',
+  exploring: 'Trying new exercises and new places.',
+};
+
 /** "12 of 25" - neutral, never a remainder. Long timer totals stay as plain numbers. */
 export function progressText(p: BadgeProgress): string {
   return `${p.current} of ${p.target}`;

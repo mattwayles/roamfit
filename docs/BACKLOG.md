@@ -35,6 +35,11 @@ the record of what was completed and why.
   its single success haptic), the slow summit shimmer on the page, tilt-to-sheen on an earned
   gold/summit sheet emblem (smooth? does it fight the sheet's swipe-down?), medium impact on opening
   a summit badge. With Reduce Motion on, all of it should be static.
+- **Badges page 44d — device pass owed.** Collection | Timeline chips (layout, month groups, the
+  workout link), the Almost there card bar, and "Within reach today" with its Generate pre-fill
+  (Hard, a 45 min long haul, a recovery week: the setting is selected on Generate, nothing runs
+  until Build my session). Also: the hero's category patches do nothing while Timeline is showing
+  (they scroll the Collection sections); decide if they should switch back to Collection.
 - **Today / Journey / Field guide headers (Track 41) — device pass owed.** The Today header is the
   logo alone, centred (now 72pt) with the gear on the right: glow not clipped, size right in
   Midnight and Daybreak, gear never overlaps the logo on a small phone. The Journey / Field guide

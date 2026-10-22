@@ -38,6 +38,10 @@ describe('BadgesScreen timeline', () => {
     await waitFor(() => expect(screen.getByTestId('trail-sessions')).toBeTruthy(), WAIT_OPTS);
     expect(screen.queryByTestId('badge-timeline')).toBeNull();
 
+    expect(screen.getByTestId('badges-intro-climbing').props.children).toBe(
+      'Moving up your exercise ladders.',
+    );
+
     // Hidden badges: a "secrets found" line, and a locked one shows its riddle, never its name.
     expect(screen.getByTestId('badges-secrets').props.children).toMatch(/^0 of \d+ secrets found$/);
     await fireEvent.press(screen.getByTestId('badge-early_bird_1'));
