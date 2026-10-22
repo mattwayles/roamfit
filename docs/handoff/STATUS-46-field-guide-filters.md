@@ -1,16 +1,17 @@
 ## Track: 46 — Field Guide filter redesign
-Last updated: 2026-10-21
+Last updated: 2026-10-21 (46c done)
 Files: app/src/screens/ExercisesScreen.tsx, app/src/lib/exerciseCatalog.ts (state, predicates),
 app/src/lib/filterLabels.ts (human labels), tests beside each.
 
 ### Done
 - [x] 46a — engine-only dimensions out, human labels, "No gear" quick chip, live "Show N moves" (commit 8044458)
 - [x] 46b — four collapsible sheet groups, body-area/movement-family grouping, No gear/Band choice, human muscle names on rows (lib 30d8bba; sheet, components, tests a829c5b)
+- [x] 46c — limitations switch (commit d2f02f7)
 
 ### In progress
-- 46c not started: find the saved-limitations store field (and the engine's limitation ->
-  contraindication mapping), then replace the `contraindication` chips at the bottom of the sheet
-  (ExercisesScreen.tsx, the "Limitations" block after the FilterSection map) with one switch.
+- 46d not started: tap-the-body picker for Body area. Start by reading app/src/components/MuscleMap.tsx
+  and the muscle-map data (muscleMap.ts), then add a front/back toggle picker in the "What it works"
+  section writing to `filters.primary` (chips stay as the accessible fallback).
 
 ### Next
 - (done) 46b: reorganise the sheet into four collapsible groups — "What it works" (Focus + Body area:
@@ -68,3 +69,14 @@ app/src/lib/filterLabels.ts (human labels), tests beside each.
   sheet (the quick chip still says "Completed").
 - Tests: open a section first (`openSection` helper in ExercisesScreen.test.tsx) before pressing
   chips in a closed section; RNTL string toHaveTextContent is an exact match.
+- 46c: the `contraindication` filter dimension is gone (state, options, labels, CONTRAINDICATION_LABELS;
+  detail screen uses formatToken and is untouched). New toggle `suitsLimitations` ("Suits my limitations")
+  rides TOGGLE_KEYS, so it counts in activeFilterCount, shows as a removable quick-row chip and in the
+  "Your fit" summary. The switch row lives in "Your fit", default OFF (filters elsewhere start empty; no
+  precedent for defaulting on). Exclusion semantics: `filterExercises(..., injury?)` calls the engine's
+  `isInjuryEligible` (exported from hardFilters/index, no behaviour change), fed by
+  `usersRepo.buildUserProfile(db, today).limitations` (Settings choices + unexpired pain_reports; same
+  expiry rule, local_date from nowEngineClock), re-read on focus. No limitations: switch disabled, note
+  "No limitations saved." plus a link that closes the sheet and navigates to the Limitations screen;
+  stays enabled if already on so it can be turned off. Not filtered: anchors/equipment/disabled
+  exercises (generation also gates those; this switch is limitations only).
