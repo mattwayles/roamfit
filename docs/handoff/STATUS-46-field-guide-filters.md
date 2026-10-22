@@ -5,7 +5,7 @@ app/src/lib/filterLabels.ts (human labels), tests beside each.
 
 ### Done
 - [x] 46a — engine-only dimensions out, human labels, "No gear" quick chip, live "Show N moves" (commit 8044458)
-- [x] 46b — four collapsible sheet groups, body-area/movement-family grouping, No gear/Band choice, human muscle names on rows (lib 30d8bba; sheet + components + tests in the commit after it, see git log)
+- [x] 46b — four collapsible sheet groups, body-area/movement-family grouping, No gear/Band choice, human muscle names on rows (lib 30d8bba; sheet, components, tests a829c5b)
 
 ### In progress
 - 46c not started: find the saved-limitations store field (and the engine's limitation ->
